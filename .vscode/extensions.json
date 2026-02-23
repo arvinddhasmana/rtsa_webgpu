@@ -1,45 +1,35 @@
 {
-  // CLASSIFICATION: UNCLASSIFIED
-  // RTSA — Recommended VS Code Extensions
-  "recommendations": [
-    // ── GitHub Copilot ──────────────────────────────────────────────────────────
-    "github.copilot",
-    "github.copilot-chat",
-    "github.vscode-pull-request-github",
-
-    // ── Go ──────────────────────────────────────────────────────────────────────
-    "golang.go",
-
-    // ── Protobuf ────────────────────────────────────────────────────────────────
-    "zxh404.vscode-proto3",
-    "pbkit.vscode-pbkit",
-
-    // ── React / TypeScript ───────────────────────────────────────────────────────
-    "esbenp.prettier-vscode",
-    "dbaeumer.vscode-eslint",
-    "bradlc.vscode-tailwindcss",
-
-    // ── YAML / Config ────────────────────────────────────────────────────────────
-    "redhat.vscode-yaml",
-
-    // ── Markdown ─────────────────────────────────────────────────────────────────
-    "yzhang.markdown-all-in-one",
-    "davidanson.vscode-markdownlint",
-
-    // ── Docker / Container ────────────────────────────────────────────────────────
-    "ms-azuretools.vscode-docker",
-
-    // ── Git ──────────────────────────────────────────────────────────────────────
-    "eamodio.gitlens",
-    "donjayamanne.githistory",
-
-    // ── Security ─────────────────────────────────────────────────────────────────
-    "snyk-security.snyk-vulnerability-scanner",
-
-    // ── Testing ──────────────────────────────────────────────────────────────────
-    "hbenl.vscode-test-explorer",
-
-    // ── REST / gRPC Clients ───────────────────────────────────────────────────────
-    "humao.rest-client"
-  ]
+    // CLASSIFICATION: UNCLASSIFIED
+    // RTSA — Recommended VS Code Extensions
+    "recommendations": [
+        // ── GitHub Copilot ──────────────────────────────────────────────────────────
+        "github.copilot",
+        "github.copilot-chat",
+        "github.vscode-pull-request-github",
+        // ── Go ──────────────────────────────────────────────────────────────────────
+        "golang.go",
+        // ── Protobuf ────────────────────────────────────────────────────────────────
+        "zxh404.vscode-proto3",
+        "pbkit.vscode-pbkit",
+        // ── React / TypeScript ───────────────────────────────────────────────────────
+        "esbenp.prettier-vscode",
+        "dbaeumer.vscode-eslint",
+        "bradlc.vscode-tailwindcss",
+        // ── YAML / Config ────────────────────────────────────────────────────────────
+        "redhat.vscode-yaml",
+        // ── Markdown ─────────────────────────────────────────────────────────────────
+        "yzhang.markdown-all-in-one",
+        "davidanson.vscode-markdownlint",
+        // ── Docker / Container ────────────────────────────────────────────────────────
+        "ms-azuretools.vscode-docker",
+        // ── Git ──────────────────────────────────────────────────────────────────────
+        "eamodio.gitlens",
+        "donjayamanne.githistory",
+        // ── Security ─────────────────────────────────────────────────────────────────
+        "snyk-security.snyk-vulnerability-scanner",
+        // ── Testing ──────────────────────────────────────────────────────────────────
+        "hbenl.vscode-test-explorer",
+        // ── REST / gRPC Clients ───────────────────────────────────────────────────────
+        "humao.rest-client"
+    ]
 }

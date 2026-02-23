@@ -17,6 +17,7 @@ This directory contains the **custom AI Agent profiles** for the RTSA project, c
 | **Scope** | End-to-end feature implementation |
 
 **Purpose:** Performs the complete development lifecycle for an assigned feature:
+
 - Reads SDLC guidelines and architecture documentation
 - Performs impact analysis before writing any code
 - Implements the feature following all RTSA coding standards
@@ -25,9 +26,11 @@ This directory contains the **custom AI Agent profiles** for the RTSA project, c
 - Creates a PR against `main` with full documentation
 
 **How to invoke in Copilot Chat:**
+
 1. Open the Copilot Chat panel (`Ctrl+Alt+I`)
 2. Click the agent selector (paperclip / `@`) and choose `greatest-ever-developer`
 3. Provide the feature description or paste the issue/use-case reference:
+
    ```
    @greatest-ever-developer Implement UC009 anomaly detection alert threshold configuration.
    Issue: #42
@@ -44,6 +47,7 @@ This directory contains the **custom AI Agent profiles** for the RTSA project, c
 | **Scope** | PR code review and merge/block decision |
 
 **Purpose:** Performs exhaustive code review on a PR:
+
 - Loads all relevant SDLC guidelines and security controls
 - Runs automated build, vet, and test checks
 - Reviews for security violations, classification compliance, architecture conformance, and code quality
@@ -52,9 +56,11 @@ This directory contains the **custom AI Agent profiles** for the RTSA project, c
 - Posts `Handover to Human` if merge conflicts cannot be auto-resolved
 
 **How to invoke in Copilot Chat:**
+
 1. Open the Copilot Chat panel (`Ctrl+Alt+I`)
 2. Click the agent selector and choose `meanest-ever-reviewer`
 3. Provide the PR number or URL:
+
    ```
    @meanest-ever-reviewer Review PR #57 for UC009 anomaly detection feature.
    ```
@@ -109,7 +115,9 @@ Developer / Issue Assignment
 ## Configuration
 
 ### VS Code Settings
+
 Agent mode and prompt files are enabled in [.vscode/settings.json](../.vscode/settings.json):
+
 ```json
 {
   "github.copilot.chat.experimental.agentDesktop": true,
@@ -120,6 +128,7 @@ Agent mode and prompt files are enabled in [.vscode/settings.json](../.vscode/se
 ```
 
 ### Repository-Level Instructions
+
 Both agents inherit the global RTSA policy from [.github/copilot-instructions.md](../copilot-instructions.md), which is automatically loaded by GitHub Copilot for every interaction.
 
 ---
