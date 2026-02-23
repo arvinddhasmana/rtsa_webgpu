@@ -78,6 +78,29 @@ When performing any task, load the **Master Policy** first, then load the task-s
 | Anti-Poisoning | Wasm Data Transforms / Go middleware | Feedback trust validation |
 | Interoperability | STANAG 5516 / NFFI / MIP adapters | NATO data exchange |
 
+## Custom AI Agent Profiles
+
+This repository includes two purpose-built GitHub Copilot AI Agent profiles located in `.github/prompts/`. Both agents automatically inherit all global constraints defined in this file.
+
+| Agent | Prompt File | Role |
+|---|---|---|
+| **Greatest Ever Developer** | `.github/prompts/greatest-ever-developer.prompt.md` | End-to-end feature implementation, test generation, validation, PR creation |
+| **Meanest Ever Reviewer** | `.github/prompts/meanest-ever-reviewer.prompt.md` | PR code review, SDLC compliance enforcement, merge or block with comments |
+
+### Greatest Ever Developer
+Performs the complete development lifecycle: reads architecture and SDLC docs, conducts impact analysis, implements the feature, generates unit/integration/E2E tests, runs an optimised validation cycle, and raises a PR against `main`.
+
+**Invoke:** `@greatest-ever-developer <feature description or issue reference>`
+
+### Meanest Ever Reviewer
+Performs exhaustive, non-negotiable code review: verifies CI, enforces security and classification rules, checks architecture conformance, validates test completeness, then either merges (squash) or blocks with detailed actionable comments. Posts `Handover to Human` if merge conflicts cannot be auto-resolved.
+
+**Invoke:** `@meanest-ever-reviewer Review PR #<number> for <feature>`
+
+> Full agent documentation: `.github/prompts/README.md`
+
+---
+
 ## Output Validation Rules
 
 Before submitting any generated code or documentation, validate against:
