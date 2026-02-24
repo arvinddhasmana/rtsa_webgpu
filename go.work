@@ -2,6 +2,8 @@
 go 1.22.0
 
 use (
+	./gen/go
+	./wasm-transforms
 	./pkg
 	./svc-radar-ingestion
 	./svc-ew-ingestion
