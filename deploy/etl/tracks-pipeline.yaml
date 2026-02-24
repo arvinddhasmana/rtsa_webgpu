@@ -1,0 +1,117 @@
+# CLASSIFICATION: UNCLASSIFIED
+# deploy/etl/tracks-pipeline.yaml
+#
+# ETL Pipeline: Fused Tracks -> ClickHouse
+# Materializes track state from all 5 fused track topics into the tracks_fused table.
+# Consumer group: rpconnect-clickhouse-tracks
+# Target table:   rtsa.tracks_fused (TTL: 90 days)
+
+input:
+  kafka_franz:
+    seed_brokers:
+      - "${REDPANDA_BROKERS}"
+    topics:
+      - tracks.fused.surface
+      - tracks.fused.air
+      - tracks.fused.subsurface
+      - tracks.fused.land
+      - tracks.fused.cyber
+    consumer_group: "rpconnect-clickhouse-tracks"
+    start_from_oldest: true
+    tls:
+      enabled: true
+      root_cas_file: /certs/ca.crt
+      cert_file: /certs/client.crt
+      key_file: /certs/client.key
+
+pipeline:
+  processors:
+    - protobuf:
+        operator: from_binary
+        message: rtsa.entity.v1.FusedTrack
+        import_paths:
+          - "/proto"
+    - mapping: |
+        root.track_id = this.track_id
+        root.entity_type = match this.entity_type {
+          1 => "SURFACE",
+          2 => "AIR",
+          3 => "SUBSURFACE",
+          4 => "LAND",
+          5 => "CYBER",
+          _ => "UNSPECIFIED"
+        }
+        root.hostile_classification = match this.hostile_class {
+          1 => "HOSTILE",
+          2 => "FRIENDLY",
+          3 => "NEUTRAL",
+          4 => "UNKNOWN",
+          _ => "UNSPECIFIED"
+        }
+        root.latitude = this.estimated_position.latitude
+        root.longitude = this.estimated_position.longitude
+        root.altitude_meters = this.estimated_position.altitude_meters.or(null)
+        root.speed_knots = this.estimated_position.speed_knots.or(null)
+        root.heading_degrees = this.estimated_position.heading_degrees.or(null)
+        root.confidence_score = this.confidence_score
+        root.source_count = this.source_count
+        root.source_sensors = this.sources.map_each(s -> s.sensor_id)
+        root.classification_level = match this.classification {
+          1 => "UNCLASSIFIED",
+          2 => "PROTECTED_A",
+          3 => "PROTECTED_B",
+          4 => "PROTECTED_C",
+          5 => "SECRET",
+          _ => "UNCLASSIFIED"
+        }
+        root.track_status = match this.status {
+          1 => "NEW",
+          2 => "ACTIVE",
+          3 => "STALE",
+          4 => "DROPPED",
+          5 => "MERGED",
+          _ => "ACTIVE"
+        }
+        root.event_time = this.updated_at
+    - filter:
+        # Reject messages without a valid track_id (data quality guard)
+        bloblang: 'root = if this.track_id == "" { deleted() }'
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT:-9000}/${CLICKHOUSE_DATABASE:-rtsa}"
+    table: tracks_fused
+    columns:
+      - track_id
+      - entity_type
+      - hostile_classification
+      - latitude
+      - longitude
+      - altitude_meters
+      - speed_knots
+      - heading_degrees
+      - confidence_score
+      - source_count
+      - source_sensors
+      - classification_level
+      - track_status
+      - event_time
+    batching:
+      count: 1000
+      period: "5s"
+    max_in_flight: 4
+
+metrics:
+  prometheus:
+    prefix: "rtsa_etl_tracks"
+    push_url: "http://${PROMETHEUS_PUSHGATEWAY:-localhost:9091}"
+    push_interval: "30s"
+
+logger:
+  level: INFO
+  format: json
+  add_timestamp: true
+  static_fields:
+    pipeline: "tracks-etl"
+    classification: "UNCLASSIFIED"

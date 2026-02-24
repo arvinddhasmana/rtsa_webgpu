@@ -1,0 +1,114 @@
+# CLASSIFICATION: UNCLASSIFIED
+# deploy/etl/audit-pipeline.yaml
+#
+# ETL Pipeline: Audit Events -> ClickHouse
+# Materializes all audit events from the audit.events topic into the audit_log table.
+#
+# CRITICAL COMPLIANCE NOTE:
+#   The audit_log table has NO TTL — data is retained INDEFINITELY.
+#   This is mandatory per ITSG-33 accountability requirements.
+#   Do NOT add TTL to the audit_log table definition.
+#   Do NOT configure data expiry or deletion for this pipeline.
+#
+# Consumer group: rpconnect-clickhouse-audit
+# Target table:   rtsa.audit_log (NO TTL — indefinite retention)
+
+input:
+  kafka_franz:
+    seed_brokers:
+      - "${REDPANDA_BROKERS}"
+    topics:
+      - audit.events
+    consumer_group: "rpconnect-clickhouse-audit"
+    start_from_oldest: true
+    tls:
+      enabled: true
+      root_cas_file: /certs/ca.crt
+      cert_file: /certs/client.crt
+      key_file: /certs/client.key
+
+pipeline:
+  processors:
+    - protobuf:
+        operator: from_binary
+        message: rtsa.audit.v1.AuditEvent
+        import_paths:
+          - "/proto"
+    - mapping: |
+        root.audit_id = this.audit_id
+        root.service_id = this.service_id
+        root.event_type = this.event_type
+        root.actor_id = this.actor_id
+        root.actor_type = match this.actor_type {
+          1 => "SERVICE",
+          2 => "OPERATOR",
+          3 => "SYSTEM",
+          _ => "SERVICE"
+        }
+        root.resource_type = this.resource_type
+        root.resource_id = this.resource_id
+        root.action = match this.action {
+          1 => "CREATE",
+          2 => "READ",
+          3 => "UPDATE",
+          4 => "DELETE",
+          5 => "QUERY",
+          6 => "INGEST",
+          7 => "EXPORT",
+          8 => "AUTHENTICATE",
+          9 => "AUTHORIZE",
+          10 => "CLASSIFY",
+          11 => "FEEDBACK",
+          _ => "UNSPECIFIED"
+        }
+        root.detail_json = this.detail_json
+        root.classification_level = match this.classification_level {
+          1 => "UNCLASSIFIED",
+          2 => "PROTECTED_A",
+          3 => "PROTECTED_B",
+          4 => "PROTECTED_C",
+          5 => "SECRET",
+          _ => "UNCLASSIFIED"
+        }
+        root.event_time = this.event_time
+    - filter:
+        bloblang: 'root = if this.audit_id == "" { deleted() }'
+
+output:
+  sql_insert:
+    driver: clickhouse
+    # IMPORTANT: audit_log has NO TTL — do not configure row expiry here.
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT:-9000}/${CLICKHOUSE_DATABASE:-rtsa}"
+    table: audit_log
+    columns:
+      - audit_id
+      - service_id
+      - event_type
+      - actor_id
+      - actor_type
+      - resource_type
+      - resource_id
+      - action
+      - detail_json
+      - classification_level
+      - event_time
+    batching:
+      count: 500
+      period: "5s"
+    max_in_flight: 2
+
+metrics:
+  prometheus:
+    prefix: "rtsa_etl_audit"
+    push_url: "http://${PROMETHEUS_PUSHGATEWAY:-localhost:9091}"
+    push_interval: "30s"
+
+logger:
+  level: INFO
+  format: json
+  add_timestamp: true
+  static_fields:
+    pipeline: "audit-etl"
+    classification: "UNCLASSIFIED"
+    # This pipeline handles audit data — do not log message payloads
+    pii_safe: "true"

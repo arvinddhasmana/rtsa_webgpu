@@ -1,0 +1,103 @@
+# CLASSIFICATION: UNCLASSIFIED
+# deploy/etl/sensors-pipeline.yaml
+#
+# ETL Pipeline: Sensor Observations -> ClickHouse
+# Materializes raw sensor observation records from 7 sensor topics
+# into the sensor_observations table for historical analysis.
+# Consumer group: rpconnect-clickhouse-sensors
+# Target table:   rtsa.sensor_observations (TTL: 90 days)
+
+input:
+  kafka_franz:
+    seed_brokers:
+      - "${REDPANDA_BROKERS}"
+    topics:
+      - sensors.radar.tracks
+      - sensors.ew.intercepts
+      - sensors.elint.detections
+      - sensors.isr.observations
+      - sensors.ais.positions
+      - sensors.cyber.iocs
+      - sensors.nato.link16
+    consumer_group: "rpconnect-clickhouse-sensors"
+    start_from_oldest: true
+    tls:
+      enabled: true
+      root_cas_file: /certs/ca.crt
+      cert_file: /certs/client.crt
+      key_file: /certs/client.key
+
+pipeline:
+  processors:
+    - protobuf:
+        operator: from_binary
+        message: rtsa.ingestion.v1.SensorObservation
+        import_paths:
+          - "/proto"
+    - mapping: |
+        root.observation_id = this.observation_id
+        root.sensor_id = this.sensor_id
+        root.sensor_type = match this.sensor_type {
+          1 => "RADAR",
+          2 => "EW_SIGINT",
+          3 => "ELINT_COMINT",
+          4 => "ISR",
+          5 => "AIS_BFT",
+          6 => "CYBER",
+          7 => "NATO",
+          _ => "UNSPECIFIED"
+        }
+        root.latitude = this.position.latitude.or(null)
+        root.longitude = this.position.longitude.or(null)
+        root.altitude_meters = this.position.altitude_meters.or(null)
+        root.speed_knots = this.position.speed_knots.or(null)
+        root.heading_degrees = this.position.heading_degrees.or(null)
+        root.classification_level = match this.classification {
+          1 => "UNCLASSIFIED",
+          2 => "PROTECTED_A",
+          3 => "PROTECTED_B",
+          4 => "PROTECTED_C",
+          5 => "SECRET",
+          _ => "UNCLASSIFIED"
+        }
+        # Store metadata as JSON string (no raw payload — only structured metadata keys)
+        root.metadata_json = this.metadata.string()
+        root.event_time = this.observation_time
+    - filter:
+        bloblang: 'root = if this.observation_id == "" { deleted() }'
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT:-9000}/${CLICKHOUSE_DATABASE:-rtsa}"
+    table: sensor_observations
+    columns:
+      - observation_id
+      - sensor_id
+      - sensor_type
+      - latitude
+      - longitude
+      - altitude_meters
+      - speed_knots
+      - heading_degrees
+      - classification_level
+      - metadata_json
+      - event_time
+    batching:
+      count: 1000
+      period: "5s"
+    max_in_flight: 4
+
+metrics:
+  prometheus:
+    prefix: "rtsa_etl_sensors"
+    push_url: "http://${PROMETHEUS_PUSHGATEWAY:-localhost:9091}"
+    push_interval: "30s"
+
+logger:
+  level: INFO
+  format: json
+  add_timestamp: true
+  static_fields:
+    pipeline: "sensors-etl"
+    classification: "UNCLASSIFIED"

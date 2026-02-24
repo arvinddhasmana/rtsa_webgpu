@@ -1,0 +1,100 @@
+# CLASSIFICATION: UNCLASSIFIED
+# deploy/etl/feedback-pipeline.yaml
+#
+# ETL Pipeline: Operator Feedback -> ClickHouse
+# Materializes operator feedback and validated feedback records
+# into the operator_feedback table.
+# Consumer group: rpconnect-clickhouse-feedback
+# Target table:   rtsa.operator_feedback (TTL: 730 days)
+
+input:
+  kafka_franz:
+    seed_brokers:
+      - "${REDPANDA_BROKERS}"
+    topics:
+      - feedback.operator.submissions
+      - feedback.operator.validated
+    consumer_group: "rpconnect-clickhouse-feedback"
+    start_from_oldest: true
+    tls:
+      enabled: true
+      root_cas_file: /certs/ca.crt
+      cert_file: /certs/client.crt
+      key_file: /certs/client.key
+
+pipeline:
+  processors:
+    - protobuf:
+        operator: from_binary
+        message: rtsa.feedback.v1.OperatorFeedback
+        import_paths:
+          - "/proto"
+    - mapping: |
+        root.feedback_id = this.feedback_id
+        root.track_id = this.track_id
+        root.operator_id = this.operator_id
+        root.feedback_type = match this.feedback_type {
+          1 => "CONFIRM_HOSTILE",
+          2 => "CONFIRM_FRIENDLY",
+          3 => "RECLASSIFY",
+          4 => "REJECT_ANOMALY",
+          5 => "CONFIRM_ANOMALY",
+          _ => "UNSPECIFIED"
+        }
+        root.justification = this.justification
+        root.trust_score = this.trust_score
+        root.clearance_score = this.trust_breakdown.clearance_score.or(0.0)
+        root.accuracy_score = this.trust_breakdown.accuracy_score.or(0.0)
+        root.temporal_score = this.trust_breakdown.temporal_score.or(0.0)
+        root.deviation_score = this.trust_breakdown.deviation_score.or(0.0)
+        # Mark as validated when sourced from the validated topic
+        root.validated = if meta("kafka_topic") == "feedback.operator.validated" { 1 } else { 0 }
+        root.classification_level = match this.classification {
+          1 => "UNCLASSIFIED",
+          2 => "PROTECTED_A",
+          3 => "PROTECTED_B",
+          4 => "PROTECTED_C",
+          5 => "SECRET",
+          _ => "UNCLASSIFIED"
+        }
+        root.event_time = this.submitted_at
+    - filter:
+        bloblang: 'root = if this.feedback_id == "" { deleted() }'
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT:-9000}/${CLICKHOUSE_DATABASE:-rtsa}"
+    table: operator_feedback
+    columns:
+      - feedback_id
+      - track_id
+      - operator_id
+      - feedback_type
+      - justification
+      - trust_score
+      - clearance_score
+      - accuracy_score
+      - temporal_score
+      - deviation_score
+      - validated
+      - classification_level
+      - event_time
+    batching:
+      count: 500
+      period: "5s"
+    max_in_flight: 2
+
+metrics:
+  prometheus:
+    prefix: "rtsa_etl_feedback"
+    push_url: "http://${PROMETHEUS_PUSHGATEWAY:-localhost:9091}"
+    push_interval: "30s"
+
+logger:
+  level: INFO
+  format: json
+  add_timestamp: true
+  static_fields:
+    pipeline: "feedback-etl"
+    classification: "UNCLASSIFIED"

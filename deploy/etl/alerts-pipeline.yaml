@@ -1,0 +1,99 @@
+# CLASSIFICATION: UNCLASSIFIED
+# deploy/etl/alerts-pipeline.yaml
+#
+# ETL Pipeline: Anomaly Alerts -> ClickHouse
+# Materializes anomaly detection results from 3 severity-partitioned topics
+# into the anomaly_detections table.
+# Consumer group: rpconnect-clickhouse-alerts
+# Target table:   rtsa.anomaly_detections (TTL: 365 days)
+
+input:
+  kafka_franz:
+    seed_brokers:
+      - "${REDPANDA_BROKERS}"
+    topics:
+      - alerts.anomaly.critical
+      - alerts.anomaly.elevated
+      - alerts.anomaly.watch
+    consumer_group: "rpconnect-clickhouse-alerts"
+    start_from_oldest: true
+    tls:
+      enabled: true
+      root_cas_file: /certs/ca.crt
+      cert_file: /certs/client.crt
+      key_file: /certs/client.key
+
+pipeline:
+  processors:
+    - protobuf:
+        operator: from_binary
+        message: rtsa.inference.v1.AnomalyAlert
+        import_paths:
+          - "/proto"
+    - mapping: |
+        root.alert_id = this.alert_id
+        root.track_id = this.track_id
+        root.anomaly_type = match this.anomaly_type {
+          1 => "SPEED",
+          2 => "ROUTE_DEVIATION",
+          3 => "AIS_MANIPULATION",
+          4 => "BEHAVIORAL",
+          5 => "TEMPORAL",
+          6 => "PROXIMITY",
+          _ => "UNSPECIFIED"
+        }
+        root.severity = match this.severity {
+          1 => "NORMAL",
+          2 => "WATCH",
+          3 => "ELEVATED",
+          4 => "CRITICAL",
+          _ => "NORMAL"
+        }
+        root.confidence_score = this.confidence_score
+        root.explanation = this.explanation
+        root.model_version = this.model_version
+        root.classification_level = match this.classification {
+          1 => "UNCLASSIFIED",
+          2 => "PROTECTED_A",
+          3 => "PROTECTED_B",
+          4 => "PROTECTED_C",
+          5 => "SECRET",
+          _ => "UNCLASSIFIED"
+        }
+        root.event_time = this.detected_at
+    - filter:
+        bloblang: 'root = if this.alert_id == "" { deleted() }'
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:${CLICKHOUSE_PORT:-9000}/${CLICKHOUSE_DATABASE:-rtsa}"
+    table: anomaly_detections
+    columns:
+      - alert_id
+      - track_id
+      - anomaly_type
+      - severity
+      - confidence_score
+      - explanation
+      - model_version
+      - classification_level
+      - event_time
+    batching:
+      count: 500
+      period: "5s"
+    max_in_flight: 2
+
+metrics:
+  prometheus:
+    prefix: "rtsa_etl_alerts"
+    push_url: "http://${PROMETHEUS_PUSHGATEWAY:-localhost:9091}"
+    push_interval: "30s"
+
+logger:
+  level: INFO
+  format: json
+  add_timestamp: true
+  static_fields:
+    pipeline: "alerts-etl"
+    classification: "UNCLASSIFIED"
