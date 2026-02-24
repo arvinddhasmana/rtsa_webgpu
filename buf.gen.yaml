@@ -1,0 +1,19 @@
+# CLASSIFICATION: UNCLASSIFIED
+version: v2
+plugins:
+  # Go code generation
+  - remote: buf.build/protocolbuffers/go
+    out: gen/go
+    opt:
+      - paths=source_relative
+  # Go gRPC code generation
+  - remote: buf.build/grpc/go
+    out: gen/go
+    opt:
+      - paths=source_relative
+      - require_unimplemented_servers=false
+  # TypeScript code generation (for COP Web App)
+  - remote: buf.build/connectrpc/es
+    out: gen/ts
+    opt:
+      - target=ts

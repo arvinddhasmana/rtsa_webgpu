@@ -1,0 +1,67 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.entity.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1";
+
+import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+
+// ──────────────────────────────────────────
+// Fused Track — multi-source correlated entity
+// ──────────────────────────────────────────
+message FusedTrack {
+  // UUID v7 (time-ordered)
+  string track_id = 1;
+  // Entity type (surface, air, subsurface, land, cyber)
+  rtsa.common.v1.EntityType entity_type = 2;
+  // IFF classification
+  rtsa.common.v1.HostileClassification hostile_class = 3;
+  // Kalman-filtered position estimate
+  rtsa.common.v1.Position estimated_position = 4;
+  // Overall confidence in the track (0.0 to 1.0)
+  double confidence_score = 5;
+  // Number of contributing sensors
+  uint32 source_count = 6;
+  // Attribution per contributing sensor
+  repeated SourceAttribution sources = 7;
+  // Track lifecycle status
+  rtsa.common.v1.TrackStatus status = 8;
+  // Data classification (MAX of all contributing sources)
+  rtsa.common.v1.ClassificationLevel classification = 9;
+  // Track creation time
+  google.protobuf.Timestamp created_at = 10;
+  // Last update time
+  google.protobuf.Timestamp updated_at = 11;
+  // Velocity estimate
+  rtsa.common.v1.Velocity velocity = 12;
+  // Kinematic state uncertainty (covariance diagonal)
+  optional KinematicUncertainty uncertainty = 13;
+  // Human-assigned label (if any)
+  optional string label = 14;
+  // Track age in seconds since creation
+  double age_seconds = 15;
+}
+
+message SourceAttribution {
+  // Sensor identifier
+  string sensor_id = 1;
+  // Sensor type
+  rtsa.common.v1.SensorType sensor_type = 2;
+  // Contribution confidence
+  double confidence = 3;
+  // Time of last contribution from this sensor
+  google.protobuf.Timestamp last_contribution = 4;
+  // Number of observations from this sensor
+  uint32 observation_count = 5;
+}
+
+message KinematicUncertainty {
+  // Position uncertainty semi-major axis in meters
+  double position_error_meters = 1;
+  // Velocity uncertainty in m/s
+  double velocity_error_mps = 2;
+  // Heading uncertainty in degrees
+  double heading_error_degrees = 3;
+}

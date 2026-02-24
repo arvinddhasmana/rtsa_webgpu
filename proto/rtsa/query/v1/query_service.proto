@@ -1,0 +1,113 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.query.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1;queryv1";
+
+import "rtsa/common/v1/types.proto";
+import "rtsa/entity/v1/fused_track.proto";
+import "rtsa/inference/v1/anomaly_alert.proto";
+
+// ──────────────────────────────────────────
+// Query Service — historical ClickHouse queries
+// ──────────────────────────────────────────
+service QueryService {
+  // Unary: query historical track data
+  // Deadline: 30s
+  // Guardrails: max 30-day range, max 100K rows, parameterized only
+  rpc QueryTracks(QueryTracksRequest) returns (QueryTracksResponse);
+
+  // Unary: query anomaly detection history
+  // Deadline: 30s
+  rpc QueryAnomalies(QueryAnomaliesRequest) returns (QueryAnomaliesResponse);
+
+  // Unary: query audit log
+  // Deadline: 30s
+  rpc QueryAuditLog(QueryAuditLogRequest) returns (QueryAuditLogResponse);
+}
+
+// ──── Track Queries ────────────────────────
+
+message QueryTracksRequest {
+  rtsa.common.v1.TimeRange time_range = 1;
+  // Filter by entity types (empty = all)
+  repeated rtsa.common.v1.EntityType entity_types = 2;
+  // Filter by hostile classification (empty = all)
+  repeated rtsa.common.v1.HostileClassification hostile_classes = 3;
+  // Spatial filter (empty = global)
+  optional rtsa.common.v1.BoundingBox bounding_box = 4;
+  // Minimum confidence
+  double min_confidence = 5;
+  // Track ID filter (empty = all)
+  optional string track_id = 6;
+  // Pagination
+  rtsa.common.v1.PaginationRequest pagination = 7;
+  // Caller's classification clearance
+  rtsa.common.v1.ClassificationLevel clearance_level = 8;
+}
+
+message QueryTracksResponse {
+  repeated rtsa.entity.v1.FusedTrack tracks = 1;
+  rtsa.common.v1.PaginationResponse pagination = 2;
+}
+
+// ──── Anomaly Queries ──────────────────────
+
+message QueryAnomaliesRequest {
+  rtsa.common.v1.TimeRange time_range = 1;
+  // Filter by anomaly types (empty = all)
+  repeated rtsa.common.v1.AnomalyType anomaly_types = 2;
+  // Filter by severity (empty = all)
+  repeated rtsa.common.v1.AlertSeverity severities = 3;
+  // Filter by track ID (optional)
+  optional string track_id = 4;
+  // Minimum confidence
+  double min_confidence = 5;
+  // Pagination
+  rtsa.common.v1.PaginationRequest pagination = 6;
+  // Caller's classification clearance
+  rtsa.common.v1.ClassificationLevel clearance_level = 7;
+}
+
+message QueryAnomaliesResponse {
+  repeated rtsa.inference.v1.AnomalyAlert alerts = 1;
+  rtsa.common.v1.PaginationResponse pagination = 2;
+}
+
+// ──── Audit Queries ────────────────────────
+
+message QueryAuditLogRequest {
+  rtsa.common.v1.TimeRange time_range = 1;
+  // Filter by service name (empty = all)
+  optional string service_id = 2;
+  // Filter by event type (empty = all)
+  optional string event_type = 3;
+  // Filter by actor (empty = all)
+  optional string actor_id = 4;
+  // Filter by resource type (empty = all)
+  optional string resource_type = 5;
+  // Pagination
+  rtsa.common.v1.PaginationRequest pagination = 6;
+  // Caller's classification clearance
+  rtsa.common.v1.ClassificationLevel clearance_level = 7;
+}
+
+message QueryAuditLogResponse {
+  repeated AuditLogEntry entries = 1;
+  rtsa.common.v1.PaginationResponse pagination = 2;
+}
+
+message AuditLogEntry {
+  string audit_id = 1;
+  string service_id = 2;
+  string event_type = 3;
+  string actor_id = 4;
+  string actor_type = 5;
+  string resource_type = 6;
+  string resource_id = 7;
+  string action = 8;
+  string detail_json = 9;
+  rtsa.common.v1.ClassificationLevel classification_level = 10;
+  string event_time = 11;
+}

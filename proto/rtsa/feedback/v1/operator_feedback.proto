@@ -1,0 +1,54 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.feedback.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1;feedbackv1";
+
+import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+
+// ──────────────────────────────────────────
+// Operator Feedback — human-in-the-loop
+// ──────────────────────────────────────────
+message OperatorFeedback {
+  // UUID v7 (time-ordered)
+  string feedback_id = 1;
+  // Track being evaluated
+  string track_id = 2;
+  // Operator submitting feedback (from mTLS cert in production)
+  string operator_id = 3;
+  // Type of feedback
+  rtsa.common.v1.FeedbackType feedback_type = 4;
+  // Operator's justification
+  string justification = 5;
+  // Computed trust score (0.0 to 1.0)
+  double trust_score = 6;
+  // Component breakdown of trust score
+  TrustBreakdown trust_breakdown = 7;
+  // Data classification
+  rtsa.common.v1.ClassificationLevel classification = 8;
+  // When feedback was submitted
+  google.protobuf.Timestamp submitted_at = 9;
+  // Associated alert ID (if feedback is about an anomaly)
+  optional string alert_id = 10;
+  // New hostile classification (for RECLASSIFY type)
+  optional rtsa.common.v1.HostileClassification new_hostile_class = 11;
+  // Operator's clearance level
+  rtsa.common.v1.ClassificationLevel operator_clearance = 12;
+}
+
+message TrustBreakdown {
+  // Clearance component: mapped from operator clearance level (0.0 to 1.0)
+  // SECRET=1.0, PROTECTED_C=0.85, PROTECTED_B=0.7, PROTECTED_A=0.5, UNCLASSIFIED=0.3
+  double clearance_score = 1;
+  // Accuracy component: historical accuracy ratio (0.0 to 1.0)
+  // Default 0.5 for new operators
+  double accuracy_score = 2;
+  // Temporal component: decay function based on time since event
+  // 1.0 within 5min, 0.5 at 30min, 0.1 at 2hr
+  double temporal_score = 3;
+  // Deviation component: 1 - divergence from consensus (0.0 to 1.0)
+  // 1.0 if matches majority, 0.0 if contradicts all
+  double deviation_score = 4;
+}
