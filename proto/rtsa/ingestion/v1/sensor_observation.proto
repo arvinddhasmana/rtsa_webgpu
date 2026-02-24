@@ -1,0 +1,193 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.ingestion.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1";
+
+import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+
+// ──────────────────────────────────────────
+// Base Sensor Observation
+// ──────────────────────────────────────────
+message SensorObservation {
+  // UUID v7 (time-ordered). Set by ingestion service.
+  string observation_id = 1;
+  // Source sensor identifier (e.g., "RADAR-HALIFAX-01")
+  string sensor_id = 2;
+  // Sensor type enum
+  rtsa.common.v1.SensorType sensor_type = 3;
+  // Time of observation at the sensor
+  google.protobuf.Timestamp observation_time = 4;
+  // Data classification level
+  rtsa.common.v1.ClassificationLevel classification = 5;
+  // Geographic position (optional — not all sensors provide position)
+  rtsa.common.v1.Position position = 6;
+  // Sensor-specific metadata as key-value pairs
+  map<string, string> metadata = 7;
+  // Sensor-specific payload — exactly one must be set
+  oneof sensor_data {
+    RadarTrack radar = 10;
+    EWIntercept ew_sigint = 11;
+    ELINTDetection elint_comint = 12;
+    ISRObservation isr = 13;
+    AISPosition ais_bft = 14;
+    CyberIOC cyber = 15;
+  }
+}
+
+// ──────────────────────────────────────────
+// Radar Track Report
+// ──────────────────────────────────────────
+message RadarTrack {
+  // Radar-assigned track number
+  string track_number = 1;
+  // Range from radar in nautical miles
+  double range_nm = 2;
+  // Bearing from radar in degrees true (0-360)
+  double bearing_degrees = 3;
+  // Radar cross-section in dBsm
+  optional double radar_cross_section_dbsm = 4;
+  // Target classification from radar (if available)
+  optional rtsa.common.v1.EntityType entity_type = 5;
+  // IFF mode code (if available)
+  optional string iff_code = 6;
+  // Signal-to-noise ratio in dB
+  optional double snr_db = 7;
+  // Track quality (0.0 to 1.0)
+  double track_quality = 8;
+}
+
+// ──────────────────────────────────────────
+// EW/SIGINT Intercept
+// ──────────────────────────────────────────
+message EWIntercept {
+  // Emitter identifier from emitter library
+  string emitter_id = 1;
+  // Center frequency in MHz. Range: 0.5 to 40000
+  double frequency_mhz = 2;
+  // Bandwidth in MHz
+  optional double bandwidth_mhz = 3;
+  // Signal power in dBm
+  optional double power_dbm = 4;
+  // Bearing from receiver in degrees true (0-360)
+  double bearing_degrees = 5;
+  // Pulse repetition interval in microseconds
+  optional double pri_microseconds = 6;
+  // Modulation type
+  string modulation_type = 7;
+  // Threat assessment level
+  optional string threat_level = 8;
+  // Intercept confidence (0.0 to 1.0)
+  double confidence = 9;
+}
+
+// ──────────────────────────────────────────
+// ELINT/COMINT Detection
+// ──────────────────────────────────────────
+message ELINTDetection {
+  // Emitter identifier
+  string emitter_id = 1;
+  // Radar type from emitter library (e.g., "SA-11 FIRE CONTROL")
+  string radar_type = 2;
+  // Center frequency in MHz
+  double frequency_mhz = 3;
+  // Pulse width in microseconds
+  optional double pulse_width_us = 4;
+  // Scan type (circular, sector, track-while-scan)
+  string scan_type = 5;
+  // Circular error probable in meters (geolocation accuracy)
+  double cep_meters = 6;
+  // Detection confidence (0.0 to 1.0)
+  double confidence = 7;
+  // Content classification may differ from metadata classification
+  rtsa.common.v1.ClassificationLevel content_classification = 8;
+}
+
+// ──────────────────────────────────────────
+// ISR Observation
+// ──────────────────────────────────────────
+message ISRObservation {
+  // ISR platform identifier
+  string platform_id = 1;
+  // Sensor type on platform (EO, IR, SAR, MTI)
+  string sensor_name = 2;
+  // Reference to imagery product (no raw imagery in stream)
+  string image_id = 3;
+  // Coverage area (polygon vertices as lat,lon pairs)
+  repeated rtsa.common.v1.Position coverage_polygon = 4;
+  // Ground sample distance in meters (resolution)
+  optional double gsd_meters = 5;
+  // Detection reports within this observation
+  repeated ISRDetection detections = 6;
+}
+
+message ISRDetection {
+  // Detection position
+  rtsa.common.v1.Position position = 1;
+  // Detected entity type
+  rtsa.common.v1.EntityType entity_type = 2;
+  // Detection confidence (0.0 to 1.0)
+  double confidence = 3;
+  // Description of detection
+  string description = 4;
+}
+
+// ──────────────────────────────────────────
+// AIS Position Report
+// ──────────────────────────────────────────
+message AISPosition {
+  // Maritime Mobile Service Identity (9 digits)
+  string mmsi = 1;
+  // IMO number (optional)
+  optional string imo_number = 2;
+  // Vessel name
+  string vessel_name = 3;
+  // AIS vessel type code (1-99)
+  int32 vessel_type_code = 4;
+  // Call sign
+  optional string call_sign = 5;
+  // Navigation status (per AIS spec)
+  string nav_status = 6;
+  // Rate of turn in degrees/min
+  optional double rate_of_turn = 7;
+  // Draught in meters
+  optional double draught_meters = 8;
+  // Destination port
+  optional string destination = 9;
+  // Estimated time of arrival
+  optional google.protobuf.Timestamp eta = 10;
+  // Whether this is a BFT position (classified PROTECTED)
+  bool is_bft = 11;
+  // AIS message type (1, 2, 3, 5, 18, 24)
+  int32 ais_message_type = 12;
+}
+
+// ──────────────────────────────────────────
+// Cyber Threat Indicator (IOC)
+// ──────────────────────────────────────────
+message CyberIOC {
+  // STIX indicator ID
+  string stix_id = 1;
+  // IOC type (ipv4-addr, domain-name, file:hashes, url)
+  string ioc_type = 2;
+  // IOC value
+  string ioc_value = 3;
+  // MITRE ATT&CK technique IDs
+  repeated string mitre_attack_ids = 4;
+  // Threat actor attribution (if known)
+  optional string threat_actor = 5;
+  // Malware family (if known)
+  optional string malware_family = 6;
+  // IOC confidence score (0.0 to 1.0)
+  double confidence = 7;
+  // STIX valid-from timestamp
+  google.protobuf.Timestamp valid_from = 8;
+  // STIX valid-until timestamp (optional)
+  optional google.protobuf.Timestamp valid_until = 9;
+  // Source feed name
+  string source_feed = 10;
+  // SHA-256 hash for deduplication
+  string dedup_hash = 11;
+}

@@ -1,0 +1,57 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.feedback.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1;feedbackv1";
+
+import "rtsa/feedback/v1/operator_feedback.proto";
+import "rtsa/common/v1/types.proto";
+import "google/protobuf/timestamp.proto";
+
+// ──────────────────────────────────────────
+// Feedback Service — operator feedback collection
+// ──────────────────────────────────────────
+service FeedbackService {
+  // Unary: submit operator feedback
+  // Deadline: 10s
+  rpc SubmitFeedback(SubmitFeedbackRequest) returns (SubmitFeedbackResponse);
+
+  // Unary: query feedback history
+  // Deadline: 15s
+  rpc GetFeedbackHistory(GetFeedbackHistoryRequest) returns (GetFeedbackHistoryResponse);
+}
+
+message SubmitFeedbackRequest {
+  string track_id = 1;
+  string operator_id = 2;
+  rtsa.common.v1.FeedbackType feedback_type = 3;
+  string justification = 4;
+  optional string alert_id = 5;
+  optional rtsa.common.v1.HostileClassification new_hostile_class = 6;
+  rtsa.common.v1.ClassificationLevel operator_clearance = 7;
+}
+
+message SubmitFeedbackResponse {
+  string feedback_id = 1;
+  double trust_score = 2;
+  TrustBreakdown trust_breakdown = 3;
+  bool validated = 4;  // true if trust_score >= 0.5
+  google.protobuf.Timestamp submitted_at = 5;
+}
+
+message GetFeedbackHistoryRequest {
+  // Filter by track ID (optional)
+  optional string track_id = 1;
+  // Filter by operator ID (optional)
+  optional string operator_id = 2;
+  // Time range
+  rtsa.common.v1.TimeRange time_range = 3;
+  // Pagination
+  rtsa.common.v1.PaginationRequest pagination = 4;
+}
+
+message GetFeedbackHistoryResponse {
+  repeated OperatorFeedback feedback = 1;
+  rtsa.common.v1.PaginationResponse pagination = 2;
+}

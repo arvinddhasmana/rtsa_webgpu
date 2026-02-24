@@ -1,0 +1,61 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.audit.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1;auditv1";
+
+import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+
+// ──────────────────────────────────────────
+// Audit Event — immutable audit trail
+// ──────────────────────────────────────────
+message AuditEvent {
+  // UUID v7 (time-ordered)
+  string audit_id = 1;
+  // Service that generated this event
+  string service_id = 2;
+  // Event type categorization
+  string event_type = 3;
+  // Actor: service name or operator ID
+  string actor_id = 4;
+  // Actor type
+  ActorType actor_type = 5;
+  // Resource being acted upon
+  string resource_type = 6;
+  // Resource identifier
+  string resource_id = 7;
+  // Action performed
+  AuditAction action = 8;
+  // JSON-encoded additional context
+  string detail_json = 9;
+  // Classification level of the audited operation
+  rtsa.common.v1.ClassificationLevel classification_level = 10;
+  // Event timestamp
+  google.protobuf.Timestamp event_time = 11;
+  // Correlation/trace ID for distributed tracing
+  string trace_id = 12;
+}
+
+enum ActorType {
+  ACTOR_TYPE_UNSPECIFIED = 0;
+  ACTOR_TYPE_SERVICE = 1;
+  ACTOR_TYPE_OPERATOR = 2;
+  ACTOR_TYPE_SYSTEM = 3;
+}
+
+enum AuditAction {
+  AUDIT_ACTION_UNSPECIFIED = 0;
+  AUDIT_ACTION_CREATE = 1;
+  AUDIT_ACTION_READ = 2;
+  AUDIT_ACTION_UPDATE = 3;
+  AUDIT_ACTION_DELETE = 4;
+  AUDIT_ACTION_QUERY = 5;
+  AUDIT_ACTION_INGEST = 6;
+  AUDIT_ACTION_EXPORT = 7;
+  AUDIT_ACTION_AUTHENTICATE = 8;
+  AUDIT_ACTION_AUTHORIZE = 9;
+  AUDIT_ACTION_CLASSIFY = 10;
+  AUDIT_ACTION_FEEDBACK = 11;
+}

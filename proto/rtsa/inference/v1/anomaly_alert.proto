@@ -1,0 +1,54 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.inference.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1";
+
+import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+
+// ──────────────────────────────────────────
+// Anomaly Alert — detection result
+// ──────────────────────────────────────────
+message AnomalyAlert {
+  // UUID v7 (time-ordered)
+  string alert_id = 1;
+  // Reference to the fused track that triggered this alert
+  string track_id = 2;
+  // Type of anomaly detected
+  rtsa.common.v1.AnomalyType anomaly_type = 3;
+  // Severity level based on confidence thresholds
+  rtsa.common.v1.AlertSeverity severity = 4;
+  // Anomaly confidence score (0.0 to 1.0)
+  double confidence_score = 5;
+  // Human-readable explanation of why this alert was raised
+  string explanation = 6;
+  // Contributing feature values
+  repeated FeatureContribution features = 7;
+  // Data classification (inherited from track)
+  rtsa.common.v1.ClassificationLevel classification = 8;
+  // Time of detection
+  google.protobuf.Timestamp detected_at = 9;
+  // Model version that produced this alert
+  string model_version = 10;
+  // Track position at time of detection
+  rtsa.common.v1.Position track_position = 11;
+  // Whether this alert has been acknowledged by an operator
+  bool acknowledged = 12;
+  // Track entity type (denormalized for filtering)
+  rtsa.common.v1.EntityType entity_type = 13;
+}
+
+message FeatureContribution {
+  // Feature name (e.g., "speed_delta", "heading_change_rate")
+  string feature_name = 1;
+  // Raw feature value
+  double value = 2;
+  // Weight of this feature in the anomaly score
+  double contribution_weight = 3;
+  // Baseline/expected value for comparison
+  optional double baseline_value = 4;
+  // Feature description for explanation
+  string description = 5;
+}

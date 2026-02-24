@@ -1,0 +1,80 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.entity.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1";
+
+import "rtsa/entity/v1/fused_track.proto";
+import "rtsa/common/v1/types.proto";
+import "google/protobuf/timestamp.proto";
+
+// ──────────────────────────────────────────
+// Track Service — real-time track streaming
+// ──────────────────────────────────────────
+service TrackService {
+  // Server-streaming: receive real-time track updates
+  // Sends initial snapshot then incremental updates
+  // Deadline: none (long-lived stream)
+  rpc StreamTracks(StreamTracksRequest) returns (stream TrackUpdate);
+
+  // Unary: get details of a specific track
+  // Deadline: 5s
+  rpc GetTrackDetails(GetTrackDetailsRequest) returns (FusedTrack);
+
+  // Unary: get recent position history for a track
+  // Deadline: 10s
+  rpc GetTrackHistory(GetTrackHistoryRequest) returns (TrackHistoryResponse);
+}
+
+message StreamTracksRequest {
+  // Filter by entity types (empty = all)
+  repeated rtsa.common.v1.EntityType entity_types = 1;
+  // Filter by hostile classification (empty = all)
+  repeated rtsa.common.v1.HostileClassification hostile_classes = 2;
+  // Filter by geographic bounding box (empty = global)
+  optional rtsa.common.v1.BoundingBox bounding_box = 3;
+  // Filter by minimum confidence score (default: 0.0)
+  double min_confidence = 4;
+  // Caller's classification clearance level
+  rtsa.common.v1.ClassificationLevel clearance_level = 5;
+}
+
+message TrackUpdate {
+  enum UpdateType {
+    UPDATE_TYPE_UNSPECIFIED = 0;
+    UPDATE_TYPE_SNAPSHOT = 1;    // Initial full state
+    UPDATE_TYPE_CREATED = 2;    // New track
+    UPDATE_TYPE_UPDATED = 3;    // Position/state change
+    UPDATE_TYPE_DROPPED = 4;    // Track dropped
+    UPDATE_TYPE_MERGED = 5;     // Track merged into another
+  }
+  UpdateType update_type = 1;
+  FusedTrack track = 2;
+  // For MERGED: the target track ID that this track merged into
+  optional string merged_into_track_id = 3;
+}
+
+message GetTrackDetailsRequest {
+  string track_id = 1;
+  rtsa.common.v1.ClassificationLevel clearance_level = 2;
+}
+
+message GetTrackHistoryRequest {
+  string track_id = 1;
+  rtsa.common.v1.TimeRange time_range = 2;
+  int32 max_points = 3;  // Maximum history points to return (default: 100)
+  rtsa.common.v1.ClassificationLevel clearance_level = 4;
+}
+
+message TrackHistoryResponse {
+  string track_id = 1;
+  repeated TrackHistoryPoint points = 2;
+}
+
+message TrackHistoryPoint {
+  rtsa.common.v1.Position position = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  double confidence = 3;
+  rtsa.common.v1.TrackStatus status = 4;
+}

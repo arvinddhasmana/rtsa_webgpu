@@ -1,0 +1,60 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.ingestion.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1";
+
+import "rtsa/ingestion/v1/sensor_observation.proto";
+import "rtsa/common/v1/types.proto";
+import "google/protobuf/timestamp.proto";
+
+// ──────────────────────────────────────────
+// Ingestion Service — shared by all sensor types
+// ──────────────────────────────────────────
+service IngestionService {
+  // Client-streaming: bulk sensor data ingestion
+  // Deadline: 60s per stream session
+  rpc IngestSensorData(stream SensorObservation) returns (IngestSummary);
+
+  // Unary: single observation ingestion
+  // Deadline: 5s
+  rpc IngestSingleObservation(SensorObservation) returns (IngestionAck);
+
+  // Unary: query sensor status
+  // Deadline: 5s
+  rpc GetSensorStatus(GetSensorStatusRequest) returns (SensorStatusResponse);
+}
+
+message IngestionAck {
+  string observation_id = 1;
+  bool accepted = 2;
+  string rejection_reason = 3;
+}
+
+message IngestSummary {
+  int64 total_received = 1;
+  int64 accepted = 2;
+  int64 rejected = 3;
+  repeated RejectionDetail rejections = 4;
+}
+
+message RejectionDetail {
+  string observation_id = 1;
+  string reason = 2;
+}
+
+message GetSensorStatusRequest {
+  string sensor_id = 1;
+}
+
+message SensorStatusResponse {
+  string sensor_id = 1;
+  rtsa.common.v1.SensorType sensor_type = 2;
+  bool connected = 3;
+  int64 total_received = 4;
+  int64 total_accepted = 5;
+  int64 total_rejected = 6;
+  google.protobuf.Timestamp last_observation_time = 7;
+  double events_per_second = 8;
+}

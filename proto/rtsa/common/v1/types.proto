@@ -1,0 +1,166 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.common.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1;commonv1";
+
+import "google/protobuf/timestamp.proto";
+
+// ──────────────────────────────────────────
+// Classification Levels — Government of Canada
+// ──────────────────────────────────────────
+enum ClassificationLevel {
+  CLASSIFICATION_LEVEL_UNSPECIFIED = 0;
+  CLASSIFICATION_LEVEL_UNCLASSIFIED = 1;
+  CLASSIFICATION_LEVEL_PROTECTED_A = 2;
+  CLASSIFICATION_LEVEL_PROTECTED_B = 3;
+  CLASSIFICATION_LEVEL_PROTECTED_C = 4;
+  CLASSIFICATION_LEVEL_SECRET = 5;
+}
+
+// ──────────────────────────────────────────
+// Sensor Types
+// ──────────────────────────────────────────
+enum SensorType {
+  SENSOR_TYPE_UNSPECIFIED = 0;
+  SENSOR_TYPE_RADAR = 1;
+  SENSOR_TYPE_EW_SIGINT = 2;
+  SENSOR_TYPE_ELINT_COMINT = 3;
+  SENSOR_TYPE_ISR = 4;
+  SENSOR_TYPE_AIS_BFT = 5;
+  SENSOR_TYPE_CYBER = 6;
+  SENSOR_TYPE_NATO = 7;
+}
+
+// ──────────────────────────────────────────
+// Entity Types
+// ──────────────────────────────────────────
+enum EntityType {
+  ENTITY_TYPE_UNSPECIFIED = 0;
+  ENTITY_TYPE_SURFACE = 1;
+  ENTITY_TYPE_AIR = 2;
+  ENTITY_TYPE_SUBSURFACE = 3;
+  ENTITY_TYPE_LAND = 4;
+  ENTITY_TYPE_CYBER = 5;
+}
+
+// ──────────────────────────────────────────
+// Hostile Classification (IFF)
+// ──────────────────────────────────────────
+enum HostileClassification {
+  HOSTILE_CLASSIFICATION_UNSPECIFIED = 0;
+  HOSTILE_CLASSIFICATION_HOSTILE = 1;
+  HOSTILE_CLASSIFICATION_FRIENDLY = 2;
+  HOSTILE_CLASSIFICATION_NEUTRAL = 3;
+  HOSTILE_CLASSIFICATION_UNKNOWN = 4;
+  HOSTILE_CLASSIFICATION_SUSPECT = 5;
+  HOSTILE_CLASSIFICATION_PENDING = 6;
+}
+
+// ──────────────────────────────────────────
+// Track Status
+// ──────────────────────────────────────────
+enum TrackStatus {
+  TRACK_STATUS_UNSPECIFIED = 0;
+  TRACK_STATUS_NEW = 1;
+  TRACK_STATUS_ACTIVE = 2;
+  TRACK_STATUS_STALE = 3;
+  TRACK_STATUS_DROPPED = 4;
+  TRACK_STATUS_MERGED = 5;
+}
+
+// ──────────────────────────────────────────
+// Anomaly Types
+// ──────────────────────────────────────────
+enum AnomalyType {
+  ANOMALY_TYPE_UNSPECIFIED = 0;
+  ANOMALY_TYPE_SPEED = 1;
+  ANOMALY_TYPE_ROUTE_DEVIATION = 2;
+  ANOMALY_TYPE_AIS_MANIPULATION = 3;
+  ANOMALY_TYPE_BEHAVIORAL = 4;
+  ANOMALY_TYPE_TEMPORAL = 5;
+  ANOMALY_TYPE_PROXIMITY = 6;
+}
+
+// ──────────────────────────────────────────
+// Alert Severity Levels
+// ──────────────────────────────────────────
+enum AlertSeverity {
+  ALERT_SEVERITY_UNSPECIFIED = 0;
+  ALERT_SEVERITY_NORMAL = 1;
+  ALERT_SEVERITY_WATCH = 2;
+  ALERT_SEVERITY_ELEVATED = 3;
+  ALERT_SEVERITY_CRITICAL = 4;
+}
+
+// ──────────────────────────────────────────
+// Feedback Types
+// ──────────────────────────────────────────
+enum FeedbackType {
+  FEEDBACK_TYPE_UNSPECIFIED = 0;
+  FEEDBACK_TYPE_CONFIRM_HOSTILE = 1;
+  FEEDBACK_TYPE_CONFIRM_FRIENDLY = 2;
+  FEEDBACK_TYPE_RECLASSIFY = 3;
+  FEEDBACK_TYPE_REJECT_ANOMALY = 4;
+  FEEDBACK_TYPE_CONFIRM_ANOMALY = 5;
+}
+
+// ──────────────────────────────────────────
+// Geographic Position (WGS-84)
+// ──────────────────────────────────────────
+message Position {
+  // Latitude in decimal degrees, WGS-84. Range: -90.0 to +90.0
+  double latitude = 1;
+  // Longitude in decimal degrees, WGS-84. Range: -180.0 to +180.0
+  double longitude = 2;
+  // Altitude above mean sea level in meters. Optional.
+  optional double altitude_meters = 3;
+  // Speed over ground in knots. Range: 0 to 2500 (air), 0 to 999 (surface)
+  optional double speed_knots = 4;
+  // Heading/course over ground in degrees true. Range: 0.0 to 360.0
+  optional double heading_degrees = 5;
+}
+
+// ──────────────────────────────────────────
+// Velocity Vector
+// ──────────────────────────────────────────
+message Velocity {
+  // North component in m/s
+  double north_mps = 1;
+  // East component in m/s
+  double east_mps = 2;
+  // Down component in m/s (positive = descending)
+  optional double down_mps = 3;
+}
+
+// ──────────────────────────────────────────
+// Bounding Box for spatial queries
+// ──────────────────────────────────────────
+message BoundingBox {
+  double min_latitude = 1;
+  double max_latitude = 2;
+  double min_longitude = 3;
+  double max_longitude = 4;
+}
+
+// ──────────────────────────────────────────
+// Time Range for queries
+// ──────────────────────────────────────────
+message TimeRange {
+  google.protobuf.Timestamp start_time = 1;
+  google.protobuf.Timestamp end_time = 2;
+}
+
+// ──────────────────────────────────────────
+// Pagination
+// ──────────────────────────────────────────
+message PaginationRequest {
+  int32 page_size = 1;     // Max items per page (default 100, max 1000)
+  string page_token = 2;   // Opaque token from previous response
+}
+
+message PaginationResponse {
+  string next_page_token = 1;  // Empty if no more pages
+  int32 total_count = 2;       // Total matching records (if known)
+}

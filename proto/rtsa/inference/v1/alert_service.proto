@@ -1,0 +1,55 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.inference.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1";
+
+import "rtsa/inference/v1/anomaly_alert.proto";
+import "rtsa/common/v1/types.proto";
+import "google/protobuf/timestamp.proto";
+
+// ──────────────────────────────────────────
+// Alert Service — real-time alert streaming
+// ──────────────────────────────────────────
+service AlertService {
+  // Server-streaming: receive real-time alerts
+  // Delivers in priority order (CRITICAL first)
+  // Deadline: none (long-lived stream)
+  rpc StreamAlerts(StreamAlertsRequest) returns (stream AnomalyAlert);
+
+  // Unary: acknowledge an alert
+  // Deadline: 5s
+  rpc AcknowledgeAlert(AcknowledgeAlertRequest) returns (AcknowledgeAlertResponse);
+
+  // Unary: get details of a specific alert
+  // Deadline: 5s
+  rpc GetAlertDetails(GetAlertDetailsRequest) returns (AnomalyAlert);
+}
+
+message StreamAlertsRequest {
+  // Minimum severity to receive (default: WATCH)
+  rtsa.common.v1.AlertSeverity min_severity = 1;
+  // Filter by anomaly types (empty = all)
+  repeated rtsa.common.v1.AnomalyType anomaly_types = 2;
+  // Filter by entity types (empty = all)
+  repeated rtsa.common.v1.EntityType entity_types = 3;
+  // Caller's classification clearance level
+  rtsa.common.v1.ClassificationLevel clearance_level = 4;
+}
+
+message AcknowledgeAlertRequest {
+  string alert_id = 1;
+  string operator_id = 2;
+  string comment = 3;
+}
+
+message AcknowledgeAlertResponse {
+  bool success = 1;
+  google.protobuf.Timestamp acknowledged_at = 2;
+}
+
+message GetAlertDetailsRequest {
+  string alert_id = 1;
+  rtsa.common.v1.ClassificationLevel clearance_level = 2;
+}
