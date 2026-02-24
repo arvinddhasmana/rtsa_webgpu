@@ -53,14 +53,17 @@ version_gte() {
   printf '%s\n%s' "$2" "$1" | sort -C -V
 }
 
-# Downloads a file and optionally makes it executable
+# Downloads a file to a temp location, then installs it with sudo
 install_binary() {
   local url="$1"
   local dest="$2"
   local mode="${3:-755}"
   log_info "Downloading $(basename "$dest") from ${url} ..."
-  curl -sSfL "$url" -o "$dest"
-  chmod "$mode" "$dest"
+  local tmp_file
+  tmp_file="$(mktemp)"
+  curl -sSfL "$url" -o "$tmp_file"
+  chmod "$mode" "$tmp_file"
+  sudo mv "$tmp_file" "$dest"
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -400,7 +403,7 @@ install_kubectl() {
     darwin) kube_os="darwin" ;;
   esac
 
-  sudo install_binary \
+  install_binary \
     "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/${kube_os}/${GOARCH}/kubectl" \
     "/usr/local/bin/kubectl"
 
