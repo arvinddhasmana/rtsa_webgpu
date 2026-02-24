@@ -1,0 +1,43 @@
+# CLASSIFICATION: UNCLASSIFIED
+input:
+  kafka_franz:
+    seed_brokers: ["${REDPANDA_BROKERS}"]
+    topics:
+      - audit.events
+    consumer_group: rpconnect-clickhouse-audit
+
+pipeline:
+  processors:
+    - mapping: |
+        root.audit_id = this.audit_id
+        root.service_id = this.service_id
+        root.event_type = this.event_type
+        root.actor_id = this.actor_id
+        root.actor_type = this.actor_type
+        root.resource_type = this.resource_type
+        root.resource_id = this.resource_id
+        root.action = this.action
+        root.detail_json = this.detail_json
+        root.classification_level = this.classification_level
+        root.event_time = this.event_time
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:9000/rtsa"
+    table: audit_log
+    columns:
+      - audit_id
+      - service_id
+      - event_type
+      - actor_id
+      - actor_type
+      - resource_type
+      - resource_id
+      - action
+      - detail_json
+      - classification_level
+      - event_time
+    batching:
+      count: 500
+      period: 5s

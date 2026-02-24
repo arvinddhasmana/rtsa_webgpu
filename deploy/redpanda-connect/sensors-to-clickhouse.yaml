@@ -1,0 +1,48 @@
+# CLASSIFICATION: UNCLASSIFIED
+input:
+  kafka_franz:
+    seed_brokers: ["${REDPANDA_BROKERS}"]
+    topics:
+      - sensors.radar.tracks
+      - sensors.ew.intercepts
+      - sensors.elint.detections
+      - sensors.isr.observations
+      - sensors.ais.positions
+      - sensors.cyber.iocs
+    consumer_group: rpconnect-clickhouse-sensors
+
+pipeline:
+  processors:
+    - mapping: |
+        root.observation_id = this.observation_id
+        root.sensor_id = this.sensor_id
+        root.sensor_type = this.sensor_type
+        root.latitude = this.position.latitude
+        root.longitude = this.position.longitude
+        root.altitude_meters = this.position.altitude_meters
+        root.speed_knots = this.position.speed_knots
+        root.heading_degrees = this.position.heading_degrees
+        root.classification_level = this.classification
+        root.metadata_json = this.metadata.string()
+        root.event_time = this.observation_time
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:9000/rtsa"
+    table: sensor_observations
+    columns:
+      - observation_id
+      - sensor_id
+      - sensor_type
+      - latitude
+      - longitude
+      - altitude_meters
+      - speed_knots
+      - heading_degrees
+      - classification_level
+      - metadata_json
+      - event_time
+    batching:
+      count: 1000
+      period: 5s

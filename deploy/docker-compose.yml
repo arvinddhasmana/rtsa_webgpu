@@ -1,0 +1,302 @@
+# CLASSIFICATION: UNCLASSIFIED
+# RTSA Development Infrastructure Stack
+# Usage: docker compose -f deploy/docker-compose.yml up -d
+
+name: rtsa-dev
+
+services:
+  # ──────────────────────────────────────────────
+  # Redpanda — Event Streaming Backbone
+  # ──────────────────────────────────────────────
+  redpanda:
+    image: redpandadata/redpanda:v24.1.1
+    container_name: rtsa-redpanda
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --advertise-schema-registry-addr internal://redpanda:8081,external://localhost:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --mode dev-container
+      - --smp 1
+      - --memory 1G
+      - --reserve-memory 0M
+      - --default-log-level=warn
+    ports:
+      - "19092:19092" # Kafka API
+      - "18081:18081" # Schema Registry
+      - "18082:18082" # HTTP Proxy
+      - "19644:9644" # Admin API
+    volumes:
+      - redpanda-data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health", "--api-urls", "localhost:9644"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 1536M
+
+  # ──────────────────────────────────────────────
+  # Redpanda Console — Topic Management UI
+  # ──────────────────────────────────────────────
+  redpanda-console:
+    image: redpandadata/console:v2.4.0
+    container_name: rtsa-console
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+      KAFKA_SCHEMAREGISTRY_ENABLED: "true"
+      KAFKA_SCHEMAREGISTRY_URLS: http://redpanda:8081
+    ports:
+      - "8080:8080"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ──────────────────────────────────────────────
+  # ClickHouse — OLAP Analytics Engine
+  # ──────────────────────────────────────────────
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.1
+    container_name: rtsa-clickhouse
+    environment:
+      CLICKHOUSE_DB: rtsa
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev_password_change_me}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123" # HTTP interface
+      - "9000:9000" # Native TCP
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  # ──────────────────────────────────────────────
+  # OpenTelemetry Collector
+  # ──────────────────────────────────────────────
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.96.0
+    container_name: rtsa-otel
+    command: ["--config", "/etc/otel/config.yaml"]
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8888:8888" # Collector metrics
+    volumes:
+      - ./otel/config.yaml:/etc/otel/config.yaml:ro
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ──────────────────────────────────────────────
+  # Prometheus — Metrics
+  # ──────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: rtsa-prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:9090/-/healthy",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  # ──────────────────────────────────────────────
+  # Grafana — Dashboards
+  # ──────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: rtsa-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3000/api/health",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ──────────────────────────────────────────────
+  # Loki — Log Aggregation
+  # ──────────────────────────────────────────────
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: rtsa-loki
+    command: -config.file=/etc/loki/loki.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3100/ready",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ──────────────────────────────────────────────
+  # Tempo — Distributed Tracing
+  # ──────────────────────────────────────────────
+  tempo:
+    image: grafana/tempo:2.4.0
+    container_name: rtsa-tempo
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    ports:
+      - "3200:3200" # Tempo HTTP
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/tmp/tempo
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3200/ready",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ──────────────────────────────────────────────
+  # Envoy — API Gateway / gRPC-Web Proxy
+  # ──────────────────────────────────────────────
+  envoy:
+    image: envoyproxy/envoy:v1.29.0
+    container_name: rtsa-envoy
+    ports:
+      - "8443:8443" # gRPC-Web (TLS)
+      - "8001:8001" # Envoy admin
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ../certs/dev:/etc/envoy/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+volumes:
+  redpanda-data:
+  clickhouse-data:
+  clickhouse-logs:
+  prometheus-data:
+  grafana-data:
+  loki-data:
+  tempo-data:
+
+networks:
+  rtsa-net:
+    driver: bridge
+    name: rtsa-net
