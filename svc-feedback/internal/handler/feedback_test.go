@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"strconv"
 )
 
 // ─── Test helpers ─────────────────────────────────────────────────────────
@@ -316,7 +317,7 @@ func TestHandler_GetFeedbackHistory_NoFilter(t *testing.T) {
 h, _, _, _, hist := buildHandler()
 for i := 0; i < 5; i++ {
 hist.RecordProto(&feedbackv1.OperatorFeedback{
-FeedbackId: "fb-" + string(rune('0'+i)),
+FeedbackId: "fb-" + strconv.Itoa(i),
 })
 }
 
@@ -425,8 +426,8 @@ hnd := NewFeedbackHandler(ts, ap, rl, rawProd, valProd, audit, h2, "svc-test", l
 // Need ≥ 10 submissions with < 60% validated.
 for i := 0; i < 10; i++ {
 h2.RecordFeedback("op-poison", state.FeedbackEntry{
-FeedbackID:   "fb-p" + string(rune('a'+i)),
-TrackID:      "trk-p" + string(rune('a'+i)),
+FeedbackID:   "fb-p" + strconv.Itoa(i),
+TrackID:      "trk-p" + strconv.Itoa(i),
 FeedbackType: commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_HOSTILE,
 Validated:    i < 3, // 30% < 60%
 SensorSource: "radar-A",

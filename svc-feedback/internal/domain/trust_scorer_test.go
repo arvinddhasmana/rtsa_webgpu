@@ -4,6 +4,7 @@ package domain
 
 import (
 "math"
+	"strconv"
 "testing"
 "time"
 
@@ -80,8 +81,8 @@ now := time.Now()
 for i := 0; i < 10; i++ {
 validated := i < 8 // 8 validated, 2 not
 h.RecordFeedback("op-001", state.FeedbackEntry{
-FeedbackID:   "fb-" + string(rune('0'+i)),
-TrackID:      "trk-" + string(rune('0'+i)),
+FeedbackID:   "fb-" + strconv.Itoa(i),
+TrackID:      "trk-" + strconv.Itoa(i),
 FeedbackType: commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_HOSTILE,
 Timestamp:    now,
 Validated:    validated,
@@ -112,8 +113,8 @@ now := time.Now()
 // Only 4 submissions → below minFeedbackForAccuracy=5.
 for i := 0; i < 4; i++ {
 h.RecordFeedback("op-few", state.FeedbackEntry{
-FeedbackID:   "fb-" + string(rune('0'+i)),
-TrackID:      "trk-" + string(rune('0'+i)),
+FeedbackID:   "fb-" + strconv.Itoa(i),
+TrackID:      "trk-" + strconv.Itoa(i),
 FeedbackType: commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_HOSTILE,
 Timestamp:    now,
 Validated:    true,
@@ -283,8 +284,8 @@ now := time.Now()
 // Seed 10 validated submissions for op-secret.
 for i := 0; i < 10; i++ {
 h.RecordFeedback("op-secret", state.FeedbackEntry{
-FeedbackID:   "fb-s" + string(rune('0'+i)),
-TrackID:      "trk-s" + string(rune('0'+i)),
+FeedbackID:   "fb-s" + strconv.Itoa(i),
+TrackID:      "trk-s" + strconv.Itoa(i),
 FeedbackType: commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_HOSTILE,
 Timestamp:    now,
 Validated:    i < 8, // 8/10 = 0.8
@@ -323,8 +324,8 @@ now := time.Now()
 // Seed 10 submissions: 3 validated for accuracy=0.3.
 for i := 0; i < 10; i++ {
 h.RecordFeedback("op-unc", state.FeedbackEntry{
-FeedbackID:   "fb-u" + string(rune('0'+i)),
-TrackID:      "trk-u" + string(rune('0'+i)),
+FeedbackID:   "fb-u" + strconv.Itoa(i),
+TrackID:      "trk-u" + strconv.Itoa(i),
 FeedbackType: commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_HOSTILE,
 Timestamp:    now,
 Validated:    i < 3, // 3/10 = 0.3

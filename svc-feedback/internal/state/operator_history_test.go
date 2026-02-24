@@ -3,6 +3,7 @@
 package state
 
 import (
+"strconv"
 "testing"
 "time"
 
@@ -82,7 +83,7 @@ oh := NewOperatorHistory()
 now := time.Now()
 for i := 0; i < 3; i++ {
 oh.RecordFeedback("op-001", FeedbackEntry{
-FeedbackID:   "fb-00" + string(rune('1'+i)),
+FeedbackID:   "fb-00" + strconv.Itoa(i+1),
 TrackID:      "trk-01",
 FeedbackType: commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_HOSTILE,
 Timestamp:    now.Add(time.Duration(i) * time.Minute),
@@ -112,8 +113,8 @@ commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_FRIENDLY,
 }
 for i, ft := range types {
 oh.RecordFeedback("op-001", FeedbackEntry{
-FeedbackID:   "fb-00" + string(rune('1'+i)),
-TrackID:      "trk-0" + string(rune('1'+i)),
+FeedbackID:   "fb-00" + strconv.Itoa(i+1),
+TrackID:      "trk-0" + strconv.Itoa(i+1),
 FeedbackType: ft,
 Timestamp:    now,
 })
@@ -238,7 +239,7 @@ done := make(chan struct{})
 for i := 0; i < 100; i++ {
 go func(n int) {
 oh.RecordFeedback("op-concurrent", FeedbackEntry{
-FeedbackID:   "fb-" + string(rune('0'+n%10)),
+FeedbackID:   "fb-" + strconv.Itoa(n),
 TrackID:      "trk-concurrent",
 FeedbackType: commonv1.FeedbackType_FEEDBACK_TYPE_CONFIRM_HOSTILE,
 Timestamp:    time.Now(),

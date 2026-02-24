@@ -161,9 +161,6 @@ type auditCapture struct {
 events []*auditv1.AuditEvent
 }
 capture := &auditCapture{}
-captureEmitter := &struct {
-cap *auditCapture
-}{cap: capture}
 
 h := state.NewOperatorHistory()
 logger, _ := zap.NewDevelopment()
@@ -195,7 +192,6 @@ ev := capture.events[0]
 if ev.GetEventType() != "feedback.submitted" {
 t.Errorf("IT04: expected event_type=feedback.submitted, got %s", ev.GetEventType())
 }
-_ = captureEmitter
 }
 
 type captureAudit struct {

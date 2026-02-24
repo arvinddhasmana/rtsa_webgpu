@@ -3,6 +3,7 @@
 package domain
 
 import (
+"strconv"
 "testing"
 "time"
 
@@ -24,8 +25,8 @@ func recordN(h *state.OperatorHistory, operatorID string, n int, ft commonv1.Fee
 now := time.Now()
 for i := 0; i < n; i++ {
 h.RecordFeedback(operatorID, state.FeedbackEntry{
-FeedbackID:   "fb-" + operatorID + "-" + string(rune('a'+i%26)),
-TrackID:      "trk-" + string(rune('a'+i%26)),
+FeedbackID:   "fb-" + operatorID + "-" + strconv.Itoa(i),
+TrackID:      "trk-" + strconv.Itoa(i),
 FeedbackType: ft,
 Timestamp:    now,
 Validated:    validated,
