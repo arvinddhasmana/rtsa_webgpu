@@ -17,11 +17,11 @@ import (
 // makeTrack is a helper that builds a minimal FusedTrack for testing.
 func makeTrack(id string, status commonv1.TrackStatus, et commonv1.EntityType, hc commonv1.HostileClassification, cls commonv1.ClassificationLevel, confidence float64) *entityv1.FusedTrack {
 	return &entityv1.FusedTrack{
-		TrackId:      id,
-		Status:       status,
-		EntityType:   et,
-		HostileClass: hc,
-		Classification: cls,
+		TrackId:         id,
+		Status:          status,
+		EntityType:      et,
+		HostileClass:    hc,
+		Classification:  cls,
 		ConfidenceScore: confidence,
 		EstimatedPosition: &commonv1.Position{
 			Latitude:  45.4215,
@@ -307,32 +307,32 @@ func TestTrackCache_Concurrent(t *testing.T) {
 
 // TestToProtoHistoryPoint: verifies proto conversion.
 func TestToProtoHistoryPoint(t *testing.T) {
-hp := &HistoryPoint{
-Position:   &commonv1.Position{Latitude: 45.0, Longitude: -75.0},
-Timestamp:  time.Now(),
-Confidence: 0.88,
-Status:     commonv1.TrackStatus_TRACK_STATUS_ACTIVE,
-}
-proto := ToProtoHistoryPoint(hp)
-if proto == nil {
-t.Fatal("expected non-nil proto")
-}
-if proto.Confidence != 0.88 {
-t.Errorf("confidence mismatch: %v", proto.Confidence)
-}
-if proto.Status != commonv1.TrackStatus_TRACK_STATUS_ACTIVE {
-t.Errorf("status mismatch: %v", proto.Status)
-}
+	hp := &HistoryPoint{
+		Position:   &commonv1.Position{Latitude: 45.0, Longitude: -75.0},
+		Timestamp:  time.Now(),
+		Confidence: 0.88,
+		Status:     commonv1.TrackStatus_TRACK_STATUS_ACTIVE,
+	}
+	proto := ToProtoHistoryPoint(hp)
+	if proto == nil {
+		t.Fatal("expected non-nil proto")
+	}
+	if proto.Confidence != 0.88 {
+		t.Errorf("confidence mismatch: %v", proto.Confidence)
+	}
+	if proto.Status != commonv1.TrackStatus_TRACK_STATUS_ACTIVE {
+		t.Errorf("status mismatch: %v", proto.Status)
+	}
 }
 
 // TestNewTrackCache_DefaultHistoryMax: zero/negative historyMax uses default.
 func TestNewTrackCache_DefaultHistoryMax(t *testing.T) {
-c := NewTrackCache(0)
-if c == nil {
-t.Fatal("expected non-nil cache")
-}
-c2 := NewTrackCache(-5)
-if c2 == nil {
-t.Fatal("expected non-nil cache")
-}
+	c := NewTrackCache(0)
+	if c == nil {
+		t.Fatal("expected non-nil cache")
+	}
+	c2 := NewTrackCache(-5)
+	if c2 == nil {
+		t.Fatal("expected non-nil cache")
+	}
 }

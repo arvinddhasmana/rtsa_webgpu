@@ -6,9 +6,9 @@
 package mapper
 
 import (
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/domain"
-	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/domain"
 )
 
 // ToTrackFilter converts a StreamTracksRequest's filter fields into a domain.TrackFilter.

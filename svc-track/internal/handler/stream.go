@@ -17,10 +17,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/domain"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/mapper"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/metrics"
-	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

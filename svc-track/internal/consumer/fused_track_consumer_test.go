@@ -8,10 +8,10 @@ import (
 	"os"
 	"testing"
 
-	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	"google.golang.org/protobuf/proto"
+	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"google.golang.org/protobuf/proto"
 )
 
 // mockTrackPutter records Put calls for test assertions.
@@ -126,28 +126,28 @@ func TestFusedTopics(t *testing.T) {
 
 // TestSlogKgoLogger_Level: verifies Level() returns configured level.
 func TestSlogKgoLogger_Level(t *testing.T) {
-l := newSlogKgoLogger(testLogger(), kgo.LogLevelWarn)
-if l.Level() != kgo.LogLevelWarn {
-t.Errorf("expected LogLevelWarn, got %v", l.Level())
-}
+	l := newSlogKgoLogger(testLogger(), kgo.LogLevelWarn)
+	if l.Level() != kgo.LogLevelWarn {
+		t.Errorf("expected LogLevelWarn, got %v", l.Level())
+	}
 }
 
 // TestSlogKgoLogger_Log: verifies Log does not panic for all levels.
 func TestSlogKgoLogger_Log(t *testing.T) {
-l := newSlogKgoLogger(testLogger(), kgo.LogLevelDebug)
-levels := []kgo.LogLevel{kgo.LogLevelError, kgo.LogLevelWarn, kgo.LogLevelInfo, kgo.LogLevelDebug}
-for _, lvl := range levels {
-l.Log(lvl, "test message", "key", "value")
-}
+	l := newSlogKgoLogger(testLogger(), kgo.LogLevelDebug)
+	levels := []kgo.LogLevel{kgo.LogLevelError, kgo.LogLevelWarn, kgo.LogLevelInfo, kgo.LogLevelDebug}
+	for _, lvl := range levels {
+		l.Log(lvl, "test message", "key", "value")
+	}
 }
 
 // TestClassificationFromTopic: returns UNCLASSIFIED for any topic.
 func TestClassificationFromTopic(t *testing.T) {
-topics := []string{"tracks.fused.air", "tracks.fused.surface", "unknown"}
-for _, topic := range topics {
-got := classificationFromTopic(topic)
-if got != 1 { // CLASSIFICATION_LEVEL_UNCLASSIFIED = 1
-t.Errorf("expected UNCLASSIFIED for topic %q, got %v", topic, got)
-}
-}
+	topics := []string{"tracks.fused.air", "tracks.fused.surface", "unknown"}
+	for _, topic := range topics {
+		got := classificationFromTopic(topic)
+		if got != 1 { // CLASSIFICATION_LEVEL_UNCLASSIFIED = 1
+			t.Errorf("expected UNCLASSIFIED for topic %q, got %v", topic, got)
+		}
+	}
 }

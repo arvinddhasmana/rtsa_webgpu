@@ -90,10 +90,10 @@ func TestFilterEngine_Apply_EntityType(t *testing.T) {
 // T06 / T14: Filter by classification clearance — higher classified tracks excluded.
 func TestFilterEngine_Apply_ClassificationClearance(t *testing.T) {
 	tests := []struct {
-		name           string
-		clearance      commonv1.ClassificationLevel
-		expectedIDs    []string
-		excludedIDs    []string
+		name        string
+		clearance   commonv1.ClassificationLevel
+		expectedIDs []string
+		excludedIDs []string
 	}{
 		{
 			name:        "UNCLASSIFIED clearance sees only UNCLASSIFIED",
@@ -172,7 +172,7 @@ func TestFilterEngine_Apply_BoundingBox(t *testing.T) {
 		{
 			name: "bbox includes only Ottawa area",
 			bbox: &commonv1.BoundingBox{
-				MinLatitude:  45.0, MaxLatitude: 46.0,
+				MinLatitude: 45.0, MaxLatitude: 46.0,
 				MinLongitude: -76.0, MaxLongitude: -75.0,
 			},
 			expectedCount: 1,
@@ -180,7 +180,7 @@ func TestFilterEngine_Apply_BoundingBox(t *testing.T) {
 		{
 			name: "bbox includes all tracks",
 			bbox: &commonv1.BoundingBox{
-				MinLatitude:  40.0, MaxLatitude: 50.0,
+				MinLatitude: 40.0, MaxLatitude: 50.0,
 				MinLongitude: -80.0, MaxLongitude: -70.0,
 			},
 			expectedCount: 3,
@@ -194,9 +194,9 @@ func TestFilterEngine_Apply_BoundingBox(t *testing.T) {
 
 	fe := &FilterEngine{}
 	tracks := []*entityv1.FusedTrack{
-		makeFilterTrack("b1", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.9, 45.4, -75.6),  // Ottawa
-		makeFilterTrack("b2", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.8, 43.6, -79.3),  // Toronto
-		makeFilterTrack("b3", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.7, 45.5, -73.5),  // Montreal
+		makeFilterTrack("b1", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.9, 45.4, -75.6), // Ottawa
+		makeFilterTrack("b2", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.8, 43.6, -79.3), // Toronto
+		makeFilterTrack("b3", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.7, 45.5, -73.5), // Montreal
 	}
 
 	for _, tt := range tests {
@@ -330,17 +330,17 @@ func TestFilterEngine_Apply_HostileClass(t *testing.T) {
 
 // TestFilterEngine_Matches_Direct: tests Matches exported method.
 func TestFilterEngine_Matches_Direct(t *testing.T) {
-fe := &FilterEngine{}
-track := makeFilterTrack("direct-01", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.9, 45.0, -75.0)
+	fe := &FilterEngine{}
+	track := makeFilterTrack("direct-01", commonv1.EntityType_ENTITY_TYPE_AIR, commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, 0.9, 45.0, -75.0)
 
-if !fe.Matches(track, nil) {
-t.Error("nil filter should always pass")
-}
-if fe.Matches(nil, nil) {
-t.Error("nil track should not pass")
-}
-filter := &TrackFilter{ClearanceLevel: commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED}
-if !fe.Matches(track, filter) {
-t.Error("matching track should pass filter")
-}
+	if !fe.Matches(track, nil) {
+		t.Error("nil filter should always pass")
+	}
+	if fe.Matches(nil, nil) {
+		t.Error("nil track should not pass")
+	}
+	filter := &TrackFilter{ClearanceLevel: commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED}
+	if !fe.Matches(track, filter) {
+		t.Error("matching track should pass filter")
+	}
 }

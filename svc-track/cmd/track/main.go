@@ -11,6 +11,7 @@
 //  7. Start gRPC server
 //  8. Start health + metrics HTTP servers
 //  9. Block until SIGINT/SIGTERM
+//
 // 10. Graceful shutdown
 //
 // Feature: FEAT-13 Situational Awareness UI
