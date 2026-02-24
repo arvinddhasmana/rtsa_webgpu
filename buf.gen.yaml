@@ -2,23 +2,18 @@
 version: v2
 plugins:
   # Go code generation
-  - local: protoc-gen-go
+  - remote: buf.build/protocolbuffers/go
     out: gen/go
     opt:
       - paths=source_relative
   # Go gRPC code generation
-  - local: protoc-gen-go-grpc
+  - remote: buf.build/grpc/go
     out: gen/go
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
   # TypeScript code generation (for COP Web App)
-  - local: protoc-gen-es
-    out: gen/ts
-    opt:
-      - target=ts
-  # TypeScript Connect-RPC code generation
-  - local: protoc-gen-connect-es
+  - remote: buf.build/connectrpc/es
     out: gen/ts
     opt:
       - target=ts
