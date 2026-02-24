@@ -1,0 +1,81 @@
+# CLASSIFICATION: UNCLASSIFIED
+# tools/simulator/scenarios/stress.yaml
+name: "Stress Test Scenario"
+description: "High-volume scenario for performance testing of ingestion services"
+seed: 12345
+duration_minutes: 30
+
+entities:
+  surface:
+    count: 200
+    hostile_ratio: 0.10
+    friendly_ratio: 0.50
+    neutral_ratio: 0.30
+    unknown_ratio: 0.10
+    speed_range: [8, 25]
+    patterns:
+      straight_line: 0.50
+      patrol: 0.25
+      loitering: 0.15
+      random: 0.10
+  air:
+    count: 100
+    hostile_ratio: 0.10
+    friendly_ratio: 0.60
+    neutral_ratio: 0.20
+    unknown_ratio: 0.10
+    speed_range: [150, 550]
+    altitude_range: [1000, 15000]
+    patterns:
+      straight_line: 0.70
+      patrol: 0.20
+      random: 0.10
+  subsurface:
+    count: 50
+    hostile_ratio: 0.10
+    friendly_ratio: 0.50
+    neutral_ratio: 0.20
+    unknown_ratio: 0.20
+    speed_range: [5, 15]
+    depth_range: [50, 400]
+    patterns:
+      straight_line: 0.60
+      patrol: 0.40
+
+sensors:
+  radar:
+    count: 10
+    update_interval_ms: 500
+  ais:
+    count: 5
+    update_interval_ms: 1000
+  ew:
+    count: 5
+    update_interval_ms: 1000
+  elint:
+    count: 3
+    update_interval_ms: 2000
+  isr:
+    count: 3
+    update_interval_ms: 5000
+  cyber:
+    count: 2
+    update_interval_ms: 2000
+    ioc_rate: 10
+
+anomalies:
+  injection_rate: 0.10
+  types:
+    speed: 0.30
+    route_deviation: 0.25
+    ais_manipulation: 0.20
+    behavioral: 0.15
+    proximity: 0.10
+
+operational_area:
+  center: { lat: 45.0, lon: -60.0 }
+  radius_nm: 150
+  exclusion_zones:
+    - name: "Halifax Harbor"
+      center: { lat: 44.65, lon: -63.57 }
+      radius_nm: 5

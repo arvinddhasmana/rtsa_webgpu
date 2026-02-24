@@ -1,0 +1,90 @@
+# CLASSIFICATION: UNCLASSIFIED
+# tools/simulator/scenarios/default.yaml
+name: "Default Demo Scenario"
+description: "Standard operational scenario for development and demos"
+seed: 42
+duration_minutes: 0 # Run indefinitely
+
+entities:
+  surface:
+    count: 20
+    hostile_ratio: 0.15
+    friendly_ratio: 0.40
+    neutral_ratio: 0.30
+    unknown_ratio: 0.15
+    speed_range: [8, 25]
+    patterns:
+      straight_line: 0.50
+      patrol: 0.20
+      loitering: 0.15
+      random: 0.15
+
+  air:
+    count: 10
+    hostile_ratio: 0.20
+    friendly_ratio: 0.50
+    neutral_ratio: 0.20
+    unknown_ratio: 0.10
+    speed_range: [150, 550]
+    altitude_range: [1000, 15000]
+    patterns:
+      straight_line: 0.60
+      patrol: 0.30
+      random: 0.10
+
+  subsurface:
+    count: 5
+    hostile_ratio: 0.20
+    friendly_ratio: 0.40
+    neutral_ratio: 0.20
+    unknown_ratio: 0.20
+    speed_range: [5, 15]
+    depth_range: [50, 400]
+    patterns:
+      straight_line: 0.60
+      patrol: 0.40
+
+sensors:
+  radar:
+    count: 3
+    sensor_ids: ["RADAR-SIM-001", "RADAR-SIM-002", "RADAR-SIM-003"]
+    update_interval_ms: 2000
+    coverage_nm: 100
+  ais:
+    count: 1
+    sensor_ids: ["AIS-SIM-001"]
+    update_interval_ms: 5000
+  ew:
+    count: 2
+    sensor_ids: ["EW-SIM-001", "EW-SIM-002"]
+    update_interval_ms: 3000
+  elint:
+    count: 1
+    sensor_ids: ["ELINT-SIM-001"]
+    update_interval_ms: 4000
+  isr:
+    count: 1
+    sensor_ids: ["ISR-SIM-001"]
+    update_interval_ms: 10000
+  cyber:
+    count: 1
+    sensor_ids: ["CYBER-SIM-001"]
+    update_interval_ms: 10000
+    ioc_rate: 2
+
+anomalies:
+  injection_rate: 0.05
+  types:
+    speed: 0.30
+    route_deviation: 0.25
+    ais_manipulation: 0.20
+    behavioral: 0.15
+    proximity: 0.10
+
+operational_area:
+  center: { lat: 45.0, lon: -60.0 }
+  radius_nm: 150
+  exclusion_zones:
+    - name: "Halifax Harbor"
+      center: { lat: 44.65, lon: -63.57 }
+      radius_nm: 5
