@@ -22,6 +22,20 @@ KUBECTL_VERSION="1.29.4"
 GO_MIN_VERSION="1.22"
 NODE_MIN_VERSION="20"
 
+# ─────────────────────────────────────────────────────────────
+# WSL detection & sudo-user HOME fix
+# ─────────────────────────────────────────────────────────────
+IS_WSL=false
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  IS_WSL=true
+fi
+
+# When invoked via "sudo bash ...", HOME becomes /root which breaks
+# paths like $HOME/go/bin for the actual developer.  Restore it.
+if [ -n "${SUDO_USER:-}" ]; then
+  export HOME="$(getent passwd "$SUDO_USER" | cut -d: -f6)"
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -53,7 +67,8 @@ version_gte() {
   printf '%s\n%s' "$2" "$1" | sort -C -V
 }
 
-# Downloads a file to a temp location, then installs it with sudo
+# Downloads a file to a temp location then installs it (using sudo if the
+# destination directory is not writable by the current user).
 install_binary() {
   local url="$1"
   local dest="$2"
@@ -63,7 +78,11 @@ install_binary() {
   tmp_file="$(mktemp)"
   curl -sSfL "$url" -o "$tmp_file"
   chmod "$mode" "$tmp_file"
-  sudo mv "$tmp_file" "$dest"
+  if [ -w "$(dirname "$dest")" ]; then
+    mv "$tmp_file" "$dest"
+  else
+    sudo mv "$tmp_file" "$dest"
+  fi
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -89,25 +108,54 @@ detect_platform() {
 }
 
 # ─────────────────────────────────────────────────────────────
-# Step 1: Go toolchain
+# Step 1: Go toolchain — auto-install on Linux/WSL2 if missing
 # ─────────────────────────────────────────────────────────────
-check_go() {
-  log_step "Checking Go toolchain"
+GO_INSTALL_VERSION="1.22.4"
 
-  if ! has_cmd go; then
-    log_fail "Go is not installed. Install Go ${GO_MIN_VERSION}+ from https://go.dev/dl/"
-    log_info "Quick install (Linux/WSL2):"
-    echo "  curl -LO https://go.dev/dl/go1.22.4.linux-amd64.tar.gz"
-    echo "  sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf go1.22.4.linux-amd64.tar.gz"
-    echo "  echo 'export PATH=\$PATH:/usr/local/go/bin:\$HOME/go/bin' >> ~/.bashrc && source ~/.bashrc"
-    return
+check_go() {
+  log_step "Checking / Installing Go toolchain"
+
+  if ! has_cmd go && [ ! -x /usr/local/go/bin/go ]; then
+    log_warn "Go not found — auto-installing Go ${GO_INSTALL_VERSION} ..."
+
+    local go_archive="go${GO_INSTALL_VERSION}.${PLATFORM}-${GOARCH}.tar.gz"
+    local tmp_dir
+    tmp_dir="$(mktemp -d)"
+
+    curl -sSfL "https://go.dev/dl/${go_archive}" -o "${tmp_dir}/${go_archive}"
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf "${tmp_dir}/${go_archive}"
+    rm -rf "$tmp_dir"
+
+    # Expose Go for the rest of this script session
+    export PATH="$PATH:/usr/local/go/bin:${HOME}/go/bin"
+
+    # Persist to the invoking user's shell config
+    local target_rc="${HOME}/.bashrc"
+    if [ -n "${ZSH_VERSION:-}" ]; then
+      target_rc="${HOME}/.zshrc"
+    fi
+    if ! grep -q '/usr/local/go/bin' "$target_rc" 2>/dev/null; then
+      echo 'export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"' >> "$target_rc"
+      log_info "Go PATH entry added to ${target_rc}. Run: source ${target_rc}"
+    fi
+    log_pass "Go ${GO_INSTALL_VERSION} installed to /usr/local/go"
+
+  elif [ -x /usr/local/go/bin/go ] && ! has_cmd go; then
+    # Binary present but PATH not yet updated for this session
+    export PATH="$PATH:/usr/local/go/bin:${HOME}/go/bin"
   fi
 
-  GO_VERSION="$(go version | awk '{print $3}' | sed 's/go//')"
-  if version_gte "$GO_VERSION" "$GO_MIN_VERSION"; then
-    log_pass "Go ${GO_VERSION} (>= ${GO_MIN_VERSION} required)"
+  if has_cmd go; then
+    local installed_go
+    installed_go="$(go version | awk '{print $3}' | sed 's/go//')"
+    if version_gte "$installed_go" "$GO_MIN_VERSION"; then
+      log_pass "Go ${installed_go} (>= ${GO_MIN_VERSION} required)"
+    else
+      log_fail "Go ${installed_go} is too old. Minimum required: ${GO_MIN_VERSION}"
+    fi
   else
-    log_fail "Go ${GO_VERSION} is too old. Minimum required: ${GO_MIN_VERSION}"
+    log_fail "Go installation failed. Install manually: https://go.dev/dl/"
   fi
 }
 
@@ -212,10 +260,10 @@ check_docker() {
     return
   fi
 
-  if ! has_cmd docker compose 2>/dev/null && ! docker compose version &>/dev/null 2>&1; then
+  if ! docker compose version &>/dev/null 2>&1; then
     log_fail "Docker Compose v2 plugin not found. Update Docker Desktop or install the plugin."
   else
-    log_pass "Docker Compose $(docker compose version | awk '{print $4}')"
+    log_pass "Docker Compose $(docker compose version 2>/dev/null | awk '{print $4}')"
   fi
 }
 
@@ -380,8 +428,18 @@ install_mkcert() {
       ;;
   esac
 
-  # Install local CA into system trust store
-  mkcert -install 2>/dev/null || log_warn "Could not install mkcert CA — run 'mkcert -install' manually with appropriate permissions"
+  # Install local CA into system trust store.
+  # On WSL, libnss3-tools must be present and the cert won't propagate to
+  # the Windows trust store automatically — that step must be done on the host.
+  if [ "$IS_WSL" = true ]; then
+    if ! dpkg -l libnss3-tools &>/dev/null 2>&1; then
+      log_info "Installing libnss3-tools required by mkcert on WSL ..."
+      sudo apt-get install -y libnss3-tools &>/dev/null \
+        || log_warn "Could not install libnss3-tools — 'mkcert -install' may fail"
+    fi
+  fi
+  mkcert -install 2>/dev/null \
+    || log_warn "Could not install mkcert CA — run 'mkcert -install' manually with appropriate permissions"
 
   log_pass "mkcert installed and local CA configured"
 }
@@ -393,7 +451,7 @@ install_kubectl() {
   log_step "Installing kubectl"
 
   if has_cmd kubectl; then
-    log_pass "kubectl $(kubectl version --client --short 2>/dev/null | head -1) already installed"
+    log_pass "kubectl $(kubectl version --client 2>/dev/null | head -1) already installed"
     return
   fi
 
@@ -403,6 +461,7 @@ install_kubectl() {
     darwin) kube_os="darwin" ;;
   esac
 
+  # install_binary handles sudo internally via the temp-file pattern
   install_binary \
     "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/${kube_os}/${GOARCH}/kubectl" \
     "/usr/local/bin/kubectl"

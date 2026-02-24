@@ -31,28 +31,46 @@ Windows Host
 
 ## Step-By-Step Order
 
-> **Important**: Two manual steps must complete (and the system may need a restart) **before** running any automated scripts. Follow the steps in order.
+> **Important**: All Phase 1 and Phase 2 manual prerequisite steps must be completed **before** running the automated script. Follow the steps strictly in order. Skipping steps is the most common cause of setup failures.
 
 ```
-Phase 1 — Manual prerequisites (Windows host, ~15 min)
-  Step 1  Check Windows requirements
-  Step 2  Enable WSL2
-  Step 3  Install Docker Desktop
-  Step 4  Install Git for Windows
-  Step 5  Install VS Code  (optional but strongly recommended)
+Phase 1 — Windows host prerequisites (~15 min, requires reboots)
+  Step 1   Check Windows requirements
+  Step 2   Enable WSL2 and install Ubuntu 24.04
+  Step 3   Install Docker Desktop
+  Step 4   Install Git for Windows
+  Step 5   Install VS Code  (optional but strongly recommended)
 
-Phase 2 — Automated setup (WSL2, ~20–40 min)
-  Step 6  Clone the repository inside WSL2
-  Step 7  Run the automated bootstrap script
+Phase 2 — WSL2 Linux prerequisites (~10 min, REQUIRED before the script)
+  Step 6   Update Ubuntu and install baseline apt packages
+  Step 7   Install Node.js 20 LTS via nvm          ← MUST be done manually
+  Step 8   Install Python 3 + pip3                 ← Needed for semgrep (recommended)
+  Step 9   Clone the repository inside WSL2
 
-Phase 3 — Manual finish (WSL2, ~5 min)
-  Step 8  Review environment variables (.env)
-  Step 9  Start the development stack
-  Step 10 Initialize Redpanda topics
-  Step 11 Initialize ClickHouse schema
-  Step 12 Verify the installation
-  Step 13 Run tests
+Phase 3 — Automated setup (WSL2, ~20–40 min)
+  Step 10  Run the automated bootstrap script
+
+Phase 4 — Manual finish (WSL2, ~5 min)
+  Step 11  Review environment variables (.env)
+  Step 12  Start the development stack
+  Step 13  Initialize Redpanda topics
+  Step 14  Initialize ClickHouse schema
+  Step 15  Verify the installation
+  Step 16  Run tests
 ```
+
+> **What the script installs vs. what you must install yourself:**
+>
+> | Tool | Who installs it |
+> |---|---|
+> | Go 1.22+ | **Script auto-installs** if absent |
+> | buf, protoc plugins | Script auto-installs |
+> | **Node.js 20 LTS** | **You — Step 7 (script cannot install this)** |
+> | pnpm | Script (after Node.js is present) |
+> | **Python 3 / pip3** | **You — Step 8 (script cannot install this)** |
+> | semgrep | Script via pip3 (after pip3 is present) |
+> | gitleaks, gosec, trivy, golangci-lint | Script auto-installs |
+> | mkcert, kubectl, helm | Script auto-installs |
 
 ---
 
@@ -223,78 +241,237 @@ VS Code with the WSL extension gives you a full IDE experience running inside WS
 
 ---
 
-## Phase 2 — Automated Setup
+## Phase 2 — WSL2 Linux Prerequisites
 
 > All steps from here onwards run **inside the WSL2 Ubuntu terminal** unless otherwise stated.
 >
-> Open the Ubuntu terminal: search **"Ubuntu"** in the Windows Start menu, or run `wsl` in PowerShell.
+> Open the Ubuntu terminal: search **"Ubuntu"** in the Windows Start menu, or press `Win + R` → type `wsl` → Enter.
 
 ---
 
-### Step 6 — Clone the Repository
+### Step 6 — Update Ubuntu and Install Baseline Packages
 
-Inside the **Ubuntu WSL2 terminal**:
+A fresh Ubuntu 24.04 installation is missing several tools the setup script depends on. Install them first.
 
 ```bash
-# Install git inside WSL2 (if not already present)
-sudo apt-get update -q
-sudo apt-get install -y git
+# Update the package index
+sudo apt-get update
 
+# Upgrade existing packages
+sudo apt-get upgrade -y
+
+# Install baseline tools required by the setup script and build processes
+sudo apt-get install -y \
+  curl \
+  wget \
+  git \
+  unzip \
+  tar \
+  ca-certificates \
+  gnupg \
+  lsb-release \
+  build-essential \
+  software-properties-common \
+  libnss3-tools \
+  python3 \
+  python3-pip \
+  python3-venv \
+  jq \
+  openssl
+```
+
+> **Why each package?**
+>
+> | Package | Used by |
+> |---|---|
+> | `curl`, `wget` | Downloading tool binaries (Go, buf, kubectl, etc.) |
+> | `git` | Repository cloning and git hooks |
+> | `unzip`, `tar` | Extracting downloaded archives |
+> | `ca-certificates`, `gnupg` | Verifying HTTPS downloads |
+> | `build-essential` | C compiler required by some Go packages with CGO |
+> | `libnss3-tools` | **Required by mkcert** to install the local CA into the NSS trust store |
+> | `python3`, `python3-pip` | **Required by semgrep** (security scanner) |
+> | `jq` | JSON parsing in shell scripts |
+> | `openssl` | TLS certificate inspection |
+
+Verify the install:
+
+```bash
+curl --version
+git --version
+python3 --version
+pip3 --version
+```
+
+---
+
+### Step 7 — Install Node.js 20 LTS via nvm
+
+> **This step is mandatory.** The setup script checks for Node.js but **cannot install it automatically**. If Node.js is absent when the script runs, it will report an error and pnpm will not be installed.
+
+The recommended way to install Node.js on Linux/WSL2 is via **nvm** (Node Version Manager), which lets you manage multiple versions without `sudo`.
+
+**7a — Install nvm:**
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+```
+
+The installer appends the following to your `~/.bashrc`. Load it immediately without restarting the terminal:
+
+```bash
+source ~/.bashrc
+```
+
+Verify nvm is available:
+
+```bash
+nvm --version
+# Expected: 0.40.1 (or similar)
+```
+
+> If `nvm: command not found`, close the terminal window and open a new Ubuntu terminal, then retry.
+
+**7b — Install Node.js 20 LTS:**
+
+```bash
+nvm install 20
+nvm use 20
+nvm alias default 20
+```
+
+**7c — Verify the installation:**
+
+```bash
+node --version
+# Expected: v20.x.x
+
+npm --version
+# Expected: 10.x.x
+```
+
+> **Why nvm instead of `apt-get install nodejs`?**
+> Ubuntu's apt repository ships a very old Node.js version (typically v12). nvm always installs the current LTS release and lets you switch versions per project.
+
+---
+
+### Step 8 — Install Python 3 + pip3 (Recommended)
+
+> semgrep (a multi-language security scanner used in CI) is installed via pip3. If pip3 is absent, the setup script skips semgrep with a warning. Installing Python 3 and pip3 now ensures full security tool coverage.
+
+If `sudo apt-get install -y python3 python3-pip` from Step 6 succeeded, verify:
+
+```bash
+python3 --version
+# Expected: Python 3.12.x (or 3.10+)
+
+pip3 --version
+# Expected: pip 24.x.x from /usr/lib/python3/...
+```
+
+If pip3 is still missing (can happen if Ubuntu ships `python3-pip` as a stub), install it directly:
+
+```bash
+python3 -m ensurepip --upgrade
+# or
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python3 get-pip.py
+rm get-pip.py
+```
+
+Verify semgrep is installable (optional pre-test):
+
+```bash
+pip3 install --quiet semgrep
+semgrep --version
+```
+
+---
+
+### Step 9 — Clone the Repository
+
+```bash
 # Configure git identity (if not already set)
 git config --global user.name "Your Name"
 git config --global user.email "you@example.com"
 git config --global pull.rebase true
 
+# Switch line-ending handling to match the project (LF-only)
+git config --global core.autocrlf input
+
 # Clone into your Linux home directory (NOT /mnt/c — see note below)
 mkdir -p ~/workspace
 cd ~/workspace
-git clone https://github.com/<org>/rtsa.git
+git clone https://github.com/arvinddhasmana/RTSA_VS_Opus.git rtsa
 cd rtsa
 ```
 
-> **Important — Where to clone**: Always clone inside the WSL2 filesystem (`~/workspace/rtsa`), **not** on the Windows filesystem (`/mnt/c/...`). Accessing Windows drives from WSL2 is significantly slower and causes file permission issues with scripts and Go tooling.
+> **Critical — where to clone:**  
+> Always clone inside the WSL2 filesystem (`~/workspace/rtsa`), **not** on the Windows filesystem (`/mnt/c/…`).
+> Accessing the Windows drive from WSL2 is 10–100× slower and causes file permission problems with Go tooling, scripts, and Docker bind mounts.
 
-> Replace `<org>` with the GitHub organization name provided by your team lead.
+Make all scripts executable after cloning:
+
+```bash
+find scripts/ -name "*.sh" -exec chmod +x {} \;
+```
 
 ---
 
-### Step 7 — Run the Automated Bootstrap Script
+## Phase 3 — Automated Setup
 
-This single script installs all remaining tools inside WSL2 and prepares the workspace. It handles everything listed in the prerequisites that has **"Automated"** in the Install Method column.
+### Step 10 — Run the Automated Bootstrap Script
+
+With all prerequisites installed, run the setup script **as your normal WSL2 user** (not with `sudo`). The script handles privilege escalation internally for only the steps that need it.
 
 ```bash
-# Make all scripts executable
-find scripts/ -name "*.sh" -exec chmod +x {} \;
-
-# Run the full developer setup
+cd ~/workspace/rtsa
 ./scripts/setup/setup-dev.sh
 ```
 
+> **Do not run with `sudo bash`.**  
+> Running as root changes `$HOME` to `/root`, which breaks `$HOME/go/bin`, `~/.bashrc` path entries, and nvm. Individual commands inside the script that need elevated privileges call `sudo` internally.
+
 **What the script installs and configures:**
 
-| Tool / Action                      | Details                                           |
-| ---------------------------------- | ------------------------------------------------- |
-| buf CLI                            | Protobuf toolchain (v1.32+)                       |
-| protoc-gen-go & protoc-gen-go-grpc | Go Protobuf + gRPC code generators                |
-| pnpm                               | Frontend package manager (v9+)                    |
-| gitleaks                           | Secret scanning                                   |
-| gosec                              | Go SAST                                           |
-| govulncheck                        | Go vulnerability scanner                          |
-| golangci-lint                      | Go linters                                        |
-| trivy                              | Container image scanner                           |
-| semgrep                            | Multi-language SAST                               |
-| mkcert                             | Local TLS certificate authority                   |
-| kubectl                            | Kubernetes CLI                                    |
-| helm                               | Kubernetes chart deployment                       |
-| Git hooks                          | Pre-commit and commit-msg hooks from `.githooks/` |
-| Go modules                         | `go mod download` for all services                |
-| Frontend deps                      | `pnpm install` in `ui/`                           |
-| Protobuf codegen                   | `buf generate proto/`                             |
-| `.env` file                        | Created from `.env.example`                       |
-| Dev TLS certs                      | Generated via `gen-dev-certs.sh`                  |
-| Docker images                      | Pre-pull dev stack images                         |
+| Step | Tool / Action | Version | Notes |
+|---|---|---|---|
+| 1 | Go toolchain | 1.22.4 | Auto-downloaded and installed if absent |
+| 2 | buf CLI | 1.32.2 | Protobuf toolchain |
+| 2 | protoc-gen-go | latest | Go Protobuf code generator |
+| 2 | protoc-gen-go-grpc | latest | gRPC code generator |
+| 3 | pnpm | 9.x | Requires Node.js from Step 7 |
+| 4 | gitleaks | 8.18.4 | Secret scanning |
+| 5 | gosec | latest | Go SAST |
+| 5 | govulncheck | latest | Go vulnerability scanner |
+| 5 | golangci-lint | 1.57.2 | Go linter suite |
+| 5 | trivy | 0.50.4 | Container image scanner |
+| 5 | semgrep | latest | Multi-language SAST (requires pip3) |
+| 6 | mkcert | latest | Local TLS certificate authority |
+| 7 | kubectl | 1.29.4 | Kubernetes CLI |
+| 7 | helm | latest | Kubernetes chart deployment |
+| 8 | Git configuration | — | Identity check, `pull.rebase`, `.githooks/` |
+| 9 | Go modules | — | `go mod download` for all services |
+| 10 | Frontend deps | — | `pnpm install` in `ui/` |
+| 11 | Protobuf codegen | — | `buf generate proto/` |
+| 12 | `.env` file | — | Created from `.env.example` |
+| 13 | Dev TLS certs | — | CA + server + client certs via mkcert |
+| 14 | Docker images | — | Pre-pull dev stack images |
 
-**Expected output** (truncated):
+**Is the script idempotent?**
+
+Yes. Every installation function checks whether the tool is already installed at the required version before doing anything. **It is safe — and recommended — to re-run the script at any time:**
+
+- After installing a missing prerequisite (e.g., Node.js)
+- To verify your environment is still healthy
+- After a teammate updates tool versions in the script
+
+```bash
+# Safe to run again — already-installed tools are skipped
+./scripts/setup/setup-dev.sh
+```
+
+**Expected successful output:**
 
 ```
 ════════════════════════════════════════════════════
@@ -330,45 +507,13 @@ find scripts/ -name "*.sh" -exec chmod +x {} \;
 ════════════════════════════════════════════════════
 ```
 
-If the script reports errors, see the [Troubleshooting](#troubleshooting) section.
-
-**Go not installed yet?**
-
-If Go was not installed before running the setup script, install it now and re-run:
-
-```bash
-GO_VERSION="1.22.4"
-curl -LO "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz"
-sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz"
-echo 'export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"' >> ~/.bashrc
-source ~/.bashrc
-go version
-# Then re-run:
-./scripts/setup/setup-dev.sh
-```
-
-**Node.js not installed yet?**
-
-```bash
-# Install nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc
-
-# Install Node.js 20 LTS
-nvm install 20
-nvm use 20
-nvm alias default 20
-node --version
-# Then re-run:
-./scripts/setup/setup-dev.sh
-```
+If the script reports errors, see the [Troubleshooting](#troubleshooting) section below, fix the issue, and re-run the script (it is safe to re-run).
 
 ---
 
-## Phase 3 — Manual Finish
+## Phase 4 — Manual Finish
 
-### Step 8 — Review Environment Variables
+### Step 11 — Review Environment Variables
 
 The setup script created a `.env` file from `.env.example`. Review it and update any values specific to your environment:
 
@@ -399,7 +544,7 @@ TLS_SERVER_KEY=./certs/dev/server.key
 
 ---
 
-### Step 9 — Start the Development Stack
+### Step 12 — Start the Development Stack
 
 ```bash
 docker compose -f deploy/docker-compose.yml up -d
@@ -431,7 +576,7 @@ All containers should show **Status: running** or **healthy**. The full dev stac
 
 ---
 
-### Step 10 — Initialize Redpanda Topics
+### Step 13 — Initialize Redpanda Topics
 
 ```bash
 ./scripts/dev/init-topics.sh
@@ -458,7 +603,7 @@ Expected output:
 
 ---
 
-### Step 11 — Initialize ClickHouse Schema
+### Step 14 — Initialize ClickHouse Schema
 
 ```bash
 ./scripts/dev/init-clickhouse.sh
@@ -487,7 +632,7 @@ Done. ClickHouse schema is ready for development.
 
 ---
 
-### Step 12 — Verify the Installation
+### Step 15 — Verify the Installation
 
 Run the health check to confirm every component is working:
 
@@ -544,7 +689,7 @@ CLASSIFICATION: UNCLASSIFIED
 
 ---
 
-### Step 13 — Run Tests
+### Step 16 — Run Tests
 
 #### Go Unit Tests
 
@@ -688,9 +833,96 @@ mkcert -install
 ./scripts/setup/gen-dev-certs.sh
 ```
 
+### Setup script reported errors — how to fix and re-run
+
+The setup script is **idempotent**: tools already installed at the correct version are skipped. After fixing any reported error, simply re-run the script — it will pick up where it can and skip completed steps.
+
+```bash
+# Fix the issue first (e.g., install Node.js — Step 7 above), then:
+./scripts/setup/setup-dev.sh
+```
+
+Common errors and their fixes are listed in the entries below.
+
+---
+
+### Script reports `[✗] Node.js is not installed`
+
+The setup script cannot install Node.js automatically. You must install it manually **before** running the script (see Step 7). If you skipped that step:
+
+```bash
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.bashrc
+
+# Install and activate Node.js 20 LTS
+nvm install 20
+nvm use 20
+nvm alias default 20
+
+node --version   # should print v20.x.x
+
+# Now re-run the setup script
+./scripts/setup/setup-dev.sh
+```
+
+---
+
+### `nvm: command not found`
+
+The nvm installer appended lines to `~/.bashrc` but the current terminal session hasn't reloaded it. Either:
+
+```bash
+source ~/.bashrc
+```
+
+Or close the current Ubuntu terminal and open a new one, then retry `nvm --version`.
+
+If nvm is still missing, install it again — the installer is idempotent:
+
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+source ~/.bashrc
+```
+
+---
+
+### `node: not found` even after `nvm install 20`
+
+nvm installs Node.js into `~/.nvm/versions/node/v20.x.x/bin/`. This path is only added to `$PATH` when nvm is loaded. If your terminal is not sourcing `~/.bashrc` automatically (common in some VS Code integrated terminal configurations), add this to `~/.bashrc`:
+
+```bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+```
+
+Then reload:
+
+```bash
+source ~/.bashrc
+node --version
+```
+
+---
+
+### Script reports `[!] pip/pip3 not found — install semgrep manually`
+
+pip3 was not installed. Install it and then re-run the script:
+
+```bash
+sudo apt-get install -y python3-pip
+pip3 --version
+
+# Re-run the setup script — it will now install semgrep
+./scripts/setup/setup-dev.sh
+```
+
+---
+
 ### go: command not found after install
 
-The Go `bin` directory is not on `PATH`. Add it:
+The Go `bin` directory is not on `PATH`. This should not happen with the updated setup script, which exports PATH automatically. Add it manually if needed:
 
 ```bash
 echo 'export PATH="$PATH:/usr/local/go/bin:$HOME/go/bin"' >> ~/.bashrc
