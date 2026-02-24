@@ -1,0 +1,42 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Multi-stage build for RTSA Go services
+# Usage: Copy to svc-<name>/Dockerfile and adjust binary name
+
+# ── Build Stage ────────────────────────────
+FROM golang:1.22-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates tzdata
+
+WORKDIR /build
+
+# Download dependencies first (layer caching)
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy source and build
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-s -w" -o /app ./cmd/*/
+
+# Install grpc_health_probe for health checks
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.25 && \
+    wget -qO/bin/grpc_health_probe \
+    "https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64" && \
+    chmod +x /bin/grpc_health_probe
+
+# ── Runtime Stage ──────────────────────────
+FROM gcr.io/distroless/static-debian12:nonroot
+
+LABEL org.opencontainers.image.title="RTSA Service"
+LABEL org.opencontainers.image.classification="UNCLASSIFIED"
+
+COPY --from=builder /app /app
+COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+USER nonroot:nonroot
+
+EXPOSE 50051 8081 9090
+
+ENTRYPOINT ["/app"]

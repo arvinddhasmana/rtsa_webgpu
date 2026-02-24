@@ -1,0 +1,410 @@
+# CLASSIFICATION: UNCLASSIFIED
+# RTSA Application Services — overlay for docker-compose.yml
+# Usage: docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d
+
+services:
+  svc-radar-ingestion:
+    build:
+      context: ../svc-radar-ingestion
+      dockerfile: Dockerfile
+    container_name: rtsa-radar-ingestion
+    environment:
+      RTSA_SERVICE_NAME: svc-radar-ingestion
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+      RTSA_TLS_CA_CERT: /certs/ca.crt
+      RTSA_TLS_SERVER_CERT: /certs/server.crt
+      RTSA_TLS_SERVER_KEY: /certs/server.key
+    ports:
+      - "50051:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - rtsa-net
+
+  svc-ew-ingestion:
+    build:
+      context: ../svc-ew-ingestion
+      dockerfile: Dockerfile
+    container_name: rtsa-ew-ingestion
+    environment:
+      RTSA_SERVICE_NAME: svc-ew-ingestion
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50052:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-elint-ingestion:
+    build:
+      context: ../svc-elint-ingestion
+      dockerfile: Dockerfile
+    container_name: rtsa-elint-ingestion
+    environment:
+      RTSA_SERVICE_NAME: svc-elint-ingestion
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50053:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-isr-ingestion:
+    build:
+      context: ../svc-isr-ingestion
+      dockerfile: Dockerfile
+    container_name: rtsa-isr-ingestion
+    environment:
+      RTSA_SERVICE_NAME: svc-isr-ingestion
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50054:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-ais-ingestion:
+    build:
+      context: ../svc-ais-ingestion
+      dockerfile: Dockerfile
+    container_name: rtsa-ais-ingestion
+    environment:
+      RTSA_SERVICE_NAME: svc-ais-ingestion
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50055:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-cyber-ingestion:
+    build:
+      context: ../svc-cyber-ingestion
+      dockerfile: Dockerfile
+    container_name: rtsa-cyber-ingestion
+    environment:
+      RTSA_SERVICE_NAME: svc-cyber-ingestion
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50056:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-fusion-engine:
+    build:
+      context: ../svc-fusion-engine
+      dockerfile: Dockerfile
+    container_name: rtsa-fusion-engine
+    environment:
+      RTSA_SERVICE_NAME: svc-fusion-engine
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50060:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-anomaly-detection:
+    build:
+      context: ../svc-anomaly-detection
+      dockerfile: Dockerfile
+    container_name: rtsa-anomaly-detection
+    environment:
+      RTSA_SERVICE_NAME: svc-anomaly-detection
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50061:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-feedback:
+    build:
+      context: ../svc-feedback
+      dockerfile: Dockerfile
+    container_name: rtsa-feedback
+    environment:
+      RTSA_SERVICE_NAME: svc-feedback
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_CLICKHOUSE_DSN: "clickhouse://default:${CLICKHOUSE_PASSWORD:-dev_password_change_me}@clickhouse:9000/rtsa"
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50062:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-track:
+    build:
+      context: ../svc-track
+      dockerfile: Dockerfile
+    container_name: rtsa-track
+    environment:
+      RTSA_SERVICE_NAME: svc-track
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50070:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-alert:
+    build:
+      context: ../svc-alert
+      dockerfile: Dockerfile
+    container_name: rtsa-alert
+    environment:
+      RTSA_SERVICE_NAME: svc-alert
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50071:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-query:
+    build:
+      context: ../svc-query
+      dockerfile: Dockerfile
+    container_name: rtsa-query
+    environment:
+      RTSA_SERVICE_NAME: svc-query
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_CLICKHOUSE_DSN: "clickhouse://default:${CLICKHOUSE_PASSWORD:-dev_password_change_me}@clickhouse:9000/rtsa"
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50072:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  svc-audit:
+    build:
+      context: ../svc-audit
+      dockerfile: Dockerfile
+    container_name: rtsa-audit
+    environment:
+      RTSA_SERVICE_NAME: svc-audit
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_CLICKHOUSE_DSN: "clickhouse://default:${CLICKHOUSE_PASSWORD:-dev_password_change_me}@clickhouse:9000/rtsa"
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+    ports:
+      - "50073:50051"
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  # ──────────────────────────────────────────
+  # Redpanda Connect — ETL Pipelines
+  # ──────────────────────────────────────────
+  rpconnect-tracks:
+    image: redpandadata/connect:4.27.0
+    container_name: rtsa-rpconnect-tracks
+    volumes:
+      - ./redpanda-connect/tracks-to-clickhouse.yaml:/connect.yaml:ro
+    environment:
+      REDPANDA_BROKERS: redpanda:9092
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev_password_change_me}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  rpconnect-sensors:
+    image: redpandadata/connect:4.27.0
+    container_name: rtsa-rpconnect-sensors
+    volumes:
+      - ./redpanda-connect/sensors-to-clickhouse.yaml:/connect.yaml:ro
+    environment:
+      REDPANDA_BROKERS: redpanda:9092
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev_password_change_me}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  rpconnect-alerts:
+    image: redpandadata/connect:4.27.0
+    container_name: rtsa-rpconnect-alerts
+    volumes:
+      - ./redpanda-connect/alerts-to-clickhouse.yaml:/connect.yaml:ro
+    environment:
+      REDPANDA_BROKERS: redpanda:9092
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev_password_change_me}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  rpconnect-feedback:
+    image: redpandadata/connect:4.27.0
+    container_name: rtsa-rpconnect-feedback
+    volumes:
+      - ./redpanda-connect/feedback-to-clickhouse.yaml:/connect.yaml:ro
+    environment:
+      REDPANDA_BROKERS: redpanda:9092
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev_password_change_me}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+
+  rpconnect-audit:
+    image: redpandadata/connect:4.27.0
+    container_name: rtsa-rpconnect-audit
+    volumes:
+      - ./redpanda-connect/audit-to-clickhouse.yaml:/connect.yaml:ro
+    environment:
+      REDPANDA_BROKERS: redpanda:9092
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-dev_password_change_me}
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - rtsa-net

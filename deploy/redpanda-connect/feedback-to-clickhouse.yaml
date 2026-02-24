@@ -1,0 +1,48 @@
+# CLASSIFICATION: UNCLASSIFIED
+input:
+  kafka_franz:
+    seed_brokers: ["${REDPANDA_BROKERS}"]
+    topics:
+      - feedback.operator.submissions
+      - feedback.operator.validated
+    consumer_group: rpconnect-clickhouse-feedback
+
+pipeline:
+  processors:
+    - mapping: |
+        root.feedback_id = this.feedback_id
+        root.track_id = this.track_id
+        root.operator_id = this.operator_id
+        root.feedback_type = this.feedback_type
+        root.justification = this.justification
+        root.trust_score = this.trust_score
+        root.clearance_score = this.trust_breakdown.clearance_score
+        root.accuracy_score = this.trust_breakdown.accuracy_score
+        root.temporal_score = this.trust_breakdown.temporal_score
+        root.deviation_score = this.trust_breakdown.deviation_score
+        root.validated = if this.trust_score >= 0.5 { 1 } else { 0 }
+        root.classification_level = this.classification
+        root.event_time = this.submitted_at
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:9000/rtsa"
+    table: operator_feedback
+    columns:
+      - feedback_id
+      - track_id
+      - operator_id
+      - feedback_type
+      - justification
+      - trust_score
+      - clearance_score
+      - accuracy_score
+      - temporal_score
+      - deviation_score
+      - validated
+      - classification_level
+      - event_time
+    batching:
+      count: 100
+      period: 5s

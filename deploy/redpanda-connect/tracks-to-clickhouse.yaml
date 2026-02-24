@@ -1,0 +1,53 @@
+# CLASSIFICATION: UNCLASSIFIED
+input:
+  kafka_franz:
+    seed_brokers: ["${REDPANDA_BROKERS}"]
+    topics:
+      - tracks.fused.surface
+      - tracks.fused.air
+      - tracks.fused.subsurface
+      - tracks.fused.land
+      - tracks.fused.cyber
+    consumer_group: rpconnect-clickhouse-tracks
+
+pipeline:
+  processors:
+    - mapping: |
+        root.track_id = this.track_id
+        root.entity_type = this.entity_type
+        root.hostile_classification = this.hostile_class
+        root.latitude = this.estimated_position.latitude
+        root.longitude = this.estimated_position.longitude
+        root.altitude_meters = this.estimated_position.altitude_meters
+        root.speed_knots = this.estimated_position.speed_knots
+        root.heading_degrees = this.estimated_position.heading_degrees
+        root.confidence_score = this.confidence_score
+        root.source_count = this.source_count
+        root.source_sensors = this.sources.map_each(s -> s.sensor_id)
+        root.classification_level = this.classification
+        root.track_status = this.status
+        root.event_time = this.updated_at
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:9000/rtsa"
+    table: tracks_fused
+    columns:
+      - track_id
+      - entity_type
+      - hostile_classification
+      - latitude
+      - longitude
+      - altitude_meters
+      - speed_knots
+      - heading_degrees
+      - confidence_score
+      - source_count
+      - source_sensors
+      - classification_level
+      - track_status
+      - event_time
+    batching:
+      count: 1000
+      period: 5s

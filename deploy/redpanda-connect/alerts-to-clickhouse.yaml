@@ -1,0 +1,41 @@
+# CLASSIFICATION: UNCLASSIFIED
+input:
+  kafka_franz:
+    seed_brokers: ["${REDPANDA_BROKERS}"]
+    topics:
+      - alerts.anomaly.critical
+      - alerts.anomaly.elevated
+      - alerts.anomaly.watch
+    consumer_group: rpconnect-clickhouse-alerts
+
+pipeline:
+  processors:
+    - mapping: |
+        root.alert_id = this.alert_id
+        root.track_id = this.track_id
+        root.anomaly_type = this.anomaly_type
+        root.severity = this.severity
+        root.confidence_score = this.confidence_score
+        root.explanation = this.explanation
+        root.model_version = this.model_version
+        root.classification_level = this.classification
+        root.event_time = this.detected_at
+
+output:
+  sql_insert:
+    driver: clickhouse
+    dsn: "clickhouse://${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}@${CLICKHOUSE_HOST}:9000/rtsa"
+    table: anomaly_detections
+    columns:
+      - alert_id
+      - track_id
+      - anomaly_type
+      - severity
+      - confidence_score
+      - explanation
+      - model_version
+      - classification_level
+      - event_time
+    batching:
+      count: 500
+      period: 5s
