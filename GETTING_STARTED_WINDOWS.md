@@ -61,16 +61,16 @@ Phase 4 — Manual finish (WSL2, ~5 min)
 
 > **What the script installs vs. what you must install yourself:**
 >
-> | Tool | Who installs it |
-> |---|---|
-> | Go 1.22+ | **Script auto-installs** if absent |
-> | buf, protoc plugins | Script auto-installs |
-> | **Node.js 20 LTS** | **You — Step 7 (script cannot install this)** |
-> | pnpm | Script (after Node.js is present) |
-> | **Python 3 / pip3** | **You — Step 8 (script cannot install this)** |
-> | semgrep | Script via pip3 (after pip3 is present) |
-> | gitleaks, gosec, trivy, golangci-lint | Script auto-installs |
-> | mkcert, kubectl, helm | Script auto-installs |
+> | Tool                                  | Who installs it                               |
+> | ------------------------------------- | --------------------------------------------- |
+> | Go 1.22+                              | **Script auto-installs** if absent            |
+> | buf, protoc plugins                   | Script auto-installs                          |
+> | **Node.js 20 LTS**                    | **You — Step 7 (script cannot install this)** |
+> | pnpm                                  | Script (after Node.js is present)             |
+> | **Python 3 / pip3**                   | **You — Step 8 (script cannot install this)** |
+> | semgrep                               | Script via pip3 (after pip3 is present)       |
+> | gitleaks, gosec, trivy, golangci-lint | Script auto-installs                          |
+> | mkcert, kubectl, helm                 | Script auto-installs                          |
 
 ---
 
@@ -282,17 +282,17 @@ sudo apt-get install -y \
 
 > **Why each package?**
 >
-> | Package | Used by |
-> |---|---|
-> | `curl`, `wget` | Downloading tool binaries (Go, buf, kubectl, etc.) |
-> | `git` | Repository cloning and git hooks |
-> | `unzip`, `tar` | Extracting downloaded archives |
-> | `ca-certificates`, `gnupg` | Verifying HTTPS downloads |
-> | `build-essential` | C compiler required by some Go packages with CGO |
-> | `libnss3-tools` | **Required by mkcert** to install the local CA into the NSS trust store |
-> | `python3`, `python3-pip` | **Required by semgrep** (security scanner) |
-> | `jq` | JSON parsing in shell scripts |
-> | `openssl` | TLS certificate inspection |
+> | Package                    | Used by                                                                 |
+> | -------------------------- | ----------------------------------------------------------------------- |
+> | `curl`, `wget`             | Downloading tool binaries (Go, buf, kubectl, etc.)                      |
+> | `git`                      | Repository cloning and git hooks                                        |
+> | `unzip`, `tar`             | Extracting downloaded archives                                          |
+> | `ca-certificates`, `gnupg` | Verifying HTTPS downloads                                               |
+> | `build-essential`          | C compiler required by some Go packages with CGO                        |
+> | `libnss3-tools`            | **Required by mkcert** to install the local CA into the NSS trust store |
+> | `python3`, `python3-pip`   | **Required by semgrep** (security scanner)                              |
+> | `jq`                       | JSON parsing in shell scripts                                           |
+> | `openssl`                  | TLS certificate inspection                                              |
 
 Verify the install:
 
@@ -406,7 +406,7 @@ git clone https://github.com/arvinddhasmana/RTSA_VS_Opus.git rtsa
 cd rtsa
 ```
 
-> **Critical — where to clone:**  
+> **Critical — where to clone:**
 > Always clone inside the WSL2 filesystem (`~/workspace/rtsa`), **not** on the Windows filesystem (`/mnt/c/…`).
 > Accessing the Windows drive from WSL2 is 10–100× slower and causes file permission problems with Go tooling, scripts, and Docker bind mounts.
 
@@ -429,34 +429,34 @@ cd ~/workspace/rtsa
 ./scripts/setup/setup-dev.sh
 ```
 
-> **Do not run with `sudo bash`.**  
+> **Do not run with `sudo bash`.**
 > Running as root changes `$HOME` to `/root`, which breaks `$HOME/go/bin`, `~/.bashrc` path entries, and nvm. Individual commands inside the script that need elevated privileges call `sudo` internally.
 
 **What the script installs and configures:**
 
-| Step | Tool / Action | Version | Notes |
-|---|---|---|---|
-| 1 | Go toolchain | 1.22.4 | Auto-downloaded and installed if absent |
-| 2 | buf CLI | 1.32.2 | Protobuf toolchain |
-| 2 | protoc-gen-go | latest | Go Protobuf code generator |
-| 2 | protoc-gen-go-grpc | latest | gRPC code generator |
-| 3 | pnpm | 9.x | Requires Node.js from Step 7 |
-| 4 | gitleaks | 8.18.4 | Secret scanning |
-| 5 | gosec | latest | Go SAST |
-| 5 | govulncheck | latest | Go vulnerability scanner |
-| 5 | golangci-lint | 1.57.2 | Go linter suite |
-| 5 | trivy | 0.50.4 | Container image scanner |
-| 5 | semgrep | latest | Multi-language SAST (requires pip3) |
-| 6 | mkcert | latest | Local TLS certificate authority |
-| 7 | kubectl | 1.29.4 | Kubernetes CLI |
-| 7 | helm | latest | Kubernetes chart deployment |
-| 8 | Git configuration | — | Identity check, `pull.rebase`, `.githooks/` |
-| 9 | Go modules | — | `go mod download` for all services |
-| 10 | Frontend deps | — | `pnpm install` in `ui/` |
-| 11 | Protobuf codegen | — | `buf generate proto/` |
-| 12 | `.env` file | — | Created from `.env.example` |
-| 13 | Dev TLS certs | — | CA + server + client certs via mkcert |
-| 14 | Docker images | — | Pre-pull dev stack images |
+| Step | Tool / Action      | Version | Notes                                       |
+| ---- | ------------------ | ------- | ------------------------------------------- |
+| 1    | Go toolchain       | 1.22.4  | Auto-downloaded and installed if absent     |
+| 2    | buf CLI            | 1.32.2  | Protobuf toolchain                          |
+| 2    | protoc-gen-go      | latest  | Go Protobuf code generator                  |
+| 2    | protoc-gen-go-grpc | latest  | gRPC code generator                         |
+| 3    | pnpm               | 9.x     | Requires Node.js from Step 7                |
+| 4    | gitleaks           | 8.18.4  | Secret scanning                             |
+| 5    | gosec              | latest  | Go SAST                                     |
+| 5    | govulncheck        | latest  | Go vulnerability scanner                    |
+| 5    | golangci-lint      | 1.57.2  | Go linter suite                             |
+| 5    | trivy              | 0.50.4  | Container image scanner                     |
+| 5    | semgrep            | latest  | Multi-language SAST (requires pip3)         |
+| 6    | mkcert             | latest  | Local TLS certificate authority             |
+| 7    | kubectl            | 1.29.4  | Kubernetes CLI                              |
+| 7    | helm               | latest  | Kubernetes chart deployment                 |
+| 8    | Git configuration  | —       | Identity check, `pull.rebase`, `.githooks/` |
+| 9    | Go modules         | —       | `go mod download` for all services          |
+| 10   | Frontend deps      | —       | `pnpm install` in `ui/`                     |
+| 11   | Protobuf codegen   | —       | `buf generate proto/`                       |
+| 12   | `.env` file        | —       | Created from `.env.example`                 |
+| 13   | Dev TLS certs      | —       | CA + server + client certs via mkcert       |
+| 14   | Docker images      | —       | Pre-pull dev stack images                   |
 
 **Is the script idempotent?**
 
