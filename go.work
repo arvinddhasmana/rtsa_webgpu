@@ -4,4 +4,21 @@ go 1.22.0
 use (
 ./gen/go
 ./tools/simulator
+./wasm-transforms
+./pkg
+./svc-radar-ingestion
+./svc-ew-ingestion
+./svc-elint-ingestion
+./svc-isr-ingestion
+./svc-ais-ingestion
+./svc-cyber-ingestion
+./svc-fusion-engine
+./svc-anomaly-detection
+./svc-feedback
+./svc-track
+./svc-alert
+./svc-query
+./svc-audit
+./tools/simulator
+./tests/integration
 )

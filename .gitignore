@@ -43,6 +43,7 @@ coverage/
 build/
 out/
 target/
+*.wasm
 
 # ─────────────────────────────────────────────────────────────
 # IDE / editor
@@ -84,3 +85,4 @@ logs/
 *.tfstate.*
 .terraform/
 go1.22.4.linux-amd64.tar.gz
+go.work.sum
