@@ -12,3 +12,13 @@ plugins:
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
+  # TypeScript code generation (for COP Web App)
+  - local: protoc-gen-es
+    out: gen/ts
+    opt:
+      - target=ts
+  # TypeScript Connect-RPC code generation
+  - local: protoc-gen-connect-es
+    out: gen/ts
+    opt:
+      - target=ts
