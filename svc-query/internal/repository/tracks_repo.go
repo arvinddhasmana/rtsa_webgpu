@@ -300,6 +300,8 @@ return commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED
 
 func parseTrackStatus(s string) commonv1.TrackStatus {
 switch s {
+case "NEW":
+return commonv1.TrackStatus_TRACK_STATUS_NEW
 case "ACTIVE":
 return commonv1.TrackStatus_TRACK_STATUS_ACTIVE
 case "STALE":
@@ -309,7 +311,7 @@ return commonv1.TrackStatus_TRACK_STATUS_DROPPED
 case "MERGED":
 return commonv1.TrackStatus_TRACK_STATUS_MERGED
 default:
-return commonv1.TrackStatus_TRACK_STATUS_ACTIVE
+return commonv1.TrackStatus_TRACK_STATUS_UNSPECIFIED
 }
 }
 

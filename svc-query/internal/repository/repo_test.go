@@ -85,11 +85,12 @@ tests := []struct {
 input string
 want  commonv1.TrackStatus
 }{
+{"NEW", commonv1.TrackStatus_TRACK_STATUS_NEW},
 {"ACTIVE", commonv1.TrackStatus_TRACK_STATUS_ACTIVE},
 {"STALE", commonv1.TrackStatus_TRACK_STATUS_STALE},
 {"DROPPED", commonv1.TrackStatus_TRACK_STATUS_DROPPED},
 {"MERGED", commonv1.TrackStatus_TRACK_STATUS_MERGED},
-{"", commonv1.TrackStatus_TRACK_STATUS_ACTIVE},
+{"", commonv1.TrackStatus_TRACK_STATUS_UNSPECIFIED},
 }
 for _, tc := range tests {
 t.Run(tc.input, func(t *testing.T) {
