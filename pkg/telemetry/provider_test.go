@@ -113,14 +113,24 @@ _ = provider.Shutdown(ctx)
 }
 
 func TestProvider_ShutdownNilProviders(t *testing.T) {
-// Test that Shutdown handles nil providers gracefully
-ctx := context.Background()
-provider, err := telemetry.Init(ctx, telemetry.Config{
-ServiceName: "test-svc",
-})
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
+	// Test that Shutdown handles nil providers gracefully
+	ctx := context.Background()
+	provider, err := telemetry.Init(ctx, telemetry.Config{
+		ServiceName: "test-svc",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should not panic on double shutdown
+	_ = provider.Shutdown(ctx)
 }
-// Should not panic on double shutdown
-_ = provider.Shutdown(ctx)
+
+// TestProvider_ShutdownAllNilFields exercises the nil-field branches in Shutdown.
+func TestProvider_ShutdownAllNilFields(t *testing.T) {
+	ctx := context.Background()
+	// Provider with all nil fields — should not panic
+	p := &telemetry.Provider{}
+	if err := p.Shutdown(ctx); err != nil {
+		t.Errorf("unexpected error with nil fields: %v", err)
+	}
 }
