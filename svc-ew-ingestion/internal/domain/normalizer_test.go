@@ -8,8 +8,6 @@ ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-ew-ingestion/internal/domain"
 )
 
-func NewNormalizer() *domain.Normalizer { return domain.NewNormalizer() }
-
 func TestEWNormalizer_TrimsWhitespace(t *testing.T) {
 n := domain.NewNormalizer()
 obs := &ingestionv1.SensorObservation{
