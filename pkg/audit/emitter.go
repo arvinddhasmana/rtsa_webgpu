@@ -1,0 +1,99 @@
+// CLASSIFICATION: UNCLASSIFIED
+package audit
+
+import (
+"context"
+"encoding/json"
+"time"
+
+"github.com/google/uuid"
+auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
+commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+"go.opentelemetry.io/otel/trace"
+"go.uber.org/zap"
+"google.golang.org/protobuf/proto"
+"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+// AuditParams contains the parameters for an audit event.
+type AuditParams struct {
+EventType           string
+ActorID             string
+ActorType           auditv1.ActorType
+ResourceType        string
+ResourceID          string
+Action              auditv1.AuditAction
+Detail              map[string]interface{}
+ClassificationLevel commonv1.ClassificationLevel
+}
+
+// Emitter produces audit events to Redpanda.
+type Emitter struct {
+producer  *redpanda.Producer
+serviceID string
+logger    *zap.Logger
+}
+
+// NewEmitter creates an audit event emitter for the given service.
+func NewEmitter(producer *redpanda.Producer, serviceID string, logger *zap.Logger) *Emitter {
+return &Emitter{
+producer:  producer,
+serviceID: serviceID,
+logger:    logger,
+}
+}
+
+// Emit produces an audit event. Never returns an error to the caller.
+func (e *Emitter) Emit(ctx context.Context, params AuditParams) {
+// Extract trace ID from context
+traceID := ""
+if span := trace.SpanFromContext(ctx); span.SpanContext().IsValid() {
+traceID = span.SpanContext().TraceID().String()
+}
+
+// Serialize detail to JSON
+detailJSON := "{}"
+if params.Detail != nil {
+b, err := json.Marshal(params.Detail)
+if err != nil {
+e.logger.Error("audit: failed to marshal detail", zap.Error(err))
+} else {
+detailJSON = string(b)
+}
+}
+
+event := &auditv1.AuditEvent{
+AuditId:             uuid.New().String(),
+ServiceId:           e.serviceID,
+EventType:           params.EventType,
+ActorId:             params.ActorID,
+ActorType:           params.ActorType,
+ResourceType:        params.ResourceType,
+ResourceId:          params.ResourceID,
+Action:              params.Action,
+DetailJson:          detailJSON,
+ClassificationLevel: params.ClassificationLevel,
+EventTime:           timestamppb.New(time.Now().UTC()),
+TraceId:             traceID,
+}
+
+b, err := proto.Marshal(event)
+if err != nil {
+e.logger.Error("audit: failed to marshal event", zap.Error(err))
+return
+}
+
+classification := "UNCLASSIFIED"
+	if e.producer == nil {
+		e.logger.Error("audit: producer is nil, event not sent",
+			zap.String("event_type", params.EventType))
+		return
+	}
+	if err := e.producer.Produce(ctx, AuditTopic,
+		[]byte(e.serviceID), b, classification, traceID); err != nil {
+e.logger.Error("audit: failed to produce event",
+zap.String("event_type", params.EventType),
+zap.Error(err))
+}
+}
