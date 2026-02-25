@@ -12,7 +12,12 @@ plugins:
     opt:
       - paths=source_relative
       - require_unimplemented_servers=false
-  # TypeScript code generation (for COP Web App)
+  # TypeScript Protobuf message generation (for COP Web App)
+  - remote: buf.build/bufbuild/es
+    out: gen/ts
+    opt:
+      - target=ts
+  # TypeScript Connect service client generation (for COP Web App)
   - remote: buf.build/connectrpc/es
     out: gen/ts
     opt:
