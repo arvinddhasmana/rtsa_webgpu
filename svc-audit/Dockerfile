@@ -34,7 +34,7 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=builder /out/svc-audit /svc-audit
 
-EXPOSE 8083 9093
+EXPOSE 8083 9093 50073
 
 USER nonroot:nonroot
 

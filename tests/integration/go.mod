@@ -4,7 +4,9 @@ module github.com/arvinddhasmana/RTSA_VS_Opus/tests/integration
 go 1.22.0
 
 require (
+	github.com/ClickHouse/clickhouse-go/v2 v2.43.0
 	github.com/arvinddhasmana/RTSA_VS_Opus/gen/go v0.0.0-00010101000000-000000000000
+	github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit v0.0.0-00010101000000-000000000000
 	github.com/arvinddhasmana/RTSA_VS_Opus/svc-track v0.0.0-00010101000000-000000000000
 	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/twmb/franz-go v1.17.0
@@ -67,5 +69,6 @@ require (
 replace (
 	github.com/arvinddhasmana/RTSA_VS_Opus/gen/go => ../../gen/go
 	github.com/arvinddhasmana/RTSA_VS_Opus/pkg => ../../pkg
+	github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit => ../../svc-audit
 	github.com/arvinddhasmana/RTSA_VS_Opus/svc-track => ../../svc-track
 )
