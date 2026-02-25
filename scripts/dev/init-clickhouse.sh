@@ -84,178 +84,133 @@ create_database() {
 apply_inline_schema() {
   log_info "Applying core RTSA schema..."
 
-  # sensor_events table
+  # sensor_observations table
   ch_query_db "
 -- CLASSIFICATION: UNCLASSIFIED
-CREATE TABLE IF NOT EXISTS sensor_events
+CREATE TABLE IF NOT EXISTS sensor_observations
 (
-    event_id        String,
-    sensor_id       String,
-    sensor_type     Enum8(
-        'RADAR' = 1,
-        'EW_SIGINT' = 2,
-        'ELINT_COMINT' = 3,
-        'ISR' = 4,
-        'AIS_BFT' = 5,
-        'CYBER' = 6
-    ),
-    event_time      DateTime64(3, 'UTC'),
-    latitude        Float64,
-    longitude       Float64,
-    altitude        Float64,
-    speed_ms        Float64,
-    heading_deg     Float64,
-    classification  Enum8(
-        'UNCLASSIFIED' = 0,
-        'PROTECTED_A' = 1,
-        'PROTECTED_B' = 2,
-        'PROTECTED_C' = 3,
-        'SECRET' = 4
-    ),
-    raw_payload     String,
-    ingestion_time  DateTime64(3, 'UTC') DEFAULT now64(3)
+    observation_id       String,
+    sensor_id            String,
+    sensor_type          LowCardinality(String),
+    latitude             Float64,
+    longitude            Float64,
+    altitude_meters      Float64,
+    speed_knots          Float64,
+    heading_degrees      Float64,
+    classification_level LowCardinality(String),
+    metadata_json        String,
+    event_time           DateTime64(3, 'UTC'),
+    ingestion_time       DateTime64(3, 'UTC') DEFAULT now64(3)
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(event_time)
 ORDER BY (sensor_type, sensor_id, event_time)
 TTL toDateTime(event_time) + INTERVAL 90 DAY
 SETTINGS index_granularity = 8192;
-" &>/dev/null && log_pass "  sensor_events table ready"
+" &>/dev/null && log_pass "  sensor_observations table ready"
 
-  # entity_tracks table
+  # tracks_fused table
   ch_query_db "
 -- CLASSIFICATION: UNCLASSIFIED
-CREATE TABLE IF NOT EXISTS entity_tracks
+CREATE TABLE IF NOT EXISTS tracks_fused
 (
-    track_id        String,
-    entity_type     Enum8(
-        'AIR' = 1,
-        'SURFACE' = 2,
-        'SUBSURFACE' = 3,
-        'LAND' = 4,
-        'SPACE' = 5,
-        'CYBER' = 6
-    ),
-    hostile_status  Enum8(
-        'UNKNOWN' = 0,
-        'PENDING' = 1,
-        'FRIENDLY' = 2,
-        'NEUTRAL' = 3,
-        'HOSTILE' = 4,
-        'SUSPECT' = 5
-    ),
-    track_time      DateTime64(3, 'UTC'),
-    latitude        Float64,
-    longitude       Float64,
-    altitude        Float64,
-    speed_ms        Float64,
-    heading_deg     Float64,
-    confidence      Float32,
-    source_sensors  Array(String),
-    classification  Enum8(
-        'UNCLASSIFIED' = 0,
-        'PROTECTED_A' = 1,
-        'PROTECTED_B' = 2,
-        'PROTECTED_C' = 3,
-        'SECRET' = 4
-    ),
-    ingestion_time  DateTime64(3, 'UTC') DEFAULT now64(3)
-)
-ENGINE = MergeTree()
-PARTITION BY toYYYYMM(track_time)
-ORDER BY (entity_type, track_id, track_time)
-TTL toDateTime(track_time) + INTERVAL 90 DAY
-SETTINGS index_granularity = 8192;
-" &>/dev/null && log_pass "  entity_tracks table ready"
-
-  # anomaly_scores table
-  ch_query_db "
--- CLASSIFICATION: UNCLASSIFIED
-CREATE TABLE IF NOT EXISTS anomaly_scores
-(
-    score_id        String,
-    track_id        String,
-    anomaly_type    LowCardinality(String),
-    score           Float32,
-    confidence      Float32,
-    explanation     String,
-    score_time      DateTime64(3, 'UTC'),
-    model_version   String,
-    classification  Enum8(
-        'UNCLASSIFIED' = 0,
-        'PROTECTED_A' = 1,
-        'PROTECTED_B' = 2,
-        'PROTECTED_C' = 3,
-        'SECRET' = 4
-    ),
-    ingestion_time  DateTime64(3, 'UTC') DEFAULT now64(3)
-)
-ENGINE = MergeTree()
-PARTITION BY toYYYYMM(score_time)
-ORDER BY (track_id, score_time)
-TTL toDateTime(score_time) + INTERVAL 90 DAY
-SETTINGS index_granularity = 8192;
-" &>/dev/null && log_pass "  anomaly_scores table ready"
-
-  # audit_events table — append-only, no TTL (immutable audit trail)
-  ch_query_db "
--- CLASSIFICATION: UNCLASSIFIED
--- ITSG-33: AU-3 — Content of Audit Records
-CREATE TABLE IF NOT EXISTS audit_events
-(
-    event_id        String,
-    event_type      LowCardinality(String),
-    service         LowCardinality(String),
-    operator_id     String,
-    resource_type   LowCardinality(String),
-    resource_id     String,
-    action          LowCardinality(String),
-    outcome         Enum8('SUCCESS' = 1, 'FAILURE' = 2),
-    event_time      DateTime64(3, 'UTC'),
-    client_ip       IPv6,
-    details         String,
-    classification  Enum8(
-        'UNCLASSIFIED' = 0,
-        'PROTECTED_A' = 1,
-        'PROTECTED_B' = 2,
-        'PROTECTED_C' = 3,
-        'SECRET' = 4
-    ),
-    ingestion_time  DateTime64(3, 'UTC') DEFAULT now64(3)
+    track_id               String,
+    entity_type            LowCardinality(String),
+    hostile_classification LowCardinality(String),
+    latitude               Float64,
+    longitude              Float64,
+    altitude_meters        Float64,
+    speed_knots            Float64,
+    heading_degrees        Float64,
+    confidence_score       Float32,
+    source_count           UInt16,
+    source_sensors         Array(String),
+    classification_level   LowCardinality(String),
+    track_status           LowCardinality(String),
+    event_time             DateTime64(3, 'UTC'),
+    ingestion_time         DateTime64(3, 'UTC') DEFAULT now64(3)
 )
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(event_time)
-ORDER BY (service, event_type, event_time)
+ORDER BY (entity_type, track_id, event_time)
+TTL toDateTime(event_time) + INTERVAL 90 DAY
 SETTINGS index_granularity = 8192;
-" &>/dev/null && log_pass "  audit_events table ready"
+" &>/dev/null && log_pass "  tracks_fused table ready"
 
-  # feedback_events table
+  # anomaly_detections table
   ch_query_db "
 -- CLASSIFICATION: UNCLASSIFIED
-CREATE TABLE IF NOT EXISTS feedback_events
+CREATE TABLE IF NOT EXISTS anomaly_detections
 (
-    feedback_id     String,
-    operator_id     String,
-    track_id        String,
-    score_id        String,
-    feedback_type   Enum8('CONFIRM' = 1, 'DISMISS' = 2, 'ESCALATE' = 3, 'RECLASSIFY' = 4),
-    trust_score     Float32,
-    validated       UInt8 DEFAULT 0,
-    feedback_time   DateTime64(3, 'UTC'),
-    classification  Enum8(
-        'UNCLASSIFIED' = 0,
-        'PROTECTED_A' = 1,
-        'PROTECTED_B' = 2,
-        'PROTECTED_C' = 3,
-        'SECRET' = 4
-    ),
-    ingestion_time  DateTime64(3, 'UTC') DEFAULT now64(3)
+    alert_id             String,
+    track_id             String,
+    anomaly_type         LowCardinality(String),
+    severity             LowCardinality(String),
+    confidence_score     Float32,
+    explanation          String,
+    model_version        String,
+    classification_level LowCardinality(String),
+    event_time           DateTime64(3, 'UTC'),
+    ingestion_time       DateTime64(3, 'UTC') DEFAULT now64(3)
 )
 ENGINE = MergeTree()
-PARTITION BY toYYYYMM(feedback_time)
-ORDER BY (operator_id, feedback_time)
+PARTITION BY toYYYYMM(event_time)
+ORDER BY (track_id, event_time)
+TTL toDateTime(event_time) + INTERVAL 90 DAY
 SETTINGS index_granularity = 8192;
-" &>/dev/null && log_pass "  feedback_events table ready"
+" &>/dev/null && log_pass "  anomaly_detections table ready"
+
+  # audit_log table — append-only, no TTL (immutable audit trail)
+  ch_query_db "
+-- CLASSIFICATION: UNCLASSIFIED
+-- ITSG-33: AU-3 — Content of Audit Records
+-- NO TTL — immutable audit trail (CR-SEC-003)
+CREATE TABLE IF NOT EXISTS audit_log
+(
+    audit_id             String,
+    service_id           LowCardinality(String),
+    event_type           LowCardinality(String),
+    actor_id             String,
+    actor_type           LowCardinality(String),
+    resource_type        LowCardinality(String),
+    resource_id          String,
+    action               LowCardinality(String),
+    detail_json          String,
+    classification_level LowCardinality(String),
+    event_time           DateTime64(3, 'UTC'),
+    ingestion_time       DateTime64(3, 'UTC') DEFAULT now64(3)
+)
+ENGINE = MergeTree()
+PARTITION BY toYYYYMM(event_time)
+ORDER BY (service_id, event_type, event_time)
+SETTINGS index_granularity = 8192;
+" &>/dev/null && log_pass "  audit_log table ready"
+
+  # operator_feedback table
+  ch_query_db "
+-- CLASSIFICATION: UNCLASSIFIED
+CREATE TABLE IF NOT EXISTS operator_feedback
+(
+    feedback_id          String,
+    track_id             String,
+    operator_id          String,
+    feedback_type        LowCardinality(String),
+    justification        String,
+    trust_score          Float32,
+    clearance_score      Float32,
+    accuracy_score       Float32,
+    temporal_score       Float32,
+    deviation_score      Float32,
+    validated            UInt8 DEFAULT 0,
+    classification_level LowCardinality(String),
+    event_time           DateTime64(3, 'UTC'),
+    ingestion_time       DateTime64(3, 'UTC') DEFAULT now64(3)
+)
+ENGINE = MergeTree()
+PARTITION BY toYYYYMM(event_time)
+ORDER BY (operator_id, event_time)
+SETTINGS index_granularity = 8192;
+" &>/dev/null && log_pass "  operator_feedback table ready"
 }
 
 # ─────────────────────────────────────────────────────────────

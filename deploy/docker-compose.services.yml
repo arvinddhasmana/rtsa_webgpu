@@ -317,6 +317,28 @@ services:
       - rtsa-net
 
   # ──────────────────────────────────────────
+  # Envoy — API Gateway / gRPC-Web Proxy
+  # ──────────────────────────────────────────
+  envoy:
+    image: envoyproxy/envoy:v1.30-latest
+    container_name: rtsa-envoy
+    ports:
+      - "8443:8443" # gRPC-Web (TLS)
+      - "9901:9901" # Admin interface (dev only)
+    volumes:
+      - ./envoy/envoy-dev.yaml:/etc/envoy/envoy.yaml:ro
+      - ../certs/dev:/certs:ro
+    depends_on:
+      - svc-track
+      - svc-alert
+      - svc-query
+      - svc-feedback
+      - svc-audit
+    networks:
+      - rtsa-net
+    restart: unless-stopped
+
+  # ──────────────────────────────────────────
   # Redpanda Connect — ETL Pipelines
   # ──────────────────────────────────────────
   rpconnect-tracks:

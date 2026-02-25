@@ -93,38 +93,48 @@ create_all_topics() {
   log_info "Creating Redpanda topics for local development..."
   echo ""
 
-  # Sensor raw topics — 24h retention in dev (12 partitions in DC; 3 here)
-  create_topic "sensor.raw.radar"          3 86400000  1
-  create_topic "sensor.raw.ew_sigint"      3 86400000  1
-  create_topic "sensor.raw.elint_comint"   3 86400000  1
-  create_topic "sensor.raw.isr"            3 86400000  1
-  create_topic "sensor.raw.ais_bft"        3 86400000  1
-  create_topic "sensor.raw.cyber"          3 86400000  1
+  # ── Sensor validated topics — 24h retention (services produce here) ──
+  create_topic "sensors.radar.tracks"       3 86400000  1
+  create_topic "sensors.ew.intercepts"      3 86400000  1
+  create_topic "sensors.elint.detections"   3 86400000  1
+  create_topic "sensors.isr.observations"   3 86400000  1
+  create_topic "sensors.ais.positions"      3 86400000  1
+  create_topic "sensors.cyber.iocs"         3 86400000  1
 
-  # Dead-letter queues for each sensor raw topic
-  create_topic "sensor.raw.radar.dlq"       1 604800000 1
-  create_topic "sensor.raw.ew_sigint.dlq"   1 604800000 1
-  create_topic "sensor.raw.elint_comint.dlq" 1 604800000 1
-  create_topic "sensor.raw.isr.dlq"         1 604800000 1
-  create_topic "sensor.raw.ais_bft.dlq"     1 604800000 1
-  create_topic "sensor.raw.cyber.dlq"        1 604800000 1
+  # ── Dead-letter queues for sensor topics ──
+  create_topic "dlq.sensors.radar"          1 604800000 1
+  create_topic "dlq.sensors.ew"             1 604800000 1
+  create_topic "dlq.sensors.elint"          1 604800000 1
+  create_topic "dlq.sensors.isr"            1 604800000 1
+  create_topic "dlq.sensors.ais"            1 604800000 1
+  create_topic "dlq.sensors.cyber"          1 604800000 1
 
-  # Entity / track topics — 48h retention
-  create_topic "entity.tracks.fused"          3 172800000 1
+  # ── Fused track topics — 48h retention (per entity type) ──
+  create_topic "tracks.fused.surface"       3 172800000 1
+  create_topic "tracks.fused.air"           3 172800000 1
+  create_topic "tracks.fused.subsurface"    3 172800000 1
+  create_topic "tracks.fused.land"          3 172800000 1
+  create_topic "tracks.fused.cyber"         3 172800000 1
 
-  # Inference / anomaly topics — 48h retention
-  create_topic "inference.anomaly.scores"     2 172800000 1
+  # ── Alert topics — 48h retention (per severity) ──
+  create_topic "alerts.anomaly.critical"    2 172800000 1
+  create_topic "alerts.anomaly.elevated"    2 172800000 1
+  create_topic "alerts.anomaly.watch"       2 172800000 1
 
-  # Feedback topics — 7 day retention
+  # ── Feedback topics — 7 day retention ──
   create_topic "feedback.operator.submissions" 1 604800000 1
   create_topic "feedback.operator.validated"   1 604800000 1
 
-  # Audit events — 30 day retention in dev
-  create_topic "audit.events"                 2 2592000000 1
+  # ── Audit events — 30 day retention in dev ──
+  create_topic "audit.events"               2 2592000000 1
 
-  # NATO exchange topics — 24h retention
-  create_topic "nato.exchange.inbound"        1 86400000  1
-  create_topic "nato.exchange.outbound"       1 86400000  1
+  # ── NATO exchange — 24h retention ──
+  create_topic "nato.exchange.inbound"      1 86400000  1
+  create_topic "nato.exchange.outbound"     1 86400000  1
+
+  # ── Model lifecycle — 7 day retention ──
+  create_topic "models.anomaly.candidates"  1 604800000 1
+  create_topic "models.anomaly.published"   1 604800000 1
 
   echo ""
   log_pass "All topics created/verified."

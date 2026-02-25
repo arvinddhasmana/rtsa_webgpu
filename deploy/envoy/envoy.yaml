@@ -174,7 +174,7 @@ static_resources:
                   address:
                     socket_address:
                       address: svc-track
-                      port_value: 50070
+                      port_value: 50051
       transport_socket:
         name: envoy.transport_sockets.tls
         typed_config:
@@ -214,7 +214,7 @@ static_resources:
                   address:
                     socket_address:
                       address: svc-alert
-                      port_value: 50071
+                      port_value: 50051
       transport_socket:
         name: envoy.transport_sockets.tls
         typed_config:
@@ -254,7 +254,7 @@ static_resources:
                   address:
                     socket_address:
                       address: svc-query
-                      port_value: 50072
+                      port_value: 50051
       transport_socket:
         name: envoy.transport_sockets.tls
         typed_config:
@@ -294,7 +294,7 @@ static_resources:
                   address:
                     socket_address:
                       address: svc-feedback
-                      port_value: 50062
+                      port_value: 50051
       transport_socket:
         name: envoy.transport_sockets.tls
         typed_config:
@@ -334,7 +334,7 @@ static_resources:
                   address:
                     socket_address:
                       address: svc-audit
-                      port_value: 50073
+                      port_value: 50051
       transport_socket:
         name: envoy.transport_sockets.tls
         typed_config:
