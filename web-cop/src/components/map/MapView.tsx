@@ -112,7 +112,7 @@ export const MapView: React.FC = () => {
 
   return (
     <div
-      data-testid="map-view"
+      data-testid="map-container"
       ref={mapRef}
       style={{
         width: "100%",
