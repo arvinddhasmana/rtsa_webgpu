@@ -316,6 +316,50 @@ services:
     networks:
       - rtsa-net
 
+  svc-nato-adapter:
+    build:
+      context: ..
+      dockerfile: svc-nato-adapter/Dockerfile
+    container_name: rtsa-nato-adapter
+    environment:
+      RTSA_SERVICE_NAME: svc-nato-adapter
+      RTSA_GRPC_PORT: "50051"
+      RTSA_HEALTH_PORT: "8081"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: debug
+      RTSA_LOG_FORMAT: json
+      RTSA_ENVIRONMENT: development
+    ports:
+      - "50074:50051"
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+    restart: unless-stopped
+
+  svc-training:
+    build:
+      context: ..
+      dockerfile: svc-training/Dockerfile
+    container_name: rtsa-training
+    environment:
+      RTSA_SERVICE_NAME: svc-training
+      RTSA_HEALTH_PORT: "8081"
+      INPUT_TOPIC: feedback.operator.validated
+      OUTPUT_TOPIC: models.anomaly.candidates
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      CONSUMER_GROUP: svc-training
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_ENVIRONMENT: development
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    networks:
+      - rtsa-net
+    restart: unless-stopped
+
   # ──────────────────────────────────────────
   # Envoy — API Gateway / gRPC-Web Proxy
   # ──────────────────────────────────────────
