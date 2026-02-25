@@ -38,6 +38,20 @@ output:
       - detail_json
       - classification_level
       - event_time
+    args_mapping: |
+      root = [
+        this.audit_id,
+        this.service_id,
+        this.event_type,
+        this.actor_id,
+        this.actor_type,
+        this.resource_type,
+        this.resource_id,
+        this.action,
+        this.detail_json,
+        this.classification_level,
+        this.event_time,
+      ]
     batching:
       count: 500
       period: 5s

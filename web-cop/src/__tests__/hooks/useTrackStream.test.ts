@@ -1,10 +1,10 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/hooks/useTrackStream.test.ts
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { useTrackStore } from "../../stores/trackStore";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAuthStore } from "../../stores/authStore";
+import { useTrackStore } from "../../stores/trackStore";
 
 // Mock fetch for gRPC-Web stream
 const mockAbort = vi.fn();
@@ -25,8 +25,16 @@ describe("useTrackStream (T13)", () => {
       roles: [],
     });
 
-    global.AbortController = vi.fn().mockImplementation(() => mockAbortController);
-    global.fetch = vi.fn().mockRejectedValue(new Error("Connection refused"));
+    globalThis.AbortController = vi
+      .fn()
+      .mockImplementation(
+        () => mockAbortController,
+      ) as unknown as typeof globalThis.AbortController;
+    globalThis.fetch = vi
+      .fn()
+      .mockRejectedValue(
+        new Error("Connection refused"),
+      ) as typeof globalThis.fetch;
   });
 
   afterEach(() => {

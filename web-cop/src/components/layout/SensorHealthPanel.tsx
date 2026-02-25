@@ -9,12 +9,12 @@ import React, { useEffect, useState } from "react";
 
 /** Sensor types ingested by the RTSA platform. */
 const SENSOR_TYPES = [
-  { id: "radar",  label: "RADAR",  icon: "📡" },
-  { id: "ais",    label: "AIS",    icon: "⚓" },
-  { id: "ew",     label: "EW",     icon: "📻" },
-  { id: "elint",  label: "ELINT",  icon: "🔍" },
-  { id: "isr",    label: "ISR",    icon: "🛰" },
-  { id: "cyber",  label: "CYBER",  icon: "🔒" },
+  { id: "radar", label: "RADAR", icon: "📡" },
+  { id: "ais", label: "AIS", icon: "⚓" },
+  { id: "ew", label: "EW", icon: "📻" },
+  { id: "elint", label: "ELINT", icon: "🔍" },
+  { id: "isr", label: "ISR", icon: "🛰" },
+  { id: "cyber", label: "CYBER", icon: "🔒" },
 ] as const;
 
 type SensorID = (typeof SENSOR_TYPES)[number]["id"];
@@ -28,10 +28,10 @@ interface SensorHealth {
 }
 
 const STATUS_COLOUR: Record<HealthStatus, string> = {
-  HEALTHY:  "#00cc44",
+  HEALTHY: "#00cc44",
   DEGRADED: "#ffcc00",
-  OFFLINE:  "#ff4444",
-  UNKNOWN:  "#888888",
+  OFFLINE: "#ff4444",
+  UNKNOWN: "#888888",
 };
 
 /** Derive a status from the last-seen timestamp age. */
@@ -63,7 +63,6 @@ function relativeTime(date: Date | null): string {
 async function fetchSensorHealth(): Promise<SensorHealth[]> {
   // Stub: in a real deployment, query Prometheus or the ingestion service
   // health endpoints. Simulated data rotates statuses to demonstrate the UI.
-  const now = new Date();
   return SENSOR_TYPES.map(({ id }) => ({
     id,
     status: "UNKNOWN" as HealthStatus,
@@ -83,7 +82,7 @@ export const SensorHealthPanel: React.FC = () => {
       status: "UNKNOWN" as HealthStatus,
       lastSeen: null,
       obsPerSec: 0,
-    }))
+    })),
   );
   const [collapsed, setCollapsed] = useState(false);
 
@@ -94,7 +93,9 @@ export const SensorHealthPanel: React.FC = () => {
       try {
         const data = await fetchSensorHealth();
         if (!cancelled) {
-          setSensors(data.map((s) => ({ ...s, status: deriveStatus(s.lastSeen) })));
+          setSensors(
+            data.map((s) => ({ ...s, status: deriveStatus(s.lastSeen) })),
+          );
         }
       } catch {
         // Silently absorb errors — status stays UNKNOWN
@@ -131,7 +132,13 @@ export const SensorHealthPanel: React.FC = () => {
         }}
         onClick={() => setCollapsed((c) => !c)}
       >
-        <span style={{ color: "#94A3B8", fontWeight: "bold", letterSpacing: "0.05em" }}>
+        <span
+          style={{
+            color: "#94A3B8",
+            fontWeight: "bold",
+            letterSpacing: "0.05em",
+          }}
+        >
           SENSOR HEALTH
         </span>
         <span style={{ color: "#64748B" }}>{collapsed ? "▶" : "▼"}</span>

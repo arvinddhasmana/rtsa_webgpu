@@ -10,7 +10,7 @@ CLICKHOUSE_HOST="${CLICKHOUSE_HOST:-localhost}"
 CLICKHOUSE_PORT="${CLICKHOUSE_PORT:-9000}"
 CLICKHOUSE_HTTP_PORT="${CLICKHOUSE_HTTP_PORT:-8123}"
 CLICKHOUSE_DATABASE="${CLICKHOUSE_DATABASE:-rtsa}"
-CLICKHOUSE_USER="${CLICKHOUSE_USER:-rtsa_dev}"
+CLICKHOUSE_USER="${CLICKHOUSE_USER:-default}"
 CLICKHOUSE_PASSWORD="${CLICKHOUSE_PASSWORD:-dev_password_change_me}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,7 +35,7 @@ ch_query() {
   local query="$1"
   curl -sf \
     "http://${CLICKHOUSE_HOST}:${CLICKHOUSE_HTTP_PORT}/" \
-    --data-urlencode "query=${query}" \
+    -d "${query}" \
     -u "${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}"
 }
 
@@ -44,7 +44,7 @@ ch_query_db() {
   local query="$1"
   curl -sf \
     "http://${CLICKHOUSE_HOST}:${CLICKHOUSE_HTTP_PORT}/?database=${CLICKHOUSE_DATABASE}" \
-    --data-urlencode "query=${query}" \
+    -d "${query}" \
     -u "${CLICKHOUSE_USER}:${CLICKHOUSE_PASSWORD}"
 }
 

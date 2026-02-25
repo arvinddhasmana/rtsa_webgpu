@@ -43,6 +43,22 @@ output:
       - validated
       - classification_level
       - event_time
+    args_mapping: |
+      root = [
+        this.feedback_id,
+        this.track_id,
+        this.operator_id,
+        this.feedback_type,
+        this.justification,
+        this.trust_score,
+        this.clearance_score,
+        this.accuracy_score,
+        this.temporal_score,
+        this.deviation_score,
+        this.validated,
+        this.classification_level,
+        this.event_time,
+      ]
     batching:
       count: 100
       period: 5s

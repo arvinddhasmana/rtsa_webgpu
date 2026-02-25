@@ -4,7 +4,7 @@
 # Stage 1: Build
 # Multi-stage build keeps the final image small and removes build toolchain.
 # ──────────────────────────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install security updates.
 RUN apk add --no-cache ca-certificates tzdata git
@@ -12,27 +12,33 @@ RUN apk add --no-cache ca-certificates tzdata git
 WORKDIR /workspace
 
 # Copy workspace and module files first for layer caching.
-COPY go.work go.work.sum* ./
 COPY gen/go/go.mod gen/go/go.sum ./gen/go/
+COPY pkg/go.mod pkg/go.sum ./pkg/
 COPY svc-feedback/go.mod svc-feedback/go.sum ./svc-feedback/
 
 # Download dependencies (cached layer).
-RUN cd svc-feedback && go mod download
+WORKDIR /workspace/svc-feedback
+ENV GOWORK=off
+RUN go mod download
 
 # Copy source.
+WORKDIR /workspace
 COPY gen/go/ ./gen/go/
+COPY pkg/ ./pkg/
 COPY svc-feedback/ ./svc-feedback/
 
 # Build the binary with security flags.
 # CGO_ENABLED=0 for static binary.
 # -trimpath removes local path information.
 # -ldflags "-s -w" strips debug symbols for smaller binary.
+WORKDIR /workspace/svc-feedback
+ENV GOWORK=off
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build \
     -trimpath \
     -ldflags="-s -w" \
     -o /bin/svc-feedback \
-    ./svc-feedback/cmd/feedback
+    ./cmd/feedback
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Stage 2: Runtime

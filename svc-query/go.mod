@@ -13,6 +13,7 @@ replace (
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.43.0
 	github.com/arvinddhasmana/RTSA_VS_Opus/gen/go v0.0.0
+	github.com/arvinddhasmana/RTSA_VS_Opus/pkg v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.67.0
 	google.golang.org/protobuf v1.34.2
@@ -32,10 +33,13 @@ require (
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/twmb/franz-go v1.17.0 // indirect
+	github.com/twmb/franz-go/pkg/kmsg v1.8.0 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
 	go.opentelemetry.io/otel/trace v1.39.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	golang.org/x/crypto v0.47.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect

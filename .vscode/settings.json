@@ -95,5 +95,11 @@
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "snyk.advanced.autoSelectOrganization": true
+  "snyk.advanced.autoSelectOrganization": true,
+  "chat.tools.terminal.autoApprove": {
+    "go": true,
+    "pnpm": true,
+    "make": true,
+    "buf": true
+  }
 }

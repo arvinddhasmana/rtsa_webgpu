@@ -36,6 +36,18 @@ output:
       - model_version
       - classification_level
       - event_time
+    args_mapping: |
+      root = [
+        this.alert_id,
+        this.track_id,
+        this.anomaly_type,
+        this.severity,
+        this.confidence_score,
+        this.explanation,
+        this.model_version,
+        this.classification_level,
+        this.event_time,
+      ]
     batching:
       count: 500
       period: 5s

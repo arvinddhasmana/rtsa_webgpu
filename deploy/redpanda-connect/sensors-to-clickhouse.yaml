@@ -43,6 +43,20 @@ output:
       - classification_level
       - metadata_json
       - event_time
+    args_mapping: |
+      root = [
+        this.observation_id,
+        this.sensor_id,
+        this.sensor_type,
+        this.latitude,
+        this.longitude,
+        this.altitude_meters,
+        this.speed_knots,
+        this.heading_degrees,
+        this.classification_level,
+        this.metadata_json,
+        this.event_time,
+      ]
     batching:
       count: 1000
       period: 5s

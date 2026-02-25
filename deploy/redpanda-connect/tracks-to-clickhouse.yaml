@@ -48,6 +48,23 @@ output:
       - classification_level
       - track_status
       - event_time
+    args_mapping: |
+      root = [
+        this.track_id,
+        this.entity_type,
+        this.hostile_classification,
+        this.latitude,
+        this.longitude,
+        this.altitude_meters,
+        this.speed_knots,
+        this.heading_degrees,
+        this.confidence_score,
+        this.source_count,
+        this.source_sensors,
+        this.classification_level,
+        this.track_status,
+        this.event_time,
+      ]
     batching:
       count: 1000
       period: 5s

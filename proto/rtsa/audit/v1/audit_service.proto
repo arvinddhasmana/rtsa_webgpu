@@ -5,9 +5,8 @@ package rtsa.audit.v1;
 
 option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1;auditv1";
 
-import "google/protobuf/timestamp.proto";
-import "rtsa/common/v1/types.proto";
 import "rtsa/audit/v1/audit_event.proto";
+import "rtsa/common/v1/types.proto";
 
 // ──────────────────────────────────────────
 // Audit Service — immutable audit trail query

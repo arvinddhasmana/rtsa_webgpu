@@ -7,17 +7,18 @@
 package testutil
 
 import (
-"context"
-"fmt"
-"os"
-"testing"
-"time"
+	"context"
+	"fmt"
+	"os"
+	"testing"
+	"time"
 
-"github.com/testcontainers/testcontainers-go"
-tcredpanda "github.com/testcontainers/testcontainers-go/modules/redpanda"
-"github.com/testcontainers/testcontainers-go/wait"
-"github.com/twmb/franz-go/pkg/kadm"
-"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/testcontainers/testcontainers-go"
+	tcredpanda "github.com/testcontainers/testcontainers-go/modules/redpanda"
+	"github.com/testcontainers/testcontainers-go/wait"
+	"github.com/twmb/franz-go/pkg/kadm"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 // AllTopics lists the 21 RTSA Redpanda topics required by the integration tests.
@@ -191,9 +192,10 @@ req := testcontainers.ContainerRequest{
 Image:        "clickhouse/clickhouse-server:24.3-alpine",
 ExposedPorts: []string{"9000/tcp"},
 Env: map[string]string{
-"CLICKHOUSE_DB":       "rtsa",
-"CLICKHOUSE_USER":     "default",
-"CLICKHOUSE_PASSWORD": "",
+"CLICKHOUSE_DB":                       "rtsa",
+"CLICKHOUSE_USER":                     "default",
+"CLICKHOUSE_PASSWORD":                 "",
+"CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT": "1",
 },
 WaitingFor: wait.ForListeningPort("9000/tcp").WithStartupTimeout(120 * time.Second),
 }
@@ -218,7 +220,52 @@ return "", nil, fmt.Errorf("clickhouse port: %w", err)
 }
 
 dsn = fmt.Sprintf("clickhouse://default:@%s:%s/rtsa", host, port.Port())
-return dsn, c, nil
+
+	// Wait for ClickHouse to fully initialise — the port may open before
+	// the rtsa database is created by the CLICKHOUSE_DB env var init.
+	if err := waitForClickHouseReady(ctx, dsn); err != nil {
+		_ = c.Terminate(ctx)
+		return "", nil, fmt.Errorf("clickhouse readiness: %w", err)
+	}
+
+	return dsn, c, nil
+}
+
+// waitForClickHouseReady retries connecting to ClickHouse until the database is
+// ready or the context expires. This handles the race between port readiness
+// and database initialisation.
+func waitForClickHouseReady(ctx context.Context, dsn string) error {
+	opts, err := clickhouse.ParseDSN(dsn)
+	if err != nil {
+		return fmt.Errorf("parse DSN: %w", err)
+	}
+
+	deadline := time.After(30 * time.Second)
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	var lastErr error
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("context cancelled while waiting: %w", lastErr)
+		case <-deadline:
+			return fmt.Errorf("timeout after 30s: %w", lastErr)
+		case <-ticker.C:
+			conn, connErr := clickhouse.Open(opts)
+			if connErr != nil {
+				lastErr = connErr
+				continue
+			}
+			if pingErr := conn.Ping(ctx); pingErr != nil {
+				_ = conn.Close()
+				lastErr = pingErr
+				continue
+			}
+			_ = conn.Close()
+			return nil
+		}
+	}
 }
 
 func createTopics(ctx context.Context, broker string, topics []string) error {

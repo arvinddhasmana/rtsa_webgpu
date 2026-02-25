@@ -6,13 +6,13 @@
 package integration
 
 import (
-"context"
-"fmt"
-"testing"
-"time"
+	"context"
+	"fmt"
+	"testing"
+	"time"
 
-"github.com/ClickHouse/clickhouse-go/v2"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tests/integration/testutil"
+	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tests/integration/testutil"
 )
 
 // createTracksSchema creates the tracks_fused table in ClickHouse for ETL tests.
@@ -46,7 +46,7 @@ event_time DateTime64(3,'UTC')
 ENGINE = MergeTree()
 PARTITION BY toYYYYMM(event_time)
 ORDER BY (entity_type, event_time, track_id)
-TTL event_time + INTERVAL 90 DAY`
+TTL toDateTime(event_time) + INTERVAL 90 DAY`
 
 return conn.Exec(ctx, ddl)
 }

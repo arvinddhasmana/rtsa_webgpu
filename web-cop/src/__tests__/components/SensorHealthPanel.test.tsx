@@ -1,10 +1,9 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/SensorHealthPanel.test.tsx
 
-import React from "react";
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
 import { SensorHealthPanel } from "../../components/layout/SensorHealthPanel";
 
 describe("SensorHealthPanel", () => {

@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/hooks/useAlertStream.test.ts
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useAlertStore } from "../../stores/alertStore";
 import { useAuthStore } from "../../stores/authStore";
 
@@ -19,11 +19,15 @@ describe("useAlertStream (T14)", () => {
       roles: [],
     });
 
-    global.AbortController = vi.fn().mockImplementation(() => ({
+    globalThis.AbortController = vi.fn().mockImplementation(() => ({
       abort: vi.fn(),
       signal: { aborted: false },
-    }));
-    global.fetch = vi.fn().mockRejectedValue(new Error("Connection refused"));
+    })) as unknown as typeof globalThis.AbortController;
+    globalThis.fetch = vi
+      .fn()
+      .mockRejectedValue(
+        new Error("Connection refused"),
+      ) as typeof globalThis.fetch;
   });
 
   afterEach(() => {

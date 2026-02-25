@@ -4,7 +4,7 @@
 # Feature: FEAT-13 Situational Awareness UI
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -12,7 +12,6 @@ RUN apk add --no-cache git ca-certificates tzdata
 WORKDIR /workspace
 
 # Copy go workspace files
-COPY go.work go.work.sum ./
 
 # Copy module files for dependency resolution
 COPY gen/go/go.mod gen/go/go.sum ./gen/go/
@@ -20,6 +19,7 @@ COPY svc-track/go.mod svc-track/go.sum ./svc-track/
 
 # Download dependencies (cached layer)
 WORKDIR /workspace/svc-track
+ENV GOWORK=off
 RUN go mod download
 
 # Copy source files
@@ -29,6 +29,7 @@ COPY svc-track/ ./svc-track/
 
 # Build the binary (static, no CGO)
 WORKDIR /workspace/svc-track
+ENV GOWORK=off
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build \
     -ldflags="-w -s -extldflags=-static" \
