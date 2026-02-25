@@ -197,3 +197,64 @@ result = append(result, p)
 }
 return result
 }
+
+// LoadBase loads a BaseConfig from environment variables using safe defaults.
+// RTSA_SERVICE_NAME is optional here (defaults to "unknown").
+func LoadBase() BaseConfig {
+return BaseConfig{
+ServiceName:    GetEnv("RTSA_SERVICE_NAME", "unknown"),
+ServiceVersion: GetEnv("RTSA_SERVICE_VERSION", "dev"),
+Environment:    GetEnv("RTSA_ENVIRONMENT", "development"),
+GRPCPort:       GetEnvInt("RTSA_GRPC_PORT", 50051),
+TLSCert:        GetEnv("RTSA_TLS_CERT", "/certs/server.crt"),
+TLSKey:         GetEnv("RTSA_TLS_KEY", "/certs/server.key"),
+TLSCA:          GetEnv("RTSA_TLS_CA", "/certs/ca.crt"),
+RedpandaBrokers: GetEnvStrSlice("RTSA_REDPANDA_BROKERS", []string{"localhost:9092"}),
+RedpandaTLSEnabled: strings.EqualFold(GetEnv("RTSA_REDPANDA_TLS_ENABLED", "true"), "true"),
+OTelEndpoint:      GetEnv("RTSA_OTEL_ENDPOINT", "localhost:4317"),
+LogLevel:          GetEnv("RTSA_LOG_LEVEL", "info"),
+LogFormat:         GetEnv("RTSA_LOG_FORMAT", "json"),
+MaxClassification: GetEnv("RTSA_MAX_CLASSIFICATION", "UNCLASSIFIED"),
+}
+}
+
+// GetEnv returns the value of the environment variable or defaultVal if not set.
+func GetEnv(key, defaultVal string) string {
+return getEnvOrDefault(key, defaultVal)
+}
+
+// GetEnvInt returns the integer value of the environment variable or defaultVal if not set or invalid.
+func GetEnvInt(key string, defaultVal int) int {
+raw := getEnvOrDefault(key, "")
+if raw == "" {
+return defaultVal
+}
+n, err := strconv.Atoi(raw)
+if err != nil {
+return defaultVal
+}
+return n
+}
+
+// GetEnvFloat returns the float64 value of the environment variable or defaultVal if not set or invalid.
+func GetEnvFloat(key string, defaultVal float64) float64 {
+raw := getEnvOrDefault(key, "")
+if raw == "" {
+return defaultVal
+}
+f, err := strconv.ParseFloat(raw, 64)
+if err != nil {
+return defaultVal
+}
+return f
+}
+
+// GetEnvStrSlice returns a comma-separated list of strings from the environment variable,
+// or defaultVal if not set.
+func GetEnvStrSlice(key string, defaultVal []string) []string {
+raw := getEnvOrDefault(key, "")
+if raw == "" {
+return defaultVal
+}
+return splitCSV(raw)
+}

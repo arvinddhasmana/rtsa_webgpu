@@ -44,6 +44,12 @@ logger:    logger,
 }
 }
 
+// NewLogEmitter creates an audit emitter that logs events without producing to Redpanda.
+// Use for development, testing, or services that only need local audit logging.
+func NewLogEmitter(logger *zap.Logger) *Emitter {
+return &Emitter{logger: logger}
+}
+
 // Emit produces an audit event. Never returns an error to the caller.
 func (e *Emitter) Emit(ctx context.Context, params AuditParams) {
 // Extract trace ID from context
@@ -86,8 +92,11 @@ return
 
 classification := "UNCLASSIFIED"
 	if e.producer == nil {
-		e.logger.Error("audit: producer is nil, event not sent",
-			zap.String("event_type", params.EventType))
+		e.logger.Info("audit event (log-only mode)",
+			zap.String("event_type", params.EventType),
+			zap.String("resource_type", params.ResourceType),
+			zap.String("resource_id", params.ResourceID),
+		)
 		return
 	}
 	if err := e.producer.Produce(ctx, AuditTopic,
