@@ -1,0 +1,63 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.audit.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1;auditv1";
+
+import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+import "rtsa/audit/v1/audit_event.proto";
+
+// ──────────────────────────────────────────
+// Audit Service — immutable audit trail query
+// ──────────────────────────────────────────
+service AuditService {
+  // Unary: retrieve a single audit event by ID
+  // Deadline: 5s
+  rpc GetAuditEntry(GetAuditEntryRequest) returns (GetAuditEntryResponse);
+
+  // Server-streaming: stream audit events matching filters
+  // Deadline: 30s
+  rpc StreamAuditLog(StreamAuditLogRequest) returns (stream StreamAuditLogResponse);
+}
+
+// ──── GetAuditEntry ────────────────────────
+
+message GetAuditEntryRequest {
+  // UUID of the audit event
+  string audit_id = 1;
+  // Caller's classification clearance
+  rtsa.common.v1.ClassificationLevel clearance_level = 2;
+}
+
+message GetAuditEntryResponse {
+  AuditEvent event = 1;
+}
+
+// ──── StreamAuditLog ──────────────────────
+
+message StreamAuditLogRequest {
+  // Required: time range to query (max 90 days)
+  rtsa.common.v1.TimeRange time_range = 1;
+  // Filter by service IDs (empty = all)
+  repeated string service_ids = 2;
+  // Filter by event types (empty = all)
+  repeated string event_types = 3;
+  // Filter by actor IDs (empty = all)
+  repeated string actor_ids = 4;
+  // Filter by actor type (UNSPECIFIED = all)
+  ActorType actor_type = 5;
+  // Filter by resource types (empty = all)
+  repeated string resource_types = 6;
+  // Filter by actions (empty = all)
+  repeated string actions = 7;
+  // Pagination page size (default 100)
+  int32 page_size = 8;
+  // Caller's classification clearance
+  rtsa.common.v1.ClassificationLevel clearance_level = 9;
+}
+
+message StreamAuditLogResponse {
+  AuditEvent event = 1;
+}
