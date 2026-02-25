@@ -21,6 +21,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -40,6 +42,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 )
@@ -87,8 +90,8 @@ func main() {
 	}
 
 	// ── 7. gRPC server ───────────────────────────────────────────────────────
-	// TODO: Replace insecure credentials with mTLS when certificates are available.
-	// RULE-SEC-02: production deployments MUST use mTLS.
+	// RULE-SEC-02: production deployments MUST use mTLS (RTSA_TLS_ENABLED=true).
+	// TLS toggle is preserved for development convenience only.
 	var grpcCreds grpc.ServerOption
 	if cfg.TLSEnabled {
 		tlsCreds, tlsErr := loadTLSCredentials(cfg)
@@ -251,6 +254,30 @@ func startMetricsServer(ctx context.Context, addr string, reg *prometheus.Regist
 }
 
 // loadTLSCredentials loads mTLS credentials from the configured certificate paths.
+// It requires a CA certificate, a server certificate, and a server private key.
+// TLS 1.3 minimum is enforced; client certificates are required and verified.
 func loadTLSCredentials(cfg *config.Config) (grpc.ServerOption, error) {
-	return nil, fmt.Errorf("loadTLSCredentials: mTLS not yet implemented — set RTSA_TLS_ENABLED=false for development")
+	cert, err := tls.LoadX509KeyPair(cfg.TLSServerCert, cfg.TLSServerKey)
+	if err != nil {
+		return nil, fmt.Errorf("loadTLSCredentials: load server key pair: %w", err)
+	}
+
+	caPEM, err := os.ReadFile(cfg.TLSCACert)
+	if err != nil {
+		return nil, fmt.Errorf("loadTLSCredentials: read CA cert %q: %w", cfg.TLSCACert, err)
+	}
+
+	certPool := x509.NewCertPool()
+	if !certPool.AppendCertsFromPEM(caPEM) {
+		return nil, fmt.Errorf("loadTLSCredentials: failed to parse CA cert %q", cfg.TLSCACert)
+	}
+
+	tlsCfg := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    certPool,
+		MinVersion:   tls.VersionTLS13,
+	}
+
+	return grpc.Creds(credentials.NewTLS(tlsCfg)), nil
 }

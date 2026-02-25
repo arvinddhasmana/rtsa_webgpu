@@ -4,11 +4,12 @@
 import React from "react";
 import { ClassificationBanner } from "./ClassificationBanner";
 import { ConnectionIndicator } from "./ConnectionIndicator";
+import { SensorHealthPanel } from "./SensorHealthPanel";
 import { MapView } from "../map/MapView";
 import { AlertPanel } from "../alerts/AlertPanel";
 import { DetailPanel } from "../detail/DetailPanel";
 import { ForensicsPanel } from "../forensics/ForensicsPanel";
-import { useUIStore } from "../../stores/uiStore";
+import { useUIStore, type Theme } from "../../stores/uiStore";
 import { useClassification } from "../../hooks/useClassification";
 import { useTrackStream } from "../../hooks/useTrackStream";
 import { useAlertStream } from "../../hooks/useAlertStream";
@@ -29,6 +30,8 @@ export const MainLayout: React.FC = () => {
   const forensicsPanelOpen = useUIStore((s) => s.forensicsPanelOpen);
   const detailPanelOpen = useUIStore((s) => s.detailPanelOpen);
   const toggleForensicsPanel = useUIStore((s) => s.toggleForensicsPanel);
+  const theme = useUIStore((s) => s.theme);
+  const setTheme = useUIStore((s) => s.setTheme);
 
   // Start streaming
   useTrackStream();
@@ -77,6 +80,24 @@ export const MainLayout: React.FC = () => {
         >
           FORENSICS
         </button>
+        <select
+          aria-label="Theme selector"
+          value={theme}
+          onChange={(e) => setTheme(e.target.value as Theme)}
+          style={{
+            padding: "4px 8px",
+            backgroundColor: "#374151",
+            color: "#F1F5F9",
+            border: "1px solid #4B5563",
+            borderRadius: "4px",
+            cursor: "pointer",
+            fontSize: "0.75rem",
+          }}
+        >
+          <option value="dark">DARK</option>
+          <option value="light">LIGHT</option>
+          <option value="nvg">NVG</option>
+        </select>
       </div>
 
       {/* Main content */}
@@ -134,6 +155,7 @@ export const MainLayout: React.FC = () => {
         </div>
       </div>
 
+      <SensorHealthPanel />
       <ClassificationBanner level={effectiveClassification} position="bottom" />
     </div>
   );

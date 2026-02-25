@@ -2,6 +2,7 @@
 package handler
 
 import (
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
 	"go.uber.org/zap"
 )
@@ -11,7 +12,7 @@ import (
 func NewQueryServerForTest(guardrail *domain.QueryGuardrail, logger *zap.Logger) *QueryServer {
 	return &QueryServer{
 		guardrail:    guardrail,
-		auditEmitter: &noopAuditEmitter{},
+		auditEmitter: &logAuditEmitter{emitter: audit.NewLogEmitter(logger)},
 		pageSize:     100,
 		logger:       logger,
 	}
