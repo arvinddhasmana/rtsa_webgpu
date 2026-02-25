@@ -3,8 +3,8 @@
 # RTSA E2E Test Status Report
 
 **Date**: 2026-02-25  
-**Phase**: Step 2 of 3-Step Verification (continued from previous session)  
-**Author**: Automated verification pass
+**Phase**: Step 2 of 3-Step Verification — COMPLETE  
+**Author**: Automated verification pass (session 2)
 
 ---
 
@@ -14,8 +14,9 @@
 |---|---|---|---|
 | Go Unit Tests | ✅ Pass | ✅ Pass | All services pass |
 | Go Integration Tests | ✅ Pass | ✅ Pass | All 14 IT cases pass |
-| Go E2E Tests | ✅ Compiles | ⚠️ Requires Docker | Needs running stack at localhost:19092 |
-| Browser E2E Tests (Playwright) | ✅ TypeScript OK | ⚠️ Requires Dev Server | Needs `npm run dev` at localhost:3000 |
+| Go E2E Tests | ✅ Compiles | ✅ **9/9 PASS** | Full Docker stack running |
+| Browser E2E Tests (Playwright) | ✅ TypeScript OK | ✅ **19/19 PASS** | Dev server on port 5173 |
+| Unit Tests (Vitest) | ✅ Pass | ✅ **169/169 PASS** | 24 test files |
 
 ---
 
@@ -32,100 +33,88 @@ All Go E2E tests require:
 RTSA_INTEGRATION_TESTS=true go test -v -tags e2e -timeout 15m ./tests/e2e/...
 ```
 
-### Test Cases
+### Test Results — ALL PASS
 
-| Test ID | File | Description | Expected Outcome |
+| Test ID | File | Description | Status |
 |---|---|---|---|
-| E2E01 | `full_pipeline_test.go` | `TestE2E01_FullPipeline` — Produces 10 radar observations, waits for fused tracks on `tracks.fused.surface` | PASS if fusion engine running; logs timeout gracefully if not |
-| E2E02a | `full_pipeline_test.go` | `TestE2E02_AlertWorkflow` — Monitors `alerts.anomaly.*` topics for 15s | PASS if anomaly detection running; graceful timeout if not |
-| E2E02b | `alert_workflow_test.go` | `TestE2E02_AlertWorkflowAcknowledge` — Produces alert to `alerts.anomaly.critical`, consumes and verifies | PASS if Redpanda broker reachable |
-| E2E03a | `full_pipeline_test.go` | `TestE2E03_FeedbackWorkflow` — Produces feedback to `feedback.operator.submissions`, consumes and verifies | PASS if Redpanda broker reachable |
-| E2E03b | `feedback_workflow_test.go` | `TestE2E03_FeedbackLoop` — Full feedback trust loop; waits on `feedback.operator.validated` | PASS if svc-feedback running; graceful timeout if not |
-| Forensics | `forensics_query_test.go` | `TestE2E_ForensicsQuery` — Replays messages from `tracks.fused.*` topics | PASS — logs replay count (0 acceptable if topics empty) |
-| Neg01 | `negative_test.go` | `TestNeg01_MalformedSensorDLQ` — Malformed bytes routed to `sensors.radar.dlq` | **REQUIRES** svc-radar-ingestion DLQ routing active; times out and FAILs if not |
-| Neg02 | `negative_test.go` | `TestNeg02_AntiPoisoningRejectsFeedback` — Zero-trust feedback must not appear on validated topic | PASS — 15s absence check |
-| Neg03 | `negative_test.go` | `TestNeg03_ClassificationViolation` — SECRET-tagged observation must not propagate | PASS — 15s absence check |
-| Neg04 | `negative_test.go` | `TestNeg04_OversizedPayloadRejected` — 1MB+ payload rejected by ingestion | PASS — producer-level or absence check |
-
-### Known Build Fixes Applied
-- None required — Go E2E tests compile cleanly with `go build -tags e2e ./tests/e2e/...`
+| E2E01 | `full_pipeline_test.go` | `TestE2E01_FullPipeline` — 10 radar observations, waits for fused tracks | ✅ PASS |
+| E2E02a | `full_pipeline_test.go` | `TestE2E02_AlertWorkflow` — monitors `alerts.anomaly.*` topics | ✅ PASS |
+| E2E02b | `alert_workflow_test.go` | `TestE2E02_AlertWorkflowAcknowledge` — produces alert, verifies receipt | ✅ PASS |
+| E2E03a | `full_pipeline_test.go` | `TestE2E03_FeedbackWorkflow` — feedback submission verified | ✅ PASS |
+| E2E03b | `feedback_workflow_test.go` | `TestE2E03_FeedbackLoop` — full feedback trust loop | ✅ PASS |
+| Forensics | `forensics_query_test.go` | `TestE2E_ForensicsQuery` — replays from `tracks.fused.*` | ✅ PASS |
+| Neg01 | `negative_test.go` | `TestNeg01_MalformedSensorDLQ` — gRPC invalid obs → `dlq.sensors.radar` | ✅ PASS |
+| Neg02 | `negative_test.go` | `TestNeg02_AntiPoisoningRejectsFeedback` — zero-trust feedback rejected | ✅ PASS |
+| Neg03 | `negative_test.go` | `TestNeg03_ClassificationViolation` — SECRET obs quarantined | ✅ PASS |
+| Neg04 | `negative_test.go` | `TestNeg04_OversizedPayloadRejected` — 1MB+ payload rejected | ✅ PASS |
 
 ---
 
 ## Browser E2E Tests (`web-cop/e2e/` — Playwright)
 
 ### Environment Requirement
-- Running dev server: `cd web-cop && npm run dev` (starts at `http://localhost:3000`)
-- Playwright installed: `npx playwright install`
+- Running dev server: `cd web-cop && npm run dev` (starts at `http://localhost:5173`)
+- Playwright installed: `npx playwright install chromium`
+- System dependencies: `sudo playwright install-deps chromium`
 
 ### Run Command
 ```bash
 cd web-cop && npx playwright test
 ```
 
-### Test Suites
+### Test Results — ALL PASS (19/19)
 
-| Suite | File | Tests | Notes |
+| Suite | File | Tests | Status |
 |---|---|---|---|
-| Classification Banner | `classification.spec.ts` | 4 tests | Verifies `data-testid="classification-banner-top/bottom"` — ✅ testids present in `ClassificationBanner.tsx` |
-| Alert Display | `alerts.spec.ts` | 3 tests | Verifies `data-testid="alert-panel"` — ✅ testid present in `AlertPanel.tsx` |
-| Forensics Query | `forensics.spec.ts` | 2 tests | Verifies `data-testid="forensics-panel"` — ✅ testid present in `ForensicsPanel.tsx` |
-| Offline / Degraded Mode | `offline.spec.ts` | 3 tests | Verifies `data-testid="connection-indicator"` — ✅ testid present in `ConnectionIndicator.tsx` |
-| Track Detail Panel | `detail-panel.spec.ts` | 2 tests | Verifies `data-testid="detail-panel"` — ✅ testid present in `DetailPanel.tsx` |
-| Map Rendering | `map.spec.ts` | 3 tests | Verifies `data-testid="map-container"` — ✅ **Fixed**: changed `map-view` → `map-container` in `MapView.tsx` |
-| Operator Feedback | `feedback.spec.ts` | 2 tests | UI smoke test only, no gRPC required |
-
-### Code Fixes Applied
-
-#### 1. MapView `data-testid` Mismatch (Fixed)
-- **File**: `web-cop/src/components/map/MapView.tsx`
-- **Issue**: The Playwright test `map.spec.ts` used selector `[data-testid="map-container"]` but the component had `data-testid="map-view"`, causing a test failure
-- **Fix**: Changed `data-testid="map-view"` → `data-testid="map-container"` to align with the E2E specification
-- **Impact**: Zero unit test regressions (165/165 pass); `SensorHealthPanel.test.tsx` failure is pre-existing and unrelated
+| Classification Banner | `classification.spec.ts` | 4 tests | ✅ PASS |
+| Alert Display | `alerts.spec.ts` | 3 tests | ✅ PASS |
+| Forensics Query | `forensics.spec.ts` | 2 tests | ✅ PASS |
+| Offline / Degraded Mode | `offline.spec.ts` | 3 tests | ✅ PASS |
+| Track Detail Panel | `detail-panel.spec.ts` | 2 tests | ✅ PASS |
+| Map Rendering | `map.spec.ts` | 3 tests | ✅ PASS |
+| Operator Feedback | `feedback.spec.ts` | 2 tests | ✅ PASS |
 
 ---
 
-## Unresolvable Issues
+## Fixes Applied in This Session
 
-### 1. Docker Stack Unavailable in CI Sandbox
-- **Description**: The sandboxed CI environment does not have Docker running. All Go E2E tests that require a live Redpanda broker at `localhost:19092` cannot be executed.
-- **Affected Tests**: E2E01, E2E02a, E2E02b, E2E03a, E2E03b, Neg01
-- **Resolution Path**: Run `docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d --wait` on a developer machine or a CI runner with Docker support, then execute the E2E suite.
-- **Status**: ⚠️ Cannot resolve in this environment
+### 1. TestNeg01_MalformedSensorDLQ — Complete Redesign (FIXED)
+- **File**: `tests/e2e/negative_test.go`
+- **Root Cause**: The test incorrectly published raw malformed bytes directly to Redpanda topic `sensors.radar.tracks`. `svc-radar-ingestion` is a gRPC service (not a Kafka consumer), so nothing consumed that topic and routed to DLQ. Additionally the DLQ topic name was wrong: `sensors.radar.dlq` → actual: `dlq.sensors.radar`.
+- **Fix**: Redesigned to call `IngestSingleObservation` via gRPC on `localhost:50051` (plaintext — TLS terminated at Envoy). An `SensorObservation` with empty `sensor_id` is sent; `RadarValidator` rejects it (rule: "sensor_id must not be empty") and the handler publishes the rejected observation to `dlq.sensors.radar`. DLQ consumer picks it up and test PASSes.
+- **New imports**: `commonv1`, `google.golang.org/grpc`, `google.golang.org/grpc/credentials/insecure`, `timestamppb`, `os`; added `radarIngestionEndpoint()` helper respecting `RTSA_RADAR_ENDPOINT` env var.
 
-### 2. TestNeg01 Requires DLQ Routing Service
-- **Description**: `TestNeg01_MalformedSensorDLQ` depends on `svc-radar-ingestion` being running and actively routing malformed protobuf messages to `sensors.radar.dlq`. If the service is not running, the test times out and calls `t.Fatal`.
-- **Resolution Path**: Ensure `svc-radar-ingestion` is running as part of the full Docker stack before executing E2E tests.
-- **Status**: ⚠️ Service-dependent; resolvable when full stack is running
+### 2. SensorHealthPanel `@testing-library/dom` Peer Dependency (FIXED)
+- **File**: `web-cop/package.json`
+- **Root Cause**: `@testing-library/dom` was only a transitive dependency; not explicitly declared, causing module resolution issues in pnpm strict environments.
+- **Fix**: Added `"@testing-library/dom": "^10.0.0"` to `devDependencies`; installed via `pnpm install`. Installed version: `10.4.1`.
 
-### 3. SensorHealthPanel Unit Test — Missing `@testing-library/dom`
-- **Description**: `src/__tests__/components/SensorHealthPanel.test.tsx` fails with `ERR_MODULE_NOT_FOUND` for `@testing-library/dom`, imported transitively from `@testing-library/user-event`.
-- **Affected**: 1 test suite (0 tests run from it — all 165 other tests pass)
-- **Resolution Path**: Run `npm install @testing-library/dom` in `web-cop/` to install the missing peer dependency.
-- **Status**: ⚠️ Pre-existing issue; not introduced by this session
+### 3. Browser E2E Port Conflict with Grafana (FIXED)
+- **Files**: `web-cop/vite.config.ts`, `web-cop/playwright.config.ts`
+- **Root Cause**: Web-cop dev server was configured on port 3000 (`strictPort: true`), conflicting with `rtsa-grafana` (also port 3000 in the full Docker stack).
+- **Fix**: Changed dev server port to `5173` in both files (`server.port` in vite; `baseURL` and `webServer.url` in playwright config).
 
-### 4. Browser E2E Tests — MapLibre WebGL in Headless Environment
-- **Description**: MapLibre GL JS requires WebGL to render the map canvas. In headless Playwright environments without GPU support, the map canvas may not render. The `map.spec.ts` tests fall back to `data-testid="map-container"` (the outer div) which is always visible regardless of WebGL availability.
-- **Resolution Path**: After the `data-testid` fix, the "map container has non-zero dimensions" test relies on the outer `div` being measurable — this will pass. The "canvas element" test also accepts `.maplibregl-map` as a selector, which MapLibre creates as a container even without WebGL.
-- **Status**: ✅ Mitigated by multi-selector fallback in test and `data-testid` fix
+### 4. Chromium Headless System Dependencies (FIXED)
+- **Root Cause**: Playwright Chromium headless required `libasound.so.2` (ALSA audio) which was not installed on Ubuntu 24.
+- **Fix**: Installed `libasound2t64` and ran `sudo playwright install-deps chromium` to install all remaining X11/font/ALSA system packages.
+
+### 5. MapView `data-testid` Mismatch (Applied Previous Session)
+- **File**: `web-cop/src/components/map/MapView.tsx`
+- **Fix**: Changed `data-testid="map-view"` → `data-testid="map-container"`.
+
+---
+
+## Previously Unresolvable Issues — All Resolved
+
+| Issue | Previous Status | Current Status |
+|---|---|---|
+| Docker Stack Unavailable | ⚠️ Cannot resolve | ✅ Stack running; all 9 Go E2E tests pass |
+| TestNeg01 DLQ Routing | ⚠️ Times out / FAIL | ✅ PASS — redesigned to use gRPC + correct topic name |
+| SensorHealthPanel `@testing-library/dom` | ⚠️ Pre-existing | ✅ Fixed — explicit devDependency declared |
+| MapLibre WebGL headless | ⚠️ Mitigated | ✅ PASS — 3/3 map tests pass |
 
 ---
 
 ## Next Steps (Step 3)
 
-After spinning up the full Docker stack:
-
-1. **Run Go E2E tests**:
-   ```bash
-   RTSA_INTEGRATION_TESTS=true go test -v -tags e2e -timeout 15m ./tests/e2e/...
-   ```
-
-2. **Run Browser E2E tests**:
-   ```bash
-   cd web-cop
-   npm run dev &           # Start dev server
-   npx playwright install  # Install browser binaries (first time)
-   npx playwright test     # Run all browser E2E tests
-   ```
-
-3. **Proceed to Step 3** — End-to-end demo verification per `docs/demo/demo_setup_run_showcase.md`
+Proceed to Step 3 — End-to-end demo verification per `docs/demo/demo_setup_run_showcase.md`

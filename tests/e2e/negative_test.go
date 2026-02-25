@@ -13,21 +13,41 @@
 package e2e
 
 import (
-"context"
-"testing"
-"time"
+	"context"
+	"os"
+	"testing"
+	"time"
 
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
-"github.com/twmb/franz-go/pkg/kgo"
-"google.golang.org/protobuf/proto"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// TestNeg01_MalformedSensorDLQ validates that a malformed (invalid protobuf)
-// message published to sensors.radar.tracks is routed to the DLQ topic
-// sensors.radar.dlq within 30 seconds.
+// radarIngestionEndpoint returns the gRPC endpoint of svc-radar-ingestion.
+// Defaults to localhost:50051 (host-mapped from the Docker stack).
+func radarIngestionEndpoint() string {
+if ep := os.Getenv("RTSA_RADAR_ENDPOINT"); ep != "" {
+return ep
+}
+return "localhost:50051"
+}
+
+// TestNeg01_MalformedSensorDLQ validates that a sensor observation that fails
+// business-logic validation is rejected by svc-radar-ingestion via its gRPC
+// interface and routed to the dead-letter topic dlq.sensors.radar within 30 s.
 //
-// UC001 error path: malformed sensor data must not propagate through the pipeline.
+// Design: the test calls IngestSingleObservation with an empty sensor_id —
+// the RadarValidator rejects it and the handler publishes the rejected
+// observation to dlq.sensors.radar before returning an IngestionAck with
+// Accepted=false.  Direct raw-byte Kafka publishing is intentionally avoided
+// because svc-radar-ingestion is a gRPC service, not a Kafka consumer.
+//
+// UC001 error path: invalid sensor data must not propagate through the pipeline.
 func TestNeg01_MalformedSensorDLQ(t *testing.T) {
 skipE2E(t)
 
@@ -35,38 +55,51 @@ broker := redpandaBroker()
 ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 defer cancel()
 
-producer, err := kgo.NewClient(kgo.SeedBrokers(broker))
-if err != nil {
-t.Fatalf("Neg01: create producer: %v", err)
-}
-defer producer.Close()
-
-// Publish intentionally invalid protobuf bytes to the radar track topic.
-malformedPayload := []byte{0xFF, 0xFE, 0x00, 0x01, 0xDE, 0xAD, 0xBE, 0xEF}
-headers := redpanda.StandardHeaders("UNCLASSIFIED", "e2e-neg01", "", "v1")
-
-results := producer.ProduceSync(ctx, &kgo.Record{
-Topic:   "sensors.radar.tracks",
-Key:     []byte("neg01-malformed"),
-Value:   malformedPayload,
-Headers: headers,
-})
-if results.FirstErr() != nil {
-t.Fatalf("Neg01: produce malformed message: %v", results.FirstErr())
-}
-
-// Consume from the DLQ topic and verify the message arrives within 30s.
+// 1. Subscribe to dlq.sensors.radar at the current end BEFORE sending the
+//    invalid observation to capture only records produced by this test run.
 consumer, err := kgo.NewClient(
 kgo.SeedBrokers(broker),
 kgo.ConsumerGroup("e2e-neg01-dlq-consumer"),
-kgo.ConsumeTopics("sensors.radar.dlq"),
-kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()),
+kgo.ConsumeTopics("dlq.sensors.radar"),
+kgo.ConsumeResetOffset(kgo.NewOffset().AtEnd()),
 )
 if err != nil {
-t.Fatalf("Neg01: create consumer: %v", err)
+t.Fatalf("Neg01: create DLQ consumer: %v", err)
 }
 defer consumer.Close()
 
+// 2. Connect to svc-radar-ingestion gRPC endpoint (plaintext; TLS terminated by envoy).
+conn, err := grpc.NewClient(
+radarIngestionEndpoint(),
+grpc.WithTransportCredentials(insecure.NewCredentials()),
+)
+if err != nil {
+t.Fatalf("Neg01: dial radar ingestion: %v", err)
+}
+defer conn.Close()
+
+client := ingestionv1.NewIngestionServiceClient(conn)
+
+// 3. Send an observation with an empty sensor_id — the RadarValidator rejects
+//    this (rule: "sensor_id must not be empty") and routes it to DLQ.
+invalidObs := &ingestionv1.SensorObservation{
+ObservationId:   "neg01-invalid-001",
+SensorId:        "", // empty sensor_id triggers validator rejection
+SensorType:      commonv1.SensorType_SENSOR_TYPE_RADAR,
+ObservationTime: timestamppb.New(time.Now().UTC()),
+Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
+}
+
+ack, err := client.IngestSingleObservation(ctx, invalidObs)
+if err != nil {
+t.Fatalf("Neg01: IngestSingleObservation returned unexpected gRPC error: %v", err)
+}
+if ack.GetAccepted() {
+t.Error("Neg01: expected observation to be rejected (Accepted=false) by RadarValidator")
+}
+t.Logf("Neg01: gRPC ack — Accepted=%v, RejectionReason=%q", ack.GetAccepted(), ack.GetRejectionReason())
+
+// 4. Consume from dlq.sensors.radar and verify the rejected observation arrives.
 deadline := time.After(30 * time.Second)
 ticker := time.NewTicker(500 * time.Millisecond)
 defer ticker.Stop()
@@ -74,18 +107,11 @@ defer ticker.Stop()
 for {
 select {
 case <-deadline:
-t.Fatal("Neg01: timeout: malformed message did not appear on sensors.radar.dlq within 30s")
+t.Fatal("Neg01: timeout: rejected observation did not appear on dlq.sensors.radar within 30s")
 case <-ticker.C:
 fetches := consumer.PollRecords(ctx, 10)
-fetches.EachRecord(func(r *kgo.Record) {
-if r.Topic == "sensors.radar.dlq" {
-t.Logf("Neg01 PASS: malformed message received on DLQ topic %s", r.Topic)
-return
-}
-})
-// Check if any records were fetched from the DLQ
 if fetches.NumRecords() > 0 {
-t.Log("Neg01 PASS: DLQ received record — malformed message routed correctly")
+t.Log("Neg01 PASS: rejected observation routed to dlq.sensors.radar — DLQ routing confirmed")
 return
 }
 }
