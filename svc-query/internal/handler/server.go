@@ -7,7 +7,9 @@ import (
 commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
 queryv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1"
+auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/repository"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
@@ -33,10 +35,18 @@ type AuditEmitter interface {
 Emit(ctx context.Context, eventType, resourceType, resourceID string)
 }
 
-// noopAuditEmitter is a no-op audit emitter used when no real emitter is configured.
-type noopAuditEmitter struct{}
+// logAuditEmitter adapts pkg/audit.Emitter to the handler.AuditEmitter interface.
+// It emits structured audit events using the real pkg/audit infrastructure.
+type logAuditEmitter struct{ emitter *audit.Emitter }
 
-func (n *noopAuditEmitter) Emit(_ context.Context, _, _, _ string) {}
+func (l *logAuditEmitter) Emit(ctx context.Context, eventType, resourceType, resourceID string) {
+l.emitter.Emit(ctx, audit.AuditParams{
+EventType:    eventType,
+ResourceType: resourceType,
+ResourceID:   resourceID,
+Action:       auditv1.AuditAction_AUDIT_ACTION_READ,
+})
+}
 
 // NewQueryServer creates a new gRPC query server.
 func NewQueryServer(
@@ -52,7 +62,7 @@ tracksRepo:   tracksRepo,
 anomalyRepo:  anomalyRepo,
 auditRepo:    auditRepo,
 guardrail:    guardrail,
-auditEmitter: &noopAuditEmitter{},
+auditEmitter: &logAuditEmitter{emitter: audit.NewLogEmitter(logger)},
 pageSize:     pageSize,
 logger:       logger,
 }

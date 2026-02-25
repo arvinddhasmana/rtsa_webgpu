@@ -14,8 +14,9 @@ import (
 "syscall"
 "time"
 
-auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
 feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
+auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/config"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/domain"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/handler"
@@ -26,15 +27,20 @@ feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
 "google.golang.org/grpc/reflection"
 )
 
-// noopAuditEmitter is used when no external audit service is configured.
-// In production, this is replaced with a Redpanda-backed emitter.
-type noopAuditEmitter struct{ logger *zap.Logger }
+// auditEmitterAdapter adapts pkg/audit.Emitter to the handler.AuditEmitter interface.
+// It maps a fully-formed *auditv1.AuditEvent to the structured audit.AuditParams
+// so that events are produced via the real pkg/audit infrastructure.
+type auditEmitterAdapter struct{ emitter *audit.Emitter }
 
-func (n *noopAuditEmitter) EmitAudit(_ context.Context, event *auditv1.AuditEvent) error {
-n.logger.Info("audit event emitted (noop)",
-zap.String("audit_id", event.GetAuditId()),
-zap.String("event_type", event.GetEventType()),
-)
+func (a *auditEmitterAdapter) EmitAudit(ctx context.Context, event *auditv1.AuditEvent) error {
+a.emitter.Emit(ctx, audit.AuditParams{
+EventType:    event.GetEventType(),
+ActorID:      event.GetActorId(),
+ActorType:    event.GetActorType(),
+ResourceType: event.GetResourceType(),
+ResourceID:   event.GetResourceId(),
+Action:       event.GetAction(),
+})
 return nil
 }
 
@@ -94,7 +100,7 @@ return fmt.Errorf("[main.run]: validated producer: %w", err)
 defer func() { _ = validProducer.Close() }()
 
 // Build handler.
-auditEmitter := &noopAuditEmitter{logger: logger}
+auditEmitter := &auditEmitterAdapter{emitter: audit.NewLogEmitter(logger)}
 fbHandler := handler.NewFeedbackHandler(
 trustScorer,
 antiPoison,

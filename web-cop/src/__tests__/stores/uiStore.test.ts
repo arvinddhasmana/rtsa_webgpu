@@ -16,6 +16,7 @@ describe("UIStore", () => {
       entityTypeFilter: [],
       hostileClassFilter: [],
       showStaleTracksEnabled: false,
+      theme: "dark",
     });
   });
 
@@ -69,5 +70,26 @@ describe("UIStore", () => {
     expect(useUIStore.getState().showStaleTracksEnabled).toBe(true);
     useUIStore.getState().toggleStaleTracks();
     expect(useUIStore.getState().showStaleTracksEnabled).toBe(false);
+  });
+
+  // T14: NVG theme toggle
+  it("T14: initial theme is dark", () => {
+    expect(useUIStore.getState().theme).toBe("dark");
+  });
+
+  it("T14: setTheme switches to nvg", () => {
+    useUIStore.getState().setTheme("nvg");
+    expect(useUIStore.getState().theme).toBe("nvg");
+  });
+
+  it("T14: setTheme switches to light", () => {
+    useUIStore.getState().setTheme("light");
+    expect(useUIStore.getState().theme).toBe("light");
+  });
+
+  it("T14: setTheme switches back to dark", () => {
+    useUIStore.getState().setTheme("nvg");
+    useUIStore.getState().setTheme("dark");
+    expect(useUIStore.getState().theme).toBe("dark");
   });
 });
