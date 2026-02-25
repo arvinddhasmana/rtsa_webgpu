@@ -1,0 +1,93 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Multi-Domain Demo — Secondary v1 demo scenario
+# Duration: 30 minutes, North Atlantic multi-domain
+# Exercises: UC001–UC010 across all sensor domains
+name: "Multi-Domain Demo — North Atlantic"
+description: >
+  Secondary v1 demo: 25 surface + 15 air + 5 subsurface + 10 cyber
+  entities across the North Atlantic. Exercises all 6 sensor types
+  and all ingestion services.
+seed: 20240602
+duration_minutes: 30
+
+entities:
+  surface:
+    count: 25
+    hostile_ratio: 0.12
+    friendly_ratio: 0.40
+    neutral_ratio: 0.32
+    unknown_ratio: 0.16
+    speed_range: [5, 22]
+    patterns:
+      straight_line: 0.45
+      patrol: 0.25
+      loitering: 0.20
+      random: 0.10
+  air:
+    count: 15
+    hostile_ratio: 0.20
+    friendly_ratio: 0.45
+    neutral_ratio: 0.20
+    unknown_ratio: 0.15
+    speed_range: [150, 550]
+    altitude_range: [1000, 15000]
+    patterns:
+      straight_line: 0.50
+      patrol: 0.35
+      random: 0.15
+  subsurface:
+    count: 5
+    hostile_ratio: 0.20
+    friendly_ratio: 0.40
+    neutral_ratio: 0.20
+    unknown_ratio: 0.20
+    speed_range: [5, 15]
+    depth_range: [50, 400]
+    patterns:
+      straight_line: 0.60
+      patrol: 0.40
+
+sensors:
+  radar:
+    count: 3
+    sensor_ids: ["RADAR-MD-001", "RADAR-MD-002", "RADAR-MD-003"]
+    update_interval_ms: 1000
+    coverage_nm: 150
+  ais:
+    count: 1
+    sensor_ids: ["AIS-MD-001"]
+    update_interval_ms: 2000
+  ew:
+    count: 2
+    sensor_ids: ["EW-MD-001", "EW-MD-002"]
+    update_interval_ms: 2000
+  elint:
+    count: 1
+    sensor_ids: ["ELINT-MD-001"]
+    update_interval_ms: 3000
+  isr:
+    count: 1
+    sensor_ids: ["ISR-MD-001"]
+    update_interval_ms: 5000
+  cyber:
+    count: 1
+    sensor_ids: ["CYBER-MD-001"]
+    update_interval_ms: 5000
+    ioc_rate: 3
+
+anomalies:
+  injection_rate: 0.20
+  types:
+    speed: 0.25
+    route_deviation: 0.25
+    ais_manipulation: 0.20
+    behavioral: 0.20
+    proximity: 0.10
+
+operational_area:
+  center: { lat: 47.0, lon: -55.0 } # Grand Banks / North Atlantic
+  radius_nm: 200
+  exclusion_zones:
+    - name: "St. John's Harbour"
+      center: { lat: 47.56, lon: -52.71 }
+      radius_nm: 5

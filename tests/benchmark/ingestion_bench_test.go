@@ -167,7 +167,8 @@ return sorted[idx]
 
 // BenchmarkAnomalyLatency (B03) measures anomaly detection latency per track.
 //
-// Threshold: p95 <= 200ms per track (measured as max across b.N iterations).
+// Threshold: p95 <= 150ms per track (measured as max across b.N iterations).
+// NFR-PERF-005: Inference engine latency < 150ms (P99).
 func BenchmarkAnomalyLatency(b *testing.B) {
 skipBenchUnlessEnabled(b)
 
@@ -190,9 +191,9 @@ latencies = append(latencies, time.Since(start))
 p95 := percentile(latencies, 95)
 b.ReportMetric(float64(p95.Microseconds()), "µs/op-p95")
 
-if p95 > 200*time.Millisecond {
-b.Errorf("B03 THRESHOLD EXCEEDED: anomaly detection latency p95=%v, want <= 200ms", p95)
+if p95 > 150*time.Millisecond {
+b.Errorf("B03 THRESHOLD EXCEEDED: anomaly detection latency p95=%v, want <= 150ms", p95)
 } else {
-b.Logf("B03 PASS: anomaly detection p95=%v (threshold: 200ms)", p95)
+b.Logf("B03 PASS: anomaly detection p95=%v (threshold: 150ms)", p95)
 }
 }
