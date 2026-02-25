@@ -2,61 +2,152 @@
 package main
 
 import (
+"context"
 "fmt"
 "net"
-"os"
-"os/signal"
-"syscall"
+"time"
 
+commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/ingestion"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/health"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/interceptors"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/shutdown"
+"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/telemetry"
+"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/config"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/domain"
+"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/handler"
+"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/mapper"
+"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/producer"
 "go.uber.org/zap"
 "google.golang.org/grpc"
 )
 
 func main() {
-cfg := ingestion.MustLoad("svc-cyber-ingestion", "sensors.cyber.iocs", "dlq.sensors.cyber", 50056)
+// 1. Load config
+cfg := config.MustLoad()
 
-logger, err := zap.NewProduction()
+// 2. Initialize telemetry (tracing + metrics + logger)
+ctx := context.Background()
+tp, err := telemetry.Init(ctx, telemetry.Config{
+ServiceName:    "svc-cyber-ingestion",
+ServiceVersion: cfg.ServiceVersion,
+Environment:    cfg.Environment,
+OTelEndpoint:   cfg.OTelEndpoint,
+})
 if err != nil {
-panic(fmt.Sprintf("failed to init logger: %v", err))
+tmpLogger, _ := zap.NewProduction()
+tmpLogger.Fatal("failed to initialize telemetry", zap.Error(err))
 }
-defer logger.Sync() //nolint:errcheck
+logger := tp.Logger
 
+// 3. Create classification guard
+guard := classification.NewGuard(classification.StringToLevel(cfg.MaxClassification))
+
+// Build connection options
+connOpts := redpanda.ConnectionOptions{
+Brokers:    cfg.RedpandaBrokers,
+TLSEnabled: cfg.RedpandaTLSEnabled,
+ClientID:   "svc-cyber-ingestion",
+}
+
+// 4. Create Redpanda producer (for sensors.ew.intercepts)
+prod, err := redpanda.NewProducer(ctx, redpanda.ProducerConfig{
+Connection:    connOpts,
+ServiceName:   "svc-cyber-ingestion",
+SchemaVersion: "1.0.0",
+})
+if err != nil {
+logger.Fatal("failed to create Redpanda producer", zap.Error(err))
+}
+
+// 5. Create DLQ producer
+dlqProd, err := redpanda.NewProducer(ctx, redpanda.ProducerConfig{
+Connection:    connOpts,
+ServiceName:   "svc-cyber-ingestion",
+SchemaVersion: "1.0.0",
+})
+if err != nil {
+logger.Fatal("failed to create DLQ producer", zap.Error(err))
+}
+
+// 6. Create audit emitter
+auditEmitter := audit.NewEmitter(prod, "svc-cyber-ingestion", logger)
+
+// 7. Create health checker
+healthChecker := health.NewChecker()
+healthChecker.Register("redpanda")
+healthChecker.Register("grpc")
+
+// 8. Create domain components
 validator := domain.NewValidator()
 normalizer := domain.NewNormalizer()
-producer := ingestion.NewLogProducer(cfg.OutputTopic)
-dlqProducer := ingestion.NewLogProducer(cfg.DLQTopic)
+enricher := mapper.NewEnricher("svc-cyber-ingestion", guard)
 
-handler := ingestion.NewHandler(validator, normalizer, producer, dlqProducer, logger, cfg)
+// Create observation producers
+obsProd := producer.NewObservationProducer(prod, cfg.OutputTopic)
+dlqObsProd := producer.NewObservationProducer(dlqProd, cfg.DLQTopic)
 
+// 9. Create gRPC handler
+ingestionHandler := handler.NewIngestionHandler(
+validator, normalizer, enricher,
+obsProd, dlqObsProd, auditEmitter, logger)
+
+// 10. Create gRPC server with interceptor chain
+meter := tp.MeterProvider.Meter("svc-cyber-ingestion")
+chainCfg := interceptors.ChainConfig{
+Logger:              logger,
+Meter:               meter,
+ClassificationGuard: guard,
+ServiceName:         "svc-cyber-ingestion",
+}
+srv := grpc.NewServer(
+grpc.ChainUnaryInterceptor(interceptors.BuildUnaryServerInterceptors(chainCfg)...),
+grpc.ChainStreamInterceptor(interceptors.BuildStreamServerInterceptors(chainCfg)...),
+)
+
+// 11. Register services
+ingestionv1.RegisterIngestionServiceServer(srv, ingestionHandler)
+commonv1.RegisterHealthServiceServer(srv, health.NewServer(healthChecker))
+
+// 12. Create shutdown manager
+sm := shutdown.NewManager(logger, 30*time.Second)
+sm.Register("grpc-server", func(ctx context.Context) error {
+srv.GracefulStop()
+return nil
+})
+sm.Register("producer", func(ctx context.Context) error {
+return prod.Close()
+})
+sm.Register("dlq-producer", func(ctx context.Context) error {
+return dlqProd.Close()
+})
+sm.Register("telemetry", tp.Shutdown)
+
+// 13. Start gRPC server
 lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
 if err != nil {
-logger.Fatal("failed to listen", zap.Error(err))
+logger.Fatal("failed to listen", zap.Int("port", cfg.GRPCPort), zap.Error(err))
 }
 
-srv := grpc.NewServer()
-ingestionv1.RegisterIngestionServiceServer(srv, handler)
-
-logger.Info("starting svc-cyber-ingestion", zap.Int("port", cfg.GRPCPort))
-
 go func() {
-if err := srv.Serve(lis); err != nil {
-logger.Error("server error", zap.Error(err))
+logger.Info("gRPC server starting", zap.Int("port", cfg.GRPCPort))
+if err := srv.Serve(lis); err != nil && err != grpc.ErrServerStopped {
+logger.Error("gRPC server error", zap.Error(err))
 }
 }()
 
-quit := make(chan os.Signal, 1)
-signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-<-quit
+// 14. Set health to SERVING
+healthChecker.SetStatus("grpc", health.StatusServing)
+healthChecker.SetStatus("redpanda", health.StatusServing)
+logger.Info("service ready",
+zap.String("service", "svc-cyber-ingestion"),
+zap.String("version", cfg.ServiceVersion))
 
-srv.GracefulStop()
-if err := producer.Close(); err != nil {
-logger.Error("producer close error", zap.Error(err))
+// 15. Wait for shutdown signal
+if err := sm.Wait(); err != nil {
+logger.Error("shutdown completed with errors", zap.Error(err))
 }
-if err := dlqProducer.Close(); err != nil {
-logger.Error("dlq producer close error", zap.Error(err))
-}
-logger.Info("svc-cyber-ingestion stopped")
 }
