@@ -1,0 +1,40 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.nato.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/nato/v1;natov1";
+
+import "google/protobuf/timestamp.proto";
+
+// NatoAdapterService — noop stub for STANAG 5516 / NFFI / MIP interoperability.
+// All RPCs log the request and return success with empty payloads.
+service NatoAdapterService {
+  // ExportTracks sends fused tracks to a NATO partner in STANAG 5516 format.
+  rpc ExportTracks(ExportTracksRequest) returns (ExportTracksResponse);
+
+  // ImportTracks receives tracks from a NATO partner feed.
+  rpc ImportTracks(ImportTracksRequest) returns (ImportTracksResponse);
+}
+
+message ExportTracksRequest {
+  repeated string track_ids = 1;
+  string destination_partner = 2;  // e.g. "NATO_PARTNER_ALPHA"
+  google.protobuf.Timestamp as_of = 3;
+}
+
+message ExportTracksResponse {
+  bool accepted = 1;
+  string message = 2;  // human-readable status
+}
+
+message ImportTracksRequest {
+  bytes raw_payload = 1;           // opaque STANAG / NFFI blob — ignored in noop
+  string source_partner = 2;
+  google.protobuf.Timestamp received_at = 3;
+}
+
+message ImportTracksResponse {
+  int32 tracks_imported = 1;       // always 0 in noop
+  string message = 2;
+}

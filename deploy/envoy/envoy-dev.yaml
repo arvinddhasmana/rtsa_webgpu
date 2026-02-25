@@ -103,6 +103,12 @@ static_resources:
                           route:
                             cluster: audit_service
                             timeout: 60s
+                        # NATO Adapter Service
+                        - match:
+                            prefix: "/rtsa.nato.v1.NatoAdapterService/"
+                          route:
+                            cluster: nato_adapter_service
+                            timeout: 30s
                         # Health Check
                         - match:
                             prefix: "/grpc.health.v1.Health/"
@@ -218,4 +224,23 @@ static_resources:
                   address:
                     socket_address:
                       address: svc-audit
+                      port_value: 50051
+
+    - name: nato_adapter_service
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: nato_adapter_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: svc-nato-adapter
                       port_value: 50051
