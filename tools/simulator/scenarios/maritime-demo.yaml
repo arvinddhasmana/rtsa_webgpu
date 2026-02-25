@@ -1,0 +1,56 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Maritime Demo — Primary v1 demo scenario
+# Duration: 20 minutes, Halifax approaches
+# Exercises: UC001–UC010
+name: "Maritime Demo — Halifax Approaches"
+description: >
+  Primary v1 demo: 30 surface vessels in Halifax approaches including
+  commercial shipping, fishing fleet, coast guard patrol, and 3 hostile
+  actors performing AIS spoofing and route deviation.
+seed: 20240601
+duration_minutes: 20
+
+entities:
+  surface:
+    count: 30
+    hostile_ratio: 0.10
+    friendly_ratio: 0.40
+    neutral_ratio: 0.35
+    unknown_ratio: 0.15
+    speed_range: [5, 22]
+    patterns:
+      straight_line: 0.45 # commercial shipping lanes
+      patrol: 0.25 # coast guard
+      loitering: 0.20 # fishing fleet
+      random: 0.10 # hostile evasion
+
+sensors:
+  radar:
+    count: 2
+    sensor_ids: ["RADAR-DEMO-001", "RADAR-DEMO-002"]
+    update_interval_ms: 1000
+    coverage_nm: 120
+  ais:
+    count: 1
+    sensor_ids: ["AIS-DEMO-001"]
+    update_interval_ms: 2000
+  ew:
+    count: 1
+    sensor_ids: ["EW-DEMO-001"]
+    update_interval_ms: 3000
+
+anomalies:
+  injection_rate: 0.15
+  types:
+    speed: 0.30
+    route_deviation: 0.30
+    ais_manipulation: 0.25
+    behavioral: 0.15
+
+operational_area:
+  center: { lat: 44.65, lon: -63.57 } # Halifax harbour entrance
+  radius_nm: 100
+  exclusion_zones:
+    - name: "Halifax Inner Harbour"
+      center: { lat: 44.65, lon: -63.57 }
+      radius_nm: 3
