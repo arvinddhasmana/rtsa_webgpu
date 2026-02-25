@@ -19,6 +19,8 @@ use (
 	./svc-query
 	./svc-radar-ingestion
 	./svc-track
+	./tests/benchmark
+	./tests/e2e
 	./tests/integration
 	./tools/simulator
 	./wasm-transforms
