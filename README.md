@@ -128,10 +128,11 @@ Zone 7 — Management (Administrative): Audit service, Observability stack
 
 ## Getting Started
 
-| Platform           | Guide                                                        |
-| ------------------ | ------------------------------------------------------------ |
-| **Linux / macOS**  | **[GETTING_STARTED.md](GETTING_STARTED.md)**                 |
-| **Windows (WSL2)** | **[GETTING_STARTED_WINDOWS.md](GETTING_STARTED_WINDOWS.md)** |
+| Platform / Workflow     | Guide                                                                 |
+| ----------------------- | --------------------------------------------------------------------- |
+| **Linux / macOS**       | **[GETTING_STARTED.md](GETTING_STARTED.md)**                          |
+| **Windows (WSL2)**      | **[GETTING_STARTED_WINDOWS.md](GETTING_STARTED_WINDOWS.md)**          |
+| **Demo (Setup + Run)**  | **[docs/demo/demo_setup_run_showcase.md](docs/demo/demo_setup_run_showcase.md)** |
 
 Quick start (Linux / macOS):
 
