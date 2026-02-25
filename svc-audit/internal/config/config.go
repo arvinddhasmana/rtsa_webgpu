@@ -11,6 +11,7 @@ import (
 // Config holds all runtime configuration for svc-audit.
 // All values are sourced from environment variables with RTSA_ prefix.
 type Config struct {
+	GRPCPort           int
 	ClickHouseDSN      string
 	ClickHouseDatabase string
 	RedpandaBrokers    []string
@@ -19,6 +20,8 @@ type Config struct {
 	FlushPeriodSec     int
 	MaxQueryRangeDays  int
 	MaxResultRows      int
+	QueryTimeoutSec    int
+	DefaultPageSize    int
 	ServiceName        string
 	LogLevel           string
 	LogFormat          string
@@ -29,6 +32,7 @@ type Config struct {
 // Load reads configuration from environment variables.
 func Load() (*Config, error) {
 	cfg := &Config{
+		GRPCPort:           50073,
 		ClickHouseDSN:      "clickhouse://default:@localhost:9000/rtsa",
 		ClickHouseDatabase: "rtsa",
 		RedpandaBrokers:    []string{"localhost:19092"},
@@ -37,6 +41,8 @@ func Load() (*Config, error) {
 		FlushPeriodSec:     2,
 		MaxQueryRangeDays:  90,
 		MaxResultRows:      10000,
+		QueryTimeoutSec:    30,
+		DefaultPageSize:    100,
 		ServiceName:        "svc-audit",
 		LogLevel:           "info",
 		LogFormat:          "json",
@@ -92,6 +98,27 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("config: invalid RTSA_HEALTH_PORT %q: %w", v, err)
 		}
 		cfg.HealthPort = n
+	}
+	if v := os.Getenv("RTSA_AUDIT_GRPC_PORT"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("config: invalid RTSA_AUDIT_GRPC_PORT %q: %w", v, err)
+		}
+		cfg.GRPCPort = n
+	}
+	if v := os.Getenv("RTSA_AUDIT_QUERY_TIMEOUT_SEC"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("config: invalid RTSA_AUDIT_QUERY_TIMEOUT_SEC %q: %w", v, err)
+		}
+		cfg.QueryTimeoutSec = n
+	}
+	if v := os.Getenv("RTSA_AUDIT_DEFAULT_PAGE_SIZE"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return nil, fmt.Errorf("config: invalid RTSA_AUDIT_DEFAULT_PAGE_SIZE %q: %w", v, err)
+		}
+		cfg.DefaultPageSize = n
 	}
 
 	if len(cfg.RedpandaBrokers) == 0 {
