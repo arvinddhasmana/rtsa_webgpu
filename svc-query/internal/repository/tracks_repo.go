@@ -2,16 +2,16 @@
 package repository
 
 import (
-"context"
-"fmt"
-"time"
+	"context"
+	"fmt"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-queryv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
+	queryv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // TracksRepository handles track queries against ClickHouse.

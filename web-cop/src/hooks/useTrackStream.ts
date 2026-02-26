@@ -106,8 +106,12 @@ export function useTrackStream(): StreamState {
   // never captures stale closures.
   const batchUpsertRef = useRef(batchUpsertTracks);
   const removeTrackRef = useRef(removeTrack);
-  useEffect(() => { batchUpsertRef.current = batchUpsertTracks; }, [batchUpsertTracks]);
-  useEffect(() => { removeTrackRef.current = removeTrack; }, [removeTrack]);
+  useEffect(() => {
+    batchUpsertRef.current = batchUpsertTracks;
+  }, [batchUpsertTracks]);
+  useEffect(() => {
+    removeTrackRef.current = removeTrack;
+  }, [removeTrack]);
 
   // Flush accumulated updates: one Map clone for all upserts, one call per remove.
   const flushPending = useCallback(() => {

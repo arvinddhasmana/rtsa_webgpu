@@ -2,12 +2,12 @@
 package security
 
 import (
-"context"
-"fmt"
-"strings"
+	"context"
+	"fmt"
+	"strings"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-"google.golang.org/grpc/metadata"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	"google.golang.org/grpc/metadata"
 )
 
 const metadataKeyClassification = "x-rtsa-clearance"

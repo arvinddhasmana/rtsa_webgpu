@@ -2,16 +2,16 @@
 package repository
 
 import (
-"context"
-"fmt"
-"time"
+	"context"
+	"fmt"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-queryv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+	queryv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // AnomalyRepository handles anomaly detection history queries.

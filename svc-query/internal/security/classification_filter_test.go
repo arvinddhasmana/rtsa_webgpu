@@ -2,13 +2,13 @@
 package security_test
 
 import (
-"context"
-"strings"
-"testing"
+	"context"
+	"strings"
+	"testing"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
-"google.golang.org/grpc/metadata"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
+	"google.golang.org/grpc/metadata"
 )
 
 func TestExtractClearance_NoMetadata(t *testing.T) {

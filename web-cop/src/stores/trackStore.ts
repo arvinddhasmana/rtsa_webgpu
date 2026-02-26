@@ -57,11 +57,11 @@ export const useTrackStore = create<TrackState>((set, get) => ({
   getTrackById: (trackId) => get().tracks.get(trackId),
   getTracksByType: (entityType) =>
     Array.from(get().tracks.values()).filter(
-      (t) => t.entityType === entityType
+      (t) => t.entityType === entityType,
     ),
   getHostileTracks: () =>
     Array.from(get().tracks.values()).filter(
-      (t) => t.hostileClass === "HOSTILE"
+      (t) => t.hostileClass === "HOSTILE",
     ),
   getActiveTrackCount: () =>
     Array.from(get().tracks.values()).filter((t) => t.status === "ACTIVE")
