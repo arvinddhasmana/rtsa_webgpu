@@ -25,8 +25,19 @@ if ("serviceWorker" in navigator) {
   });
 }
 
+// Expose Zustand stores on window for Playwright E2E testing and devtools.
+// UNCLASSIFIED artifacts only — these stores contain display-level state, no secrets.
+import("./stores/trackStore").then(({ useTrackStore }) => {
+  (window as unknown as Record<string, unknown>)["__RTSA_TRACK_STORE__"] =
+    useTrackStore;
+});
+import("./stores/alertStore").then(({ useAlertStore }) => {
+  (window as unknown as Record<string, unknown>)["__RTSA_ALERT_STORE__"] =
+    useAlertStore;
+});
+
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
 );

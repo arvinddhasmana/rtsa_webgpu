@@ -46,6 +46,15 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    proxy: {
+      // Forward gRPC-Web requests to Envoy dev proxy (accepts self-signed cert)
+      "/rtsa.": {
+        target: "https://localhost:8443",
+        changeOrigin: true,
+        secure: false, // Envoy dev uses self-signed cert
+        ws: false,
+      },
+    },
   },
   build: {
     outDir: "dist",

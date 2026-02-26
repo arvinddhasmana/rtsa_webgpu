@@ -525,6 +525,9 @@ services:
     build:
       context: ..
       dockerfile: web-cop/Dockerfile
+      args:
+        # OSM tiles for dev; override with air-gapped tile server for classified environments.
+        VITE_MAP_TILE_URL: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     container_name: rtsa-web-cop
     ports:
       - "5173:80"

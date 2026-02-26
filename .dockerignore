@@ -1,0 +1,31 @@
+# CLASSIFICATION: UNCLASSIFIED
+# .dockerignore — exclude large/conflicting paths from all Docker build contexts
+
+# Node.js build artefacts
+web-cop/node_modules/
+web-cop/dist/
+web-cop/playwright-report/
+web-cop/test-results/
+
+# Go build cache
+**/vendor/
+**/*.test
+
+# Git
+.git/
+.github/
+
+# Dev environment
+*.env.local
+*.env.development.local
+
+# IDE
+.vscode/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test infrastructure (not needed for service images)
+tests/

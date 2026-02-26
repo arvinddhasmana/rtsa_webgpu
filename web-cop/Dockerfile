@@ -19,6 +19,10 @@ COPY web-cop/ ./
 # vite.config.ts: path.resolve(__dirname, "../gen/ts") = /gen/ts
 COPY gen/ts /gen/ts
 
+# Map tile URL — default to OpenStreetMap for dev; override at build time for air-gapped environments.
+ARG VITE_MAP_TILE_URL="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+ENV VITE_MAP_TILE_URL=$VITE_MAP_TILE_URL
+
 RUN pnpm run build
 
 FROM nginx:alpine AS production
@@ -33,6 +37,26 @@ listen 80;
 server_name localhost;
 root /usr/share/nginx/html;
 index index.html;
+
+# ── gRPC-Web proxy ──────────────────────────────────────────────────────────
+# Route all /rtsa.* paths to Envoy on the same Docker network.
+# proxy_ssl_verify off: Envoy dev uses a self-signed cert; server-to-server
+# TLS on the internal Docker network is acceptable for this dev configuration.
+# proxy_buffering off + long timeouts: required for server-streaming RPCs.
+location ~ ^/rtsa\. {
+proxy_pass              https://envoy:8443;
+proxy_ssl_verify        off;
+proxy_http_version      1.1;
+proxy_set_header        Host              $http_host;
+proxy_set_header        X-Real-IP         $remote_addr;
+proxy_set_header        X-Forwarded-For   $proxy_add_x_forwarded_for;
+proxy_set_header        X-Forwarded-Proto $scheme;
+proxy_set_header        Connection        "";
+proxy_buffering         off;
+proxy_request_buffering off;
+proxy_read_timeout      3600s;
+proxy_send_timeout      3600s;
+}
 
 # SPA routing — always serve index.html for unknown paths
 location / {

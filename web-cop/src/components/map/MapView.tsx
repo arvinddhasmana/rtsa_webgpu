@@ -162,6 +162,10 @@ export const MapView: React.FC = () => {
           });
 
           mapRef.current = map;
+
+          // Expose map instance for E2E testing and devtools inspection
+          (window as unknown as Record<string, unknown>)["__RTSA_MAP__"] = map;
+
           updateMapData();
         });
       } catch (e) {
@@ -174,6 +178,8 @@ export const MapView: React.FC = () => {
     return () => {
       isMounted = false;
       if (mapRef.current) {
+        (window as unknown as Record<string, unknown>)["__RTSA_MAP__"] =
+          undefined;
         mapRef.current.remove();
         mapRef.current = null;
       }
@@ -186,10 +192,14 @@ export const MapView: React.FC = () => {
     const map = mapRef.current;
     const maplibregl = await import("maplibre-gl");
 
+    // Always read freshest state from store — avoids React closure staleness
+    // when called from map.on("load") or from the [tracks] effect.
+    const currentTracks = useTrackStore.getState().tracks;
+
     // Update markers
     const currentTrackIds = new Set<string>();
 
-    for (const track of tracks.values()) {
+    for (const track of currentTracks.values()) {
       currentTrackIds.add(track.trackId);
 
       let marker = markersRef.current.get(track.trackId);
@@ -229,7 +239,7 @@ export const MapView: React.FC = () => {
     }
 
     // Update threat halos (simple circle approximation for hostile tracks)
-    const haloFeatures = Array.from(tracks.values())
+    const haloFeatures = Array.from(currentTracks.values())
       .filter((t) => t.hostileClass === "HOSTILE")
       .map((t) => {
         // Create a rough circle polygon around the point (approx 50km radius)

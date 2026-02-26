@@ -13,6 +13,24 @@ export async function waitForMapLoad(page: Page): Promise<void> {
 }
 
 /**
+ * waitForMapReady — waits for MapLibre's 'load' event to have fired, indicated
+ * by window.__RTSA_MAP__ being set. Use this before asserting on map sources/layers.
+ */
+export async function waitForMapReady(page: Page): Promise<void> {
+  await waitForMapLoad(page);
+  await page
+    .waitForFunction(
+      () => !!(window as unknown as Record<string, unknown>)["__RTSA_MAP__"],
+      {
+        timeout: 20_000,
+      },
+    )
+    .catch(() => {
+      /* non-fatal: map may not expose instance in all envs */
+    });
+}
+
+/**
  * waitForGrpcConnection — waits for the connection indicator to show
  * "connected" status (green/connected state).
  */
@@ -41,8 +59,9 @@ export async function mockGrpcStream(page: Page): Promise<void> {
 }
 
 /**
- * injectTestTrack — injects a track into the Zustand trackStore via
+ * injectTestTrack — injects a FusedTrack into the Zustand trackStore via
  * page.evaluate(), bypassing the gRPC layer entirely.
+ * Requires window.__RTSA_TRACK_STORE__ to be exposed (set in main.tsx).
  */
 export async function injectTestTrack(
   page: Page,
@@ -51,34 +70,53 @@ export async function injectTestTrack(
     lat: number;
     lon: number;
     entityType?: string;
-    anomalyScore?: number;
-  }
+    hostileClass?: string;
+    confidenceScore?: number;
+  },
 ): Promise<void> {
   await page.evaluate((t) => {
-    // Access Zustand store through the window global exposed by the app.
-    // Falls back to a no-op if the store is not yet exposed.
     const w = window as unknown as {
       __RTSA_TRACK_STORE__?: {
-        getState: () => { addTrack: (track: unknown) => void };
+        getState: () => {
+          upsertTrack: (track: unknown) => void;
+        };
       };
     };
     if (w.__RTSA_TRACK_STORE__) {
-      w.__RTSA_TRACK_STORE__.getState().addTrack({
+      w.__RTSA_TRACK_STORE__.getState().upsertTrack({
         trackId: t.trackId,
         entityType: t.entityType ?? "SURFACE",
+        hostileClass: t.hostileClass ?? "UNKNOWN",
+        position: {
+          latitude: t.lat,
+          longitude: t.lon,
+          altitudeMeters: undefined,
+          speedKnots: undefined,
+          headingDegrees: undefined,
+        },
+        confidenceScore: t.confidenceScore ?? 0.85,
+        sourceCount: 1,
+        sources: [
+          {
+            sensorId: "E2E-TEST-001",
+            sensorType: "RADAR",
+            confidence: 0.85,
+            lastContribution: new Date(),
+          },
+        ],
+        status: "ACTIVE",
         classification: "UNCLASSIFIED",
-        position: { latitude: t.lat, longitude: t.lon },
-        anomalyScore: t.anomalyScore ?? 0,
-        lastUpdate: new Date().toISOString(),
-        sensorIds: ["RADAR-TEST-001"],
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
     }
   }, track);
 }
 
 /**
- * injectTestAlert — injects an alert into the Zustand alertStore via
- * page.evaluate().
+ * injectTestAlert — injects an AnomalyAlert into the Zustand alertStore via
+ * page.evaluate(), bypassing the gRPC layer entirely.
+ * Requires window.__RTSA_ALERT_STORE__ to be exposed (set in main.tsx).
  */
 export async function injectTestAlert(
   page: Page,
@@ -86,8 +124,8 @@ export async function injectTestAlert(
     alertId: string;
     trackId: string;
     severity: "WATCH" | "ELEVATED" | "CRITICAL";
-    alertType: string;
-  }
+    anomalyType?: string;
+  },
 ): Promise<void> {
   await page.evaluate((a) => {
     const w = window as unknown as {
@@ -99,11 +137,13 @@ export async function injectTestAlert(
       w.__RTSA_ALERT_STORE__.getState().addAlert({
         alertId: a.alertId,
         trackId: a.trackId,
+        anomalyType: a.anomalyType ?? "SPEED",
         severity: a.severity,
-        alertType: a.alertType,
-        description: `Test alert ${a.alertId}`,
-        detectedAt: new Date().toISOString(),
-        acknowledged: false,
+        confidenceScore: 0.92,
+        explanation: `E2E test alert: ${a.alertId} — ${a.anomalyType ?? "SPEED"} anomaly detected`,
+        features: [],
+        classification: "UNCLASSIFIED",
+        detectedAt: new Date(),
       });
     }
   }, alert);
