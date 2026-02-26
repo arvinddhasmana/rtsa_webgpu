@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>00-implementation-overview.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<!-- CLASSIFICATION: UNCLASSIFIED -->
+<h1 id="rtsa-implementation-overview--master-orchestration-document">RTSA Implementation Overview — Master Orchestration Document</h1>
+<blockquote>
+<p><strong>Document</strong>: RTSA Implementation Plan — Module Orchestration
+<strong>Version</strong>: 1.0
+<strong>Classification</strong>: UNCLASSIFIED
+<strong>Last Updated</strong>: 2026-02-23
+<strong>Target Agent</strong>: Greatest Ever Developer (<code>@greatest-ever-developer</code>)</p>
+</blockquote>
+<hr>
+<h2 id="1-purpose">1. Purpose</h2>
+<p>This document is the master orchestration guide for implementing the RTSA system. It decomposes the full system into <strong>18 independently implementable modules</strong>, each with its own detailed instruction file. Multiple AI Agents can execute modules in parallel using <strong>interface contracts</strong> and <strong>mock dependencies</strong>.</p>
+<p><strong>Scope</strong>: Core flow — Sensors → Ingestion → Fusion → Anomaly Detection → Track/Alert → UI, plus Feedback loop, Historical Queries, and Audit. <strong>NATO Adapter (UC014/UC015) and Training Pipeline (UC011) are stubbed</strong> with noop implementations.</p>
+<p><strong>Target Environment</strong>: Development (Docker Compose, single-node Redpanda, single-node ClickHouse).</p>
+<hr>
+<h2 id="2-module-inventory">2. Module Inventory</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>File</th>
+<th>Description</th>
+<th>Phase</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>00</td>
+<td><code>00-implementation-overview.md</code></td>
+<td>This file — orchestration, contracts, traceability</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>01</td>
+<td><code>01-dev-infrastructure.md</code></td>
+<td>Docker Compose, Makefiles, project scaffolding</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>02</td>
+<td><code>02-protobuf-schemas.md</code></td>
+<td>All <code>.proto</code> files, buf config, code generation</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>03</td>
+<td><code>03-shared-go-libraries.md</code></td>
+<td><code>pkg/*</code> shared libraries (Redpanda, health, etc.)</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>04</td>
+<td><code>04-sensor-ingestion-radar.md</code></td>
+<td>Reference ingestion service (Radar) — full detail</td>
+<td>P2</td>
+</tr>
+<tr>
+<td>05</td>
+<td><code>05-sensor-ingestion-batch.md</code></td>
+<td>5 remaining sensor services (EW, ELINT, ISR, AIS, Cyber)</td>
+<td>P2</td>
+</tr>
+<tr>
+<td>06</td>
+<td><code>06-wasm-data-transforms.md</code></td>
+<td>Redpanda Wasm validation transforms</td>
+<td>P2</td>
+</tr>
+<tr>
+<td>07</td>
+<td><code>07-fusion-engine.md</code></td>
+<td>Multi-source track fusion with Kalman filter</td>
+<td>P3</td>
+</tr>
+<tr>
+<td>08</td>
+<td><code>08-anomaly-detection.md</code></td>
+<td>Rule-based anomaly detection (simulating ML)</td>
+<td>P3</td>
+</tr>
+<tr>
+<td>09</td>
+<td><code>09-feedback-trust-scoring.md</code></td>
+<td>Operator feedback, trust scoring, anti-poisoning</td>
+<td>P4</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>10-track-service.md</code></td>
+<td>Real-time track state cache + gRPC streaming</td>
+<td>P4</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>11-alert-service.md</code></td>
+<td>Priority alert queue + gRPC streaming</td>
+<td>P4</td>
+</tr>
+<tr>
+<td>12</td>
+<td><code>12-query-service-etl.md</code></td>
+<td>ClickHouse queries + Redpanda Connect ETL pipelines</td>
+<td>P4</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>13-audit-service.md</code></td>
+<td>Immutable audit trail (Redpanda → ClickHouse)</td>
+<td>P4</td>
+</tr>
+<tr>
+<td>14</td>
+<td><code>14-api-gateway.md</code></td>
+<td>Envoy gRPC-Web proxy configuration</td>
+<td>P4</td>
+</tr>
+<tr>
+<td>15</td>
+<td><code>15-cop-web-application.md</code></td>
+<td>React COP UI (map, alerts, feedback, forensics)</td>
+<td>P5</td>
+</tr>
+<tr>
+<td>16</td>
+<td><code>16-test-data-simulators.md</code></td>
+<td>Sensor simulators + realistic scenario data</td>
+<td>P2</td>
+</tr>
+<tr>
+<td>17</td>
+<td><code>17-integration-e2e-testing.md</code></td>
+<td>Cross-module integration + E2E test harness</td>
+<td>P6</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="3-implementation-phases--parallelism">3. Implementation Phases &amp; Parallelism</h2>
+<pre><code class="language-mermaid"><div class="mermaid">gantt
+    title RTSA Implementation Phases
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b %d
+
+    section P0 Foundation
+    Module 01 Dev Infrastructure    :p0a, 2026-02-24, 3d
+    Module 02 Protobuf Schemas      :p0b, 2026-02-24, 3d
+
+    section P1 Core Libraries
+    Module 03 Shared Go Libraries   :p1, after p0a p0b, 3d
+
+    section P2 Ingestion
+    Module 04 Radar Ingestion       :p2a, after p1, 3d
+    Module 05 Other Ingestion (5)   :p2b, after p1, 4d
+    Module 06 Wasm Transforms       :p2c, after p1, 2d
+    Module 16 Test Data Simulators  :p2d, after p1, 3d
+
+    section P3 Processing
+    Module 07 Fusion Engine         :p3a, after p1, 4d
+    Module 08 Anomaly Detection     :p3b, after p1, 3d
+
+    section P4 Serving
+    Module 09 Feedback Service      :p4a, after p1, 3d
+    Module 10 Track Service         :p4b, after p1, 2d
+    Module 11 Alert Service         :p4c, after p1, 2d
+    Module 12 Query Service + ETL   :p4d, after p1, 3d
+    Module 13 Audit Service         :p4e, after p1, 2d
+    Module 14 API Gateway           :p4f, after p1, 1d
+
+    section P5 Presentation
+    Module 15 COP Web Application   :p5, after p1, 5d
+
+    section P6 Integration
+    Module 17 Integration + E2E     :p6, after p2a p2b p3a p3b p4a p4b p4c p4d p4e p5, 4d
+</div></code></pre>
+<h3 id="parallelism-rules">Parallelism Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Modules</th>
+<th>Can Start After</th>
+<th>Max Parallel Agents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P0</strong></td>
+<td>01, 02</td>
+<td>Immediately</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>P1</strong></td>
+<td>03</td>
+<td>P0 complete</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>P2</strong></td>
+<td>04, 05, 06, 16</td>
+<td>P1 complete</td>
+<td>4</td>
+</tr>
+<tr>
+<td><strong>P3</strong></td>
+<td>07, 08</td>
+<td>P1 complete</td>
+<td>2</td>
+</tr>
+<tr>
+<td><strong>P4</strong></td>
+<td>09, 10, 11, 12, 13, 14</td>
+<td>P1 complete</td>
+<td>6</td>
+</tr>
+<tr>
+<td><strong>P5</strong></td>
+<td>15</td>
+<td>P1 complete (uses mock gRPC)</td>
+<td>1</td>
+</tr>
+<tr>
+<td><strong>P6</strong></td>
+<td>17</td>
+<td>P2–P5 complete</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Key insight</strong>: All modules in P2–P5 depend only on <strong>Module 03 (shared libraries)</strong> for interface contracts. Each module mocks its upstream/downstream dependencies using the interfaces defined in Module 03. This enables maximum parallelism.</p>
+</blockquote>
+<hr>
+<h2 id="4-interface-contract-registry">4. Interface Contract Registry</h2>
+<p>Every module communicates through well-defined interfaces. Parallel agents implement against these contracts and mock counterparts.</p>
+<h3 id="41-go-interfaces-defined-in-module-03--pkg">4.1 Go Interfaces (defined in Module 03 — <code>pkg/</code>)</h3>
+<pre class="hljs"><code><div><span class="hljs-comment">// pkg/redpanda/producer.go</span>
+<span class="hljs-keyword">type</span> MessageProducer <span class="hljs-keyword">interface</span> {
+    Produce(ctx context.Context, topic <span class="hljs-keyword">string</span>, key []<span class="hljs-keyword">byte</span>, value []<span class="hljs-keyword">byte</span>, headers <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">string</span>) error
+    Close() error
+}
+
+<span class="hljs-comment">// pkg/redpanda/consumer.go</span>
+<span class="hljs-keyword">type</span> MessageConsumer <span class="hljs-keyword">interface</span> {
+    Consume(ctx context.Context, topics []<span class="hljs-keyword">string</span>, handler MessageHandler) error
+    Close() error
+}
+
+<span class="hljs-keyword">type</span> MessageHandler <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(ctx context.Context, msg *Message)</span> <span class="hljs-title">error</span></span>
+
+<span class="hljs-keyword">type</span> Message <span class="hljs-keyword">struct</span> {
+    Topic     <span class="hljs-keyword">string</span>
+    Key       []<span class="hljs-keyword">byte</span>
+    Value     []<span class="hljs-keyword">byte</span>
+    Headers   <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">string</span>
+    Offset    <span class="hljs-keyword">int64</span>
+    Partition <span class="hljs-keyword">int32</span>
+    Timestamp time.Time
+}
+
+<span class="hljs-comment">// pkg/health/checker.go</span>
+<span class="hljs-keyword">type</span> HealthChecker <span class="hljs-keyword">interface</span> {
+    Check(ctx context.Context) HealthStatus
+    Name() <span class="hljs-keyword">string</span>
+}
+
+<span class="hljs-keyword">type</span> HealthStatus <span class="hljs-keyword">struct</span> {
+    Status  Status <span class="hljs-comment">// UP, DOWN, DEGRADED</span>
+    Details <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">string</span>
+}
+
+<span class="hljs-comment">// pkg/audit/emitter.go</span>
+<span class="hljs-keyword">type</span> AuditEmitter <span class="hljs-keyword">interface</span> {
+    Emit(ctx context.Context, event AuditEvent) error
+}
+
+<span class="hljs-comment">// pkg/classification/guard.go</span>
+<span class="hljs-keyword">type</span> ClassificationGuard <span class="hljs-keyword">interface</span> {
+    Enforce(dataLevel, requiredLevel ClassificationLevel) error
+    MaxLevel(levels ...ClassificationLevel) ClassificationLevel
+}
+</div></code></pre>
+<h3 id="42-grpc-service-interfaces-defined-in-module-02--proto-files">4.2 gRPC Service Interfaces (defined in Module 02 — <code>.proto</code> files)</h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Package</th>
+<th>Key RPCs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IngestionService</code></td>
+<td><code>rtsa.ingestion.v1</code></td>
+<td><code>IngestSensorData</code> (client-stream), <code>GetSensorStatus</code> (unary)</td>
+</tr>
+<tr>
+<td><code>TrackService</code></td>
+<td><code>rtsa.entity.v1</code></td>
+<td><code>StreamTracks</code> (server-stream), <code>GetTrackDetails</code> (unary)</td>
+</tr>
+<tr>
+<td><code>AlertService</code></td>
+<td><code>rtsa.inference.v1</code></td>
+<td><code>StreamAlerts</code> (server-stream), <code>AcknowledgeAlert</code> (unary)</td>
+</tr>
+<tr>
+<td><code>FeedbackService</code></td>
+<td><code>rtsa.feedback.v1</code></td>
+<td><code>SubmitFeedback</code> (unary), <code>GetFeedbackHistory</code> (unary)</td>
+</tr>
+<tr>
+<td><code>QueryService</code></td>
+<td><code>rtsa.query.v1</code></td>
+<td><code>QueryTracks</code> (unary), <code>QueryAnomalies</code> (unary), <code>QueryAuditLog</code> (unary)</td>
+</tr>
+<tr>
+<td><code>HealthService</code></td>
+<td><code>rtsa.common.v1</code></td>
+<td><code>Check</code> (unary), <code>Watch</code> (server-stream)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-redpanda-topic-contracts">4.3 Redpanda Topic Contracts</h3>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Key</th>
+<th>Producer Module</th>
+<th>Consumer Module(s)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sensors.radar.tracks</code></td>
+<td>sensor_id</td>
+<td>04</td>
+<td>07</td>
+</tr>
+<tr>
+<td><code>sensors.ew.intercepts</code></td>
+<td>sensor_id</td>
+<td>05</td>
+<td>07</td>
+</tr>
+<tr>
+<td><code>sensors.elint.detections</code></td>
+<td>sensor_id</td>
+<td>05</td>
+<td>07</td>
+</tr>
+<tr>
+<td><code>sensors.isr.observations</code></td>
+<td>sensor_id</td>
+<td>05</td>
+<td>07</td>
+</tr>
+<tr>
+<td><code>sensors.ais.positions</code></td>
+<td>mmsi</td>
+<td>05</td>
+<td>07</td>
+</tr>
+<tr>
+<td><code>sensors.cyber.iocs</code></td>
+<td>ioc_type</td>
+<td>05</td>
+<td>07</td>
+</tr>
+<tr>
+<td><code>tracks.fused.surface</code></td>
+<td>track_id</td>
+<td>07</td>
+<td>08, 10</td>
+</tr>
+<tr>
+<td><code>tracks.fused.air</code></td>
+<td>track_id</td>
+<td>07</td>
+<td>08, 10</td>
+</tr>
+<tr>
+<td><code>tracks.fused.subsurface</code></td>
+<td>track_id</td>
+<td>07</td>
+<td>08, 10</td>
+</tr>
+<tr>
+<td><code>tracks.fused.land</code></td>
+<td>track_id</td>
+<td>07</td>
+<td>08, 10</td>
+</tr>
+<tr>
+<td><code>tracks.fused.cyber</code></td>
+<td>track_id</td>
+<td>07</td>
+<td>08, 10</td>
+</tr>
+<tr>
+<td><code>alerts.anomaly.critical</code></td>
+<td>track_id</td>
+<td>08</td>
+<td>11</td>
+</tr>
+<tr>
+<td><code>alerts.anomaly.elevated</code></td>
+<td>track_id</td>
+<td>08</td>
+<td>11</td>
+</tr>
+<tr>
+<td><code>alerts.anomaly.watch</code></td>
+<td>track_id</td>
+<td>08</td>
+<td>11</td>
+</tr>
+<tr>
+<td><code>feedback.operator.submissions</code></td>
+<td>operator_id</td>
+<td>09</td>
+<td>12 (ETL)</td>
+</tr>
+<tr>
+<td><code>feedback.operator.validated</code></td>
+<td>operator_id</td>
+<td>09</td>
+<td>(stub: training)</td>
+</tr>
+<tr>
+<td><code>models.anomaly.published</code></td>
+<td>model_version</td>
+<td>(stub)</td>
+<td>08</td>
+</tr>
+<tr>
+<td><code>audit.events</code></td>
+<td>service_id</td>
+<td>All (via interceptor)</td>
+<td>13</td>
+</tr>
+<tr>
+<td><code>dlq.sensors.*</code></td>
+<td>original_topic</td>
+<td>04, 05, 06</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-clickhouse-table-contracts-defined-in-module-12">4.4 ClickHouse Table Contracts (defined in Module 12)</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Writer Module</th>
+<th>Reader Module</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sensor_observations</code></td>
+<td>12 (ETL)</td>
+<td>12 (Query)</td>
+</tr>
+<tr>
+<td><code>tracks_fused</code></td>
+<td>12 (ETL)</td>
+<td>12 (Query)</td>
+</tr>
+<tr>
+<td><code>anomaly_detections</code></td>
+<td>12 (ETL)</td>
+<td>12 (Query)</td>
+</tr>
+<tr>
+<td><code>operator_feedback</code></td>
+<td>12 (ETL)</td>
+<td>09, 12 (Query)</td>
+</tr>
+<tr>
+<td><code>audit_log</code></td>
+<td>13</td>
+<td>12 (Query)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="5-requirement-%E2%86%92-module-traceability">5. Requirement → Module Traceability</h2>
+<table>
+<thead>
+<tr>
+<th>Requirement Group</th>
+<th>Requirements</th>
+<th>Modules</th>
+<th>Use Cases</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CR-ING (Ingestion)</td>
+<td>CR-ING-001..010</td>
+<td>01, 02, 03, 04, 05, 06</td>
+<td>UC002–UC007</td>
+</tr>
+<tr>
+<td>CR-FUS (Fusion)</td>
+<td>CR-FUS-001..007</td>
+<td>07</td>
+<td>UC008</td>
+</tr>
+<tr>
+<td>CR-INF (Inference)</td>
+<td>CR-INF-001..007</td>
+<td>08</td>
+<td>UC009</td>
+</tr>
+<tr>
+<td>CR-FB (Feedback)</td>
+<td>CR-FB-001..007</td>
+<td>09</td>
+<td>UC010</td>
+</tr>
+<tr>
+<td>CR-UI (User Interface)</td>
+<td>CR-UI-001..008</td>
+<td>10, 11, 14, 15</td>
+<td>UC012</td>
+</tr>
+<tr>
+<td>CR-HIS (Historical)</td>
+<td>CR-HIS-001..007</td>
+<td>12</td>
+<td>UC013</td>
+</tr>
+<tr>
+<td>CR-NATO (Interop)</td>
+<td>CR-NATO-001..005</td>
+<td>(Stubbed)</td>
+<td>(Stubbed)</td>
+</tr>
+<tr>
+<td>CR-SEC (Security)</td>
+<td>CR-SEC-001..008</td>
+<td>01, 02, 03 (cross-cutting)</td>
+<td>All</td>
+</tr>
+<tr>
+<td>NFR-PERF</td>
+<td>NFR-PERF-001..006</td>
+<td>07, 08, 12, 16, 17</td>
+<td>All</td>
+</tr>
+<tr>
+<td>NFR-AVAIL</td>
+<td>NFR-AVAIL-001..004</td>
+<td>01, 03</td>
+<td>UC001</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="6-feature-%E2%86%92-module-mapping">6. Feature → Module Mapping</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Modules</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FEAT-01 Platform Infrastructure</td>
+<td>01</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-02 Security Framework</td>
+<td>02, 03</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-03 Event Streaming Backbone</td>
+<td>01, 06</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-04 Radar Ingestion</td>
+<td>04</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-05 EW/SIGINT Ingestion</td>
+<td>05</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-06 ELINT/COMINT Ingestion</td>
+<td>05</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-07 ISR Metadata Ingestion</td>
+<td>05</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-08 AIS/BFT Ingestion</td>
+<td>05</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-09 Cyber Threat Ingestion</td>
+<td>05</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-10 Multi-Source Fusion</td>
+<td>07</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-11 Anomaly Detection</td>
+<td>08</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-12 Operator Feedback</td>
+<td>09</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-13 Situational Awareness UI</td>
+<td>10, 11, 14, 15</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-14 Historical Analysis</td>
+<td>12</td>
+<td>Implement</td>
+</tr>
+<tr>
+<td>FEAT-15 NATO Data Exchange</td>
+<td>—</td>
+<td><strong>Stubbed</strong></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="7-stubbed-modules">7. Stubbed Modules</h2>
+<p>The following are <strong>explicitly out of scope</strong> for the core implementation but receive minimal stub implementations that satisfy interface contracts:</p>
+<h3 id="71-nato-adapter-uc014uc015">7.1 NATO Adapter (UC014/UC015)</h3>
+<p>Create a minimal <code>svc-nato-adapter/</code> with:</p>
+<ul>
+<li>A noop consumer that logs <code>tracks.fused.*</code> messages it would export</li>
+<li>A noop producer that can inject test NATO data into <code>sensors.nato.link16</code> / <code>sensors.nato.nffi</code></li>
+<li>Full gRPC health check so it shows healthy in the dev stack</li>
+<li>No Link 16 or NFFI protocol implementation</li>
+</ul>
+<h3 id="72-training-pipeline-uc011">7.2 Training Pipeline (UC011)</h3>
+<p>Create a minimal <code>svc-training/</code> with:</p>
+<ul>
+<li>A noop consumer on <code>feedback.operator.validated</code> that logs received feedback</li>
+<li>No actual model training or anti-poisoning batch validation</li>
+<li>Full gRPC health check</li>
+<li>Produces no events to <code>models.anomaly.published</code> (anomaly detection uses pre-configured rule thresholds)</li>
+</ul>
+<hr>
+<h2 id="8-global-conventions">8. Global Conventions</h2>
+<h3 id="81-classification-header">8.1 Classification Header</h3>
+<p>Every generated source file must begin with:</p>
+<pre class="hljs"><code><div>// CLASSIFICATION: UNCLASSIFIED
+</div></code></pre>
+<p>(Adjust comment syntax per file type: <code>&lt;!-- --&gt;</code> for HTML/XML, <code># </code> for YAML/Makefile/Python, <code>// </code> for Go/Proto/TypeScript)</p>
+<h3 id="82-go-module-path">8.2 Go Module Path</h3>
+<p>All Go modules use the base path: <code>github.com/arvinddhasmana/RTSA_VS_Opus</code></p>
+<ul>
+<li>Shared libraries: <code>github.com/arvinddhasmana/RTSA_VS_Opus/pkg/&lt;package&gt;</code></li>
+<li>Services: <code>github.com/arvinddhasmana/RTSA_VS_Opus/svc-&lt;name&gt;</code></li>
+<li>Proto generated: <code>github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/&lt;context&gt;/v1</code></li>
+</ul>
+<h3 id="83-error-format">8.3 Error Format</h3>
+<pre class="hljs"><code><div>fmt.Errorf(<span class="hljs-string">"[package].[function](%s): %w"</span>, identifier, err)
+</div></code></pre>
+<h3 id="84-log-schema-slog-json">8.4 Log Schema (slog JSON)</h3>
+<pre class="hljs"><code><div>{
+  <span class="hljs-attr">"time"</span>: <span class="hljs-string">"2026-02-23T14:30:00.000Z"</span>,
+  <span class="hljs-attr">"level"</span>: <span class="hljs-string">"INFO"</span>,
+  <span class="hljs-attr">"msg"</span>: <span class="hljs-string">"event description"</span>,
+  <span class="hljs-attr">"service"</span>: <span class="hljs-string">"svc-radar-ingestion"</span>,
+  <span class="hljs-attr">"trace_id"</span>: <span class="hljs-string">"abc123..."</span>,
+  <span class="hljs-attr">"span_id"</span>: <span class="hljs-string">"def456..."</span>,
+  <span class="hljs-attr">"component"</span>: <span class="hljs-string">"handler"</span>,
+  <span class="hljs-attr">"key"</span>: <span class="hljs-string">"value"</span>
+}
+</div></code></pre>
+<p><strong>Never log</strong>: classified data, raw sensor payloads, PII, credentials, certificate contents.</p>
+<h3 id="85-metric-naming">8.5 Metric Naming</h3>
+<pre class="hljs"><code><div>rtsa_&lt;service&gt;_&lt;metric_name&gt;_&lt;unit&gt;
+</div></code></pre>
+<p>Examples: <code>rtsa_radar_ingestion_events_total</code>, <code>rtsa_fusion_processing_seconds</code>, <code>rtsa_track_cache_size</code></p>
+<h3 id="86-config-environment-variables">8.6 Config Environment Variables</h3>
+<p>All prefixed with <code>RTSA_</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RTSA_GRPC_PORT</code></td>
+<td><code>50051</code></td>
+<td>gRPC server port</td>
+</tr>
+<tr>
+<td><code>RTSA_HEALTH_PORT</code></td>
+<td><code>8081</code></td>
+<td>Health check HTTP port</td>
+</tr>
+<tr>
+<td><code>RTSA_METRICS_PORT</code></td>
+<td><code>9090</code></td>
+<td>Prometheus metrics port</td>
+</tr>
+<tr>
+<td><code>RTSA_REDPANDA_BROKERS</code></td>
+<td><code>localhost:19092</code></td>
+<td>Redpanda broker addresses</td>
+</tr>
+<tr>
+<td><code>RTSA_CLICKHOUSE_DSN</code></td>
+<td><code>clickhouse://default:dev@localhost:9000/rtsa</code></td>
+<td>ClickHouse connection string</td>
+</tr>
+<tr>
+<td><code>RTSA_TLS_CA_CERT</code></td>
+<td><code>./certs/dev/ca.crt</code></td>
+<td>TLS CA certificate path</td>
+</tr>
+<tr>
+<td><code>RTSA_TLS_SERVER_CERT</code></td>
+<td><code>./certs/dev/server.crt</code></td>
+<td>TLS server certificate path</td>
+</tr>
+<tr>
+<td><code>RTSA_TLS_SERVER_KEY</code></td>
+<td><code>./certs/dev/server.key</code></td>
+<td>TLS server key path</td>
+</tr>
+<tr>
+<td><code>RTSA_LOG_LEVEL</code></td>
+<td><code>info</code></td>
+<td>Log level (debug, info, warn, error)</td>
+</tr>
+<tr>
+<td><code>RTSA_LOG_FORMAT</code></td>
+<td><code>json</code></td>
+<td>Log format (json, text)</td>
+</tr>
+<tr>
+<td><code>RTSA_OTEL_ENDPOINT</code></td>
+<td><code>localhost:4317</code></td>
+<td>OpenTelemetry collector endpoint</td>
+</tr>
+<tr>
+<td><code>RTSA_SERVICE_NAME</code></td>
+<td>(per service)</td>
+<td>Service name for telemetry</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="9-agent-invocation-template">9. Agent Invocation Template</h2>
+<p>To invoke the Greatest Ever Developer agent for any module:</p>
+<pre class="hljs"><code><div>@greatest-ever-developer Implement Module XX from docs/implementation/XX-module-name.md
+
+Context:
+- Read docs/implementation/00-implementation-overview.md for global conventions and interface contracts
+- Read docs/implementation/XX-module-name.md for complete implementation specification
+- Follow all SDLC guidelines in docs/sdlc_guidelines/
+- Reference architecture docs in docs/architecture/ for design decisions
+- Target: development environment (Docker Compose, not K8s)
+
+Deliverables:
+1. All source files as specified in the module document
+2. Unit tests with ≥80% line coverage
+3. Integration test stubs (//go:build integration tag)
+4. Dockerfile (multi-stage, distroless runtime)
+5. README.md for the module/service
+6. All tests passing: go test ./... -race -count=1
+</div></code></pre>
+<hr>
+<h2 id="10-definition-of-done--per-module">10. Definition of Done — Per Module</h2>
+<p>A module is <strong>complete</strong> when:</p>
+<ul>
+<li><input type="checkbox" id="checkbox0"><label for="checkbox0">All source files created as specified in the module document</label></li>
+<li><input type="checkbox" id="checkbox1"><label for="checkbox1">Classification header present on every file</label></li>
+<li><input type="checkbox" id="checkbox2"><label for="checkbox2">Code compiles without errors (</label><code>go build ./...</code> or <code>pnpm build</code>)</li>
+<li><input type="checkbox" id="checkbox3"><label for="checkbox3">Linter passes (</label><code>golangci-lint run ./...</code> or <code>eslint .</code>)</li>
+<li><input type="checkbox" id="checkbox4"><label for="checkbox4">Unit tests pass (</label><code>go test ./... -race -count=1</code>)</li>
+<li><input type="checkbox" id="checkbox5"><label for="checkbox5">Unit test coverage ≥ 80% line coverage</label></li>
+<li><input type="checkbox" id="checkbox6"><label for="checkbox6">Interface contracts match the definitions in this document</label></li>
+<li><input type="checkbox" id="checkbox7"><label for="checkbox7">Mock implementations provided for all external dependencies</label></li>
+<li><input type="checkbox" id="checkbox8"><label for="checkbox8">Dockerfile builds successfully</label></li>
+<li><input type="checkbox" id="checkbox9"><label for="checkbox9">Health check endpoint responds on </label><code>:8081/healthz</code></li>
+<li><input type="checkbox" id="checkbox10"><label for="checkbox10">README.md documents the service, its configuration, and its dependencies</label></li>
+<li><input type="checkbox" id="checkbox11"><label for="checkbox11">No hardcoded secrets, credentials, or classified data</label></li>
+</ul>
+<hr>
+<h2 id="11-project-directory-structure">11. Project Directory Structure</h2>
+<pre class="hljs"><code><div>RTSA_VS_Opus/
+├── proto/                           # Protobuf definitions (Module 02)
+│   └── rtsa/
+│       ├── common/v1/
+│       ├── ingestion/v1/
+│       ├── entity/v1/
+│       ├── inference/v1/
+│       ├── feedback/v1/
+│       ├── query/v1/
+│       └── audit/v1/
+├── gen/                             # Generated code (Module 02)
+│   ├── go/
+│   └── ts/
+├── pkg/                             # Shared Go libraries (Module 03)
+│   ├── config/
+│   ├── redpanda/
+│   ├── health/
+│   ├── shutdown/
+│   ├── classification/
+│   ├── audit/
+│   ├── telemetry/
+│   ├── interceptors/
+│   └── testutil/
+├── svc-radar-ingestion/             # Radar ingestion (Module 04)
+├── svc-ew-ingestion/                # EW/SIGINT ingestion (Module 05)
+├── svc-elint-ingestion/             # ELINT/COMINT ingestion (Module 05)
+├── svc-isr-ingestion/               # ISR ingestion (Module 05)
+├── svc-ais-ingestion/               # AIS/BFT ingestion (Module 05)
+├── svc-cyber-ingestion/             # Cyber ingestion (Module 05)
+├── svc-fusion-engine/               # Fusion engine (Module 07)
+├── svc-anomaly-detection/           # Anomaly detection (Module 08)
+├── svc-feedback/                    # Feedback service (Module 09)
+├── svc-track/                       # Track service (Module 10)
+├── svc-alert/                       # Alert service (Module 11)
+├── svc-query/                       # Query service (Module 12)
+├── svc-audit/                       # Audit service (Module 13)
+├── svc-nato-adapter/                # NATO adapter — stub (Module 07 stub)
+├── svc-training/                    # Training pipeline — stub (Module 09 stub)
+├── transforms/                      # Wasm transforms (Module 06)
+│   ├── sensor-validator/
+│   └── classification-guard/
+├── tools/                           # Development tools (Module 16)
+│   └── simulator/
+├── ui/                              # COP Web Application (Module 15)
+├── deploy/                          # Deployment configs (Module 01)
+│   ├── docker-compose.yml
+│   ├── docker-compose.services.yml
+│   ├── envoy/
+│   ├── prometheus/
+│   ├── grafana/
+│   ├── loki/
+│   ├── otel/
+│   └── redpanda-connect/
+├── tests/                           # Cross-module tests (Module 17)
+│   ├── integration/
+│   └── e2e/
+├── buf.yaml
+├── buf.gen.yaml
+├── Makefile
+├── go.work                          # Go workspace for multi-module
+├── go.work.sum
+└── docs/
+    └── implementation/              # These instruction files
+</div></code></pre>
+<hr>
+<h2 id="12-technology-versions-dev-environment">12. Technology Versions (Dev Environment)</h2>
+<table>
+<thead>
+<tr>
+<th>Technology</th>
+<th>Version</th>
+<th>Image</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Go</td>
+<td>1.22+</td>
+<td><code>golang:1.22-alpine</code> (build)</td>
+</tr>
+<tr>
+<td>Redpanda</td>
+<td>24.x</td>
+<td><code>redpandadata/redpanda:v24.1.1</code></td>
+</tr>
+<tr>
+<td>ClickHouse</td>
+<td>24.x</td>
+<td><code>clickhouse/clickhouse-server:24.1</code></td>
+</tr>
+<tr>
+<td>Prometheus</td>
+<td>2.x</td>
+<td><code>prom/prometheus:v2.51.0</code></td>
+</tr>
+<tr>
+<td>Grafana</td>
+<td>10.x</td>
+<td><code>grafana/grafana:10.4.0</code></td>
+</tr>
+<tr>
+<td>Loki</td>
+<td>2.x</td>
+<td><code>grafana/loki:2.9.0</code></td>
+</tr>
+<tr>
+<td>Tempo</td>
+<td>2.x</td>
+<td><code>grafana/tempo:2.4.0</code></td>
+</tr>
+<tr>
+<td>OTel Collector</td>
+<td>0.96+</td>
+<td><code>otel/opentelemetry-collector-contrib:0.96.0</code></td>
+</tr>
+<tr>
+<td>Envoy</td>
+<td>1.29+</td>
+<td><code>envoyproxy/envoy:v1.29.0</code></td>
+</tr>
+<tr>
+<td>Redpanda Console</td>
+<td>2.x</td>
+<td><code>redpandadata/console:v2.4.0</code></td>
+</tr>
+<tr>
+<td>Redpanda Connect</td>
+<td>4.x</td>
+<td><code>redpandadata/connect:4.27.0</code></td>
+</tr>
+<tr>
+<td>Node.js</td>
+<td>20 LTS</td>
+<td>—</td>
+</tr>
+<tr>
+<td>React</td>
+<td>18+</td>
+<td>—</td>
+</tr>
+<tr>
+<td>TypeScript</td>
+<td>5+</td>
+<td>—</td>
+</tr>
+<tr>
+<td>buf</td>
+<td>1.32+</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Runtime image</td>
+<td>—</td>
+<td><code>gcr.io/distroless/static-debian12:nonroot</code></td>
+</tr>
+</tbody>
+</table>
+
+</body>
+</html>

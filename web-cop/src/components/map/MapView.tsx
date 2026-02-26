@@ -1,23 +1,19 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/map/MapView.tsx
 
+import "maplibre-gl/dist/maplibre-gl.css";
 import React, { useEffect, useRef } from "react";
-import { useUIStore } from "../../stores/uiStore";
 import { useTrackStore } from "../../stores/trackStore";
+import { useUIStore } from "../../stores/uiStore";
 
 /**
  * MapView — main map display using MapLibre GL JS.
- *
- * Features:
- *   - Renders tracks as positioned markers with MIL-STD-2525 symbology
- *   - Color-coded by hostile classification
- *   - Track history trail (last 10 positions as fading dots)
- *   - Click-to-select: clicking a track opens DetailPanel
- *   - Default view: Mid-Atlantic region (center: -60°, 45°, zoom: 6)
- *   - No external tile providers in production (offline map tiles)
  */
 export const MapView: React.FC = () => {
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const markersRef = useRef<Map<string, any>>(new Map());
+
   const mapCenter = useUIStore((s) => s.mapCenter);
   const mapZoom = useUIStore((s) => s.mapZoom);
   const tracks = useTrackStore((s) => s.tracks);
@@ -25,21 +21,21 @@ export const MapView: React.FC = () => {
   const toggleDetailPanel = useUIStore((s) => s.toggleDetailPanel);
 
   useEffect(() => {
-    // Dynamic import of maplibre-gl to avoid SSR issues
-    let mapInstance: { remove: () => void } | null = null;
+    let isMounted = true;
 
     const initMap = async () => {
-      if (!mapRef.current) return;
+      if (!mapContainerRef.current || mapRef.current) return;
 
       try {
         const maplibregl = await import("maplibre-gl");
 
         const tileUrl =
-          (import.meta as { env?: Record<string, string> }).env?.["VITE_MAP_TILE_URL"] ??
-          "";
+          (import.meta as { env?: Record<string, string> }).env?.[
+            "VITE_MAP_TILE_URL"
+          ] ?? "";
 
         const map = new maplibregl.Map({
-          container: mapRef.current,
+          container: mapContainerRef.current,
           style: tileUrl
             ? {
                 version: 8 as const,
@@ -73,47 +69,213 @@ export const MapView: React.FC = () => {
           zoom: mapZoom,
         });
 
-        mapInstance = map;
-
-        // Add track markers after map loads
         map.on("load", () => {
-          for (const track of tracks.values()) {
-            const el = document.createElement("div");
-            el.style.cssText = `
-              width: 12px; height: 12px; border-radius: 50%;
-              background-color: ${getTrackColor(track.hostileClass)};
-              border: 2px solid white; cursor: pointer;
-            `;
-            el.title = `Track: ${track.trackId}`;
-            el.addEventListener("click", () => {
-              selectTrack(track.trackId);
-              toggleDetailPanel();
-            });
-          }
+          if (!isMounted) return;
+
+          // Add sources and layers for halos and geofences
+          map.addSource("threat-halos", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+
+          map.addLayer({
+            id: "threat-halos-layer",
+            type: "fill",
+            source: "threat-halos",
+            paint: {
+              "fill-color": "#DC2626",
+              "fill-opacity": 0.2,
+            },
+          });
+
+          map.addLayer({
+            id: "threat-halos-outline",
+            type: "line",
+            source: "threat-halos",
+            paint: {
+              "line-color": "#DC2626",
+              "line-width": 2,
+              "line-dasharray": [2, 2],
+            },
+          });
+
+          // Add geofences source
+          map.addSource("geofences", {
+            type: "geojson",
+            data: {
+              type: "FeatureCollection",
+              features: [
+                {
+                  type: "Feature",
+                  properties: { type: "exclusion" },
+                  geometry: {
+                    type: "Polygon",
+                    coordinates: [
+                      [
+                        [-62.0, 44.0],
+                        [-60.0, 44.0],
+                        [-60.0, 46.0],
+                        [-62.0, 46.0],
+                        [-62.0, 44.0],
+                      ],
+                    ],
+                  },
+                },
+              ],
+            },
+          });
+
+          map.addLayer({
+            id: "geofences-layer",
+            type: "line",
+            source: "geofences",
+            paint: {
+              "line-color": [
+                "match",
+                ["get", "type"],
+                "exclusion",
+                "#DC2626",
+                "inclusion",
+                "#16A34A",
+                "#6B7280",
+              ],
+              "line-width": 2,
+            },
+          });
+
+          map.addLayer({
+            id: "geofences-fill",
+            type: "fill",
+            source: "geofences",
+            paint: {
+              "fill-color": [
+                "match",
+                ["get", "type"],
+                "exclusion",
+                "#DC2626",
+                "inclusion",
+                "#16A34A",
+                "#6B7280",
+              ],
+              "fill-opacity": 0.1,
+            },
+          });
+
+          mapRef.current = map;
+          updateMapData();
         });
-      } catch {
-        // MapLibre not available in test environment
+      } catch (e) {
+        console.error("Failed to initialize map", e);
       }
     };
 
     void initMap();
 
     return () => {
-      mapInstance?.remove();
+      isMounted = false;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update markers when tracks change
+  const updateMapData = async () => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+    const maplibregl = await import("maplibre-gl");
+
+    // Update markers
+    const currentTrackIds = new Set<string>();
+
+    for (const track of tracks.values()) {
+      currentTrackIds.add(track.trackId);
+
+      let marker = markersRef.current.get(track.trackId);
+      if (!marker) {
+        const el = document.createElement("div");
+        el.style.cssText = `
+          width: 12px; height: 12px; border-radius: 50%;
+          background-color: ${getTrackColor(track.hostileClass)};
+          border: 2px solid white; cursor: pointer;
+        `;
+        el.title = `Track: ${track.trackId}`;
+        el.addEventListener("click", () => {
+          selectTrack(track.trackId);
+          toggleDetailPanel();
+        });
+
+        marker = new maplibregl.Marker({ element: el })
+          .setLngLat([track.position.longitude, track.position.latitude])
+          .addTo(map);
+
+        markersRef.current.set(track.trackId, marker);
+      } else {
+        marker.setLngLat([track.position.longitude, track.position.latitude]);
+        // Update color if changed
+        marker.getElement().style.backgroundColor = getTrackColor(
+          track.hostileClass,
+        );
+      }
+    }
+
+    // Remove stale markers
+    for (const [id, marker] of markersRef.current.entries()) {
+      if (!currentTrackIds.has(id)) {
+        marker.remove();
+        markersRef.current.delete(id);
+      }
+    }
+
+    // Update threat halos (simple circle approximation for hostile tracks)
+    const haloFeatures = Array.from(tracks.values())
+      .filter((t) => t.hostileClass === "HOSTILE")
+      .map((t) => {
+        // Create a rough circle polygon around the point (approx 50km radius)
+        const points = 32;
+        const radiusInDeg = 50 / 111.32; // rough approx
+        const coords = [];
+        for (let i = 0; i <= points; i++) {
+          const angle = (i / points) * Math.PI * 2;
+          const dx = Math.cos(angle) * radiusInDeg;
+          const dy = Math.sin(angle) * radiusInDeg;
+          // Adjust dx for latitude
+          const adjustedDx =
+            dx / Math.cos((t.position.latitude * Math.PI) / 180);
+          coords.push([
+            t.position.longitude + adjustedDx,
+            t.position.latitude + dy,
+          ]);
+        }
+
+        return {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [coords],
+          },
+          properties: { trackId: t.trackId },
+        };
+      });
+
+    const haloSource = map.getSource("threat-halos");
+    if (haloSource) {
+      haloSource.setData({
+        type: "FeatureCollection",
+        features: haloFeatures as any,
+      });
+    }
+  };
+
   useEffect(() => {
-    // Production: update MapLibre source with new track GeoJSON
-    void tracks;
+    void updateMapData();
   }, [tracks]);
 
   return (
     <div
       data-testid="map-container"
-      ref={mapRef}
+      ref={mapContainerRef}
       style={{
         width: "100%",
         height: "100%",
@@ -130,6 +292,8 @@ export const MapView: React.FC = () => {
             transform: "translate(-50%, -50%)",
             color: "#9CA3AF",
             fontSize: "0.875rem",
+            zIndex: 10,
+            pointerEvents: "none",
           }}
         >
           No tracks — awaiting data stream

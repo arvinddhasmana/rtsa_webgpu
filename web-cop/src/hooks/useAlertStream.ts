@@ -1,11 +1,16 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/hooks/useAlertStream.ts
 
-import { toJson } from "@bufbuild/protobuf";
-import { Code, ConnectError, createClient } from "@connectrpc/connect";
-import { AlertService } from "@gen/rtsa/inference/v1/alert_service_pb";
-import { AnomalyAlertSchema } from "@gen/rtsa/inference/v1/anomaly_alert_pb";
+import { createPromiseClient } from "@connectrpc/connect";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlertSeverity as GenAlertSeverity,
+  AnomalyType as GenAnomalyType,
+  ClassificationLevel as GenClassificationLevel,
+} from "../../../gen/ts/rtsa/common/v1/types_pb";
+import { AlertService } from "../../../gen/ts/rtsa/inference/v1/alert_service_connect";
+import { StreamAlertsRequest } from "../../../gen/ts/rtsa/inference/v1/alert_service_pb";
+import { AnomalyAlert as ProtoAnomalyAlert } from "../../../gen/ts/rtsa/inference/v1/anomaly_alert_pb";
 import { transport } from "../api/grpc-client";
 import { useAlertStore } from "../stores/alertStore";
 import type { AnomalyAlert } from "../types/alert";
@@ -18,41 +23,31 @@ import type {
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
 
-const alertClient = createClient(AlertService, transport);
-
-function stripPrefix(val: string | undefined, prefix: string): string {
-  if (!val) return "";
-  return val.startsWith(prefix) ? val.slice(prefix.length) : val;
+function cleanEnum(val: string, prefix: string): string {
+  if (!val) return val;
+  return val.replace(prefix, "");
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function protoAlertToLocal(protoAlert: any): AnomalyAlert {
-  const j = toJson(AnomalyAlertSchema, protoAlert, {
-    alwaysEmitImplicit: true,
-  }) as Record<string, unknown>;
+function protoAlertToLocal(a: ProtoAnomalyAlert): AnomalyAlert {
   return {
-    alertId: (j["alertId"] ?? "") as string,
-    trackId: (j["trackId"] ?? "") as string,
-    anomalyType: (stripPrefix(j["anomalyType"] as string, "ANOMALY_TYPE_") ||
+    alertId: a.alertId,
+    trackId: a.trackId,
+    anomalyType: (cleanEnum(GenAnomalyType[a.anomalyType], "ANOMALY_TYPE_") ||
       "BEHAVIORAL") as AnomalyType,
-    severity: (stripPrefix(j["severity"] as string, "ALERT_SEVERITY_") ||
+    severity: (cleanEnum(GenAlertSeverity[a.severity], "ALERT_SEVERITY_") ||
       "WATCH") as AlertSeverity,
-    confidenceScore: (j["confidenceScore"] ?? 0) as number,
-    explanation: (j["explanation"] ?? "") as string,
-    features: ((j["features"] ?? []) as Array<Record<string, unknown>>).map(
-      (f) => ({
-        featureName: (f["featureName"] ?? "") as string,
-        value: (f["value"] ?? 0) as number,
-        contributionWeight: (f["contributionWeight"] ?? 0) as number,
-      }),
-    ),
-    classification: (stripPrefix(
-      j["classification"] as string,
+    confidenceScore: a.confidenceScore,
+    explanation: a.explanation,
+    features: (a.features || []).map((f) => ({
+      featureName: f.featureName,
+      value: f.value,
+      contributionWeight: f.contributionWeight,
+    })),
+    classification: (cleanEnum(
+      GenClassificationLevel[a.classification],
       "CLASSIFICATION_LEVEL_",
     ) || "UNCLASSIFIED") as ClassificationLevel,
-    detectedAt: j["detectedAt"]
-      ? new Date(j["detectedAt"] as string)
-      : new Date(),
+    detectedAt: a.detectedAt ? a.detectedAt.toDate() : new Date(),
   };
 }
 
@@ -62,17 +57,6 @@ interface StreamState {
   reconnectAttempts: number;
 }
 
-/**
- * useAlertStream — subscribes to real-time anomaly alerts via gRPC-Web server-streaming.
- *
- * Uses the generated AlertService client with @connectrpc/connect-web transport
- * for proper binary protobuf framing and gRPC-Web envelope encoding.
- *
- * Flow:
- *   1. Opens StreamAlerts gRPC-Web stream to svc-alert via Envoy
- *   2. Maps proto AnomalyAlert → local AnomalyAlert type and updates AlertStore
- *   3. On connect error: exponential backoff reconnect (1s, 2s … max 30s)
- */
 export function useAlertStream(): StreamState {
   const addAlert = useAlertStore((s) => s.addAlert);
 
@@ -82,65 +66,83 @@ export function useAlertStream(): StreamState {
     reconnectAttempts: 0,
   });
 
-  const abortRef = useRef<AbortController | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const attemptsRef = useRef(0);
-  const mountedRef = useRef(true);
-  const connectedRef = useRef(false);
+  // Proper refs to avoid stale closures and infinite loops
+  const isMountedRef = useRef(true);
+  const reconnectAttemptsRef = useRef(0);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const connect = useCallback(() => {
-    if (!mountedRef.current) return;
+    if (!isMountedRef.current) return;
 
-    abortRef.current = new AbortController();
-    const signal = abortRef.current.signal;
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
 
-    void (async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    // Create new client instance
+    const client = createPromiseClient(AlertService, transport);
+
+    (async () => {
       try {
-        for await (const alert of alertClient.streamAlerts({}, { signal })) {
-          if (!mountedRef.current) return;
+        const stream = client.streamAlerts(new StreamAlertsRequest(), {
+          signal: abortControllerRef.current?.signal,
+        });
 
-          if (!connectedRef.current) {
-            connectedRef.current = true;
-            attemptsRef.current = 0;
+        let firstMessageReceived = false;
+
+        for await (const alert of stream) {
+          if (!isMountedRef.current) break;
+
+          // On first successful message, mark as fully connected and reset retry
+          if (!firstMessageReceived) {
+            firstMessageReceived = true;
+            reconnectAttemptsRef.current = 0;
             setState({ isConnected: true, error: null, reconnectAttempts: 0 });
           }
 
           addAlert(protoAlertToLocal(alert));
         }
-        if (mountedRef.current) throw new Error("Alert stream ended");
-      } catch (err) {
-        if (!mountedRef.current) return;
-        if (err instanceof ConnectError && err.code === Code.Canceled) return;
+      } catch (err: any) {
+        if (!isMountedRef.current) return;
+        if (err.name === "AbortError") return;
 
-        connectedRef.current = false;
+        console.error("Alert stream error:", err);
 
-        setState((s) => ({
+        setState({
           isConnected: false,
-          error: err instanceof Error ? err : new Error(String(err)),
-          reconnectAttempts: s.reconnectAttempts + 1,
-        }));
-        attemptsRef.current += 1;
+          error: err,
+          reconnectAttempts: reconnectAttemptsRef.current + 1,
+        });
+
+        reconnectAttemptsRef.current++;
 
         const delay = Math.min(
-          BASE_DELAY_MS * Math.pow(2, attemptsRef.current - 1),
+          BASE_DELAY_MS * Math.pow(1.5, reconnectAttemptsRef.current),
           MAX_DELAY_MS,
         );
-        timeoutRef.current = setTimeout(connect, delay);
+
+        retryTimeoutRef.current = setTimeout(connect, delay);
       }
     })();
   }, [addAlert]);
 
   useEffect(() => {
-    mountedRef.current = true;
+    isMountedRef.current = true;
     connect();
 
     return () => {
-      mountedRef.current = false;
-      connectedRef.current = false;
-      abortRef.current?.abort();
-      if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
+      isMountedRef.current = false;
+      if (abortControllerRef.current) abortControllerRef.current.abort();
+      if (retryTimeoutRef.current) clearTimeout(retryTimeoutRef.current);
     };
-  }, [connect]);
+  }, []);
 
   return state;
 }
