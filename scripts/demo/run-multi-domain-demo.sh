@@ -22,6 +22,6 @@ bash scripts/dev/init-clickhouse.sh
 echo "=== Starting simulator with multi-domain-demo scenario ==="
 docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml \
   run --rm simulator \
-  /app/simulator --scenario /scenarios/multi-domain-demo.yaml
+  --scenario /app/scenarios/multi-domain-demo.yaml
 
 echo "=== Multi-domain demo complete ==="

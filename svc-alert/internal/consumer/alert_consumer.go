@@ -2,15 +2,15 @@
 package consumer
 
 import (
-"context"
-"fmt"
-"log/slog"
+	"context"
+	"fmt"
+	"log/slog"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
-"github.com/prometheus/client_golang/prometheus"
-"google.golang.org/protobuf/proto"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
+	"github.com/prometheus/client_golang/prometheus"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // MessageHandler is called for each message consumed from Redpanda.
@@ -90,7 +90,7 @@ return nil
 }
 
 var alert inferencev1.AnomalyAlert
-if err := proto.Unmarshal(value, &alert); err != nil {
+if err := protojson.Unmarshal(value, &alert); err != nil {
 c.logger.ErrorContext(ctx, "failed to unmarshal alert",
 "topic", topic,
 "error", err.Error(),

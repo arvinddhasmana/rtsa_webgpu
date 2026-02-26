@@ -280,12 +280,6 @@ check_tool_version() {
 check_go_build() {
   log_section "Go Compilation"
 
-  local services_dir="${REPO_ROOT}/services"
-  if [ ! -d "$services_dir" ]; then
-    log_info "No services/ directory found — skipping build check"
-    return
-  fi
-
   local ok=0
   local failed=0
   while IFS= read -r -d '' mod_file; do
@@ -301,10 +295,10 @@ check_go_build() {
       log_fail "  ${service_name} — COMPILATION ERROR"
       failed=$(( failed + 1 ))
     fi
-  done < <(find "$services_dir" -name "go.mod" -print0 2>/dev/null)
+  done < <(find "$REPO_ROOT" -maxdepth 2 -path "${REPO_ROOT}/svc-*" -name "go.mod" -print0 2>/dev/null)
 
   if [ "$ok" -eq 0 ] && [ "$failed" -eq 0 ]; then
-    log_info "No Go services found in services/"
+    log_info "No svc-* Go services found — skipping build check"
   fi
 }
 
@@ -314,23 +308,23 @@ check_go_build() {
 check_frontend() {
   log_section "Frontend"
 
-  local ui_dir="${REPO_ROOT}/ui"
+  local ui_dir="${REPO_ROOT}/web-cop"
   if [ ! -d "$ui_dir" ]; then
-    log_info "No ui/ directory found — skipping frontend check"
+    log_info "No web-cop/ directory found — skipping frontend check"
     return
   fi
 
   if [ -d "${ui_dir}/node_modules" ]; then
     log_pass "Frontend dependencies installed (node_modules present)"
   else
-    log_warn "Frontend dependencies not installed — run: cd ui && pnpm install"
+    log_warn "Frontend dependencies not installed — run: cd web-cop && pnpm install"
   fi
 
   if [ -f "${ui_dir}/package.json" ] && command -v pnpm &>/dev/null; then
     if (cd "$ui_dir" && pnpm tsc --noEmit 2>/dev/null); then
       log_pass "TypeScript compilation OK"
     else
-      log_warn "TypeScript compilation had issues — check ui/ for errors"
+      log_warn "TypeScript compilation had issues — check web-cop/ for errors"
     fi
   fi
 }

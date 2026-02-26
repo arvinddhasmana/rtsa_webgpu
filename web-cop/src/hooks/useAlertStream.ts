@@ -1,12 +1,60 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/hooks/useAlertStream.ts
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { toJson } from "@bufbuild/protobuf";
+import { Code, ConnectError, createClient } from "@connectrpc/connect";
+import { AlertService } from "@gen/rtsa/inference/v1/alert_service_pb";
+import { AnomalyAlertSchema } from "@gen/rtsa/inference/v1/anomaly_alert_pb";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { transport } from "../api/grpc-client";
 import { useAlertStore } from "../stores/alertStore";
-import { useAuthStore } from "../stores/authStore";
+import type { AnomalyAlert } from "../types/alert";
+import type {
+  AlertSeverity,
+  AnomalyType,
+  ClassificationLevel,
+} from "../types/common";
 
 const BASE_DELAY_MS = 1000;
 const MAX_DELAY_MS = 30000;
+
+const alertClient = createClient(AlertService, transport);
+
+function stripPrefix(val: string | undefined, prefix: string): string {
+  if (!val) return "";
+  return val.startsWith(prefix) ? val.slice(prefix.length) : val;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function protoAlertToLocal(protoAlert: any): AnomalyAlert {
+  const j = toJson(AnomalyAlertSchema, protoAlert, {
+    alwaysEmitImplicit: true,
+  }) as Record<string, unknown>;
+  return {
+    alertId: (j["alertId"] ?? "") as string,
+    trackId: (j["trackId"] ?? "") as string,
+    anomalyType: (stripPrefix(j["anomalyType"] as string, "ANOMALY_TYPE_") ||
+      "BEHAVIORAL") as AnomalyType,
+    severity: (stripPrefix(j["severity"] as string, "ALERT_SEVERITY_") ||
+      "WATCH") as AlertSeverity,
+    confidenceScore: (j["confidenceScore"] ?? 0) as number,
+    explanation: (j["explanation"] ?? "") as string,
+    features: ((j["features"] ?? []) as Array<Record<string, unknown>>).map(
+      (f) => ({
+        featureName: (f["featureName"] ?? "") as string,
+        value: (f["value"] ?? 0) as number,
+        contributionWeight: (f["contributionWeight"] ?? 0) as number,
+      }),
+    ),
+    classification: (stripPrefix(
+      j["classification"] as string,
+      "CLASSIFICATION_LEVEL_",
+    ) || "UNCLASSIFIED") as ClassificationLevel,
+    detectedAt: j["detectedAt"]
+      ? new Date(j["detectedAt"] as string)
+      : new Date(),
+  };
+}
 
 interface StreamState {
   isConnected: boolean;
@@ -15,22 +63,18 @@ interface StreamState {
 }
 
 /**
- * useAlertStream — subscribes to real-time alert updates via gRPC-Web server-streaming.
+ * useAlertStream — subscribes to real-time anomaly alerts via gRPC-Web server-streaming.
+ *
+ * Uses the generated AlertService client with @connectrpc/connect-web transport
+ * for proper binary protobuf framing and gRPC-Web envelope encoding.
  *
  * Flow:
  *   1. Opens StreamAlerts gRPC-Web stream to svc-alert via Envoy
- *   2. Sends StreamAlertsRequest with min_severity from AlertStore
- *   3. Receives alerts in priority order (CRITICAL first)
- *   4. Updates AlertStore on each message
- *   5. Triggers browser notification for CRITICAL alerts
- *   6. On disconnect: exponential backoff reconnect
- *
- * @returns { isConnected, error, reconnectAttempts }
+ *   2. Maps proto AnomalyAlert → local AnomalyAlert type and updates AlertStore
+ *   3. On connect error: exponential backoff reconnect (1s, 2s … max 30s)
  */
 export function useAlertStream(): StreamState {
   const addAlert = useAlertStore((s) => s.addAlert);
-  const minSeverity = useAlertStore((s) => s.minSeverityFilter);
-  const clearance = useAuthStore((s) => s.clearanceLevel);
 
   const [state, setState] = useState<StreamState>({
     isConnected: false,
@@ -49,64 +93,36 @@ export function useAlertStream(): StreamState {
     abortRef.current = new AbortController();
     const signal = abortRef.current.signal;
 
-    const grpcWebUrl =
-      (import.meta as { env?: Record<string, string> }).env?.["VITE_GRPC_WEB_URL"] ??
-      "https://localhost:8443";
-    const url = `${grpcWebUrl}/rtsa.alert.v1.AlertService/StreamAlerts`;
+    void (async () => {
+      try {
+        for await (const alert of alertClient.streamAlerts({}, { signal })) {
+          if (!mountedRef.current) return;
 
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/grpc-web+proto",
-        "X-Grpc-Web": "1",
-        "X-Classification-Ceiling": clearance,
-      },
-      body: JSON.stringify({
-        minSeverity,
-        classificationCeiling: clearance,
-      }),
-      signal,
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          throw new Error(`Alert stream failed: ${res.status}`);
+          setState((s) => ({ ...s, isConnected: true, error: null }));
+          attemptsRef.current = 0;
+
+          addAlert(protoAlertToLocal(alert));
         }
+        if (mountedRef.current) throw new Error("Alert stream ended");
+      } catch (err) {
         if (!mountedRef.current) return;
-        setState((s) => ({ ...s, isConnected: true, error: null }));
-        attemptsRef.current = 0;
+        if (err instanceof ConnectError && err.code === Code.Canceled) return;
 
-        const reader = res.body?.getReader();
-        if (!reader) return;
-
-        try {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done || signal.aborted) break;
-            // Production: decode protobuf frames and call addAlert
-            // Trigger browser notification for CRITICAL alerts
-            void value;
-            void addAlert;
-          }
-        } finally {
-          reader.releaseLock();
-        }
-      })
-      .catch((err: Error) => {
-        if (!mountedRef.current || signal.aborted) return;
         setState((s) => ({
           isConnected: false,
-          error: err,
+          error: err instanceof Error ? err : new Error(String(err)),
           reconnectAttempts: s.reconnectAttempts + 1,
         }));
         attemptsRef.current += 1;
 
         const delay = Math.min(
           BASE_DELAY_MS * Math.pow(2, attemptsRef.current - 1),
-          MAX_DELAY_MS
+          MAX_DELAY_MS,
         );
         timeoutRef.current = setTimeout(connect, delay);
-      });
-  }, [clearance, minSeverity, addAlert]);
+      }
+    })();
+  }, [addAlert]);
 
   useEffect(() => {
     mountedRef.current = true;

@@ -2,28 +2,22 @@
 // src/api/grpc-client.ts
 
 /**
- * Creates the shared gRPC-Web transport configuration.
- * All service clients use this base URL.
+ * Shared gRPC-Web transport for all RTSA service clients.
+ * Uses @connectrpc/connect-web which handles proper binary protobuf framing,
+ * gRPC-Web envelope encoding, and trailer decoding.
  *
- * Configuration:
- *   - Base URL: configured via VITE_GRPC_WEB_URL env var (default: https://localhost:8443)
- *   - Format: binary (more efficient than text)
- *   - Metadata: classification header attached to all requests
+ * Base URL is configured via VITE_GRPC_WEB_URL (default: https://localhost:8443).
  */
-export interface GrpcTransportOptions {
-  baseUrl: string;
-  format: "binary" | "text";
-}
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
-export function createTransport(): GrpcTransportOptions {
-  return {
-    baseUrl:
-      (import.meta as { env?: Record<string, string> }).env?.[
-        "VITE_GRPC_WEB_URL"
-      ] ?? "https://localhost:8443",
-    format: "binary",
-  };
-}
+export const grpcWebUrl =
+  (import.meta as { env?: Record<string, string> }).env?.[
+    "VITE_GRPC_WEB_URL"
+  ] ?? "https://localhost:8443";
 
-// Singleton transport instance
-export const transport = createTransport();
+/**
+ * Singleton transport — all service clients share this instance.
+ */
+export const transport = createGrpcWebTransport({
+  baseUrl: grpcWebUrl,
+});

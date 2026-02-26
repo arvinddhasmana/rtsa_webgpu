@@ -167,6 +167,8 @@ services:
       RTSA_OTEL_ENDPOINT: otel-collector:4317
       RTSA_LOG_LEVEL: debug
       RTSA_LOG_FORMAT: json
+      # Correct topic names matching what ingestion services publish to
+      RTSA_FUSION_INPUT_TOPICS: sensors.radar.tracks,sensors.ew.intercepts,sensors.elint.detections,sensors.isr.observations,sensors.ais.positions,sensors.cyber.iocs
     ports:
       - "50060:50051"
     volumes:
@@ -486,3 +488,48 @@ services:
         condition: service_healthy
     networks:
       - rtsa-net
+  # ──────────────────────────────────────────
+  # Simulator — Test Data Generator
+  # Usage: docker compose ... run --rm simulator [flags]
+  # ──────────────────────────────────────────
+  simulator:
+    build:
+      context: ..
+      dockerfile: tools/simulator/Dockerfile
+    container_name: rtsa-simulator
+    image: rtsa-simulator:latest
+    environment:
+      SIM_RADAR_ENDPOINT: svc-radar-ingestion:50051
+      SIM_EW_ENDPOINT: svc-ew-ingestion:50051
+      SIM_ELINT_ENDPOINT: svc-elint-ingestion:50051
+      SIM_ISR_ENDPOINT: svc-isr-ingestion:50051
+      SIM_AIS_ENDPOINT: svc-ais-ingestion:50051
+      SIM_CYBER_ENDPOINT: svc-cyber-ingestion:50051
+      SIM_TLS_ENABLED: "false"
+    depends_on:
+      - svc-radar-ingestion
+      - svc-ew-ingestion
+      - svc-elint-ingestion
+      - svc-isr-ingestion
+      - svc-ais-ingestion
+      - svc-cyber-ingestion
+    networks:
+      - rtsa-net
+    profiles:
+      - demo
+
+  # ──────────────────────────────────────────
+  # Web-COP — React Common Operating Picture
+  # ──────────────────────────────────────────
+  web-cop:
+    build:
+      context: ..
+      dockerfile: web-cop/Dockerfile
+    container_name: rtsa-web-cop
+    ports:
+      - "5173:80"
+    depends_on:
+      - envoy
+    networks:
+      - rtsa-net
+    restart: unless-stopped

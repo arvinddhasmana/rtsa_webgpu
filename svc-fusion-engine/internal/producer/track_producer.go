@@ -9,7 +9,7 @@ import (
 	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // TrackProducer produces FusedTrack messages to the appropriate entity-type topic.
@@ -37,7 +37,7 @@ func NewTrackProducer(ctx context.Context, brokers []string, topicPrefix string,
 // The Kafka message key is the track_id for partition affinity.
 func (tp *TrackProducer) Produce(ctx context.Context, track *entityv1.FusedTrack) error {
 	topic := tp.topicFor(track.GetEntityType())
-	payload, err := proto.Marshal(track)
+	payload, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(track)
 	if err != nil {
 		return fmt.Errorf("track_producer: marshal: %w", err)
 	}

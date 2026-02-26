@@ -46,8 +46,8 @@ func Load() *Config {
 	return &Config{
 		BaseConfig: pkgconfig.LoadBase(),
 		InputTopics: pkgconfig.GetEnvStrSlice("RTSA_FUSION_INPUT_TOPICS", []string{
-			"sensors.radar", "sensors.ew", "sensors.elint",
-			"sensors.isr", "sensors.ais", "sensors.cyber",
+			"sensors.radar.tracks", "sensors.ew.intercepts", "sensors.elint.detections",
+			"sensors.isr.observations", "sensors.ais.positions", "sensors.cyber.iocs",
 		}),
 		ConsumerGroup:               pkgconfig.GetEnv("RTSA_FUSION_CONSUMER_GROUP", "fusion-engine"),
 		GateSurfaceDistanceNM:       pkgconfig.GetEnvFloat("RTSA_FUSION_GATE_SURFACE_DISTANCE", 5.0),

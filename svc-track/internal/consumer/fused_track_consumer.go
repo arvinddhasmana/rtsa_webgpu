@@ -17,7 +17,7 @@ import (
 	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // FusedTopics is the ordered list of Redpanda topics consumed by this service.
@@ -104,8 +104,8 @@ func (c *FusedTrackConsumer) Run(ctx context.Context) error {
 // handleRecord deserializes a single Kafka record and puts it into the cache.
 func (c *FusedTrackConsumer) handleRecord(ctx context.Context, record *kgo.Record) error {
 	var track entityv1.FusedTrack
-	if err := proto.Unmarshal(record.Value, &track); err != nil {
-		return fmt.Errorf("consumer.handleRecord(topic=%s, offset=%d): proto.Unmarshal: %w",
+	if err := protojson.Unmarshal(record.Value, &track); err != nil {
+		return fmt.Errorf("consumer.handleRecord(topic=%s, offset=%d): protojson.Unmarshal: %w",
 			record.Topic, record.Offset, err)
 	}
 

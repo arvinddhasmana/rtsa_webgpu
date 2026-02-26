@@ -10,6 +10,7 @@ input:
       - sensors.ais.positions
       - sensors.cyber.iocs
     consumer_group: rpconnect-clickhouse-sensors
+    start_offset: latest
 
 pipeline:
   processors:
@@ -17,14 +18,14 @@ pipeline:
         root.observation_id = this.observation_id
         root.sensor_id = this.sensor_id
         root.sensor_type = this.sensor_type
-        root.latitude = this.position.latitude
-        root.longitude = this.position.longitude
-        root.altitude_meters = this.position.altitude_meters
-        root.speed_knots = this.position.speed_knots
-        root.heading_degrees = this.position.heading_degrees
+        root.latitude = this.position.latitude.number(0)
+        root.longitude = this.position.longitude.number(0)
+        root.altitude_meters = this.position.altitude_meters.number(0)
+        root.speed_knots = this.position.speed_knots.number(0)
+        root.heading_degrees = this.position.heading_degrees.number(0)
         root.classification_level = this.classification
         root.metadata_json = this.metadata.string()
-        root.event_time = this.observation_time
+        root.event_time = this.observation_time.ts_parse("2006-01-02T15:04:05.999999999Z07:00").ts_format("2006-01-02 15:04:05.000")
 
 output:
   sql_insert:

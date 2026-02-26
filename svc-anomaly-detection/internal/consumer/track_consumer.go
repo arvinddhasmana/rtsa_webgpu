@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // TrackHandler is a function that processes a decoded FusedTrack.
@@ -64,13 +64,13 @@ func (tc *TrackConsumer) Close() error {
 	return tc.consumer.Close()
 }
 
-// decodeTrack deserialises a protobuf-encoded FusedTrack from raw bytes.
+// decodeTrack deserialises a protojson-encoded FusedTrack from raw bytes.
 func (tc *TrackConsumer) decodeTrack(data []byte) (*entityv1.FusedTrack, error) {
 	if len(data) == 0 {
 		return nil, fmt.Errorf("[consumer.TrackConsumer.decodeTrack]: empty message payload")
 	}
 	track := &entityv1.FusedTrack{}
-	if err := proto.Unmarshal(data, track); err != nil {
+	if err := protojson.Unmarshal(data, track); err != nil {
 		return nil, fmt.Errorf("[consumer.TrackConsumer.decodeTrack]: %w", err)
 	}
 	if track.GetTrackId() == "" {

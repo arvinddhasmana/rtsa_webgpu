@@ -2,14 +2,14 @@
 package producer
 
 import (
-"context"
-"fmt"
+	"context"
+	"fmt"
 
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
-"go.opentelemetry.io/otel/trace"
-"google.golang.org/protobuf/proto"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // ObservationProducer produces SensorObservation messages to Redpanda.
@@ -28,7 +28,7 @@ topic:    topic,
 
 // Produce serializes and sends a SensorObservation.
 func (p *ObservationProducer) Produce(ctx context.Context, obs *ingestionv1.SensorObservation) error {
-b, err := proto.Marshal(obs)
+	b, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(obs)
 if err != nil {
 return fmt.Errorf("producer: marshal observation: %w", err)
 }

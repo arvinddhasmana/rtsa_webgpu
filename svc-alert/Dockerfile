@@ -27,7 +27,7 @@ COPY svc-alert/ ./svc-alert/
 WORKDIR /workspace/svc-alert
 ENV GOWORK=off
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -trimpath -ldflags="-s -w" \
+    go build -trimpath -ldflags="-s -w" -tags integration \
     -o /out/svc-alert ./cmd/alert/
 
 # ─── Runtime stage ────────────────────────────────────────────────────────────

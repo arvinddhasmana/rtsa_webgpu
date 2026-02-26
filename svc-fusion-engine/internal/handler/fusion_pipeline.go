@@ -11,10 +11,10 @@ import (
 	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-fusion-engine/internal/domain"
-	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // TrackProducer abstracts producing FusedTrack messages (enables test mocking).
@@ -134,7 +134,7 @@ func NewFusionPipeline(
 // HandleObservation processes a single Kafka record through the fusion pipeline.
 func (fp *FusionPipeline) HandleObservation(ctx context.Context, record *kgo.Record) error {
 	var obs ingestionv1.SensorObservation
-	if err := proto.Unmarshal(record.Value, &obs); err != nil {
+	if err := protojson.Unmarshal(record.Value, &obs); err != nil {
 		return fmt.Errorf("fusion_pipeline: unmarshal: %w", err)
 	}
 

@@ -9,6 +9,7 @@ input:
       - tracks.fused.land
       - tracks.fused.cyber
     consumer_group: rpconnect-clickhouse-tracks
+    start_offset: latest
 
 pipeline:
   processors:
@@ -16,17 +17,17 @@ pipeline:
         root.track_id = this.track_id
         root.entity_type = this.entity_type
         root.hostile_classification = this.hostile_class
-        root.latitude = this.estimated_position.latitude
-        root.longitude = this.estimated_position.longitude
-        root.altitude_meters = this.estimated_position.altitude_meters
-        root.speed_knots = this.estimated_position.speed_knots
-        root.heading_degrees = this.estimated_position.heading_degrees
-        root.confidence_score = this.confidence_score
-        root.source_count = this.source_count
+        root.latitude = this.estimated_position.latitude.number(0)
+        root.longitude = this.estimated_position.longitude.number(0)
+        root.altitude_meters = this.estimated_position.altitude_meters.number(0)
+        root.speed_knots = this.estimated_position.speed_knots.number(0)
+        root.heading_degrees = this.estimated_position.heading_degrees.number(0)
+        root.confidence_score = this.confidence_score.number(0)
+        root.source_count = this.source_count.number(0)
         root.source_sensors = this.sources.map_each(s -> s.sensor_id)
         root.classification_level = this.classification
         root.track_status = this.status
-        root.event_time = this.updated_at
+        root.event_time = this.updated_at.ts_parse("2006-01-02T15:04:05.999999999Z07:00").ts_format("2006-01-02 15:04:05.000")
 
 output:
   sql_insert:

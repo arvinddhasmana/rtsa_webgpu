@@ -7,6 +7,7 @@ input:
       - alerts.anomaly.elevated
       - alerts.anomaly.watch
     consumer_group: rpconnect-clickhouse-alerts
+    start_offset: latest
 
 pipeline:
   processors:
@@ -15,11 +16,11 @@ pipeline:
         root.track_id = this.track_id
         root.anomaly_type = this.anomaly_type
         root.severity = this.severity
-        root.confidence_score = this.confidence_score
+        root.confidence_score = this.confidence_score.number(0)
         root.explanation = this.explanation
         root.model_version = this.model_version
         root.classification_level = this.classification
-        root.event_time = this.detected_at
+        root.event_time = this.detected_at.ts_parse("2006-01-02T15:04:05.999999999Z07:00").ts_format("2006-01-02 15:04:05.000")
 
 output:
   sql_insert:

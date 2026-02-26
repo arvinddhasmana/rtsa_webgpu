@@ -1,18 +1,19 @@
 # CLASSIFICATION: UNCLASSIFIED
 # Multi-stage Dockerfile for the RTSA test data simulator.
 # Stage 1: Build the simulator binary.
-FROM golang:1.22-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /workspace
 
-# Copy go workspace files for dependency resolution.
-COPY go.work go.work
+# Copy only the modules required by the simulator (go.mod replace directives).
+# GOWORK=off prevents Go from trying to resolve the full workspace graph
+# which would require all sibling modules to be present in the build context.
 COPY gen/go/ gen/go/
 COPY tools/simulator/ tools/simulator/
 
 WORKDIR /workspace/tools/simulator
 
-RUN go build -o /simulator ./cmd/simulator/
+RUN GOWORK=off go build -o /simulator ./cmd/simulator/
 
 # Stage 2: Minimal runtime image.
 FROM alpine:3.19

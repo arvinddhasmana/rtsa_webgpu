@@ -7,7 +7,7 @@ import (
 	"log/slog"
 
 	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // MessageProducer abstracts alert publication for testability.
@@ -42,7 +42,7 @@ func (ap *AlertProducer) Produce(ctx context.Context, topic string, alert *infer
 		return fmt.Errorf("[producer.AlertProducer.Produce]: alert_id is empty")
 	}
 
-	data, err := proto.Marshal(alert)
+	data, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(alert)
 	if err != nil {
 		return fmt.Errorf("[producer.AlertProducer.Produce](%s): marshal: %w", alert.GetAlertId(), err)
 	}

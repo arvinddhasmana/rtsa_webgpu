@@ -22,6 +22,6 @@ bash scripts/dev/init-clickhouse.sh
 echo "=== Starting simulator with maritime-demo scenario ==="
 docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml \
   run --rm simulator \
-  /app/simulator --scenario /scenarios/maritime-demo.yaml
+  --scenario /app/scenarios/maritime-demo.yaml
 
 echo "=== Maritime demo complete ==="

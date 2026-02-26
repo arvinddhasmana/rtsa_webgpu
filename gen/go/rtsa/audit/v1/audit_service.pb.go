@@ -287,7 +287,7 @@ var File_rtsa_audit_v1_audit_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_audit_v1_audit_service_proto_rawDesc = "" +
 	"\n" +
-	"!rtsa/audit/v1/audit_service.proto\x12\rrtsa.audit.v1\x1a\x1artsa/common/v1/types.proto\x1a\x1frtsa/audit/v1/audit_event.proto\"\x7f\n" +
+	"!rtsa/audit/v1/audit_service.proto\x12\rrtsa.audit.v1\x1a\x1frtsa/audit/v1/audit_event.proto\x1a\x1artsa/common/v1/types.proto\"\x7f\n" +
 	"\x14GetAuditEntryRequest\x12\x19\n" +
 	"\baudit_id\x18\x01 \x01(\tR\aauditId\x12L\n" +
 	"\x0fclearance_level\x18\x02 \x01(\x0e2#.rtsa.common.v1.ClassificationLevelR\x0eclearanceLevel\"H\n" +
