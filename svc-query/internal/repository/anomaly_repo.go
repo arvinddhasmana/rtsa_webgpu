@@ -46,9 +46,9 @@ req.GetTimeRange().GetStartTime().AsTime(),
 req.GetTimeRange().GetEndTime().AsTime(),
 }
 
-// Classification filter (always applied)
-query, classParam := r.filter.InjectFilter(baseQuery, clearance)
-params = append(params, classParam)
+// Classification filter (always applied — matches LowCardinality(String) column)
+query, classParams := r.filter.InjectFilter(baseQuery, clearance)
+params = append(params, classParams...)
 
 // Optional track ID filter
 if req.TrackId != nil {
@@ -83,12 +83,12 @@ for rows.Next() {
 var (
 alertID     string
 trackID     string
-anomalyType int32
-severity    int32
+anomalyType string // LowCardinality(String) in ClickHouse
+severity    string // LowCardinality(String) in ClickHouse
 confidence  float64
 explanation string
 modelVer    string
-classLevel  int32
+classLevel  string // LowCardinality(String) in ClickHouse
 eventTime   time.Time
 )
 if err := rows.Scan(
@@ -101,12 +101,12 @@ return nil, nil, fmt.Errorf("anomaly_repo: scan: %w", err)
 alert := &inferencev1.AnomalyAlert{
 AlertId:         alertID,
 TrackId:         trackID,
-AnomalyType:     commonv1.AnomalyType(anomalyType),
-Severity:        commonv1.AlertSeverity(severity),
+AnomalyType:     commonv1.AnomalyType(commonv1.AnomalyType_value[anomalyType]),
+Severity:        commonv1.AlertSeverity(commonv1.AlertSeverity_value[severity]),
 ConfidenceScore: confidence,
 Explanation:     explanation,
 ModelVersion:    modelVer,
-Classification:  commonv1.ClassificationLevel(classLevel),
+Classification:  commonv1.ClassificationLevel(commonv1.ClassificationLevel_value[classLevel]),
 DetectedAt:      timestamppb.New(eventTime),
 }
 alerts = append(alerts, alert)

@@ -10,6 +10,7 @@ interface TrackState {
   lastUpdateTime: Date | null;
 
   upsertTrack: (track: FusedTrack) => void;
+  batchUpsertTracks: (tracks: FusedTrack[]) => void;
   removeTrack: (trackId: string) => void;
   selectTrack: (trackId: string | null) => void;
   clearAll: () => void;
@@ -29,6 +30,17 @@ export const useTrackStore = create<TrackState>((set, get) => ({
     set((state) => {
       const newTracks = new Map(state.tracks);
       newTracks.set(track.trackId, track);
+      return { tracks: newTracks, lastUpdateTime: new Date() };
+    }),
+
+  // Batch variant: applies all updates in a single Map copy → one Zustand
+  // notification instead of one per track. Use for stream bursts.
+  batchUpsertTracks: (incoming) =>
+    set((state) => {
+      const newTracks = new Map(state.tracks);
+      for (const track of incoming) {
+        newTracks.set(track.trackId, track);
+      }
       return { tracks: newTracks, lastUpdateTime: new Date() };
     }),
 

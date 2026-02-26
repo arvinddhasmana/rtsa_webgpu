@@ -3,6 +3,7 @@ package security_test
 
 import (
 "context"
+"strings"
 "testing"
 
 commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
@@ -39,11 +40,15 @@ t.Errorf("expected UNCLASSIFIED for unknown, got %v", level)
 func TestInjectFilter(t *testing.T) {
 f := &security.ClassificationFilter{}
 query := "SELECT * FROM tracks_fused WHERE entity_type = ?"
-modified, param := f.InjectFilter(query, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
+modified, params := f.InjectFilter(query, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
 if modified == query {
 t.Error("expected query to be modified with classification filter")
 }
-if param == nil {
-t.Error("expected non-nil parameter")
+if len(params) == 0 {
+t.Error("expected non-empty params for classification filter")
+}
+// Verify IN clause is used (not <=) to match LowCardinality(String) column type.
+if !strings.Contains(modified, "IN") {
+t.Error("expected IN clause in classification filter, got: " + modified)
 }
 }

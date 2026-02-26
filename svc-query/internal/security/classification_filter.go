@@ -4,6 +4,7 @@ package security
 import (
 "context"
 "fmt"
+"strings"
 
 commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 "google.golang.org/grpc/metadata"
@@ -15,14 +16,44 @@ const metadataKeyClassification = "x-rtsa-clearance"
 // NEVER trust client-supplied classification level.
 type ClassificationFilter struct{}
 
-// InjectFilter appends a classification WHERE clause to the query.
-// Returns the modified query and the classification ordinal parameter.
+// InjectFilter appends a classification WHERE clause to the query using an
+// IN (...) list of string values that matches the LowCardinality(String) column
+// type used in all RTSA ClickHouse tables.
+// Returns the modified query and a slice of allowed classification level string params.
 func (f *ClassificationFilter) InjectFilter(
 query string,
 callerClearance commonv1.ClassificationLevel,
-) (string, interface{}) {
-ordinal := classificationOrdinal(callerClearance)
-return fmt.Sprintf("%s AND classification_level <= ?", query), ordinal
+) (string, []interface{}) {
+allowed := allowedClassificationStrings(callerClearance)
+placeholders := make([]string, len(allowed))
+for i := range allowed {
+placeholders[i] = "?"
+}
+params := make([]interface{}, len(allowed))
+for i, v := range allowed {
+params[i] = v
+}
+clause := fmt.Sprintf("AND classification_level IN (%s)", strings.Join(placeholders, ","))
+return fmt.Sprintf("%s %s", query, clause), params
+}
+
+// allowedClassificationStrings returns the ordered list of ClickHouse string
+// values for every classification level the caller is permitted to see.
+// All levels with ordinal ≤ callerClearance are included.
+func allowedClassificationStrings(level commonv1.ClassificationLevel) []string {
+// Ordered least-sensitive → most-sensitive, matching classificationOrdinal.
+all := []string{
+"CLASSIFICATION_LEVEL_UNCLASSIFIED",
+"CLASSIFICATION_LEVEL_PROTECTED_A",
+"CLASSIFICATION_LEVEL_PROTECTED_B",
+"CLASSIFICATION_LEVEL_PROTECTED_C",
+"CLASSIFICATION_LEVEL_SECRET",
+}
+ord := int(classificationOrdinal(level)) // 1=UNCLASSIFIED … 5=SECRET
+if ord > len(all) {
+ord = len(all)
+}
+return all[:ord]
 }
 
 // ExtractClearance retrieves the caller's classification clearance from gRPC

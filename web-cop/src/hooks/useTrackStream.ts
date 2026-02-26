@@ -80,7 +80,7 @@ interface StreamState {
 }
 
 export function useTrackStream(): StreamState {
-  const upsertTrack = useTrackStore((s) => s.upsertTrack);
+  const batchUpsertTracks = useTrackStore((s) => s.batchUpsertTracks);
   const removeTrack = useTrackStore((s) => s.removeTrack);
 
   const [state, setState] = useState<StreamState>({
@@ -96,6 +96,27 @@ export function useTrackStream(): StreamState {
   // Connection management
   const abortControllerRef = useRef<AbortController | null>(null);
   const retryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Batching refs — collect updates during a frame, flush once per RAF tick
+  const pendingUpsertsRef = useRef<FusedTrack[]>([]);
+  const pendingRemovesRef = useRef<string[]>([]);
+  const rafRef = useRef<number | null>(null);
+
+  // Keep stable refs to the latest store actions so the RAF flush callback
+  // never captures stale closures.
+  const batchUpsertRef = useRef(batchUpsertTracks);
+  const removeTrackRef = useRef(removeTrack);
+  useEffect(() => { batchUpsertRef.current = batchUpsertTracks; }, [batchUpsertTracks]);
+  useEffect(() => { removeTrackRef.current = removeTrack; }, [removeTrack]);
+
+  // Flush accumulated updates: one Map clone for all upserts, one call per remove.
+  const flushPending = useCallback(() => {
+    rafRef.current = null;
+    const upserts = pendingUpsertsRef.current.splice(0);
+    const removes = pendingRemovesRef.current.splice(0);
+    if (upserts.length > 0) batchUpsertRef.current(upserts);
+    for (const id of removes) removeTrackRef.current(id);
+  }, []);
 
   const connect = useCallback(() => {
     if (!isMountedRef.current) return;
@@ -137,9 +158,14 @@ export function useTrackStream(): StreamState {
             update.updateType === TrackUpdate_UpdateType.DROPPED &&
             update.track
           ) {
-            removeTrack(update.track.trackId);
+            pendingRemovesRef.current.push(update.track.trackId);
           } else if (update.track) {
-            upsertTrack(protoTrackToLocal(update.track));
+            pendingUpsertsRef.current.push(protoTrackToLocal(update.track));
+          }
+          // Schedule a single flush for this animation frame; multiple
+          // messages arriving in the same frame are coalesced.
+          if (rafRef.current === null) {
+            rafRef.current = requestAnimationFrame(flushPending);
           }
         }
       } catch (err: any) {
@@ -164,7 +190,7 @@ export function useTrackStream(): StreamState {
         retryTimeoutRef.current = setTimeout(connect, delay);
       }
     })();
-  }, [upsertTrack, removeTrack]);
+  }, [flushPending]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -172,6 +198,10 @@ export function useTrackStream(): StreamState {
 
     return () => {
       isMountedRef.current = false;
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }

@@ -47,9 +47,9 @@ req.GetTimeRange().GetStartTime().AsTime(),
 req.GetTimeRange().GetEndTime().AsTime(),
 }
 
-// Classification filter (always applied)
-query, classParam := r.filter.InjectFilter(baseQuery, clearance)
-params = append(params, classParam)
+// Classification filter (always applied — matches LowCardinality(String) column)
+query, classParams := r.filter.InjectFilter(baseQuery, clearance)
+params = append(params, classParams...)
 
 // Optional track ID filter
 if req.TrackId != nil {
@@ -83,14 +83,14 @@ var lastTS time.Time
 for rows.Next() {
 var (
 trackID      string
-entityType   int32
-hostileClass int32
+entityType   string // LowCardinality(String) in ClickHouse
+hostileClass string // LowCardinality(String) in ClickHouse
 lat, lon     float64
 altM         float64
 speedKn      float64
 headingDeg   float64
 confidence   float64
-classLevel   int32
+classLevel   string // LowCardinality(String) in ClickHouse
 eventTime    time.Time
 )
 if err := rows.Scan(
@@ -103,8 +103,8 @@ return nil, nil, fmt.Errorf("tracks_repo: scan: %w", err)
 
 track := &entityv1.FusedTrack{
 TrackId:      trackID,
-EntityType:   commonv1.EntityType(entityType),
-HostileClass: commonv1.HostileClassification(hostileClass),
+EntityType:   commonv1.EntityType(commonv1.EntityType_value[entityType]),
+HostileClass: commonv1.HostileClassification(commonv1.HostileClassification_value[hostileClass]),
 EstimatedPosition: &commonv1.Position{
 Latitude:       lat,
 Longitude:      lon,
@@ -113,7 +113,7 @@ SpeedKnots:     &speedKn,
 HeadingDegrees: &headingDeg,
 },
 ConfidenceScore: confidence,
-Classification:  commonv1.ClassificationLevel(classLevel),
+Classification:  commonv1.ClassificationLevel(commonv1.ClassificationLevel_value[classLevel]),
 UpdatedAt:       timestamppb.New(eventTime),
 }
 tracks = append(tracks, track)

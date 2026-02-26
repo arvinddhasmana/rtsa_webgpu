@@ -45,9 +45,9 @@ req.GetTimeRange().GetStartTime().AsTime(),
 req.GetTimeRange().GetEndTime().AsTime(),
 }
 
-// Classification filter (always applied)
-query, classParam := r.filter.InjectFilter(baseQuery, clearance)
-params = append(params, classParam)
+// Classification filter (always applied — matches LowCardinality(String) column)
+query, classParams := r.filter.InjectFilter(baseQuery, clearance)
+params = append(params, classParams...)
 
 // Optional filters
 if req.ServiceId != nil {
@@ -95,7 +95,7 @@ resourceType string
 resourceID   string
 action       string
 detailJSON   string
-classLevel   int32
+classLevel   string // LowCardinality(String) in ClickHouse
 eventTime    time.Time
 )
 if err := rows.Scan(
@@ -116,7 +116,7 @@ ResourceType:        resourceType,
 ResourceId:          resourceID,
 Action:              action,
 DetailJson:          detailJSON,
-ClassificationLevel: commonv1.ClassificationLevel(classLevel),
+ClassificationLevel: commonv1.ClassificationLevel(commonv1.ClassificationLevel_value[classLevel]),
 EventTime:           eventTime.UTC().Format(time.RFC3339),
 }
 entries = append(entries, entry)

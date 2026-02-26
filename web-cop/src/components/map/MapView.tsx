@@ -8,20 +8,48 @@ import { useUIStore } from "../../stores/uiStore";
 
 /**
  * MapView — main map display using MapLibre GL JS.
+ *
+ * Performance design:
+ *   - Does NOT subscribe to `tracks` via React state to avoid re-renders on every stream message.
+ *   - Instead uses useTrackStore.subscribe() inside the map-init useEffect and throttles
+ *     calls to updateMapData() with requestAnimationFrame (≤ 60fps, typically 30fps).
+ *   - maplibre-gl is dynamically imported once and cached in maplibreglRef.
+ *   - Only `trackCount` (tracks.size) triggers a React re-render, purely for the
+ *     "No tracks" overlay (re-renders only when count crosses zero ↔ non-zero).
  */
 export const MapView: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<Map<string, any>>(new Map());
+  // Cache the maplibre-gl module after the first import — avoids repeated dynamic imports.
+  const maplibreglRef = useRef<any>(null);
 
   const mapCenter = useUIStore((s) => s.mapCenter);
   const mapZoom = useUIStore((s) => s.mapZoom);
-  const tracks = useTrackStore((s) => s.tracks);
+  // Lightweight selector: only triggers re-render when count crosses 0 ↔ non-zero.
+  const trackCount = useTrackStore((s) => s.tracks.size);
   const selectTrack = useTrackStore((s) => s.selectTrack);
   const toggleDetailPanel = useUIStore((s) => s.toggleDetailPanel);
 
   useEffect(() => {
     let isMounted = true;
+    // unsubscribeStore and rafId are captured in the closure so the cleanup
+    // function can cancel them even if assigned asynchronously inside map.on("load").
+    let unsubscribeStore: (() => void) | null = null;
+    let rafId: number | null = null;
+    let updateScheduled = false;
+
+    // Called by the Zustand subscriber; rate-limited to one update per animation frame.
+    const scheduleMapUpdate = () => {
+      if (!updateScheduled && mapRef.current && maplibreglRef.current) {
+        updateScheduled = true;
+        rafId = requestAnimationFrame(() => {
+          updateScheduled = false;
+          rafId = null;
+          updateMapData();
+        });
+      }
+    };
 
     const initMap = async () => {
       if (!mapContainerRef.current || mapRef.current) return;
@@ -163,8 +191,16 @@ export const MapView: React.FC = () => {
 
           mapRef.current = map;
 
+          // Cache maplibregl module — updateMapData uses this ref instead of
+          // re-importing on every track update.
+          maplibreglRef.current = maplibregl;
+
           // Expose map instance for E2E testing and devtools inspection
           (window as unknown as Record<string, unknown>)["__RTSA_MAP__"] = map;
+
+          // Subscribe to track store — schedule a RAF-throttled map redraw
+          // on any store change. Coalesces rapid burst updates into one draw.
+          unsubscribeStore = useTrackStore.subscribe(scheduleMapUpdate);
 
           updateMapData();
         });
@@ -177,6 +213,13 @@ export const MapView: React.FC = () => {
 
     return () => {
       isMounted = false;
+      // Cancel any pending RAF before unsubscribing to avoid a ghost update.
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+        rafId = null;
+      }
+      unsubscribeStore?.();
+      maplibreglRef.current = null;
       if (mapRef.current) {
         (window as unknown as Record<string, unknown>)["__RTSA_MAP__"] =
           undefined;
@@ -187,13 +230,13 @@ export const MapView: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const updateMapData = async () => {
-    if (!mapRef.current) return;
+  // Synchronous: uses pre-cached maplibreglRef — no dynamic import overhead per call.
+  const updateMapData = () => {
+    if (!mapRef.current || !maplibreglRef.current) return;
     const map = mapRef.current;
-    const maplibregl = await import("maplibre-gl");
+    const maplibregl = maplibreglRef.current;
 
-    // Always read freshest state from store — avoids React closure staleness
-    // when called from map.on("load") or from the [tracks] effect.
+    // Always read freshest state from store — avoids React closure staleness.
     const currentTracks = useTrackStore.getState().tracks;
 
     // Update markers
@@ -278,10 +321,6 @@ export const MapView: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    void updateMapData();
-  }, [tracks]);
-
   return (
     <div
       data-testid="map-container"
@@ -293,7 +332,7 @@ export const MapView: React.FC = () => {
         position: "relative",
       }}
     >
-      {tracks.size === 0 && (
+      {trackCount === 0 && (
         <div
           style={{
             position: "absolute",
