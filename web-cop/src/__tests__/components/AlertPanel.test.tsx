@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/AlertPanel.test.tsx
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { AlertPanel } from "../../components/alerts/AlertPanel";
 import { useAlertStore } from "../../stores/alertStore";
 import { AnomalyAlert } from "../../types/alert";
@@ -52,8 +52,12 @@ describe("AlertPanel", () => {
   });
 
   it("renders alert cards for each filtered alert", () => {
-    useAlertStore.getState().addAlert(makeAlert({ alertId: "A1", severity: "WATCH" }));
-    useAlertStore.getState().addAlert(makeAlert({ alertId: "A2", severity: "CRITICAL" }));
+    useAlertStore
+      .getState()
+      .addAlert(makeAlert({ alertId: "A1", severity: "WATCH" }));
+    useAlertStore
+      .getState()
+      .addAlert(makeAlert({ alertId: "A2", severity: "CRITICAL" }));
     render(<AlertPanel />);
     expect(screen.getByTestId("alert-card-A1")).toBeTruthy();
     expect(screen.getByTestId("alert-card-A2")).toBeTruthy();
@@ -62,6 +66,28 @@ describe("AlertPanel", () => {
   it("renders AlertFilter component", () => {
     render(<AlertPanel />);
     expect(screen.getByTestId("alert-filter")).toBeTruthy();
+  });
+
+  it("renders at most 120 alerts to keep UI responsive", () => {
+    for (let i = 0; i < 130; i += 1) {
+      useAlertStore.getState().addAlert(
+        makeAlert({
+          alertId: `A-${i}`,
+          trackId: `TRK-${i}`,
+          severity: i % 2 === 0 ? "CRITICAL" : "WATCH",
+          detectedAt: new Date(
+            `2026-01-01T12:${String(i % 60).padStart(2, "0")}:00Z`,
+          ),
+        }),
+      );
+    }
+
+    render(<AlertPanel />);
+
+    const renderedCards = document.querySelectorAll(
+      '[data-testid^="alert-card-"]',
+    );
+    expect(renderedCards.length).toBe(120);
   });
 });
 

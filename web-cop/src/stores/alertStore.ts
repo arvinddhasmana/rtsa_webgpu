@@ -4,7 +4,7 @@
 import { create } from "zustand";
 import { AnomalyAlert } from "../types/alert";
 
-function severityRank(s: string): number {
+export function severityRank(s: string): number {
   switch (s) {
     case "CRITICAL":
       return 3;
@@ -61,8 +61,7 @@ export const useAlertStore = create<AlertState>((set, get) => ({
 
   getCriticalCount: () =>
     Array.from(get().alerts.values()).filter(
-      (a) =>
-        a.severity === "CRITICAL" && !get().acknowledgedIds.has(a.alertId)
+      (a) => a.severity === "CRITICAL" && !get().acknowledgedIds.has(a.alertId),
     ).length,
 
   getFilteredAlerts: () => {

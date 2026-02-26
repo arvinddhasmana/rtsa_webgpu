@@ -4,7 +4,10 @@
 import { toJson } from "@bufbuild/protobuf";
 import { Code, ConnectError, createClient } from "@connectrpc/connect";
 import { FusedTrackSchema } from "@gen/rtsa/entity/v1/fused_track_pb";
-import { TrackService, TrackUpdate_UpdateType } from "@gen/rtsa/entity/v1/track_service_pb";
+import {
+  TrackService,
+  TrackUpdate_UpdateType,
+} from "@gen/rtsa/entity/v1/track_service_pb";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { transport } from "../api/grpc-client";
 import { useTrackStore } from "../stores/trackStore";
@@ -104,6 +107,7 @@ export function useTrackStream(): StreamState {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
   const mountedRef = useRef(true);
+  const connectedRef = useRef(false);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -116,8 +120,11 @@ export function useTrackStream(): StreamState {
         for await (const update of trackClient.streamTracks({}, { signal })) {
           if (!mountedRef.current) return;
 
-          setState((s) => ({ ...s, isConnected: true, error: null }));
-          attemptsRef.current = 0;
+          if (!connectedRef.current) {
+            connectedRef.current = true;
+            attemptsRef.current = 0;
+            setState({ isConnected: true, error: null, reconnectAttempts: 0 });
+          }
 
           const { updateType, track } = update;
           if (!track) continue;
@@ -136,6 +143,8 @@ export function useTrackStream(): StreamState {
       } catch (err) {
         if (!mountedRef.current) return;
         if (err instanceof ConnectError && err.code === Code.Canceled) return;
+
+        connectedRef.current = false;
 
         setState((s) => ({
           isConnected: false,
@@ -159,6 +168,7 @@ export function useTrackStream(): StreamState {
 
     return () => {
       mountedRef.current = false;
+      connectedRef.current = false;
       abortRef.current?.abort();
       if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
     };

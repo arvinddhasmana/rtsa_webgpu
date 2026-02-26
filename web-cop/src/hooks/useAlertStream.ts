@@ -86,6 +86,7 @@ export function useAlertStream(): StreamState {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
   const mountedRef = useRef(true);
+  const connectedRef = useRef(false);
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
@@ -98,8 +99,11 @@ export function useAlertStream(): StreamState {
         for await (const alert of alertClient.streamAlerts({}, { signal })) {
           if (!mountedRef.current) return;
 
-          setState((s) => ({ ...s, isConnected: true, error: null }));
-          attemptsRef.current = 0;
+          if (!connectedRef.current) {
+            connectedRef.current = true;
+            attemptsRef.current = 0;
+            setState({ isConnected: true, error: null, reconnectAttempts: 0 });
+          }
 
           addAlert(protoAlertToLocal(alert));
         }
@@ -107,6 +111,8 @@ export function useAlertStream(): StreamState {
       } catch (err) {
         if (!mountedRef.current) return;
         if (err instanceof ConnectError && err.code === Code.Canceled) return;
+
+        connectedRef.current = false;
 
         setState((s) => ({
           isConnected: false,
@@ -130,6 +136,7 @@ export function useAlertStream(): StreamState {
 
     return () => {
       mountedRef.current = false;
+      connectedRef.current = false;
       abortRef.current?.abort();
       if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
     };

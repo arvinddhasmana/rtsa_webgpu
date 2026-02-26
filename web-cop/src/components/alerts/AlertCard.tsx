@@ -2,11 +2,11 @@
 // src/components/alerts/AlertCard.tsx
 
 import React from "react";
-import { AnomalyAlert } from "../../types/alert";
-import { formatZuluTime } from "../../utils/time";
 import { useAlertStore } from "../../stores/alertStore";
 import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
+import { AnomalyAlert } from "../../types/alert";
+import { formatZuluTime } from "../../utils/time";
 
 interface AlertCardProps {
   alert: AnomalyAlert;
@@ -25,7 +25,7 @@ const SEVERITY_COLORS: Record<string, string> = {
  * CRITICAL alerts pulse with red border animation.
  * Click to acknowledge, click track ID to open DetailPanel.
  */
-export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
+export const AlertCard: React.FC<AlertCardProps> = React.memo(({ alert }) => {
   const acknowledgeAlert = useAlertStore((s) => s.acknowledgeAlert);
   const acknowledgedIds = useAlertStore((s) => s.acknowledgedIds);
   const selectTrack = useTrackStore((s) => s.selectTrack);
@@ -56,12 +56,19 @@ export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
         border: `1px solid ${color}`,
         borderRadius: "4px",
         opacity: isAcknowledged ? 0.5 : 1,
-        animation: isCritical && !isAcknowledged ? "pulse 1.5s infinite" : undefined,
+        animation:
+          isCritical && !isAcknowledged ? "pulse 1.5s infinite" : undefined,
         cursor: "pointer",
       }}
       onClick={handleAcknowledge}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <span
           style={{
             fontSize: "0.7rem",
@@ -79,7 +86,13 @@ export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
       <div style={{ fontSize: "0.75rem", marginTop: "4px", color: "#E2E8F0" }}>
         {alert.anomalyType.replace("_", " ")}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginTop: "4px",
+        }}
+      >
         <button
           data-testid={`track-link-${alert.trackId}`}
           onClick={handleTrackClick}
@@ -100,10 +113,12 @@ export const AlertCard: React.FC<AlertCardProps> = ({ alert }) => {
         </span>
       </div>
       {!isAcknowledged && (
-        <div style={{ fontSize: "0.65rem", color: "#6B7280", marginTop: "4px" }}>
+        <div
+          style={{ fontSize: "0.65rem", color: "#6B7280", marginTop: "4px" }}
+        >
           Click to acknowledge
         </div>
       )}
     </div>
   );
-};
+});

@@ -2,9 +2,11 @@
 // src/components/alerts/AlertPanel.tsx
 
 import React from "react";
-import { useAlertStore } from "../../stores/alertStore";
-import { AlertFilter } from "./AlertFilter";
+import { severityRank, useAlertStore } from "../../stores/alertStore";
 import { AlertCard } from "./AlertCard";
+import { AlertFilter } from "./AlertFilter";
+
+const MAX_RENDERED_ALERTS = 120;
 
 /**
  * AlertPanel — displays the prioritized alert queue in the right panel.
@@ -16,13 +18,40 @@ import { AlertCard } from "./AlertCard";
  *   - CRITICAL alerts pulse with red border animation
  */
 export const AlertPanel: React.FC = () => {
-  const getFilteredAlerts = useAlertStore((s) => s.getFilteredAlerts);
-  const getCriticalCount = useAlertStore((s) => s.getCriticalCount);
-  const getUnacknowledgedAlerts = useAlertStore((s) => s.getUnacknowledgedAlerts);
+  const alerts = useAlertStore((s) => s.alerts);
+  const acknowledgedIds = useAlertStore((s) => s.acknowledgedIds);
+  const minSeverityFilter = useAlertStore((s) => s.minSeverityFilter);
 
-  const filteredAlerts = getFilteredAlerts();
-  const criticalCount = getCriticalCount();
-  const unacknowledgedCount = getUnacknowledgedAlerts().length;
+  const { filteredAlerts, criticalCount, unacknowledgedCount } =
+    React.useMemo(() => {
+      const allAlerts = Array.from(alerts.values());
+      const minRank = severityRank(minSeverityFilter);
+
+      const unacknowledgedCountLocal = allAlerts.filter(
+        (alert) => !acknowledgedIds.has(alert.alertId),
+      ).length;
+
+      const criticalCountLocal = allAlerts.filter(
+        (alert) =>
+          alert.severity === "CRITICAL" && !acknowledgedIds.has(alert.alertId),
+      ).length;
+
+      const filtered = allAlerts
+        .filter((alert) => severityRank(alert.severity) >= minRank)
+        .sort((a, b) => {
+          const bySeverity =
+            severityRank(b.severity) - severityRank(a.severity);
+          if (bySeverity !== 0) return bySeverity;
+          return b.detectedAt.getTime() - a.detectedAt.getTime();
+        })
+        .slice(0, MAX_RENDERED_ALERTS);
+
+      return {
+        filteredAlerts: filtered,
+        criticalCount: criticalCountLocal,
+        unacknowledgedCount: unacknowledgedCountLocal,
+      };
+    }, [alerts, acknowledgedIds, minSeverityFilter]);
 
   return (
     <div
@@ -44,7 +73,13 @@ export const AlertPanel: React.FC = () => {
           gap: "8px",
         }}
       >
-        <span style={{ fontWeight: "bold", fontSize: "0.875rem", letterSpacing: "0.1em" }}>
+        <span
+          style={{
+            fontWeight: "bold",
+            fontSize: "0.875rem",
+            letterSpacing: "0.1em",
+          }}
+        >
           ALERTS
         </span>
         {unacknowledgedCount > 0 && (
