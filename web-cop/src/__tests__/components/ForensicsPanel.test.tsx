@@ -42,7 +42,7 @@ describe("ForensicsPanel", () => {
           longitude: -60,
           status: "ACTIVE",
           confidence: 0.9,
-          lastUpdateTime: new Date(),
+          updatedAt: new Date(),
           sourceSensors: ["RADAR-1"],
         },
       ],

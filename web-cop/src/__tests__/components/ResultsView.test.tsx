@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/ResultsView.test.tsx
 
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { ResultsView } from "../../components/forensics/ResultsView";
 import { AnomalyAlert } from "../../types/alert";
 
@@ -69,6 +69,7 @@ describe("ResultsView", () => {
         onTrackSelect={vi.fn()}
       />
     );
+    fireEvent.click(screen.getByTestId("results-tab-alerts"));
     expect(screen.getByTestId("result-row-A1")).toBeTruthy();
     expect(screen.getByTestId("result-row-A2")).toBeTruthy();
   });
@@ -84,6 +85,7 @@ describe("ResultsView", () => {
         onTrackSelect={onTrackSelect}
       />
     );
+    fireEvent.click(screen.getByTestId("results-tab-alerts"));
     fireEvent.click(screen.getByTestId("result-row-A1"));
     expect(onTrackSelect).toHaveBeenCalledWith("TRK-X");
   });
@@ -101,6 +103,7 @@ describe("ResultsView", () => {
         onTrackSelect={vi.fn()}
       />
     );
+    fireEvent.click(screen.getByTestId("results-tab-alerts"));
     fireEvent.click(screen.getByText(/SEVERITY/));
     // Just ensure no crash occurs after sorting
     expect(screen.getByTestId("results-view")).toBeTruthy();

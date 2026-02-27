@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import React, { useEffect, useRef } from "react";
 import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
+import { LayerControls } from "./LayerControls";
 
 /**
  * MapView — real-time track display using MapLibre GL JS.
@@ -28,6 +29,7 @@ export const MapView: React.FC = () => {
 
   const mapCenter = useUIStore((s) => s.mapCenter);
   const mapZoom = useUIStore((s) => s.mapZoom);
+  const layerVisibility = useUIStore((s) => s.layerVisibility);
   // Only re-renders when the count crosses zero — avoids per-track React cycles.
   const trackCount = useTrackStore((s) => s.tracks.size);
   const selectTrack = useTrackStore((s) => s.selectTrack);
@@ -71,6 +73,7 @@ export const MapView: React.FC = () => {
           hostileClass: t.hostileClass,
           entityType: t.entityType,
           confidence: t.confidenceScore,
+          classification: t.classification,
         },
       }));
 
@@ -132,6 +135,7 @@ export const MapView: React.FC = () => {
           style: tileUrl
             ? {
                 version: 8 as const,
+                glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
                 sources: {
                   tiles: {
                     type: "raster" as const,
@@ -143,8 +147,9 @@ export const MapView: React.FC = () => {
                   { id: "base", type: "raster" as const, source: "tiles" },
                 ],
               }
-            : {
+              : {
                 version: 8 as const,
+                glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
                 sources: {},
                 layers: [
                   {
@@ -279,6 +284,40 @@ export const MapView: React.FC = () => {
             },
           });
 
+          // Classification label (Badge) — evaluated on GPU
+          map.addLayer({
+            id: "tracks-label",
+            type: "symbol",
+            source: "tracks",
+            layout: {
+              "text-field": ["get", "classification"],
+              "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+              "text-size": 10,
+              "text-offset": [0, 1.2],
+              "text-anchor": "top",
+              "visibility": "visible",
+            },
+            paint: {
+              "text-color": [
+                "match",
+                ["get", "classification"],
+                "UNCLASSIFIED",
+                "#16A34A",
+                "PROTECTED_A",
+                "#2563EB",
+                "PROTECTED_B",
+                "#2563EB",
+                "PROTECTED_C",
+                "#2563EB",
+                "SECRET",
+                "#DC2626",
+                /* default */ "#F1F5F9",
+              ],
+              "text-halo-color": "#0F172A",
+              "text-halo-width": 1.5,
+            },
+          });
+
           // Click to select track and open detail panel
           map.on("click", "tracks-circle", (e: any) => {
             const feature = e.features?.[0];
@@ -366,6 +405,24 @@ export const MapView: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Layer Visibility Toggles ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current;
+
+    const setVis = (layerId: string, visible: boolean) => {
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+      }
+    };
+
+    setVis("geofences-fill", layerVisibility.geofences);
+    setVis("geofences-layer", layerVisibility.geofences);
+    setVis("tracks-label", layerVisibility.trackLabels);
+    // Note: trackTrails, sensorCoverage, mgrsGrid placeholders
+    // Set up their logic if those layers are added.
+  }, [layerVisibility]);
+
   return (
     <div
       data-testid="map-container"
@@ -393,6 +450,7 @@ export const MapView: React.FC = () => {
           No tracks — awaiting data stream
         </div>
       )}
+      <LayerControls />
     </div>
   );
 };

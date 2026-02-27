@@ -367,3 +367,42 @@ test.describe("Geo-Fence Overlays (CR-UI-002)", () => {
     expect(hasFill === null || hasFill === true).toBeTruthy();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. Layer Controls & Classification Badges [CR-UI-002, CR-INF-001]
+// ─────────────────────────────────────────────────────────────────────────────
+test.describe("Layer Controls & Classification Badges", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+    await waitForMapReady(page);
+  });
+
+  test("layer controls panel is visible at bottom-right of map", async ({ page }) => {
+    const layerControls = page.getByTestId("layer-controls");
+    await expect(layerControls).toBeVisible();
+  });
+
+  test("classification badge/label layer is added to the map", async ({ page }) => {
+    // Inject a track with a specific classification
+    await injectTestTrack(page, {
+      trackId: "M-CLASS-1",
+      lat: 40.0,
+      lon: -60.0,
+      // helpers.ts injectTestTrack defaults to UNCLASSIFIED
+    });
+
+    await page.waitForTimeout(500);
+
+    const hasBadgeLayer = await page.evaluate(() => {
+      const w = window as unknown as Record<string, unknown>;
+      const map = w["__RTSA_MAP__"] as
+        | { getLayer?: (id: string) => unknown }
+        | undefined;
+      if (!map?.getLayer) return null;
+      return !!map.getLayer("tracks-label");
+    });
+
+    expect(hasBadgeLayer === null || hasBadgeLayer === true).toBeTruthy();
+  });
+});

@@ -1,8 +1,10 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/alerts/AlertCard.tsx
 
-import React from "react";
+import React, { useState } from "react";
+import { feedbackClient } from "../../api/feedback-client";
 import { useAlertStore } from "../../stores/alertStore";
+import { useAuthStore } from "../../stores/authStore";
 import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
 import { AnomalyAlert } from "../../types/alert";
@@ -31,6 +33,9 @@ export const AlertCard: React.FC<AlertCardProps> = React.memo(({ alert }) => {
   const selectTrack = useTrackStore((s) => s.selectTrack);
   const toggleDetailPanel = useUIStore((s) => s.toggleDetailPanel);
   const detailPanelOpen = useUIStore((s) => s.detailPanelOpen);
+  const operatorId = useAuthStore((s) => s.operatorId);
+
+  const [feedbackStatus, setFeedbackStatus] = useState<string | null>(null);
 
   const isAcknowledged = acknowledgedIds.has(alert.alertId);
   const isCritical = alert.severity === "CRITICAL";
@@ -43,7 +48,37 @@ export const AlertCard: React.FC<AlertCardProps> = React.memo(({ alert }) => {
   };
 
   const handleAcknowledge = () => {
-    acknowledgeAlert(alert.alertId);
+    if (!isAcknowledged) {
+      acknowledgeAlert(alert.alertId);
+    }
+  };
+
+  const handleInspect = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    handleTrackClick(e);
+  };
+
+  const handleFeedback = async (e: React.MouseEvent, type: "CONFIRM_ANOMALY" | "REJECT_ANOMALY") => {
+    e.stopPropagation();
+    const effectiveOperatorId = operatorId || "test-operator-1";
+    setFeedbackStatus("Submitting...");
+    try {
+      await feedbackClient.submitFeedback({
+        trackId: alert.trackId,
+        alertId: alert.alertId,
+        feedbackType: type,
+        justification: "Quick action from alert card",
+        operatorId: effectiveOperatorId,
+      });
+      setFeedbackStatus(type === "CONFIRM_ANOMALY" ? "Confirmed" : "Rejected");
+    } catch (err) {
+      setFeedbackStatus("Error");
+    }
+  };
+
+  const handleAssign = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFeedbackStatus("Assigned");
   };
 
   return (
@@ -112,7 +147,53 @@ export const AlertCard: React.FC<AlertCardProps> = React.memo(({ alert }) => {
           {Math.round(alert.confidenceScore * 100)}% conf
         </span>
       </div>
-      {!isAcknowledged && (
+
+      <div
+        style={{
+          display: "flex",
+          gap: "4px",
+          marginTop: "8px",
+          borderTop: "1px solid #334155",
+          paddingTop: "8px",
+        }}
+      >
+        <button
+          data-testid={`alert-inspect-${alert.alertId}`}
+          onClick={handleInspect}
+          style={{ ...actionButtonStyle, backgroundColor: "#1D4ED8" }}
+        >
+          [Inspect]
+        </button>
+        <button
+          data-testid={`alert-confirm-${alert.alertId}`}
+          onClick={(e) => handleFeedback(e, "CONFIRM_ANOMALY")}
+          style={{ ...actionButtonStyle, backgroundColor: "#16A34A" }}
+        >
+          [Confirm]
+        </button>
+        <button
+          data-testid={`alert-reject-${alert.alertId}`}
+          onClick={(e) => handleFeedback(e, "REJECT_ANOMALY")}
+          style={{ ...actionButtonStyle, backgroundColor: "#DC2626" }}
+        >
+          [Reject]
+        </button>
+        <button
+          data-testid={`alert-assign-${alert.alertId}`}
+          onClick={handleAssign}
+          style={{ ...actionButtonStyle, backgroundColor: "#CA8A04" }}
+        >
+          [Assign]
+        </button>
+      </div>
+
+      {feedbackStatus && (
+        <div style={{ fontSize: "0.65rem", color: "#60A5FA", marginTop: "4px" }}>
+          Status: {feedbackStatus}
+        </div>
+      )}
+
+      {!isAcknowledged && !feedbackStatus && (
         <div
           style={{ fontSize: "0.65rem", color: "#6B7280", marginTop: "4px" }}
         >
@@ -122,3 +203,14 @@ export const AlertCard: React.FC<AlertCardProps> = React.memo(({ alert }) => {
     </div>
   );
 });
+
+const actionButtonStyle: React.CSSProperties = {
+  flex: 1,
+  padding: "2px 0",
+  color: "#F1F5F9",
+  border: "none",
+  borderRadius: "2px",
+  fontSize: "0.6rem",
+  cursor: "pointer",
+  fontWeight: "bold",
+};

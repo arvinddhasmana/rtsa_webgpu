@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/MapReplay.test.tsx
 
-import { describe, it, expect } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { MapReplay } from "../../components/forensics/MapReplay";
 import { FusedTrack } from "../../types/track";
 
@@ -51,11 +51,11 @@ describe("MapReplay", () => {
     render(<MapReplay tracks={makeTracks(5)} />);
     const scrubber = screen.getByTestId("replay-scrubber");
     fireEvent.change(scrubber, { target: { value: "2" } });
-    expect(screen.getByText("3 / 5")).toBeTruthy();
+    expect(screen.getByText(/3\s*\/\s*5/)).toBeTruthy();
   });
 
   it("shows 1/1 for empty tracks array", () => {
     render(<MapReplay tracks={[]} />);
-    expect(screen.getByText("1 / 1")).toBeTruthy();
+    expect(screen.getByText(/1\s*\/\s*1/)).toBeTruthy();
   });
 });

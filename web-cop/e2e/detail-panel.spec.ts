@@ -3,7 +3,8 @@
 // Browser E2E tests for Track Detail Panel — CR-UI-004
 // Covers: UC004 (Track Management), UC008 (Track Detail)
 
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { injectTestTrack } from "./helpers";
 
 test.describe("Track Detail Panel (CR-UI-004)", () => {
   test.beforeEach(async ({ page }) => {
@@ -34,5 +35,41 @@ test.describe("Track Detail Panel (CR-UI-004)", () => {
         !e.includes("WebGL")
     );
     expect(criticalErrors).toHaveLength(0);
+  });
+
+  test("close button dismisses detail panel", async ({ page }) => {
+    // Inject a track to show panel
+    await injectTestTrack(page, { trackId: "D-TRK-1", lat: 0, lon: 0 });
+
+    // Open by searching
+    await page.keyboard.press("Control+f");
+    await page.getByTestId("search-input").fill("D-TRK-1");
+    // Click result to select
+    await page.getByTestId("search-result-D-TRK-1").click();
+
+    const panel = page.getByTestId("detail-panel");
+    await expect(panel).toBeVisible();
+
+    // Click close
+    await page.getByTestId("detail-panel-close").click();
+    await expect(panel).toBeHidden();
+  });
+
+  test("Zoom to Track button exists when track selected", async ({ page }) => {
+    await injectTestTrack(page, { trackId: "D-TRK-2", lat: 0, lon: 0 });
+    await page.keyboard.press("Control+f");
+    await page.getByTestId("search-input").fill("D-TRK-2");
+    await page.getByTestId("search-result-D-TRK-2").click();
+
+    await expect(page.getByTestId("detail-zoom")).toBeVisible();
+  });
+
+  test("Export Details button exists", async ({ page }) => {
+    await injectTestTrack(page, { trackId: "D-TRK-3", lat: 0, lon: 0 });
+    await page.keyboard.press("Control+f");
+    await page.getByTestId("search-input").fill("D-TRK-3");
+    await page.getByTestId("search-result-D-TRK-3").click();
+
+    await expect(page.getByTestId("detail-export")).toBeVisible();
   });
 });

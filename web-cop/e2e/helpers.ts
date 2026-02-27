@@ -114,6 +114,40 @@ export async function injectTestTrack(
 }
 
 /**
+ * injectTestTrackWithClassification — similar to injectTestTrack but specifically allows setting classification
+ */
+export async function injectTestTrackWithClassification(
+  page: Page,
+  track: {
+    trackId: string;
+    lat: number;
+    lon: number;
+    entityType?: string;
+    hostileClass?: string;
+    classification: string;
+  }
+): Promise<void> {
+  await page.evaluate((t) => {
+    const w = window as unknown as any;
+    if (w.__RTSA_TRACK_STORE__) {
+      w.__RTSA_TRACK_STORE__.getState().upsertTrack({
+        trackId: t.trackId,
+        entityType: t.entityType ?? "SURFACE",
+        hostileClass: t.hostileClass ?? "UNKNOWN",
+        position: { latitude: t.lat, longitude: t.lon },
+        confidenceScore: 0.85,
+        sourceCount: 1,
+        sources: [],
+        status: "ACTIVE",
+        classification: t.classification,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
+  }, track);
+}
+
+/**
  * injectTestAlert — injects an AnomalyAlert into the Zustand alertStore via
  * page.evaluate(), bypassing the gRPC layer entirely.
  * Requires window.__RTSA_ALERT_STORE__ to be exposed (set in main.tsx).
@@ -147,4 +181,21 @@ export async function injectTestAlert(
       });
     }
   }, alert);
+}
+
+/**
+ * mockFeedbackSubmit — intercepts the submitFeedback gRPC call and returns a mock success response.
+ */
+export async function mockFeedbackSubmit(page: Page): Promise<void> {
+  await page.route("**/rtsa.feedback.v1.FeedbackService/SubmitFeedback", async (route) => {
+    // Generate an empty gRPC-Web response
+    route.fulfill({
+      status: 200,
+      headers: {
+        "Content-Type": "application/grpc-web+proto",
+        "grpc-status": "0",
+      },
+      body: Buffer.from([0, 0, 0, 0, 0]),
+    });
+  });
 }

@@ -147,6 +147,7 @@ export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
       {/* Play/Pause */}
       <button
         data-testid="replay-play-pause"
+        title="Replay historical track positions on the map. Records play back chronologically at the selected speed."
         onClick={() => setIsPlaying((p) => !p)}
         style={{
           padding: "4px 12px",

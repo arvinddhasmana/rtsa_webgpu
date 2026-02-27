@@ -4,6 +4,8 @@
 import { create } from "zustand";
 
 export type Theme = "light" | "dark" | "nvg";
+export type ActiveRole = "commander" | "security" | "analyst";
+export type LayerKey = "trackLabels" | "trackTrails" | "sensorCoverage" | "geofences" | "mgrsGrid";
 
 interface UIState {
   alertPanelOpen: boolean;
@@ -18,15 +20,27 @@ interface UIState {
   showStaleTracksEnabled: boolean;
 
   theme: Theme;
+  activeRole: ActiveRole;
+
+  layerVisibility: Record<LayerKey, boolean>;
+
+  searchOpen: boolean;
+  searchQuery: string;
 
   toggleAlertPanel: () => void;
   toggleDetailPanel: () => void;
+  closeDetailPanel: () => void;
   toggleForensicsPanel: () => void;
   setMapView: (center: [number, number], zoom: number) => void;
   setEntityTypeFilter: (types: string[]) => void;
   setHostileClassFilter: (classes: string[]) => void;
   toggleStaleTracks: () => void;
   setTheme: (theme: Theme) => void;
+  setActiveRole: (role: ActiveRole) => void;
+  toggleLayerVisibility: (layer: LayerKey) => void;
+  openSearch: () => void;
+  closeSearch: () => void;
+  setSearchQuery: (query: string) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -43,10 +57,21 @@ export const useUIStore = create<UIState>((set) => ({
   showStaleTracksEnabled: false,
 
   theme: "dark",
+  activeRole: "commander",
+  layerVisibility: {
+    trackLabels: true,
+    trackTrails: false,
+    sensorCoverage: true,
+    geofences: true,
+    mgrsGrid: false,
+  },
+  searchOpen: false,
+  searchQuery: "",
 
   toggleAlertPanel: () => set((s) => ({ alertPanelOpen: !s.alertPanelOpen })),
   toggleDetailPanel: () =>
     set((s) => ({ detailPanelOpen: !s.detailPanelOpen })),
+  closeDetailPanel: () => set({ detailPanelOpen: false }),
   toggleForensicsPanel: () =>
     set((s) => ({ forensicsPanelOpen: !s.forensicsPanelOpen })),
   setMapView: (center, zoom) => set({ mapCenter: center, mapZoom: zoom }),
@@ -55,4 +80,15 @@ export const useUIStore = create<UIState>((set) => ({
   toggleStaleTracks: () =>
     set((s) => ({ showStaleTracksEnabled: !s.showStaleTracksEnabled })),
   setTheme: (theme) => set({ theme }),
+  setActiveRole: (role) => set({ activeRole: role }),
+  toggleLayerVisibility: (layer) =>
+    set((s) => ({
+      layerVisibility: {
+        ...s.layerVisibility,
+        [layer]: !s.layerVisibility[layer],
+      },
+    })),
+  openSearch: () => set({ searchOpen: true }),
+  closeSearch: () => set({ searchOpen: false }),
+  setSearchQuery: (query) => set({ searchQuery: query }),
 }));
