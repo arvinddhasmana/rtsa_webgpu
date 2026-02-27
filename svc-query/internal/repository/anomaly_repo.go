@@ -83,9 +83,9 @@ for rows.Next() {
 var (
 alertID     string
 trackID     string
-anomalyType string // LowCardinality(String) in ClickHouse
-severity    string // LowCardinality(String) in ClickHouse
-confidence  float64
+anomalyType string  // LowCardinality(String) in ClickHouse
+severity    string  // LowCardinality(String) in ClickHouse
+confidence  float32 // Float32 column — must scan as float32, then widen
 explanation string
 modelVer    string
 classLevel  string // LowCardinality(String) in ClickHouse
@@ -103,7 +103,7 @@ AlertId:         alertID,
 TrackId:         trackID,
 AnomalyType:     commonv1.AnomalyType(commonv1.AnomalyType_value[anomalyType]),
 Severity:        commonv1.AlertSeverity(commonv1.AlertSeverity_value[severity]),
-ConfidenceScore: confidence,
+ConfidenceScore: float64(confidence), // widen Float32 → float64 for proto
 Explanation:     explanation,
 ModelVersion:    modelVer,
 Classification:  commonv1.ClassificationLevel(commonv1.ClassificationLevel_value[classLevel]),

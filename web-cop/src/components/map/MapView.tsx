@@ -7,39 +7,39 @@ import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
 
 /**
- * MapView — main map display using MapLibre GL JS.
+ * MapView — real-time track display using MapLibre GL JS.
  *
  * Performance design:
- *   - Does NOT subscribe to `tracks` via React state to avoid re-renders on every stream message.
- *   - Instead uses useTrackStore.subscribe() inside the map-init useEffect and throttles
- *     calls to updateMapData() with requestAnimationFrame (≤ 60fps, typically 30fps).
+ *   - Tracks are rendered as a native GeoJSON circle layer (WebGL / GPU).
+ *     A single setData() call replaces the entire track set in one GPU upload.
+ *     No DOM elements are created per track — scales to thousands of tracks at 60fps.
+ *   - Does NOT subscribe to `tracks` via React state.
+ *     Uses useTrackStore.subscribe() + requestAnimationFrame throttling so that
+ *     rapid stream bursts (large snapshots) collapse into ≤ 1 redraw per frame.
  *   - maplibre-gl is dynamically imported once and cached in maplibreglRef.
- *   - Only `trackCount` (tracks.size) triggers a React re-render, purely for the
- *     "No tracks" overlay (re-renders only when count crosses zero ↔ non-zero).
+ *   - Only `trackCount` (tracks.size crossing 0 ↔ non-zero) causes a React re-render,
+ *     purely to control the "No tracks" overlay.
  */
 export const MapView: React.FC = () => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
-  const markersRef = useRef<Map<string, any>>(new Map());
-  // Cache the maplibre-gl module after the first import — avoids repeated dynamic imports.
+  // Cache the maplibre-gl module after the first import.
   const maplibreglRef = useRef<any>(null);
 
   const mapCenter = useUIStore((s) => s.mapCenter);
   const mapZoom = useUIStore((s) => s.mapZoom);
-  // Lightweight selector: only triggers re-render when count crosses 0 ↔ non-zero.
+  // Only re-renders when the count crosses zero — avoids per-track React cycles.
   const trackCount = useTrackStore((s) => s.tracks.size);
   const selectTrack = useTrackStore((s) => s.selectTrack);
   const toggleDetailPanel = useUIStore((s) => s.toggleDetailPanel);
 
   useEffect(() => {
     let isMounted = true;
-    // unsubscribeStore and rafId are captured in the closure so the cleanup
-    // function can cancel them even if assigned asynchronously inside map.on("load").
     let unsubscribeStore: (() => void) | null = null;
     let rafId: number | null = null;
     let updateScheduled = false;
 
-    // Called by the Zustand subscriber; rate-limited to one update per animation frame.
+    // RAF-throttled trigger — coalesces burst updates into one GPU upload per frame.
     const scheduleMapUpdate = () => {
       if (!updateScheduled && mapRef.current && maplibreglRef.current) {
         updateScheduled = true;
@@ -47,6 +47,71 @@ export const MapView: React.FC = () => {
           updateScheduled = false;
           rafId = null;
           updateMapData();
+        });
+      }
+    };
+
+    // Synchronous map update — reads freshest store state, uploads one GeoJSON blob.
+    // No DOM element creation. All rendering happens on the GPU via MapLibre GL.
+    const updateMapData = () => {
+      if (!mapRef.current) return;
+      const map = mapRef.current;
+      const currentTracks = useTrackStore.getState().tracks;
+
+      // ── Track circles ────────────────────────────────────────────────────────
+      // Build GeoJSON features for all current tracks.
+      const trackFeatures = Array.from(currentTracks.values()).map((t) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [t.position.longitude, t.position.latitude],
+        },
+        properties: {
+          trackId: t.trackId,
+          hostileClass: t.hostileClass,
+          entityType: t.entityType,
+          confidence: t.confidenceScore,
+        },
+      }));
+
+      const tracksSource = map.getSource("tracks");
+      if (tracksSource) {
+        tracksSource.setData({
+          type: "FeatureCollection",
+          features: trackFeatures,
+        });
+      }
+
+      // ── Threat halos (50 km circle polygons for HOSTILE tracks) ───────────
+      const haloFeatures = Array.from(currentTracks.values())
+        .filter((t) => t.hostileClass === "HOSTILE")
+        .map((t) => {
+          const points = 32;
+          const radiusInDeg = 50 / 111.32;
+          const coords = [];
+          for (let i = 0; i <= points; i++) {
+            const angle = (i / points) * Math.PI * 2;
+            const dx = Math.cos(angle) * radiusInDeg;
+            const dy = Math.sin(angle) * radiusInDeg;
+            const adjustedDx =
+              dx / Math.cos((t.position.latitude * Math.PI) / 180);
+            coords.push([
+              t.position.longitude + adjustedDx,
+              t.position.latitude + dy,
+            ]);
+          }
+          return {
+            type: "Feature" as const,
+            geometry: { type: "Polygon" as const, coordinates: [coords] },
+            properties: { trackId: t.trackId },
+          };
+        });
+
+      const haloSource = map.getSource("threat-halos");
+      if (haloSource) {
+        haloSource.setData({
+          type: "FeatureCollection",
+          features: haloFeatures as any,
         });
       }
     };
@@ -75,11 +140,7 @@ export const MapView: React.FC = () => {
                   },
                 },
                 layers: [
-                  {
-                    id: "base",
-                    type: "raster" as const,
-                    source: "tiles",
-                  },
+                  { id: "base", type: "raster" as const, source: "tiles" },
                 ],
               }
             : {
@@ -100,34 +161,7 @@ export const MapView: React.FC = () => {
         map.on("load", () => {
           if (!isMounted) return;
 
-          // Add sources and layers for halos and geofences
-          map.addSource("threat-halos", {
-            type: "geojson",
-            data: { type: "FeatureCollection", features: [] },
-          });
-
-          map.addLayer({
-            id: "threat-halos-layer",
-            type: "fill",
-            source: "threat-halos",
-            paint: {
-              "fill-color": "#DC2626",
-              "fill-opacity": 0.2,
-            },
-          });
-
-          map.addLayer({
-            id: "threat-halos-outline",
-            type: "line",
-            source: "threat-halos",
-            paint: {
-              "line-color": "#DC2626",
-              "line-width": 2,
-              "line-dasharray": [2, 2],
-            },
-          });
-
-          // Add geofences source
+          // ── Geo-fences ────────────────────────────────────────────────────
           map.addSource("geofences", {
             type: "geojson",
             data: {
@@ -154,24 +188,6 @@ export const MapView: React.FC = () => {
           });
 
           map.addLayer({
-            id: "geofences-layer",
-            type: "line",
-            source: "geofences",
-            paint: {
-              "line-color": [
-                "match",
-                ["get", "type"],
-                "exclusion",
-                "#DC2626",
-                "inclusion",
-                "#16A34A",
-                "#6B7280",
-              ],
-              "line-width": 2,
-            },
-          });
-
-          map.addLayer({
             id: "geofences-fill",
             type: "fill",
             source: "geofences",
@@ -189,17 +205,104 @@ export const MapView: React.FC = () => {
             },
           });
 
-          mapRef.current = map;
+          map.addLayer({
+            id: "geofences-layer",
+            type: "line",
+            source: "geofences",
+            paint: {
+              "line-color": [
+                "match",
+                ["get", "type"],
+                "exclusion",
+                "#DC2626",
+                "inclusion",
+                "#16A34A",
+                "#6B7280",
+              ],
+              "line-width": 2,
+            },
+          });
 
-          // Cache maplibregl module — updateMapData uses this ref instead of
-          // re-importing on every track update.
+          // ── Threat halos ─────────────────────────────────────────────────
+          map.addSource("threat-halos", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+
+          map.addLayer({
+            id: "threat-halos-layer",
+            type: "fill",
+            source: "threat-halos",
+            paint: { "fill-color": "#DC2626", "fill-opacity": 0.2 },
+          });
+
+          map.addLayer({
+            id: "threat-halos-outline",
+            type: "line",
+            source: "threat-halos",
+            paint: {
+              "line-color": "#DC2626",
+              "line-width": 2,
+              "line-dasharray": [2, 2],
+            },
+          });
+
+          // ── Track circles (GPU rendered, zero DOM overhead) ──────────────
+          map.addSource("tracks", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+
+          // Data-driven color by hostileClass property — evaluated on the GPU.
+          map.addLayer({
+            id: "tracks-circle",
+            type: "circle",
+            source: "tracks",
+            paint: {
+              "circle-radius": 6,
+              "circle-color": [
+                "match",
+                ["get", "hostileClass"],
+                "HOSTILE",
+                "#DC2626",
+                "FRIENDLY",
+                "#2563EB",
+                "NEUTRAL",
+                "#16A34A",
+                "UNKNOWN",
+                "#CA8A04",
+                /* default */ "#6B7280",
+              ],
+              "circle-stroke-width": 1.5,
+              "circle-stroke-color": "#FFFFFF",
+              "circle-opacity": 0.9,
+            },
+          });
+
+          // Click to select track and open detail panel
+          map.on("click", "tracks-circle", (e: any) => {
+            const feature = e.features?.[0];
+            if (feature?.properties?.trackId) {
+              selectTrack(feature.properties.trackId);
+              toggleDetailPanel();
+            }
+          });
+
+          // Pointer cursor on hover to indicate interactivity
+          map.on("mouseenter", "tracks-circle", () => {
+            map.getCanvas().style.cursor = "pointer";
+          });
+          map.on("mouseleave", "tracks-circle", () => {
+            map.getCanvas().style.cursor = "";
+          });
+
+          mapRef.current = map;
           maplibreglRef.current = maplibregl;
 
-          // Expose map instance for E2E testing and devtools inspection
+          // Expose for E2E testing and devtools
           (window as unknown as Record<string, unknown>)["__RTSA_MAP__"] = map;
 
-          // Subscribe to track store — schedule a RAF-throttled map redraw
-          // on any store change. Coalesces rapid burst updates into one draw.
+          // Subscribe to store — RAF-throttled, one GPU upload per frame max.
           unsubscribeStore = useTrackStore.subscribe(scheduleMapUpdate);
 
           updateMapData();
@@ -213,7 +316,6 @@ export const MapView: React.FC = () => {
 
     return () => {
       isMounted = false;
-      // Cancel any pending RAF before unsubscribing to avoid a ghost update.
       if (rafId !== null) {
         cancelAnimationFrame(rafId);
         rafId = null;
@@ -229,97 +331,6 @@ export const MapView: React.FC = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Synchronous: uses pre-cached maplibreglRef — no dynamic import overhead per call.
-  const updateMapData = () => {
-    if (!mapRef.current || !maplibreglRef.current) return;
-    const map = mapRef.current;
-    const maplibregl = maplibreglRef.current;
-
-    // Always read freshest state from store — avoids React closure staleness.
-    const currentTracks = useTrackStore.getState().tracks;
-
-    // Update markers
-    const currentTrackIds = new Set<string>();
-
-    for (const track of currentTracks.values()) {
-      currentTrackIds.add(track.trackId);
-
-      let marker = markersRef.current.get(track.trackId);
-      if (!marker) {
-        const el = document.createElement("div");
-        el.style.cssText = `
-          width: 12px; height: 12px; border-radius: 50%;
-          background-color: ${getTrackColor(track.hostileClass)};
-          border: 2px solid white; cursor: pointer;
-        `;
-        el.title = `Track: ${track.trackId}`;
-        el.addEventListener("click", () => {
-          selectTrack(track.trackId);
-          toggleDetailPanel();
-        });
-
-        marker = new maplibregl.Marker({ element: el })
-          .setLngLat([track.position.longitude, track.position.latitude])
-          .addTo(map);
-
-        markersRef.current.set(track.trackId, marker);
-      } else {
-        marker.setLngLat([track.position.longitude, track.position.latitude]);
-        // Update color if changed
-        marker.getElement().style.backgroundColor = getTrackColor(
-          track.hostileClass,
-        );
-      }
-    }
-
-    // Remove stale markers
-    for (const [id, marker] of markersRef.current.entries()) {
-      if (!currentTrackIds.has(id)) {
-        marker.remove();
-        markersRef.current.delete(id);
-      }
-    }
-
-    // Update threat halos (simple circle approximation for hostile tracks)
-    const haloFeatures = Array.from(currentTracks.values())
-      .filter((t) => t.hostileClass === "HOSTILE")
-      .map((t) => {
-        // Create a rough circle polygon around the point (approx 50km radius)
-        const points = 32;
-        const radiusInDeg = 50 / 111.32; // rough approx
-        const coords = [];
-        for (let i = 0; i <= points; i++) {
-          const angle = (i / points) * Math.PI * 2;
-          const dx = Math.cos(angle) * radiusInDeg;
-          const dy = Math.sin(angle) * radiusInDeg;
-          // Adjust dx for latitude
-          const adjustedDx =
-            dx / Math.cos((t.position.latitude * Math.PI) / 180);
-          coords.push([
-            t.position.longitude + adjustedDx,
-            t.position.latitude + dy,
-          ]);
-        }
-
-        return {
-          type: "Feature",
-          geometry: {
-            type: "Polygon",
-            coordinates: [coords],
-          },
-          properties: { trackId: t.trackId },
-        };
-      });
-
-    const haloSource = map.getSource("threat-halos");
-    if (haloSource) {
-      haloSource.setData({
-        type: "FeatureCollection",
-        features: haloFeatures as any,
-      });
-    }
-  };
 
   return (
     <div
@@ -351,18 +362,3 @@ export const MapView: React.FC = () => {
     </div>
   );
 };
-
-function getTrackColor(hostile: string): string {
-  switch (hostile) {
-    case "HOSTILE":
-      return "#DC2626";
-    case "FRIENDLY":
-      return "#2563EB";
-    case "NEUTRAL":
-      return "#16A34A";
-    case "UNKNOWN":
-      return "#CA8A04";
-    default:
-      return "#6B7280";
-  }
-}

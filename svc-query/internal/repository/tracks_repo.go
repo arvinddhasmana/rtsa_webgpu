@@ -83,14 +83,14 @@ var lastTS time.Time
 for rows.Next() {
 var (
 trackID      string
-entityType   string // LowCardinality(String) in ClickHouse
-hostileClass string // LowCardinality(String) in ClickHouse
-lat, lon     float64
+entityType   string  // LowCardinality(String) in ClickHouse
+hostileClass string  // LowCardinality(String) in ClickHouse
+lat, lon     float64 // Float64 columns
 altM         float64
 speedKn      float64
 headingDeg   float64
-confidence   float64
-classLevel   string // LowCardinality(String) in ClickHouse
+confidence   float32 // Float32 column — must scan as float32, then widen
+classLevel   string  // LowCardinality(String) in ClickHouse
 eventTime    time.Time
 )
 if err := rows.Scan(
@@ -112,7 +112,7 @@ AltitudeMeters: &altM,
 SpeedKnots:     &speedKn,
 HeadingDegrees: &headingDeg,
 },
-ConfidenceScore: confidence,
+ConfidenceScore: float64(confidence), // widen Float32 → float64 for proto
 Classification:  commonv1.ClassificationLevel(commonv1.ClassificationLevel_value[classLevel]),
 UpdatedAt:       timestamppb.New(eventTime),
 }
