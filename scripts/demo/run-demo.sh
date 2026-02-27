@@ -25,6 +25,7 @@ Options:
   --setup             Run scripts/setup/setup-dev.sh before demo launch
   --dry-run           Print commands without executing
   --stop-on-complete  Run scripts/demo/stop-demo.sh after scenario completes
+  --quick-switch      Skip the optional setup step and launch directly
   -h, --help          Show this help
 USAGE
 }
@@ -54,6 +55,9 @@ while [ "$#" -gt 0 ]; do
       ;;
     --stop-on-complete)
       STOP_ON_COMPLETE="true"
+      ;;
+    --quick-switch)
+      RUN_SETUP="false"
       ;;
     -h|--help)
       usage
