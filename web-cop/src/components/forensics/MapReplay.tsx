@@ -1,8 +1,9 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/forensics/MapReplay.tsx
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FusedTrack } from "../../types/track";
+import { formatZuluTime } from "../../utils/time";
 
 interface MapReplayProps {
   tracks: FusedTrack[];
@@ -10,9 +11,26 @@ interface MapReplayProps {
 
 type ReplaySpeed = 1 | 2 | 4 | 8;
 
+type MapInstance = {
+  getSource?: (id: string) => {
+    setData?: (data: GeoJSON.FeatureCollection) => void;
+  } | null;
+};
+
 /**
- * MapReplay — animate historical track positions on map.
- * Controls: play/pause/speed + time scrubber.
+ * MapReplay — animate historical track positions on the live map.
+ *
+ * HOW IT WORKS:
+ *   1. Tracks are sorted by updatedAt timestamp.
+ *   2. Each frame represents one time step in that sorted sequence.
+ *   3. At frame N, ALL tracks whose updatedAt ≤ T(N) are shown — giving a
+ *      progressive appearance of tracks over time.
+ *   4. Positions are written to the "replay-tracks" GeoJSON source on the map
+ *      (added by MapView, separate from live tracks). Replay circles have a
+ *      yellow stroke to distinguish them from live data.
+ *   5. On unmount the replay source is cleared.
+ *
+ * CONTROLS: ▶ PLAY / ⏸ PAUSE, speed ×1/2/4/8, range scrubber, time display.
  */
 export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -20,8 +38,16 @@ export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const totalFrames = Math.max(tracks.length, 1);
+  // Sort tracks chronologically once; re-sort only when tracks array changes.
+  const sortedTracks = useMemo(
+    () =>
+      [...tracks].sort((a, b) => a.updatedAt.getTime() - b.updatedAt.getTime()),
+    [tracks],
+  );
 
+  const totalFrames = Math.max(sortedTracks.length, 1);
+
+  // ── Playback interval ────────────────────────────────────────────────────
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
@@ -48,6 +74,58 @@ export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
     };
   }, [isPlaying, speed, totalFrames]);
 
+  // ── Map update — write current frame's tracks to the replay GeoJSON source ──
+  useEffect(() => {
+    const map = (window as unknown as Record<string, MapInstance>)[
+      "__RTSA_MAP__"
+    ];
+    if (!map?.getSource) return;
+
+    const replaySource = map.getSource("replay-tracks");
+    if (!replaySource?.setData) return;
+
+    const currentTime = sortedTracks[currentIndex]?.updatedAt;
+    if (!currentTime) return;
+
+    // Show all tracks at/before the current frame's timestamp
+    const visible = sortedTracks.filter(
+      (t) => t.updatedAt.getTime() <= currentTime.getTime(),
+    );
+
+    replaySource.setData({
+      type: "FeatureCollection",
+      features: visible.map((t) => ({
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [t.position.longitude, t.position.latitude],
+        },
+        properties: {
+          trackId: t.trackId,
+          hostileClass: t.hostileClass,
+          entityType: t.entityType,
+          confidence: t.confidenceScore,
+        },
+      })),
+    });
+  }, [currentIndex, sortedTracks]);
+
+  // ── Cleanup: clear replay source on unmount ──────────────────────────────
+  useEffect(() => {
+    return () => {
+      const map = (window as unknown as Record<string, MapInstance>)[
+        "__RTSA_MAP__"
+      ];
+      const replaySource = map?.getSource?.("replay-tracks");
+      replaySource?.setData?.({
+        type: "FeatureCollection",
+        features: [],
+      });
+    };
+  }, []);
+
+  const currentTime = sortedTracks[currentIndex]?.updatedAt;
+
   const handleScrub = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCurrentIndex(parseInt(e.target.value, 10));
     setIsPlaying(false);
@@ -57,14 +135,16 @@ export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
     <div
       data-testid="map-replay"
       style={{
-        padding: "8px",
+        padding: "6px 8px",
         display: "flex",
         alignItems: "center",
         gap: "8px",
         backgroundColor: "#0F172A",
         borderTop: "1px solid #334155",
+        flexShrink: 0,
       }}
     >
+      {/* Play/Pause */}
       <button
         data-testid="replay-play-pause"
         onClick={() => setIsPlaying((p) => !p)}
@@ -77,11 +157,13 @@ export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
           cursor: "pointer",
           fontSize: "0.75rem",
           fontWeight: "bold",
+          flexShrink: 0,
         }}
       >
         {isPlaying ? "⏸ PAUSE" : "▶ PLAY"}
       </button>
 
+      {/* Time scrubber */}
       <input
         data-testid="replay-scrubber"
         type="range"
@@ -89,13 +171,36 @@ export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
         max={totalFrames - 1}
         value={currentIndex}
         onChange={handleScrub}
-        style={{ flex: 1 }}
+        style={{ flex: 1, minWidth: 0 }}
       />
 
-      <div style={{ fontSize: "0.65rem", color: "#9CA3AF", minWidth: "60px" }}>
-        {currentIndex + 1} / {totalFrames}
+      {/* Frame counter */}
+      <div
+        style={{
+          fontSize: "0.65rem",
+          color: "#9CA3AF",
+          minWidth: "52px",
+          textAlign: "center",
+        }}
+      >
+        {currentIndex + 1}/{totalFrames}
       </div>
 
+      {/* Current timestamp */}
+      {currentTime && (
+        <div
+          style={{
+            fontSize: "0.65rem",
+            color: "#60A5FA",
+            fontFamily: "monospace",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {formatZuluTime(currentTime)}
+        </div>
+      )}
+
+      {/* Speed selector */}
       <select
         data-testid="replay-speed"
         value={speed}
@@ -107,6 +212,7 @@ export const MapReplay: React.FC<MapReplayProps> = ({ tracks }) => {
           border: "1px solid #475569",
           borderRadius: "4px",
           fontSize: "0.7rem",
+          flexShrink: 0,
         }}
       >
         <option value={1}>1×</option>

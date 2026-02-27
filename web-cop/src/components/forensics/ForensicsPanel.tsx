@@ -2,12 +2,17 @@
 // src/components/forensics/ForensicsPanel.tsx
 
 import React, { useState } from "react";
+import {
+  HistoricalQueryRequest,
+  HistoricalQueryResponse,
+  queryClient,
+} from "../../api/query-client";
+import { useAuthStore } from "../../stores/authStore";
+import { useTrackStore } from "../../stores/trackStore";
+import { useUIStore } from "../../stores/uiStore";
+import { MapReplay } from "./MapReplay";
 import { QueryBuilder } from "./QueryBuilder";
 import { ResultsView } from "./ResultsView";
-import { MapReplay } from "./MapReplay";
-import { queryClient, HistoricalQueryRequest, HistoricalQueryResponse } from "../../api/query-client";
-import { useTrackStore } from "../../stores/trackStore";
-import { useAuthStore } from "../../stores/authStore";
 
 /**
  * ForensicsPanel — historical analysis and query interface.
@@ -22,6 +27,7 @@ export const ForensicsPanel: React.FC = () => {
   const [results, setResults] = useState<HistoricalQueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const selectTrack = useTrackStore((s) => s.selectTrack);
+  const toggleDetailPanel = useUIStore((s) => s.toggleDetailPanel);
   const clearanceLevel = useAuthStore((s) => s.clearanceLevel);
 
   const handleQuery = async (req: HistoricalQueryRequest) => {
@@ -76,7 +82,14 @@ export const ForensicsPanel: React.FC = () => {
         </div>
 
         {/* Results (right 70%) */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
           {error && (
             <div
               style={{
@@ -98,7 +111,10 @@ export const ForensicsPanel: React.FC = () => {
                   alerts={results.alerts}
                   totalCount={results.totalCount}
                   classificationCeiling={clearanceLevel}
-                  onTrackSelect={selectTrack}
+                  onTrackSelect={(id) => {
+                    selectTrack(id);
+                    toggleDetailPanel();
+                  }}
                 />
               </div>
               {results.tracks.length > 0 && (

@@ -296,6 +296,40 @@ export const MapView: React.FC = () => {
             map.getCanvas().style.cursor = "";
           });
 
+          // ── Forensics Replay layer (MapReplay writes here) ────────────────
+          // Separate source from live tracks so replay and live data coexist.
+          // Replay circles have a yellow stroke to visually distinguish them.
+          map.addSource("replay-tracks", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+
+          map.addLayer({
+            id: "replay-tracks-circle",
+            type: "circle",
+            source: "replay-tracks",
+            paint: {
+              "circle-radius": 9,
+              "circle-color": [
+                "match",
+                ["get", "hostileClass"],
+                "HOSTILE",
+                "#DC2626",
+                "FRIENDLY",
+                "#2563EB",
+                "NEUTRAL",
+                "#16A34A",
+                "UNKNOWN",
+                "#CA8A04",
+                /* default */ "#6B7280",
+              ],
+              // Yellow stroke — visually distinguishes replay from live tracks
+              "circle-stroke-width": 2.5,
+              "circle-stroke-color": "#FACC15",
+              "circle-opacity": 0.8,
+            },
+          });
+
           mapRef.current = map;
           maplibreglRef.current = maplibregl;
 

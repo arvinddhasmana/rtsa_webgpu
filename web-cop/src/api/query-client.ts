@@ -5,6 +5,8 @@ import { Timestamp } from "@bufbuild/protobuf";
 import { createPromiseClient } from "@connectrpc/connect";
 import {
   BoundingBox,
+  AlertSeverity as GenAlertSeverity,
+  AnomalyType as GenAnomalyType,
   ClassificationLevel as GenClassificationLevel,
   EntityType as GenEntityType,
   HostileClassification as GenHostileClassification,
@@ -14,9 +16,14 @@ import {
   TimeRange,
 } from "../../../gen/ts/rtsa/common/v1/types_pb";
 import { QueryService } from "../../../gen/ts/rtsa/query/v1/query_service_connect";
-import { QueryTracksRequest } from "../../../gen/ts/rtsa/query/v1/query_service_pb";
+import {
+  QueryAnomaliesRequest,
+  QueryTracksRequest,
+} from "../../../gen/ts/rtsa/query/v1/query_service_pb";
 import { AnomalyAlert } from "../types/alert";
 import {
+  AlertSeverity,
+  AnomalyType,
   ClassificationLevel,
   EntityType,
   HostileClassification,
@@ -128,12 +135,42 @@ export class QueryClient {
         };
       });
 
-      // TODO: Implement anomaly query similarly if needed
-      // Currently just return tracks
+      // Query anomaly detections for the same time window
+      const anomalyReq = new QueryAnomaliesRequest({
+        timeRange: new TimeRange({
+          startTime: Timestamp.fromDate(req.startTime),
+          endTime: Timestamp.fromDate(req.endTime),
+        }),
+        pagination: new PaginationRequest({
+          pageSize: req.pageSize || 1000,
+        }),
+      });
+
+      const anomalyRes = await this.client.queryAnomalies(anomalyReq);
+
+      // Map proto AnomalyAlert → local AnomalyAlert
+      const alerts: AnomalyAlert[] = anomalyRes.alerts.map((a) => ({
+        alertId: a.alertId,
+        trackId: a.trackId,
+        anomalyType: (cleanEnum(
+          GenAnomalyType[a.anomalyType],
+          "ANOMALY_TYPE_",
+        ) || "SPEED") as AnomalyType,
+        severity: (cleanEnum(GenAlertSeverity[a.severity], "ALERT_SEVERITY_") ||
+          "WATCH") as AlertSeverity,
+        confidenceScore: a.confidenceScore,
+        explanation: "",
+        features: [],
+        classification: (cleanEnum(
+          GenClassificationLevel[a.classification],
+          "CLASSIFICATION_LEVEL_",
+        ) || "UNCLASSIFIED") as ClassificationLevel,
+        detectedAt: a.detectedAt ? a.detectedAt.toDate() : new Date(),
+      }));
 
       return {
         tracks,
-        alerts: [],
+        alerts,
         totalCount: trackRes.pagination
           ? trackRes.pagination.totalCount
           : tracks.length,
