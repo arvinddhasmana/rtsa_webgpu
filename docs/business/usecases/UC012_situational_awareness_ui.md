@@ -2,11 +2,12 @@
 # UC012 — Situational Awareness UI Display
 
 > **Use Case ID**: UC012
-> **Feature**: FEAT-09 (Situational Awareness Dashboard), FEAT-10 (Anomaly Alert Management), FEAT-11 (Historical Replay)
+> **Feature**: FEAT-13 (Situational Awareness UI — Two-Level RBAC Shell), FEAT-16 (Fusion Dashboard), FEAT-17 (Multi-Domain Dashboard), FEAT-18 (Operator UI Dashboard)
 > **Priority**: MUST
-> **Actors**: Operations Commander, Intelligence Analyst, Watch Officer
+> **Actors**: Operations Commander, Intelligence Analyst, Security Officer, Sensor Operator, NATO Liaison
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -179,3 +180,12 @@ flowchart LR
 | CR-UI-006 | Offline mode with stale data indication |
 | CR-UI-007 | WCAG 2.1 AA compliance for accessibility |
 | CR-UI-008 | Responsive layout for vehicle-mounted and desktop displays |
+| CR-UI-009 | Two-Level RBAC shell with all five operator roles |
+| CR-UI-010 | Each role has dedicated dashboard views appropriate to their function |
+| CR-UI-013 | Operator UI Dashboard with event timeline and alert quick-actions |
+| CR-UI-014 | Alert quick-actions: `[Inspect]`, `[Confirm]`, `[Reject]`, `[Assign]` |
+| CR-UI-015 | Entity Detail Panel: `SourceAttribution`, `EntityTimeline`, `FeedbackForm` |
+| CR-UI-017 | NATO Liaison role has dedicated NATO Exchange Dashboard |
+| CR-UI-018 | All UI panels support collapse/expand |
+| CR-UI-019 | Inter typeface and glassmorphism panel aesthetic |
+| CR-UI-020 | Map Layer Toggle exposes `layerVisibility` state controls |

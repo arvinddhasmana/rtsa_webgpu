@@ -4,8 +4,8 @@
 
 > **CLASSIFICATION: UNCLASSIFIED**
 > **Audience**: All RTSA Users
-> **Version**: 1.0
-> **Last Updated**: 2026-02-26
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -164,14 +164,16 @@ The AI engine detects and scores anomalies automatically, but it never acts auto
 
 ## Stakeholders Using RTSA
 
-| Role | Primary Use of RTSA |
-|---|---|
-| **Operations Commander** | Real-time COP, anomaly alert management, tactical decisions |
-| **Watch Officer** | Continuous COP monitoring, alert acknowledgment, feedback |
-| **Intelligence Analyst** | Historical investigation, pattern analysis, forensic reporting |
-| **Security Officer** | Audit trail review, classification compliance, feedback integrity |
-| **Sensor Operator** | Sensor health monitoring, data quality management |
-| **NATO Liaison Officer** | Outbound/inbound NATO data exchange management |
+| Role | Primary Use of RTSA | Default Dashboard (v2.0) |
+|---|---|---|
+| **Operations Commander** | Real-time COP, anomaly alert management, tactical decisions | Fusion Dashboard |
+| **Watch Officer** | Continuous COP monitoring, alert acknowledgment, feedback | Operator UI |
+| **Intelligence Analyst** | Historical investigation, pattern analysis, forensic reporting | Forensics Panel |
+| **Security Officer** | Audit trail review, classification compliance, feedback integrity | Audit & Feedback |
+| **Sensor Operator** | Sensor health monitoring, data quality management | Sensor Health Dashboard |
+| **NATO Liaison Officer** | Outbound/inbound NATO data exchange management | NATO Exchange Dashboard |
+
+> **v2.0 Change**: The COP application now enforces a Two-Level Role-Based shell. After selecting your role (Level 1), you choose from the dashboard views available to your role (Level 2). This provides a purpose-built interface optimized for each operator's workflow.
 
 ---
 

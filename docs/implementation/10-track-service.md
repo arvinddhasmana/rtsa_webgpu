@@ -14,6 +14,8 @@
 
 Implement the Track Service (`svc-track`) that consumes fused tracks from `tracks.fused.*` topics, maintains an in-memory cache of current track state, and exposes gRPC server-streaming to COP Web App clients for real-time track updates with filtering by entity type, hostile classification, bounding box, and classification clearance.
 
+**v2.0 Enhancement**: Add a second Redpanda consumer group (`track-svc-sensor-stream`) that reads from all `sensors.*` topics and exposes raw pre-fusion sensor observations via a new `StreamSensorObservations` server-streaming RPC. This enables the Fusion Dashboard to render individual sensor tracks alongside fused tracks.
+
 **Acceptance Criteria**:
 
 - Consumes from all 5 `tracks.fused.*` topics (consumer group: `track-service`)
@@ -25,6 +27,9 @@ Implement the Track Service (`svc-track`) that consumes fused tracks from `track
 - Spatial filtering via bounding box
 - Metrics: active track count, connected stream clients, update latency
 - ≥80% line coverage
+- **v2.0**: Second consumer group `track-svc-sensor-stream` consuming `sensors.*` topics
+- **v2.0**: `StreamSensorObservations` — server-streaming with classification, bbox, and sensor-type filtering
+- **v2.0**: In-memory fan-out channel for sensor observations to multiple concurrent stream clients
 
 ---
 
@@ -217,6 +222,10 @@ func (h *StreamTracksHandler) StreamTracks(
 | T12 | GetTrackDetails: non-existent track                        | NOT_FOUND error                      |
 | T13 | GetTrackHistory: returns history points                    | Correct positions                    |
 | T14 | Classification filter: SECRET track, PROTECTED_B clearance | Track excluded                       |
+| T15 | **v2.0** StreamSensorObservations: classification filter   | Observations above clearance suppressed |
+| T16 | **v2.0** StreamSensorObservations: bounding box filter     | Observations outside bbox not sent  |
+| T17 | **v2.0** StreamSensorObservations: sensor type filter      | Only requested sensor types forwarded |
+| T18 | **v2.0** Fan-out: two concurrent sensor stream clients     | Both clients receive same observation |
 
 ---
 

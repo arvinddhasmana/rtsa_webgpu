@@ -1,3 +1,4 @@
+<!-- CLASSIFICATION: UNCLASSIFIED -->
 # UI Gaps and Improvement Suggestions — Lead Architect Review
 
 **Status:** COMPLETED | **Date:** 2026-02-27 | **Reviewer:** Lead Architect

@@ -4,8 +4,8 @@
 
 > **CLASSIFICATION: UNCLASSIFIED**
 > **Audience**: NATO Liaison Officers
-> **Version**: 1.0
-> **Last Updated**: 2026-02-26
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -20,6 +20,8 @@ RTSA exchanges tactical data with NATO-allied systems using three standard forma
 | **MIP** | Multilateral Interoperability Programme | Broader situational data and anomaly observations |
 
 This guide explains how to monitor the exchange, interpret the status panel, and respond to link issues.
+
+> **v2.0**: The NATO Data Exchange view is now a dedicated Level-2 dashboard accessible from the **NATO Liaison** role. Select the **NATO Liaison** role from the toolbar to see the NATO Exchange dashboard automatically.
 
 ---
 

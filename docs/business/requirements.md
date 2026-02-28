@@ -4,8 +4,8 @@
 > **Project**: Real-Time Situational Awareness & Risk Assessment (RTSA)
 > **Sponsor**: Canadian Department of National Defence (DND)
 > **Classification**: UNCLASSIFIED
-> **Version**: 1.0
-> **Last Updated**: 2026-02-23
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -78,6 +78,8 @@ The Real-Time Situational Awareness & Risk Assessment (RTSA) system provides Can
 | CR-ING-008 | The system shall reject invalid sensor data and route it to a dead-letter queue for analysis | MUST |
 | CR-ING-009 | The system shall support a sustained ingestion rate of 50,000 events/sec (data centre) | MUST |
 | CR-ING-010 | The system shall support a sustained ingestion rate of 5,000 events/sec (tactical edge) | MUST |
+| CR-ING-011 | The system shall expose raw sensor observation data to the UI via a streaming API (`StreamSensorObservations`) with classification and bounding box filtering | MUST |
+| CR-ING-012 | The `GetSensorStatus` and `ListSensorStatuses` APIs shall include geographic coverage geometry (polygon, range, bearing sector) for map overlay rendering | SHOULD |
 
 ### 5.2 Data Fusion (CR-FUS)
 
@@ -114,6 +116,7 @@ The Real-Time Situational Awareness & Risk Assessment (RTSA) system provides Can
 | CR-FB-005 | The system shall route validated feedback to model retraining pipeline | MUST |
 | CR-FB-006 | The system shall provide complete audit trail for all feedback operations | MUST |
 | CR-FB-007 | The system shall queue feedback at the edge and sync to data centre when connected | MUST |
+| CR-FB-008 | Operators shall be able to assign an alert to another operator for follow-up via the `AssignAlert` RPC | SHOULD |
 
 ### 5.5 Situational Awareness UI (CR-UI)
 
@@ -127,6 +130,18 @@ The Real-Time Situational Awareness & Risk Assessment (RTSA) system provides Can
 | CR-UI-006 | The system shall operate in reduced mode when disconnected from data centre | MUST |
 | CR-UI-007 | The system shall support NVG-compatible dark mode | SHOULD |
 | CR-UI-008 | The system shall provide keyboard-only navigation for tactical environments | SHOULD |
+| CR-UI-009 | The system shall enforce a Two-Level RBAC shell supporting all five operator roles (Commander, Analyst, Security, Sensor Operator, NATO Liaison) | MUST |
+| CR-UI-010 | Each role shall have access to one or more dedicated dashboard views appropriate to their function | MUST |
+| CR-UI-011 | The Fusion Dashboard shall render individual sensor observations alongside fused tracks with distinct icons per sensor type | MUST |
+| CR-UI-012 | The Multi-Domain Dashboard shall display a domain-split map with sensor coverage overlays and domain-specific KPI panels | SHOULD |
+| CR-UI-013 | The Operator UI Dashboard shall present a chronological event timeline correlated to alerts and a highlighted alert quick-action panel | MUST |
+| CR-UI-014 | Alert quick-actions shall include `[Inspect]`, `[Confirm]`, `[Reject]`, and `[Assign]` | MUST |
+| CR-UI-015 | The Entity Detail Panel shall include `SourceAttribution`, `EntityTimeline`, and `FeedbackForm` sub-components | MUST |
+| CR-UI-016 | The Sensor Operator role shall have a dedicated Sensor Health Dashboard with per-sensor status cards and a coverage map | MUST |
+| CR-UI-017 | The NATO Liaison role shall have a dedicated NATO Exchange Dashboard | MUST |
+| CR-UI-018 | All UI panels shall support collapse/expand via a visible toggle affordance | SHOULD |
+| CR-UI-019 | The UI design system shall use the Inter typeface and a glassmorphism panel aesthetic | SHOULD |
+| CR-UI-020 | The Map Layer Toggle shall expose `layerVisibility` state controls (track labels, trails, sensor coverage, geo-fences, MGRS grid) | SHOULD |
 
 ### 5.6 Historical Analysis (CR-HIS)
 
@@ -139,6 +154,8 @@ The Real-Time Situational Awareness & Risk Assessment (RTSA) system provides Can
 | CR-HIS-005 | The system shall retain audit events for 2 years (data centre) | MUST |
 | CR-HIS-006 | Simple queries shall complete within 500ms | MUST |
 | CR-HIS-007 | Complex aggregation queries shall complete within 5 seconds | SHOULD |
+| CR-HIS-008 | The system shall provide a unified event timeline API (`GetEventTimeline`) aggregating track changes, anomaly detections, operator feedback, and audit events for a given track | MUST |
+| CR-HIS-009 | Real-time ClickHouse materialized views shall support dashboard KPIs at 10-second granularity for track counts and 5-minute granularity for sensor throughput | SHOULD |
 
 ### 5.7 NATO Interoperability (CR-NATO)
 

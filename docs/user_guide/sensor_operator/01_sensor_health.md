@@ -4,20 +4,45 @@
 
 > **CLASSIFICATION: UNCLASSIFIED**
 > **Audience**: Sensor Operators
-> **Version**: 1.0
-> **Last Updated**: 2026-02-26
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
 ## Overview
 
-The **Sensor Health Panel** gives you a real-time view of the operational status of every sensor type connected to RTSA. Access it via: 📡 **Sensors** in the main toolbar.
+The **Sensor Health Dashboard** gives you a real-time view of the operational status of every sensor connected to RTSA. Access it by selecting the **Sensor Operator** role — the Sensor Health dashboard opens automatically as your default view.
+
+> **v2.0**: The Sensor Health Dashboard is now a dedicated Level-2 dashboard view available exclusively to the Sensor Operator role. It displays per-sensor status cards with geographic coverage overlays on the map.
 
 ---
 
-## The Sensor Health Dashboard
+## The Sensor Health Dashboard *(v2.0)*
 
-The dashboard shows each sensor type and its current health status in a grid layout:
+The dashboard shows each individual sensor and its current health status as a **status card**. Cards are colour-coded for immediate situational awareness. Below the cards, a geographic **Coverage Map** shows each sensor's effective detection footprint.
+
+### Sensor Status Cards
+
+Each card displays:
+
+```
+┌──────────────────────────────────────┐
+│ 📡 RADAR-01                  🟢 CONNECTED │
+│ Sensor ID: sensor-radar-northwest    │
+│ Rate: 12,450 obs/s    DLQ: 23 (1h)  │
+│ Last seen: 2s ago                    │
+│ Quality: 99.8%                       │
+└──────────────────────────────────────┘
+```
+
+**Card colour indicators:**
+| Colour | Status | Condition |
+|---|---|---|
+| 🟢 Green | CONNECTED | Last observation received < 30 seconds ago |
+| 🟡 Amber | STALE | Last observation received 30s – 2 minutes ago |
+| 🔴 Red | OFFLINE | No data received > 2 minutes, or `connected = false` |
+
+**Legacy summary view** (sensor type aggregate):
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -34,6 +59,20 @@ The dashboard shows each sensor type and its current health status in a grid lay
 │  CYBER         │ ● Active   │     320      │  11        │  75ms      │
 └────────────────┴────────────┴──────────────┴────────────┴────────────┘
 ```
+
+### Coverage Map
+
+Below the sensor cards, a geographic map shows each sensor's effective coverage area:
+
+| Sensor Type | Map Rendering |
+|---|---|
+| Radar | Fan sector arc from sensor position (range + bearing sector) |
+| EW/SIGINT | Circular range ring (omnidirectional) |
+| ELINT/COMINT | Directional arc or range ring |
+| ISR | Coverage polygon (swath footprint) |
+| AIS | Reception range ring |
+
+Coverage overlays are colour-coded to match sensor status (green/amber/red fill, 30% opacity). Offline sensors dim to 10% opacity.
 
 ---
 

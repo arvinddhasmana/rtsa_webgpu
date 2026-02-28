@@ -116,3 +116,30 @@ sequenceDiagram
 | CR-FB-005 | Route validated feedback to model retraining |
 | CR-FB-006 | Complete audit trail for all feedback |
 | CR-FB-007 | Queue feedback at edge; sync when connected |
+| CR-FB-008 | Operators can assign an alert to another operator via `AssignAlert` |
+
+## 10. Alert Assignment Sub-Flow *(v2.0)*
+
+The `[Assign]` quick-action in the Operator UI Dashboard allows the duty officer to route an alert to a specific operator for follow-up. This sub-flow is implemented by the new `AssignAlert` RPC added to `AlertService` in v2.0.
+
+```mermaid
+sequenceDiagram
+    actor OP as Duty Officer
+    actor OP2 as Target Operator
+    participant UI as React COP
+    participant GW as API Gateway
+    participant AS as Alert Service
+    participant AUDIT as Audit Trail (Redpanda)
+
+    OP->>UI: Click [Assign] on AlertCard
+    UI->>UI: Open operator picker dialog
+    OP->>UI: Select target operator + optional comment
+    UI->>GW: gRPC: AssignAlert(alert_id, assigner_id, assignee_id, comment)
+    GW->>AS: AssignAlert RPC
+    AS->>AS: Set assigned_to on in-memory alert
+    AS->>AUDIT: Produce audit event: alert_assigned
+    AS-->>GW: AssignAlertResponse(success=true, assigned_at)
+    GW-->>UI: Success
+    UI->>UI: AlertCard shows [Assigned to: OP2]
+    Note over OP2,UI: OP2's alert stream receives the assigned alert<br/>with visual indicator
+```

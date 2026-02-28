@@ -4,8 +4,8 @@
 
 > **CLASSIFICATION: UNCLASSIFIED**
 > **Audience**: NATO Liaison Officers
-> **Version**: 1.0
-> **Last Updated**: 2026-02-26
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 

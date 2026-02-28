@@ -14,6 +14,8 @@
 
 Implement the Alert Service (`svc-alert`) that consumes anomaly alerts from `alerts.anomaly.*` topics, maintains a priority queue (CRITICAL first, then by time), and exposes gRPC server-streaming to COP Web App clients with severity and type filtering.
 
+**v2.0 Enhancement**: Add the `AssignAlert` unary RPC that allows an operator to assign an alert to another operator for follow-up investigation. This produces an audit event and sets an `assigned_to` field on the in-memory alert.
+
 **Acceptance Criteria**:
 
 - Consumes from `alerts.anomaly.critical`, `alerts.anomaly.elevated`, `alerts.anomaly.watch`
@@ -24,6 +26,8 @@ Implement the Alert Service (`svc-alert`) that consumes anomaly alerts from `ale
 - Classification filtering on all responses
 - Metrics: alert rate by severity, unacknowledged count, time-to-acknowledge
 - ≥80% line coverage
+- **v2.0**: `AssignAlert` — sets `assigned_to` on in-memory alert, produces `alert_assigned` audit event
+- **v2.0**: Audit emitter wired to both `AcknowledgeAlert` and `AssignAlert` handlers
 
 ---
 
@@ -158,6 +162,9 @@ func (h *StreamAlertsHandler) StreamAlerts(
 | T08 | StreamAlerts: classification filter  | Higher classified excluded           |
 | T09 | GetAlertDetails                      | Full alert with features             |
 | T10 | Time-to-acknowledge metric           | Correct duration recorded            |
+| T11 | **v2.0** AssignAlert: valid alert    | assigned_to set; audit event produced |
+| T12 | **v2.0** AssignAlert: non-existent   | NOT_FOUND error returned             |
+| T13 | **v2.0** AssignAlert: audit event    | alert_assigned event in audit stream |
 
 ---
 

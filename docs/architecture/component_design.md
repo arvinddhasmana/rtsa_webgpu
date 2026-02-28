@@ -2,9 +2,9 @@
 # Component Design
 
 > **Document**: RTSA Component Design
-> **Version**: 1.0
+> **Version**: 2.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-28
 > **Compliance**: ITSG-33, NIST 800-53 Rev 5
 
 ---
@@ -239,54 +239,69 @@ C4Component
 
 ## 8. Presentation Services
 
-### 8.1 Track Service
+### 8.1 Track Service *(v2.0: dual consumer group)*
 
 ```mermaid
 C4Component
-    title Track Service — Component Diagram
+    title Track Service — Component Diagram (v2.0)
 
     Container_Boundary(svc, "svc-track") {
-        Component(consumer, "FusedTrackConsumer", "Redpanda Consumer", "Consumes from<br/>tracks.fused.* topics")
+        Component(consumer, "FusedTrackConsumer", "Redpanda Consumer", "Consumer group: track-service<br/>Consumes tracks.fused.* topics")
+        Component(sensor_consumer, "SensorObsConsumer", "Redpanda Consumer", "Consumer group: track-svc-sensor-stream<br/>Consumes sensors.* topics (v2.0)")
         Component(cache, "TrackStateCache", "In-Memory Store", "Current state of all<br/>active tracks.<br/>Indexed by track_id.")
+        Component(fanout, "SensorObsFanout", "In-Memory Fan-Out", "Distributes raw observations<br/>to all registered<br/>stream handlers (v2.0)")
         Component(stream_handler, "StreamTracksHandler", "gRPC Server-Stream", "Streams track updates<br/>to connected clients<br/>with filtering")
+        Component(sensor_stream_handler, "StreamSensorObsHandler", "gRPC Server-Stream", "Streams raw sensor observations<br/>with classification + bbox + type<br/>filtering (v2.0)")
         Component(detail_handler, "GetTrackDetailsHandler", "gRPC Unary", "Returns full track<br/>details with source<br/>attribution and history")
         Component(filter, "TrackFilterEngine", "Domain Logic", "Applies classification,<br/>type, and spatial<br/>filters per client")
         Component(metrics, "TrackMetrics", "OpenTelemetry", "Active track count,<br/>stream client count,<br/>update latency")
     }
 
     Rel(consumer, cache, "Track updates")
+    Rel(sensor_consumer, fanout, "Raw sensor observations")
     Rel(cache, filter, "Active tracks")
     Rel(filter, stream_handler, "Filtered updates")
     Rel(cache, detail_handler, "Track details")
+    Rel(fanout, sensor_stream_handler, "Observed sensor data")
 ```
 
-### 8.2 Alert Service
+**New RPC — `StreamSensorObservations` *(v2.0)***: Server-streaming RPC consuming from `sensors.*` Redpanda topics via a dedicated consumer group. Classification filtering, bounding box filtering, and sensor type filtering are applied per connected client before forwarding each `SensorObservationUpdate`.
+
+### 8.2 Alert Service *(v2.0: AssignAlert)*
 
 ```mermaid
 C4Component
-    title Alert Service — Component Diagram
+    title Alert Service — Component Diagram (v2.0)
 
     Container_Boundary(svc, "svc-alert") {
         Component(consumer, "AlertConsumer", "Redpanda Consumer", "Consumes from<br/>alerts.anomaly.* topics")
         Component(queue, "AlertQueue", "In-Memory Priority Queue", "Priority queue sorted<br/>by severity then time.<br/>CRITICAL first.")
         Component(stream_handler, "StreamAlertsHandler", "gRPC Server-Stream", "Streams alerts to<br/>connected UI clients")
         Component(ack_handler, "AcknowledgeAlertHandler", "gRPC Unary", "Records operator<br/>acknowledgment of alert")
+        Component(assign_handler, "AssignAlertHandler", "gRPC Unary", "Assigns alert to another<br/>operator; produces audit event (v2.0)")
+        Component(audit_emitter, "AuditEmitter", "Redpanda Producer", "Emits audit events for<br/>acknowledgment and assignment")
         Component(metrics, "AlertMetrics", "OpenTelemetry", "Alert rate by severity,<br/>unacknowledged count,<br/>time-to-acknowledge")
     }
 
     Rel(consumer, queue, "New alerts")
     Rel(queue, stream_handler, "Prioritized alerts")
     Rel(ack_handler, queue, "Remove acknowledged")
+    Rel(ack_handler, audit_emitter, "alert_acknowledged event")
+    Rel(assign_handler, queue, "Set assigned_to field")
+    Rel(assign_handler, audit_emitter, "alert_assigned event")
 ```
 
-### 8.3 Query Service
+**New RPC — `AssignAlert` *(v2.0)***: Unary RPC with fields `alert_id`, `assigner_operator_id`, `assignee_operator_id`, `comment`. Sets an `assigned_to` field on the in-memory alert and produces an audit event to `audit.events`. Returns `success` and `assigned_at` timestamp.
+
+### 8.3 Query Service *(v2.0: GetEventTimeline)*
 
 ```mermaid
 C4Component
-    title Query Service — Component Diagram
+    title Query Service — Component Diagram (v2.0)
 
     Container_Boundary(svc, "svc-query") {
         Component(handler, "QueryHandler", "gRPC Handler", "Receives historical<br/>query requests")
+        Component(timeline_handler, "EventTimelineHandler", "gRPC Unary", "Unified timeline for a track_id<br/>across 4 ClickHouse tables (v2.0)")
         Component(authz, "ClassificationFilter", "Security", "Injects classification<br/>filter based on<br/>caller's clearance")
         Component(guardrail, "QueryGuardrail", "Domain Logic", "Enforces time range limits,<br/>result limits,<br/>query timeout")
         Component(executor, "QueryExecutor", "ClickHouse Client", "Executes parameterized<br/>SQL against ClickHouse")
@@ -295,6 +310,7 @@ C4Component
     }
 
     Rel(handler, authz, "Query request")
+    Rel(timeline_handler, authz, "Timeline request")
     Rel(authz, guardrail, "Filtered query")
     Rel(guardrail, executor, "Guarded query")
     Rel(executor, paginator, "Result rows")
@@ -302,11 +318,42 @@ C4Component
     Rel(executor, audit, "Query audit event")
 ```
 
+**New RPC — `GetEventTimeline` *(v2.0)***: Unary RPC accepting `track_id`, `time_range`, `max_events`, and `clearance_level`. Executes a ClickHouse `UNION ALL` query across `tracks_fused`, `anomaly_detections`, `operator_feedback`, and `audit_log`, ordered by `event_time ASC`. Returns `repeated TimelineEvent` with a `oneof` payload discriminated by `TimelineEventType`.
+
 ---
 
-## 9. COP Web Application (React)
+## 9. COP Web Application (React) *(v2.0: Two-Level RBAC Shell)*
 
-### 9.1 Component Hierarchy
+### 9.1 Architecture Overview
+
+v2.0 introduces a **Two-Level RBAC Shell**:
+- **Level 1** — Role Selector: Operations Commander, Intelligence Analyst, Security Officer, Sensor Operator, NATO Liaison
+- **Level 2** — Dashboard Selector: role-appropriate views rendered dynamically by `MainLayout`
+
+```mermaid
+flowchart TD
+    APP[App] --> AUTH[AuthProvider]
+    AUTH --> LAYOUT[MainLayout]
+    LAYOUT --> TOOLBAR[Toolbar: RoleSelector + DashboardSelector]
+    LAYOUT --> ROUTER{activeDashboardView}
+    ROUTER -->|fusion| FD[FusionDashboard]
+    ROUTER -->|multi-domain| MD[MultiDomainDashboard]
+    ROUTER -->|operator| OD[OperatorDashboard]
+    ROUTER -->|forensics| FP[ForensicsPanel]
+    ROUTER -->|audit| AP[AlertPanel + AuditQueue]
+    ROUTER -->|sensor-health| SH[SensorHealthDashboard]
+    ROUTER -->|nato-exchange| NE[NATOExchangeDashboard]
+
+    FD --> MAP1[MapView: FusedTrack + SensorObs icons]
+    FD --> FSP[FusionSidePanel]
+    MD --> MAP2[MapView + SensorCoverageLayer]
+    MD --> DMO[DomainMetricsOverlay]
+    OD --> MAP3[MapView with backdrop-blur]
+    OD --> TL[TimelineView]
+    OD --> ALP[AlertPanel with quick-actions]
+```
+
+### 9.2 Component Hierarchy *(v2.0)*
 
 ```mermaid
 flowchart TD
@@ -316,19 +363,24 @@ flowchart TD
     LAYOUT --> ALERTS[AlertPanel]
     LAYOUT --> DETAIL[DetailPanel]
     LAYOUT --> FORENSICS[ForensicsPanel]
+    LAYOUT --> FUSION_SP[FusionSidePanel]
+    LAYOUT --> TIMELINE[TimelineView]
+    LAYOUT --> DOMAIN_O[DomainMetricsOverlay]
 
     MAP --> TRACKS[TrackLayer]
+    MAP --> SENSOR_ICONS[SensorObsLayer]
     MAP --> HALOS[ThreatHaloLayer]
     MAP --> GEO[GeoFenceLayer]
     MAP --> COVERAGE[SensorCoverageLayer]
+    MAP --> LAYER_TOGGLE[MapLayerToggle]
 
-    ALERTS --> ALERTCARD[AlertCard]
+    ALERTS --> ALERTCARD[AlertCard: Inspect / Confirm / Reject / Assign]
     ALERTS --> ALERTFILTER[AlertFilter]
 
     DETAIL --> IDENTITY[IdentitySection]
     DETAIL --> POSITION[PositionSection]
     DETAIL --> SOURCES[SourceAttribution]
-    DETAIL --> TIMELINE[EntityTimeline]
+    DETAIL --> ENTITY_TL[EntityTimeline]
     DETAIL --> FEEDBACKFORM[FeedbackForm]
 
     FORENSICS --> QUERYBUILDER[QueryBuilder]
@@ -336,27 +388,53 @@ flowchart TD
     FORENSICS --> REPLAY[MapReplay]
 ```
 
-### 9.2 State Management
+### 9.3 State Management *(v2.0)*
 
 | Store | Library | Content |
 |---|---|---|
 | TrackStore | Zustand | Active tracks indexed by `track_id` |
 | AlertStore | Zustand | Alert queue + acknowledgment state |
 | AuthStore | Zustand | Operator identity, clearance level |
-| UIStore | Zustand | Panel visibility, selected entity, filters |
+| UIStore | Zustand | Panel visibility, selected entity, filters, **`activeRole`**, **`activeDashboardView`** *(v2.0)* |
 
-### 9.3 Real-Time Hooks
+**New `uiStore` fields** *(v2.0)*:
+- `activeDashboardView: DashboardView` — current Level-2 view selection
+- `setDashboardView(view: DashboardView): void` — Level-2 view switch action
+- `ActiveRole` extended to include `sensor_operator` and `nato_liaison`
+- `setActiveRole` auto-resets `activeDashboardView` to the role's default
+
+### 9.4 Real-Time Hooks *(v2.0)*
 
 | Hook | Transport | Purpose |
 |---|---|---|
-| `useTrackStream` | gRPC-Web server-stream | Subscribe to filtered track updates |
+| `useTrackStream` | gRPC-Web server-stream | Subscribe to filtered fused track updates |
 | `useAlertStream` | gRPC-Web server-stream | Subscribe to severity-filtered alerts |
+| `useSensorStream` | gRPC-Web server-stream | Subscribe to raw sensor observations *(v2.0 — Fusion Dashboard)* |
 | `useConnectionStatus` | WebSocket heartbeat | Monitor backend connectivity |
 | `useOfflineMode` | Service Worker | Cache tracks and queue feedback when offline |
 
----
+### 9.5 Role-to-Dashboard Mapping *(v2.0)*
 
-## 10. Shared Libraries
+| Role | Default Dashboard | Available Dashboards |
+|---|---|---|
+| Operations Commander | Fusion | Fusion, Multi-Domain, Operator UI |
+| Intelligence Analyst | Forensics | Forensics, Intelligence Search |
+| Security Officer | Audit & Feedback | Audit & Feedback |
+| Sensor Operator | Sensor Health | Sensor Health |
+| NATO Liaison | NATO Exchange | NATO Exchange |
+
+### 9.6 Design System *(v2.0)*
+
+| Category | Specification |
+|---|---|
+| Typography | Inter (Google Fonts) — weights 300/400/500/600/700 |
+| Base background | `#0B1120` (near-black) |
+| Panel background | `rgba(15, 23, 42, 0.60)` — glassmorphism with `backdrop-filter: blur(12px)` |
+| Primary accent | `#3B82F6` (blue) |
+| Warning accent | `#F59E0B` (amber) |
+| Critical accent | `#EF4444` (red) |
+| NVG theme | Green-on-black palette via `[data-theme="nvg"]` CSS override |
+| Panel collapse | CSS transitions on width/height with `.panel-collapsible.collapsed` class |
 
 | Library | Package Path | Purpose |
 |---|---|---|

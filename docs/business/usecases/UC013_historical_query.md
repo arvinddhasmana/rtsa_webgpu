@@ -2,11 +2,12 @@
 # UC013 — Historical Data Query & Forensic Analysis
 
 > **Use Case ID**: UC013
-> **Feature**: FEAT-14 (Historical Analytics & Forensics)
+> **Feature**: FEAT-14 (Historical Analytics & Forensics), FEAT-20 (Unified Event Timeline)
 > **Priority**: MUST
-> **Actors**: Intelligence Analyst, Forensic Investigator
+> **Actors**: Intelligence Analyst, Forensic Investigator, Operations Commander (via Entity Detail Panel)
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -178,3 +179,43 @@ flowchart TD
 | CR-HIS-005 | Forensic report generation |
 | CR-HIS-006 | Query guardrails (timeout, limits, classification) |
 | CR-HIS-007 | Complete audit trail for all queries |
+| CR-HIS-008 | `GetEventTimeline` RPC provides unified chronological timeline per track_id |
+| CR-HIS-009 | ClickHouse materialized views support dashboard KPIs at fine granularity |
+
+## 11. GetEventTimeline Sub-Flow *(v2.0)*
+
+The `EntityTimeline` sub-component in the Entity Detail Panel calls the new `QueryService.GetEventTimeline` RPC, which executes a ClickHouse `UNION ALL` query across four tables to produce a single chronological event sequence for a given track.
+
+```mermaid
+sequenceDiagram
+    actor OP as Operator (any role)
+    participant UI as Entity Detail Panel
+    participant GW as API Gateway
+    participant QS as Query Service (v2.0)
+    participant CH as ClickHouse
+
+    OP->>UI: Click entity on map → DetailPanel opens
+    UI->>GW: GetEventTimeline(track_id, time_range, clearance)
+    GW->>QS: GetEventTimeline RPC
+    QS->>QS: Inject classification filter
+
+    QS->>CH: UNION ALL query:
+    Note over QS,CH: SELECT 'TRACK' AS event_type, event_time, ... FROM tracks_fused WHERE track_id=? AND classification≤clearance\nUNION ALL\nSELECT 'ANOMALY', event_time, ... FROM anomaly_detections WHERE track_id=? ...\nUNION ALL\nSELECT 'FEEDBACK', event_time, ... FROM operator_feedback WHERE track_id=? ...\nUNION ALL\nSELECT 'AUDIT', event_time, ... FROM audit_log WHERE resource_id=? ...\nORDER BY event_time ASC LIMIT 200
+
+    CH-->>QS: Ordered timeline rows
+    QS->>QS: Map rows to TimelineEvent proto (oneof payload by event_type)
+    QS-->>GW: EventTimelineResponse
+    GW-->>UI: EventTimelineResponse
+
+    UI->>UI: Render EntityTimeline component
+    Note over UI: Timeline shows: Track CREATED → position updates → ANOMALY detected → Operator CONFIRMED → Assignment AUDIT → Track DROPPED
+```
+
+**Timeline Event Colour Coding**:
+| Event Type | Colour | Icon |
+|---|---|---|
+| Track state change (CREATED / UPDATED / MERGED / DROPPED) | Blue | 🔵 |
+| Anomaly detected | Red (CRITICAL), Amber (ELEVATED), Yellow (WATCH) | 🔴 🟠 🟡 |
+| Operator feedback submitted | Green | 🟢 |
+| Alert acknowledged / assigned | Purple | 🟣 |
+| Audit event (other) | Grey | ⚫ |
