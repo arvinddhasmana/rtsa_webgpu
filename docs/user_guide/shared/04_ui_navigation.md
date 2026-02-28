@@ -4,8 +4,8 @@
 
 > **CLASSIFICATION: UNCLASSIFIED**
 > **Audience**: All RTSA Users
-> **Version**: 1.0
-> **Last Updated**: 2026-02-26
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -17,20 +17,40 @@ This section covers the common interface patterns, controls, and keyboard shortc
 
 ## The Main Toolbar
 
-The toolbar at the top of the screen provides quick access to the primary functions:
+The toolbar at the top of the screen provides quick access to the primary functions. The toolbar contains two role selectors — your **Role** (Level 1) and your **Dashboard View** (Level 2).
+
+### Level 1 — Role Selector
+
+Select your operator role from the dropdown. The available dashboard views will update automatically to match your role.
+
+| Role | Description |
+|---|---|
+| **Operations Commander** | Full COP access — Fusion, Multi-Domain, and Operator UI dashboards |
+| **Intelligence Analyst** | Historical analysis — Forensics and Intelligence Search views |
+| **Security Officer** | Compliance monitoring — Audit & Feedback view |
+| **Sensor Operator** | Infrastructure monitoring — Sensor Health dashboard |
+| **NATO Liaison** | Partner data exchange — NATO Exchange dashboard |
+
+### Level 2 — Dashboard View Selector
+
+After selecting your role, choose the dashboard view from the tabs that appear. Each view is purpose-built for a specific workflow.
+
+| Role | Available Dashboards |
+|---|---|
+| Operations Commander | 🔗 **Fusion** (default) · 🌐 **Multi-Domain** · 🎯 **Operator UI** |
+| Intelligence Analyst | 🔍 **Forensics** (default) · 📊 **Intel Search** |
+| Security Officer | 🔒 **Audit & Feedback** |
+| Sensor Operator | 📡 **Sensor Health** |
+| NATO Liaison | 🌐 **NATO Exchange** |
+
+### Other Toolbar Controls
 
 | Button / Control | Function |
 |---|---|
-| 🗺️ **Map** | Switch to / focus the main COP map view |
-| 🚨 **Alerts** | Open / expand the alert panel |
-| 🔍 **History** | Open the historical query panel (analysts) |
-| 📡 **Sensors** | Open the sensor health panel (sensor operators) |
-| 🌐 **NATO** | Open the NATO exchange status panel (liaison) |
-| 🔒 **Audit** | Open the audit trail viewer (security officers) |
-| ⚙️ **Settings** | Personal display preferences |
+| ⚙️ **Settings** | Personal display preferences (theme, NVG mode) |
 | 👤 **Profile** | Your identity, clearance level, and session info |
 
-> Not all buttons are visible for all roles. The interface adapts based on your role and clearance level.
+> The dashboard view resets to the role's default each time you change your role.
 
 ---
 
@@ -99,18 +119,22 @@ The **alert panel** on the left side shows active anomaly alerts sorted by sever
 │ Score: 0.87 | Confidence: 91%   │
 │ Detected: 14:32:05 UTC          │
 │ ─────────────────────────────── │
-│ [Inspect] [Confirm] [Reject]    │
+│ [Inspect] [Confirm] [Reject] [Assign] │
 └─────────────────────────────────┘
 ```
 
+> If an alert has been assigned, the card shows: **Assigned to: [Operator Name]**
+
 ### Alert Quick Actions
 
-| Button | Action |
-|---|---|
-| **Inspect** | Open entity detail panel for this track |
-| **Confirm** | Confirm the anomaly is valid (submits operator feedback) |
-| **Reject** | Reject the anomaly as a false positive (submits operator feedback) |
-| **Assign** | Assign this alert to another operator for follow-up |
+| Button | Action | Backend RPC |
+|---|---|---|
+| **[Inspect]** | Open entity detail panel for this track | — (local navigation) |
+| **[Confirm]** | Confirm the anomaly is valid — submits `CONFIRM_ANOMALY` feedback | `FeedbackService.SubmitFeedback` |
+| **[Reject]** | Reject as false positive — submits `REJECT_ANOMALY` feedback | `FeedbackService.SubmitFeedback` |
+| **[Assign]** | Assign to another operator — opens operator picker dialog | `AlertService.AssignAlert` *(v2.0)* |
+
+> **Note**: `[Confirm]` and `[Reject]` contribute to your operator trust score and model retraining. Use them deliberately.
 
 ---
 

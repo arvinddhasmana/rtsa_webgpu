@@ -17,6 +17,8 @@ Implement two coupled subsystems:
 1. **Query Service** (`svc-query`): gRPC service for historical queries against ClickHouse, with classification-aware filtering, query guardrails, pagination, and audit logging.
 2. **Redpanda Connect ETL Pipelines**: 5 pipeline configurations that materialize Redpanda topic data into ClickHouse tables.
 
+**v2.0 Enhancement**: Add the `GetEventTimeline` unary RPC that provides a unified chronological event timeline for a given `track_id` by executing a ClickHouse `UNION ALL` query across `tracks_fused`, `anomaly_detections`, `operator_feedback`, and `audit_log`.
+
 **Acceptance Criteria**:
 
 - `QueryTracks` — parameterized ClickHouse query with classification filter
@@ -28,6 +30,9 @@ Implement two coupled subsystems:
 - Every query generates an audit event
 - 5 ETL pipelines: tracks, sensors, alerts, feedback, audit
 - ≥80% line coverage
+- **v2.0**: `GetEventTimeline` — UNION ALL across 4 tables, ordered by `event_time ASC`, max 1000 events
+- **v2.0**: Classification filter applied across all 4 UNION ALL branches independently
+- **v2.0**: Three new ClickHouse materialized views: `mv_active_tracks_by_domain`, `mv_sensor_throughput_5min`, `mv_alert_ack_latency`
 
 ---
 
@@ -889,6 +894,10 @@ GROUP BY anomaly_type, severity, hour;
 | T14 | Query generates audit event                         | Event emitted to Redpanda  |
 | T15 | Row limit enforcement                               | Max 100K rows returned     |
 | T16 | Query timeout enforcement                           | Context cancelled at 30s   |
+| T17 | **v2.0** GetEventTimeline: returns events from all 4 tables | UNION ALL result ordered by event_time |
+| T18 | **v2.0** GetEventTimeline: classification filter applied to all branches | Higher-classified events excluded |
+| T19 | **v2.0** GetEventTimeline: max_events limit respected | Returns at most max_events rows |
+| T20 | **v2.0** GetEventTimeline: unknown track_id | Empty result, no error |
 
 ### 5.2 Integration Tests
 
@@ -898,6 +907,7 @@ GROUP BY anomaly_type, severity, hour;
 | IT02 | Classification injection verified  | SQL contains filter      |
 | IT03 | Pagination across 1000+ rows       | Correct cursor traversal |
 | IT04 | Concurrent query load (10 clients) | No data races            |
+| IT05 | **v2.0** GetEventTimeline with data in all 4 tables | All event types returned |
 
 ---
 

@@ -3,9 +3,9 @@
 # RTSA Implementation Overview — Master Orchestration Document
 
 > **Document**: RTSA Implementation Plan — Module Orchestration
-> **Version**: 1.0
+> **Version**: 2.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-28
 > **Target Agent**: Greatest Ever Developer (`@greatest-ever-developer`)
 
 ---
@@ -159,11 +159,11 @@ type ClassificationGuard interface {
 
 | Service            | Package             | Key RPCs                                                                 |
 | ------------------ | ------------------- | ------------------------------------------------------------------------ |
-| `IngestionService` | `rtsa.ingestion.v1` | `IngestSensorData` (client-stream), `GetSensorStatus` (unary)            |
-| `TrackService`     | `rtsa.entity.v1`    | `StreamTracks` (server-stream), `GetTrackDetails` (unary)                |
-| `AlertService`     | `rtsa.inference.v1` | `StreamAlerts` (server-stream), `AcknowledgeAlert` (unary)               |
+| `IngestionService` | `rtsa.ingestion.v1` | `IngestSensorData` (client-stream), `GetSensorStatus` (unary), `ListSensorStatuses` (unary, v2.0) |
+| `TrackService`     | `rtsa.entity.v1`    | `StreamTracks` (server-stream), `GetTrackDetails` (unary), `StreamSensorObservations` (server-stream, v2.0) |
+| `AlertService`     | `rtsa.inference.v1` | `StreamAlerts` (server-stream), `AcknowledgeAlert` (unary), `AssignAlert` (unary, v2.0) |
 | `FeedbackService`  | `rtsa.feedback.v1`  | `SubmitFeedback` (unary), `GetFeedbackHistory` (unary)                   |
-| `QueryService`     | `rtsa.query.v1`     | `QueryTracks` (unary), `QueryAnomalies` (unary), `QueryAuditLog` (unary) |
+| `QueryService`     | `rtsa.query.v1`     | `QueryTracks` (unary), `QueryAnomalies` (unary), `QueryAuditLog` (unary), `GetEventTimeline` (unary, v2.0) |
 | `HealthService`    | `rtsa.common.v1`    | `Check` (unary), `Watch` (server-stream)                                 |
 
 ### 4.3 Redpanda Topic Contracts
