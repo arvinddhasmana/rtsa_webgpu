@@ -15,8 +15,13 @@ import { ClassificationBanner } from "./ClassificationBanner";
 import { CollapsiblePane } from "./CollapsiblePane";
 import { ConnectionIndicator } from "./ConnectionIndicator";
 import { DashboardSelector } from "./DashboardSelector";
+import { FusionDashboard } from "./FusionDashboard";
+import { MultiDomainDashboard } from "./MultiDomainDashboard";
+import { NatoExchangeDashboard } from "./NatoExchangeDashboard";
+import { OperatorDashboard } from "./OperatorDashboard";
 import { RoleSelector } from "./RoleSelector";
 import { SearchOverlay } from "./SearchOverlay";
+import { SensorHealthDashboard } from "./SensorHealthDashboard";
 import { SensorHealthPanel } from "./SensorHealthPanel";
 
 const toolbarButtonStyle: React.CSSProperties = {
@@ -55,7 +60,7 @@ export const MainLayout: React.FC = () => {
   const operatorName = useAuthStore((s) => s.operatorName) || "Operator";
   const operatorClearance = useAuthStore((s) => s.clearanceLevel);
 
-  // Keyboard Shortcuts (Component 10)
+  // Keyboard Shortcuts (Phase 4 Polish)
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't intercept if typing in an input
@@ -63,7 +68,9 @@ export const MainLayout: React.FC = () => {
 
       switch (e.key.toLowerCase()) {
         case "m":
-          break; // Map focus placeholder
+          // Quick center map on default position
+          useUIStore.getState().setMapView([-60.0, 45.0], 6);
+          break;
         case "a":
           toggleAlertPanel();
           break;
@@ -71,15 +78,33 @@ export const MainLayout: React.FC = () => {
           toggleForensicsPanel();
           break;
         case "f":
-          break; // Fullscreen map placeholder
+          // Quick fullscreen/maximize focus mode
+          useUIStore.getState().setDashboardView("multi-domain");
+          break;
         case "escape":
           closeDetailPanel();
+          break;
+        case "tab":
+          e.preventDefault();
+          // Cycle through views
+          const views: typeof activeDashboardView[] = ["operator", "fusion", "multi-domain"];
+          const currentIdx = views.indexOf(useUIStore.getState().activeDashboardView);
+          if (currentIdx > -1) {
+            useUIStore.getState().setDashboardView(views[(currentIdx + 1) % views.length]);
+          }
           break;
       }
 
       if (e.ctrlKey && e.key.toLowerCase() === "f") {
         e.preventDefault();
         openSearch();
+      }
+
+      if (e.ctrlKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        // Acknowledges top alert as an undo/quick action placeholder
+        const openAlerts = useUIStore.getState().alertPanelOpen;
+        if (!openAlerts) toggleAlertPanel();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -167,13 +192,13 @@ export const MainLayout: React.FC = () => {
       {/* Main content switched by dashboard view */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
 
-        {/* Placeholder routing logic for the Level 2 Dashboards */}
+        {/* Routing logic for the Level 2 Dashboards */}
         {activeDashboardView === "operator" ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Operator UI]</div>
+          <OperatorDashboard />
         ) : activeDashboardView === "fusion" ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Fusion Dashboard]</div>
+          <FusionDashboard />
         ) : activeDashboardView === "multi-domain" ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Multi-Domain Dashboard]</div>
+          <MultiDomainDashboard />
         ) : activeDashboardView === "audit" ? (
           <div data-testid="audit-view" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Security] Audit & Feedback Queue View</div>
         ) : activeDashboardView === "forensics" ? (
@@ -184,9 +209,9 @@ export const MainLayout: React.FC = () => {
             </CollapsiblePane>
           </div>
         ) : activeDashboardView === "sensor-health" ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Sensor Health Dashboard]</div>
+          <SensorHealthDashboard />
         ) : activeDashboardView === "nato-exchange" ? (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[NATO Exchange Dashboard]</div>
+          <NatoExchangeDashboard />
         ) : (
           /* Fallback generic layout (legacy-like) */
           <>

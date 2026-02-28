@@ -2,10 +2,10 @@
 // src/types/track.ts
 
 import {
-  ClassificationLevel,
-  EntityType,
-  HostileClassification,
-  TrackStatus,
+    ClassificationLevel,
+    EntityType,
+    HostileClassification,
+    TrackStatus,
 } from "./common";
 
 export interface Position {
@@ -21,6 +21,19 @@ export interface SourceAttribution {
   sensorType: string;
   confidence: number;
   lastContribution: Date;
+}
+
+export interface RawSensorObservation {
+  observationId: string;
+  sensorId: string;
+  sensorType: string;
+  timestamp: Date;
+  latitude: number;
+  longitude: number;
+  altitudeMeters?: number;
+  speedKnots?: number;
+  headingDegrees?: number;
+  correlatedTrackId?: string;
 }
 
 export interface FusedTrack {

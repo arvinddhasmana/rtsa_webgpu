@@ -4,30 +4,32 @@
 import { Timestamp } from "@bufbuild/protobuf";
 import { createPromiseClient } from "@connectrpc/connect";
 import {
-  BoundingBox,
-  AlertSeverity as GenAlertSeverity,
-  AnomalyType as GenAnomalyType,
-  ClassificationLevel as GenClassificationLevel,
-  EntityType as GenEntityType,
-  HostileClassification as GenHostileClassification,
-  SensorType as GenSensorType,
-  TrackStatus as GenTrackStatus,
-  PaginationRequest,
-  TimeRange,
+    BoundingBox,
+    AlertSeverity as GenAlertSeverity,
+    AnomalyType as GenAnomalyType,
+    ClassificationLevel as GenClassificationLevel,
+    EntityType as GenEntityType,
+    HostileClassification as GenHostileClassification,
+    SensorType as GenSensorType,
+    TrackStatus as GenTrackStatus,
+    PaginationRequest,
+    TimeRange,
 } from "../../../gen/ts/rtsa/common/v1/types_pb";
 import { QueryService } from "../../../gen/ts/rtsa/query/v1/query_service_connect";
 import {
-  QueryAnomaliesRequest,
-  QueryTracksRequest,
+    EventTimelineResponse,
+    GetEventTimelineRequest,
+    QueryAnomaliesRequest,
+    QueryTracksRequest,
 } from "../../../gen/ts/rtsa/query/v1/query_service_pb";
 import { AnomalyAlert } from "../types/alert";
 import {
-  AlertSeverity,
-  AnomalyType,
-  ClassificationLevel,
-  EntityType,
-  HostileClassification,
-  TrackStatus,
+    AlertSeverity,
+    AnomalyType,
+    ClassificationLevel,
+    EntityType,
+    HostileClassification,
+    TrackStatus,
 } from "../types/common";
 import { FusedTrack } from "../types/track";
 import { transport } from "./grpc-client";
@@ -178,6 +180,17 @@ export class QueryClient {
       };
     } catch (err: any) {
       console.error("Query failed", err);
+      throw err;
+    }
+  }
+
+  async getEventTimeline(req: Partial<GetEventTimelineRequest>): Promise<EventTimelineResponse> {
+    try {
+      const gRPCReq = new GetEventTimelineRequest(req);
+      const res = await this.client.getEventTimeline(gRPCReq);
+      return res;
+    } catch (err: any) {
+      console.error("Timeline query failed", err);
       throw err;
     }
   }

@@ -25,19 +25,6 @@ export const SearchOverlay: React.FC = () => {
     }
   }, [searchOpen]);
 
-  if (!searchOpen) return null;
-
-  const handleResultClick = (trackId: string) => {
-    selectTrack(trackId);
-    useUIStore.getState().toggleDetailPanel(); // Opening detail panel implicitly opens it if toggle is called while closed. Wait, let's just make it toggle or explicitly open? Oh wait, toggle is toggle. We should really have an open. But using toggle if closed is fine.
-    // Actually, I'll check if it's open:
-    if (!useUIStore.getState().detailPanelOpen) {
-      useUIStore.getState().toggleDetailPanel();
-    }
-    closeSearch();
-    setSearchQuery("");
-  };
-
   const query = searchQuery.toLowerCase();
   const results = Array.from(tracks.values())
     .filter(
@@ -47,6 +34,17 @@ export const SearchOverlay: React.FC = () => {
         t.hostileClass.toLowerCase().includes(query)
     )
     .slice(0, 10);
+
+  if (!searchOpen) return null;
+
+  const handleResultClick = (trackId: string) => {
+    selectTrack(trackId);
+    if (!useUIStore.getState().detailPanelOpen) {
+      useUIStore.getState().toggleDetailPanel();
+    }
+    closeSearch();
+    setSearchQuery("");
+  };
 
   return (
     <div

@@ -3,9 +3,11 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import React, { useEffect, useRef } from "react";
+import { useSensorStore } from "../../stores/sensorStore";
 import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
 import { LayerControls } from "./LayerControls";
+import { SensorCoverageLayer } from "./SensorCoverageLayer";
 
 /**
  * MapView — real-time track display using MapLibre GL JS.
@@ -56,9 +58,9 @@ export const MapView: React.FC = () => {
     // Synchronous map update — reads freshest store state, uploads one GeoJSON blob.
     // No DOM element creation. All rendering happens on the GPU via MapLibre GL.
     const updateMapData = () => {
-      if (!mapRef.current) return;
       const map = mapRef.current;
       const currentTracks = useTrackStore.getState().tracks;
+      const currentSensors = useSensorStore.getState().rawObservations;
 
       // ── Track circles ────────────────────────────────────────────────────────
       // Build GeoJSON features for all current tracks.
@@ -115,6 +117,28 @@ export const MapView: React.FC = () => {
         haloSource.setData({
           type: "FeatureCollection",
           features: haloFeatures as any,
+        });
+      }
+
+      // ── Raw Sensor Observations ───────────────────────────────────────────────
+      const sensorFeatures = Array.from(currentSensors.values()).map((o) => ({
+        type: "Feature" as const,
+        geometry: {
+          type: "Point" as const,
+          coordinates: [o.longitude, o.latitude],
+        },
+        properties: {
+          observationId: o.observationId,
+          sensorType: o.sensorType,
+          isCorrelated: !!o.correlatedTrackId,
+        },
+      }));
+
+      const sensorsSource = map.getSource("raw-sensors");
+      if (sensorsSource) {
+        sensorsSource.setData({
+          type: "FeatureCollection",
+          features: sensorFeatures,
         });
       }
     };
@@ -328,11 +352,37 @@ export const MapView: React.FC = () => {
           });
 
           // Pointer cursor on hover to indicate interactivity
-          map.on("mouseenter", "tracks-circle", () => {
-            map.getCanvas().style.cursor = "pointer";
-          });
           map.on("mouseleave", "tracks-circle", () => {
             map.getCanvas().style.cursor = "";
+          });
+
+          // ── Raw Sensor Observations (Uncorrelated vs Correlated) ──────────
+          map.addSource("raw-sensors", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+
+          map.addLayer({
+            id: "raw-sensors-circle",
+            type: "circle",
+            source: "raw-sensors",
+            paint: {
+              "circle-radius": 3,
+              // Faded blue for correlated, bright cyan for uncorrelated
+              "circle-color": [
+                "case",
+                ["get", "isCorrelated"],
+                "#3B82F6",
+                "#06B6D4",
+              ],
+              "circle-opacity": [
+                "case",
+                ["get", "isCorrelated"],
+                0.3,
+                0.8,
+              ],
+              "circle-stroke-width": 0,
+            },
           });
 
           // ── Forensics Replay layer (MapReplay writes here) ────────────────
@@ -375,8 +425,9 @@ export const MapView: React.FC = () => {
           // Expose for E2E testing and devtools
           (window as unknown as Record<string, unknown>)["__RTSA_MAP__"] = map;
 
-          // Subscribe to store — RAF-throttled, one GPU upload per frame max.
+          // Subscribe to stores — RAF-throttled, one GPU upload per frame max.
           unsubscribeStore = useTrackStore.subscribe(scheduleMapUpdate);
+          useSensorStore.subscribe(scheduleMapUpdate); // Also trigger redraws when sensors update
 
           updateMapData();
         });
@@ -450,6 +501,7 @@ export const MapView: React.FC = () => {
           No tracks — awaiting data stream
         </div>
       )}
+      <SensorCoverageLayer />
       <LayerControls />
     </div>
   );
