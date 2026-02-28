@@ -8,6 +8,8 @@ const ROLES: { value: ActiveRole; label: string }[] = [
   { value: "commander", label: "Operations Commander" },
   { value: "security", label: "Security Officer" },
   { value: "analyst", label: "Intelligence Analyst" },
+  { value: "sensor_operator", label: "Sensor Operator" },
+  { value: "nato_liaison", label: "NATO Liaison" },
 ];
 
 /**

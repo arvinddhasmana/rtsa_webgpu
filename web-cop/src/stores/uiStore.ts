@@ -3,8 +3,9 @@
 
 import { create } from "zustand";
 
-export type Theme = "light" | "dark" | "nvg";
-export type ActiveRole = "commander" | "security" | "analyst";
+export type Theme = "light" | "dark" | "nvg" | "high-contrast";
+export type ActiveRole = "commander" | "security" | "analyst" | "sensor_operator" | "nato_liaison";
+export type DashboardView = "fusion" | "multi-domain" | "operator" | "forensics" | "audit" | "sensor-health" | "nato-exchange";
 export type LayerKey = "trackLabels" | "trackTrails" | "sensorCoverage" | "geofences" | "mgrsGrid";
 
 interface UIState {
@@ -21,6 +22,7 @@ interface UIState {
 
   theme: Theme;
   activeRole: ActiveRole;
+  activeDashboardView: DashboardView;
 
   layerVisibility: Record<LayerKey, boolean>;
 
@@ -37,6 +39,7 @@ interface UIState {
   toggleStaleTracks: () => void;
   setTheme: (theme: Theme) => void;
   setActiveRole: (role: ActiveRole) => void;
+  setDashboardView: (view: DashboardView) => void;
   toggleLayerVisibility: (layer: LayerKey) => void;
   openSearch: () => void;
   closeSearch: () => void;
@@ -58,6 +61,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   theme: "dark",
   activeRole: "commander",
+  activeDashboardView: "fusion",
   layerVisibility: {
     trackLabels: true,
     trackTrails: false,
@@ -81,6 +85,7 @@ export const useUIStore = create<UIState>((set) => ({
     set((s) => ({ showStaleTracksEnabled: !s.showStaleTracksEnabled })),
   setTheme: (theme) => set({ theme }),
   setActiveRole: (role) => set({ activeRole: role }),
+  setDashboardView: (view) => set({ activeDashboardView: view }),
   toggleLayerVisibility: (layer) =>
     set((s) => ({
       layerVisibility: {

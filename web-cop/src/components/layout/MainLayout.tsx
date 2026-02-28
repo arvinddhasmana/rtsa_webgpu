@@ -12,7 +12,9 @@ import { DetailPanel } from "../detail/DetailPanel";
 import { ForensicsPanel } from "../forensics/ForensicsPanel";
 import { MapView } from "../map/MapView";
 import { ClassificationBanner } from "./ClassificationBanner";
+import { CollapsiblePane } from "./CollapsiblePane";
 import { ConnectionIndicator } from "./ConnectionIndicator";
+import { DashboardSelector } from "./DashboardSelector";
 import { RoleSelector } from "./RoleSelector";
 import { SearchOverlay } from "./SearchOverlay";
 import { SensorHealthPanel } from "./SensorHealthPanel";
@@ -47,7 +49,7 @@ export const MainLayout: React.FC = () => {
   const openSearch = useUIStore((s) => s.openSearch);
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
-  const activeRole = useUIStore((s) => s.activeRole);
+  const activeDashboardView = useUIStore((s) => s.activeDashboardView);
   const toggleAlertPanel = useUIStore((s) => s.toggleAlertPanel);
 
   const operatorName = useAuthStore((s) => s.operatorName) || "Operator";
@@ -119,6 +121,7 @@ export const MainLayout: React.FC = () => {
         <ConnectionIndicator />
 
         <RoleSelector />
+        <DashboardSelector />
 
         <div style={{ flex: 1 }} />
 
@@ -161,109 +164,51 @@ export const MainLayout: React.FC = () => {
         </div>
       </div>
 
-      {/* Main content */}
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {activeRole === "security" ? (
-          <>
-            <div
-              data-testid="alert-panel"
-              style={{
-                width: "30%",
-                minWidth: "280px",
-                maxWidth: "420px",
-                backgroundColor: "#1E293B",
-                borderRight: "1px solid #334155",
-                overflow: "hidden",
-              }}
-              aria-label="Alert Panel"
-              role="region"
-              tabIndex={0}
-            >
-              <AlertPanel />
-            </div>
-            <div data-testid="audit-view" style={{ flex: 1, display: "flex", backgroundColor: "#0F172A", color: "#9CA3AF", alignItems: "center", justifyContent: "center" }}>
-              [Security Officer] Audit & Feedback Queue View
-            </div>
-          </>
-        ) : activeRole === "analyst" ? (
-          <>
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-              }}
-            >
-              <div style={{ flex: 1, overflow: "hidden" }} aria-label="Map View" role="region" tabIndex={0}>
-                <MapView />
-              </div>
-            </div>
-            <div data-testid="forensics-panel" style={{ width: "40%", backgroundColor: "#1E293B", borderLeft: "1px solid #334155", overflow: "auto" }}>
+      {/* Main content switched by dashboard view */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
+
+        {/* Placeholder routing logic for the Level 2 Dashboards */}
+        {activeDashboardView === "operator" ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Operator UI]</div>
+        ) : activeDashboardView === "fusion" ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Fusion Dashboard]</div>
+        ) : activeDashboardView === "multi-domain" ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Multi-Domain Dashboard]</div>
+        ) : activeDashboardView === "audit" ? (
+          <div data-testid="audit-view" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Security] Audit & Feedback Queue View</div>
+        ) : activeDashboardView === "forensics" ? (
+          <div style={{ flex: 1, display: "flex" }}>
+            <div style={{ flex: 1 }}><MapView /></div>
+            <CollapsiblePane title="Intelligence Forensics" width="40%" height="100%" direction="horizontal">
               <ForensicsPanel />
-            </div>
-          </>
+            </CollapsiblePane>
+          </div>
+        ) : activeDashboardView === "sensor-health" ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Sensor Health Dashboard]</div>
+        ) : activeDashboardView === "nato-exchange" ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[NATO Exchange Dashboard]</div>
         ) : (
+          /* Fallback generic layout (legacy-like) */
           <>
-            {/* Map + detail area */}
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                overflow: "hidden",
-              }}
-            >
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
               <div style={{ flex: 1, overflow: "hidden" }} aria-label="Map View" role="region" tabIndex={0}>
                 <MapView />
               </div>
               {detailPanelOpen && (
-                <div
-                  style={{
-                    height: "280px",
-                    backgroundColor: "#1E293B",
-                    borderTop: "1px solid #334155",
-                    overflow: "auto",
-                  }}
-                  aria-label="Detail Panel"
-                  role="region"
-                >
+                <CollapsiblePane title="Track Details" width="100%" height="280px" direction="vertical">
                   <DetailPanel />
-                </div>
+                </CollapsiblePane>
               )}
               {forensicsPanelOpen && (
-                <div
-                  style={{
-                    height: "360px",
-                    backgroundColor: "#1E293B",
-                    borderTop: "1px solid #334155",
-                    overflow: "auto",
-                  }}
-                  aria-label="Forensics Panel"
-                  role="region"
-                >
+                <CollapsiblePane title="Forensics" width="100%" height="360px" direction="vertical">
                   <ForensicsPanel />
-                </div>
+                </CollapsiblePane>
               )}
             </div>
 
-            {/* Alert panel (30% width) */}
-            <div
-              data-testid="alert-panel"
-              style={{
-                width: "30%",
-                minWidth: "280px",
-                maxWidth: "420px",
-                backgroundColor: "#1E293B",
-                borderLeft: "1px solid #334155",
-                overflow: "hidden",
-              }}
-              aria-label="Alert Panel"
-              role="region"
-              tabIndex={0}
-            >
+            <CollapsiblePane title="Alerts & Notifications" width="30%" height="100%" direction="horizontal">
               <AlertPanel />
-            </div>
+            </CollapsiblePane>
           </>
         )}
       </div>
