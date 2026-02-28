@@ -81,10 +81,15 @@ graph TB
 | FEAT-09 | Cyber Threat Indicator Ingestion | MUST | CR-ING-006, CR-ING-007..008 | UC007 | FEAT-03 |
 | FEAT-10 | Multi-Source Data Fusion | MUST | CR-FUS-001..007 | UC008 | FEAT-04..09 |
 | FEAT-11 | Anomaly Detection & Inference | MUST | CR-INF-001..007 | UC009 | FEAT-10 |
-| FEAT-12 | Operator Feedback & Trust Scoring | MUST | CR-FB-001..007 | UC010, UC011 | FEAT-11 |
-| FEAT-13 | Situational Awareness UI | MUST | CR-UI-001..008 | UC012 | FEAT-10, FEAT-11 |
-| FEAT-14 | Historical Analysis & Forensics | MUST | CR-HIS-001..007 | UC013 | FEAT-10, FEAT-11 |
+| FEAT-12 | Operator Feedback & Trust Scoring | MUST | CR-FB-001..008 | UC010, UC011 | FEAT-11 |
+| FEAT-13 | Situational Awareness UI — Two-Level RBAC Shell | MUST | CR-UI-001..020 | UC012 | FEAT-10, FEAT-11 |
+| FEAT-14 | Historical Analysis & Forensics | MUST | CR-HIS-001..009 | UC013 | FEAT-10, FEAT-11 |
 | FEAT-15 | NATO Data Exchange | MUST | CR-NATO-001..005 | UC014, UC015 | FEAT-10 |
+| FEAT-16 | Fusion Dashboard | MUST | CR-UI-011, CR-ING-011 | UC016 | FEAT-13, FEAT-04..09 |
+| FEAT-17 | Multi-Domain Dashboard | SHOULD | CR-UI-012, CR-ING-012 | UC012 | FEAT-13 |
+| FEAT-18 | Operator UI Dashboard | MUST | CR-UI-013..015, CR-FB-008 | UC010, UC012 | FEAT-13, FEAT-12 |
+| FEAT-19 | Sensor Health Dashboard | MUST | CR-UI-016, CR-ING-012 | UC017 | FEAT-13 |
+| FEAT-20 | Unified Event Timeline | MUST | CR-HIS-008 | UC013 | FEAT-14 |
 
 ## 3. Feature Details
 
@@ -226,6 +231,79 @@ graph TB
 - Send/receive NFFI entity reports
 - Classification mapping between NATO and GC levels
 - Cross-domain guard enforced at exchange boundary
+
+---
+
+### FEAT-16: Fusion Dashboard *(v2.0)*
+
+**Description**: Premium dashboard for Operations Commander — renders individual raw sensor observations (Radar ◇, EW △, SIGINT ◻) alongside fused tracks (●) to visualize the multi-source correlation process. Includes a collapsible `FusionSidePanel` with real-time active track counts, confidence score histograms, and sensor contribution metrics.
+
+**Components**: `FusionDashboard.tsx`, `FusionSidePanel.tsx`, `SensorObsLayer` (map), `useSensorStream` hook, `StreamSensorObservations` gRPC RPC (Track Service v2.0)
+
+**Acceptance Criteria**:
+- Raw sensor icons rendered on map with distinct shapes per sensor type
+- Fused tracks shown simultaneously with visual correlation line
+- `FusionSidePanel` shows active track count, top-5 confidence tracks, and sensor contribution chart
+- Classification filtering applied at the stream boundary
+- Bounding box filter limits observations to visible map extent
+
+---
+
+### FEAT-17: Multi-Domain Dashboard *(v2.0)*
+
+**Description**: Wide-angle situational awareness view showing all five entity domains (Air, Surface, Subsurface, Land, Cyber) with sensor coverage overlays and domain-specific KPI panels. Supports the Multi-Domain Operations (MDO) commander workflow.
+
+**Components**: `MultiDomainDashboard.tsx`, `DomainMetricsOverlay.tsx`, `SensorCoverageLayer.tsx`, `mv_active_tracks_by_domain` materialized view, `mv_sensor_throughput_5min` materialized view
+
+**Acceptance Criteria**:
+- Five-domain track breakdown rendered simultaneously
+- Sensor coverage polygons / fan sectors overlaid on map
+- Domain KPI panel shows track count, alert count, and sensor obs rate per domain
+- Materialized views refresh at ≤ 10-second intervals
+
+---
+
+### FEAT-18: Operator UI Dashboard *(v2.0)*
+
+**Description**: Mission-focused command dashboard for the duty operations officer. Features a blurred map background, a chronological event timeline correlated to the selected entity, and an alert panel with four quick-action buttons (`[Inspect]`, `[Confirm]`, `[Reject]`, `[Assign]`).
+
+**Components**: `OperatorDashboard.tsx`, `TimelineView.tsx`, `AlertCard.tsx` (v2.0 — quick-actions), `GetEventTimeline` gRPC RPC, `AssignAlert` gRPC RPC
+
+**Acceptance Criteria**:
+- Event timeline renders track state changes, anomaly detections, and operator feedback in chronological order
+- `[Confirm]` / `[Reject]` call `FeedbackService.SubmitFeedback` with appropriate type
+- `[Assign]` opens an operator picker and calls `AlertService.AssignAlert`
+- `[Inspect]` opens the Entity Detail Panel for the alert's track
+- Assignment produces an audit event
+
+---
+
+### FEAT-19: Sensor Health Dashboard *(v2.0)*
+
+**Description**: Dedicated dashboard for the Sensor Operator role. Displays per-sensor status cards (observation rate, last seen, connection status, data quality score) and a coverage map showing each sensor's geographic footprint.
+
+**Components**: `SensorHealthDashboard.tsx`, `SensorStatusCard.tsx`, `SensorCoverageLayer.tsx`, `ListSensorStatuses` gRPC RPC (extended `SensorCoverage` geometry)
+
+**Acceptance Criteria**:
+- All active sensors displayed as status cards
+- Each card shows: sensor ID, type, obs/sec, last observation time, data quality score
+- Coverage map overlays radar fan sectors, EW arcs, and ISR polygons
+- Card colour: green (connected), amber (stale > 30s), red (no data > 2 min)
+
+---
+
+### FEAT-20: Unified Event Timeline *(v2.0)*
+
+**Description**: Backend API enhancement to `QueryService` providing a single chronological timeline for a given `track_id`, aggregating track state changes, anomaly detections, operator feedback, and audit events via a ClickHouse `UNION ALL` query.
+
+**Components**: `GetEventTimeline` gRPC RPC (`svc-query`), `timeline.go` handler, ClickHouse `UNION ALL` across 4 tables
+
+**Acceptance Criteria**:
+- Returns events from all four ClickHouse tables for a given `track_id` and `time_range`
+- All events ordered by `event_time ASC`
+- Classification filter applied across all UNION ALL branches
+- Maximum events configurable (default 200, max 1000)
+- Response time < 2s for a 24-hour range
 
 ## 4. Implementation Priority
 

@@ -290,6 +290,9 @@ flowchart TD
 | CLS-06 | Source attribution stripped from NATO exports | NATO Adapter |
 | CLS-07 | Classification cannot be downgraded by operators | System-wide (immutable field) |
 | CLS-08 | Audit records inherit event classification | Audit Service |
+| CLS-09 | `StreamSensorObservations` only sends observations ≤ caller clearance | Track Service (v2.0) |
+| CLS-10 | `GetEventTimeline` injects `WHERE classification_level <= clearance` across all UNION ALL branches | Query Service (v2.0) |
+| CLS-11 | `AssignAlert` produces audit event with `actor_id`, `assignee_operator_id`, and alert classification | Alert Service (v2.0) |
 
 ---
 
@@ -360,7 +363,7 @@ flowchart LR
 |---|---|
 | Authentication | Login success/failure, certificate validation, session create/expire |
 | Data Access | Query execution (with parameters), track detail view, report generation |
-| Data Modification | Feedback submission, alert acknowledgment, track nomination |
+| Data Modification | Feedback submission, alert acknowledgment, alert assignment *(v2.0)*, track nomination |
 | Model Lifecycle | Training batch submitted, model candidate staged/promoted/rejected/rollback |
 | NATO Exchange | Inbound track ingested, outbound track exported, export blocked |
 | Security | Classification violation, anti-poisoning trigger, rate limit exceeded |

@@ -2,9 +2,9 @@
 # High-Level Architecture
 
 > **Document**: RTSA High-Level Architecture
-> **Version**: 1.0
+> **Version**: 2.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-28
 > **Compliance**: ITSG-33, NIST 800-53 Rev 5, NATO STANAG 5516
 
 ---
@@ -12,6 +12,8 @@
 ## 1. Executive Summary
 
 The Real-Time Situational Awareness & Risk Assessment (RTSA) system is an event-driven microservices platform that ingests multi-sensor data (Radar, EW/SIGINT, ELINT/COMINT, ISR, AIS/BFT, Cyber), fuses it into a unified track picture, applies AI-driven anomaly detection, and presents a real-time common operating picture (COP) to operators. Human-in-the-loop feedback drives model improvement. The system supports deployment at tactical edge (disconnected, resource-constrained) and data centre (full capacity) environments.
+
+**v2.0 Changes**: The v2.0 release delivers three premium mission-critical dashboard views (Fusion Dashboard, Multi-Domain Dashboard, Operator UI) through a Two-Level Role-Based shell supporting all five operator roles. Backend API enhancements include raw sensor observation streaming (`StreamSensorObservations`), unified event timeline aggregation (`GetEventTimeline`), alert assignment (`AssignAlert`), sensor coverage geometry, and three real-time ClickHouse materialized views.
 
 ---
 
@@ -131,6 +133,8 @@ C4Container
 | AP-06 | Graceful Degradation | Services degrade predictably under resource pressure. Shedding rules prioritize safety-critical data. |
 | AP-07 | NATO Interoperable | System can exchange data with allied systems using standard formats without custom integration. |
 | AP-08 | Observable | Every service emits structured logs, metrics, and traces via OpenTelemetry. |
+| AP-09 | Read-Model Separation | Premium dashboards requiring raw sensor data use dedicated consumer groups and read-models — never reaching into another service's write path. |
+| AP-10 | Role-Based Presentation | The COP UI enforces a Two-Level RBAC shell: Level 1 selects the operator role; Level 2 selects the dashboard view appropriate to that role. |
 
 ---
 
@@ -185,6 +189,22 @@ C4Container
 - Event sourcing via Redpanda provides complete audit trail and replay capability
 
 **Consequences**: Redpanda Connect materializes views into ClickHouse. Slight eventual consistency delay (< 5s) between write and read paths.
+
+### ADR-005: Two-Level RBAC Shell for COP UI *(v2.0)*
+
+**Decision**: The COP Web Application enforces a two-level role selection. Level 1 selects the operator role (Commander, Analyst, Security, Sensor Operator, NATO Liaison). Level 2 selects the dashboard view available to that role (Fusion / Multi-Domain / Operator for Commander; Forensics / Intel Search for Analyst; Audit & Feedback for Security; Sensor Health for Sensor Operator; NATO Exchange for NATO Liaison).
+
+**Rationale**: A single undifferentiated layout provides information overload and insufficient role specificity. Dedicated dashboard views surface the right data for each role, improving decision speed and reducing cognitive load.
+
+**Consequences**: `uiStore.ts` gains `activeDashboardView` state. `MainLayout.tsx` routes to role + view specific layout components. Role selector defaults each role to its primary dashboard on selection.
+
+### ADR-006: Raw Sensor Observation Read Model via Dual Consumer Group *(v2.0)*
+
+**Decision**: Expose raw pre-fusion `SensorObservation` data to the UI via a second consumer group (`track-svc-sensor-stream`) in `svc-track`, presenting a new `StreamSensorObservations` server-streaming RPC.
+
+**Rationale**: The Fusion Dashboard requires rendering individual sensor tracks (Radar ◇, EW △, SIGINT ◻) alongside fused tracks (●) to visualize the correlation process. This data exists in `sensors.*` Redpanda topics but was previously only consumed by the Fusion Engine. A dedicated read-model consumer preserves AP-01 (Event-Driven First) without coupling to the Fusion Engine.
+
+**Consequences**: `svc-track` gains a second consumer and handler. Classification filtering applies at the stream boundary — only observations ≤ caller's clearance level are forwarded. A bounding box and sensor-type filter allow the UI to receive only locally relevant observations.
 
 ---
 
@@ -290,8 +310,8 @@ flowchart LR
 | Anomaly Detection | AI/ML Inference | `tracks.fused.*` | `alerts.*` | Yes |
 | Feedback Service | Human Feedback | — | `feedback.*` | Yes |
 | Training Pipeline | AI/ML Training | `feedback.operator.validated` | `models.*` | No |
-| Track Service | Presentation | `tracks.fused.*` | — | Yes |
-| Alert Service | Presentation | `alerts.*` | — | Yes |
+| Track Service | Presentation | `tracks.fused.*`, `sensors.*` *(v2.0)* | — | Yes |
+| Alert Service | Presentation | `alerts.*` | `audit.*` *(AssignAlert v2.0)* | Yes |
 | Query Service | Analytics | — (ClickHouse) | — | Yes |
 | Audit Service | Governance | `*` (filtered) | `audit.*` | Yes |
 | Redpanda Connect | Data Pipeline | `*` | — (ClickHouse) | Yes (limited) |
@@ -346,12 +366,30 @@ flowchart LR
 | Event Streaming | Redpanda | 24.x | Event backbone, audit trail |
 | Services | Go | 1.22+ | All backend microservices |
 | RPC Framework | gRPC + Protobuf | proto3 | Type-safe inter-service communication |
-| OLAP Database | ClickHouse | 24.x | Historical analytics, forensics |
+| OLAP Database | ClickHouse | 24.x | Historical analytics, forensics, dashboard KPI views |
 | Data Pipeline | Redpanda Connect | 4.x | Stream-to-OLAP ETL |
-| Frontend | React + TypeScript | 18+ / 5+ | COP web application |
+| Frontend | React + TypeScript | 18+ / 5+ | COP web application — Two-Level RBAC shell |
 | Frontend Transport | gRPC-Web | — | Real-time streaming to browser |
+| Frontend Build | Vite | 5.x | Development server (port 5173) and production build |
 | Container Runtime | containerd | — | OCI-compliant container runtime |
 | Orchestration | Kubernetes / K3s | 1.29+ | Service orchestration |
 | Observability | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | — | Metrics, logs, traces |
 | Security | cosign, trivy, semgrep, gosec | — | Supply chain & code security |
 | Build | buf, golangci-lint, GitHub Actions | — | Build, lint, CI/CD |
+
+---
+
+## 11. v2.0 Change Summary
+
+| Area | Change | ADR |
+|---|---|---|
+| COP UI Architecture | Two-Level RBAC shell; 5 roles; 7 dashboard views | ADR-005 |
+| COP UI — Fusion Dashboard | Raw sensor icons alongside fused tracks; confidence metrics panel | ADR-006 |
+| COP UI — Multi-Domain Dashboard | Domain-split map; sensor coverage overlays; domain metrics | ADR-005 |
+| COP UI — Operator UI | Event timeline; alert quick-actions (`[Inspect]`/`[Confirm]`/`[Reject]`/`[Assign]`) | ADR-005 |
+| COP UI — Design System | Inter typography; CSS design tokens; glassmorphism panels; NVG theme | — |
+| Track Service | New `StreamSensorObservations` RPC; second Redpanda consumer group | ADR-006 |
+| Alert Service | New `AssignAlert` RPC; audit event on assignment | — |
+| Query Service | New `GetEventTimeline` RPC; UNION ALL across 4 ClickHouse tables | — |
+| Ingestion Service | Extended `SensorStatusResponse` with `SensorCoverage` geometry; new `ListSensorStatuses` RPC | — |
+| ClickHouse | Three new materialized views (`mv_active_tracks_by_domain`, `mv_sensor_throughput_5min`, `mv_alert_ack_latency`) | ADR-002 |

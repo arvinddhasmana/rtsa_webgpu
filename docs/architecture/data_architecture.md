@@ -2,9 +2,9 @@
 # Data Architecture
 
 > **Document**: RTSA Data Architecture
-> **Version**: 1.0
+> **Version**: 2.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-28
 > **Compliance**: ITSG-33, NIST 800-53 Rev 5
 
 ---
@@ -464,6 +464,64 @@ AS SELECT
     uniqExact(track_id) AS affected_tracks
 FROM anomaly_detections
 GROUP BY anomaly_type, severity, hour;
+```
+
+#### Active Tracks by Domain — 10-Second Granularity *(v2.0)*
+
+Feeds the Fusion Dashboard and Multi-Domain Dashboard real-time domain split KPIs.
+
+```sql
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_active_tracks_by_domain
+ENGINE = AggregatingMergeTree()
+ORDER BY (entity_type, ten_second_bucket)
+AS SELECT
+    entity_type,
+    toStartOfInterval(event_time, INTERVAL 10 SECOND) AS ten_second_bucket,
+    uniqExactState(track_id)  AS unique_tracks,
+    countState()              AS observation_count
+FROM tracks_fused
+WHERE track_status IN ('ACTIVE', 'NEW')
+GROUP BY entity_type, ten_second_bucket;
+```
+
+#### Sensor Throughput — 5-Minute Rolling *(v2.0)*
+
+Feeds the Multi-Domain Dashboard sensor observation rate panel by sensor type.
+
+```sql
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_sensor_throughput_5min
+ENGINE = AggregatingMergeTree()
+ORDER BY (sensor_type, sensor_id, five_min_bucket)
+AS SELECT
+    sensor_type,
+    sensor_id,
+    toStartOfFiveMinutes(event_time) AS five_min_bucket,
+    countState()                     AS observation_count
+FROM sensor_observations
+GROUP BY sensor_type, sensor_id, five_min_bucket;
+```
+
+#### Alert Acknowledgement Latency *(v2.0)*
+
+Feeds the Operator UI alert latency metrics panel.
+
+```sql
+CREATE MATERIALIZED VIEW IF NOT EXISTS mv_alert_ack_latency
+ENGINE = AggregatingMergeTree()
+ORDER BY (severity, hour)
+AS SELECT
+    severity,
+    toStartOfHour(event_time) AS hour,
+    countState()              AS alert_count,
+    avgState(
+        toUnixTimestamp(now()) - toUnixTimestamp(event_time)
+    )                         AS avg_ack_delay_seconds
+FROM anomaly_detections
+WHERE alert_id IN (
+    SELECT resource_id FROM audit_log
+    WHERE event_type = 'alert_acknowledged'
+)
+GROUP BY severity, hour;
 ```
 
 ---
