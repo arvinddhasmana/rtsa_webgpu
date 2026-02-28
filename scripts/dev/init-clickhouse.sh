@@ -92,11 +92,13 @@ CREATE TABLE IF NOT EXISTS sensor_observations
     observation_id       String,
     sensor_id            String,
     sensor_type          LowCardinality(String),
+    track_id             String DEFAULT '',
     latitude             Float64,
     longitude            Float64,
     altitude_meters      Float64,
     speed_knots          Float64,
     heading_degrees      Float64,
+    confidence           Float32 DEFAULT 0,
     classification_level LowCardinality(String),
     metadata_json        String,
     event_time           DateTime64(3, 'UTC'),
@@ -117,6 +119,7 @@ CREATE TABLE IF NOT EXISTS tracks_fused
     track_id               String,
     entity_type            LowCardinality(String),
     hostile_classification LowCardinality(String),
+    label                  String DEFAULT '',
     latitude               Float64,
     longitude              Float64,
     altitude_meters        Float64,
@@ -148,7 +151,8 @@ CREATE TABLE IF NOT EXISTS anomaly_detections
     severity             LowCardinality(String),
     confidence_score     Float32,
     explanation          String,
-    model_version        String,
+    model_version        String DEFAULT '',
+    alert_status         LowCardinality(String) DEFAULT 'ACTIVE',
     classification_level LowCardinality(String),
     event_time           DateTime64(3, 'UTC'),
     ingestion_time       DateTime64(3, 'UTC') DEFAULT now64(3)
@@ -194,6 +198,7 @@ CREATE TABLE IF NOT EXISTS operator_feedback
     feedback_id          String,
     track_id             String,
     operator_id          String,
+    alert_id             String DEFAULT '',
     feedback_type        LowCardinality(String),
     justification        String,
     trust_score          Float32,
@@ -230,9 +235,29 @@ apply_migration_files() {
     filename="$(basename "$sql_file")"
     log_info "  Applying migration: ${filename}"
 
-    ch_query_db "$(cat "$sql_file")" &>/dev/null \
-      && log_pass "  ${filename} — applied" \
-      || log_warn "  ${filename} — had warnings (may already be applied)"
+    # ClickHouse HTTP interface does not support multi-statement queries.
+    # Split the SQL file on semicolons and execute each statement individually.
+    local stmt_count=0
+    local stmt_errors=0
+    while IFS= read -r stmt; do
+      # Skip empty statements and comment-only statements
+      local trimmed
+      trimmed="$(echo "$stmt" | sed '/^[[:space:]]*$/d; /^[[:space:]]*--/d')"
+      [ -z "$trimmed" ] && continue
+
+      ch_query_db "$stmt" &>/dev/null \
+        && stmt_count=$(( stmt_count + 1 )) \
+        || stmt_errors=$(( stmt_errors + 1 ))
+    done < <(
+      # Remove SQL comments, then split on semicolons
+      sed 's/--.*$//' "$sql_file" | tr '\n' ' ' | sed 's/;/;\n/g'
+    )
+
+    if [ "$stmt_errors" -eq 0 ]; then
+      log_pass "  ${filename} — applied (${stmt_count} statement(s))"
+    else
+      log_warn "  ${filename} — ${stmt_count} applied, ${stmt_errors} had warnings (may already exist)"
+    fi
 
     applied=$(( applied + 1 ))
   done < <(find "$MIGRATIONS_DIR" -name "*.sql" -print0 | sort -z)
