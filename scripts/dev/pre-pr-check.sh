@@ -105,8 +105,8 @@ gate_1_pre_build() {
   fi
 
   # TypeScript formatting (prettier check)
-  if [ -d "${REPO_ROOT}/ui" ] && command -v pnpm &>/dev/null; then
-    if (cd "${REPO_ROOT}/ui" && pnpm prettier --check . 2>/dev/null); then
+  if [ -d "${REPO_ROOT}/web-cop" ] && command -v pnpm &>/dev/null; then
+    if (cd "${REPO_ROOT}/web-cop" && pnpm prettier --check . 2>/dev/null); then
       log_pass "TypeScript formatting (prettier) — all files formatted"
     else
       log_fail "TypeScript formatting (prettier) — files need formatting. Run: pnpm prettier --write ."
@@ -154,8 +154,8 @@ gate_2_build() {
   fi
 
   # TypeScript compilation
-  if [ -d "${REPO_ROOT}/ui" ] && command -v pnpm &>/dev/null; then
-    if (cd "${REPO_ROOT}/ui" && pnpm tsc --noEmit 2>/dev/null); then
+  if [ -d "${REPO_ROOT}/web-cop" ] && command -v pnpm &>/dev/null; then
+    if (cd "${REPO_ROOT}/web-cop" && pnpm tsc --noEmit 2>/dev/null); then
       log_pass "TypeScript compilation (tsc) — no errors"
     else
       log_fail "TypeScript compilation (tsc) — type errors found"
@@ -194,8 +194,8 @@ gate_3_test() {
   fi
 
   # Frontend tests
-  if [ -d "${REPO_ROOT}/ui" ] && command -v pnpm &>/dev/null; then
-    if (cd "${REPO_ROOT}/ui" && pnpm test --coverage --run 2>/dev/null); then
+  if [ -d "${REPO_ROOT}/web-cop" ] && command -v pnpm &>/dev/null; then
+    if (cd "${REPO_ROOT}/web-cop" && pnpm test --coverage --run 2>/dev/null); then
       log_pass "Frontend unit tests (vitest) — PASSED"
     else
       log_fail "Frontend unit tests (vitest) — FAILED"
@@ -272,12 +272,12 @@ gate_4_security() {
   fi
 
   # npm audit — frontend dependencies
-  if [ -d "${REPO_ROOT}/ui" ] && command -v pnpm &>/dev/null; then
-    if (cd "${REPO_ROOT}/ui" && pnpm audit --audit-level=high 2>/dev/null); then
+  if [ -d "${REPO_ROOT}/web-cop" ] && command -v pnpm &>/dev/null; then
+    if (cd "${REPO_ROOT}/web-cop" && pnpm audit --audit-level=high 2>/dev/null); then
       log_pass "Frontend dependency audit (npm audit) — no HIGH/CRITICAL vulnerabilities"
     else
       log_fail "Frontend dependency audit — HIGH or CRITICAL vulnerabilities found"
-      log_info "  Run: cd ui && pnpm audit --fix"
+      log_info "  Run: cd web-cop && pnpm audit --fix"
     fi
   fi
 }

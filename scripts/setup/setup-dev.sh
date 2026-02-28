@@ -548,9 +548,9 @@ setup_go_modules() {
 setup_frontend() {
   log_step "Setting up frontend dependencies"
 
-  local ui_dir="${REPO_ROOT}/ui"
+  local ui_dir="${REPO_ROOT}/web-cop"
   if [ ! -d "$ui_dir" ]; then
-    log_info "No ui/ directory found yet — skipping frontend setup"
+    log_info "No web-cop/ directory found yet — skipping frontend setup"
     return
   fi
 

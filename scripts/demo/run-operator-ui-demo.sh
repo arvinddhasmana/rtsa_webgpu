@@ -42,7 +42,7 @@ run_cmd() {
 cd "$PROJECT_ROOT"
 
 echo -e "${CYAN}=== RTSA Operator UI Demo — Starting infrastructure ===${NC}"
-run_cmd "docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d --wait"
+run_cmd "docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d --build --wait"
 
 echo -e "${CYAN}=== Waiting for services to stabilise (30s) ===${NC}"
 run_cmd "sleep 30"

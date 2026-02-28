@@ -125,7 +125,7 @@ if [ "$RUN_SETUP" = "true" ]; then
 fi
 
 echo -e "${CYAN}[2/4] Starting infrastructure and services...${NC}"
-run_cmd "docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d --wait"
+run_cmd "docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d --build --wait"
 run_cmd "bash scripts/dev/init-topics.sh"
 run_cmd "bash scripts/dev/init-clickhouse.sh"
 
