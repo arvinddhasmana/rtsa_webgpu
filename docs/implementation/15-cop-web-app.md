@@ -14,6 +14,8 @@
 
 Implement the Common Operating Picture (COP) Web Application — a React 18 + TypeScript 5 single-page application that provides real-time situational awareness to military operators. The app connects to backend services via gRPC-Web through the Envoy API Gateway.
 
+**v2.0 Enhancement**: Implement the Two-Level RBAC shell supporting all five operator roles (Commander, Analyst, Security, Sensor Operator, NATO Liaison), three premium dashboard views (Fusion, Multi-Domain, Operator UI), and a modern glassmorphism design system using Inter typography and CSS custom properties.
+
 **Acceptance Criteria**:
 
 - Real-time map view with track plotting (MapLibre GL JS)
@@ -27,6 +29,14 @@ Implement the Common Operating Picture (COP) Web Application — a React 18 + Ty
 - Responsive layout for large-screen operator workstations
 - Classification banner on ALL views
 - ≥80% line coverage (Vitest)
+- **v2.0**: Two-Level RBAC shell — `RoleSelector` (Level 1) + `DashboardSelector` (Level 2)
+- **v2.0**: All 5 roles in `RoleSelector`; `uiStore` extended with `activeDashboardView`
+- **v2.0**: `FusionDashboard`, `OperatorDashboard` layout components
+- **v2.0**: `useSensorStream` hook for `StreamSensorObservations`
+- **v2.0**: Alert quick-actions: `[Inspect]`, `[Confirm]`, `[Reject]`, `[Assign]`
+- **v2.0**: `EntityTimeline` sub-component using `GetEventTimeline` RPC
+- **v2.0**: Inter font + CSS design token system + NVG theme
+- **v2.0**: Dev server on port **5173** (Vite default)
 
 ---
 

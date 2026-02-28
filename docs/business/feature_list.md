@@ -3,8 +3,8 @@
 
 > **Project**: Real-Time Situational Awareness & Risk Assessment (RTSA)
 > **Classification**: UNCLASSIFIED
-> **Version**: 1.0
-> **Last Updated**: 2026-02-23
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 

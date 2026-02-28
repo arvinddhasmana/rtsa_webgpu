@@ -2,9 +2,9 @@
 # Deployment Architecture
 
 > **Document**: RTSA Deployment Architecture
-> **Version**: 1.0
+> **Version**: 2.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-28
 > **Compliance**: ITSG-33, NIST 800-53 Rev 5
 
 ---
@@ -413,7 +413,7 @@ flowchart LR
 | Redpanda | TCP :9092 / 10s | HTTP :9644/v1/status/ready / 5s | TCP :9092 / 60s |
 | ClickHouse | TCP :9440 / 10s | HTTP :8443/ping / 5s | TCP :9440 / 120s |
 | API Gateway | HTTP :8080/healthz / 10s | HTTP :8080/ready / 5s | HTTP :8080/healthz / 30s |
-| COP Web App | HTTP :3000/ / 30s | HTTP :3000/ / 10s | HTTP :3000/ / 30s |
+| COP Web App | HTTP :5173/ / 30s | HTTP :5173/ / 10s | HTTP :5173/ / 30s |
 
 ---
 

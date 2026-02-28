@@ -2,9 +2,9 @@
 # Security Architecture
 
 > **Document**: RTSA Security Architecture
-> **Version**: 1.0
+> **Version**: 2.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-28
 > **Compliance**: ITSG-33 (CCCS), NIST 800-53 Rev 5, NATO STANAG 5516
 
 ---

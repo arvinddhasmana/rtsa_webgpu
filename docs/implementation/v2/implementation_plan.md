@@ -1,3 +1,4 @@
+<!-- CLASSIFICATION: UNCLASSIFIED -->
 # RTSA Dashboard UI Modernization — Implementation Plan
 
 > Lead Architect Review | 2026-02-27

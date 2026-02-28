@@ -2,9 +2,9 @@
 # Dependency Graph
 
 > **Document**: RTSA System Dependency Graph
-> **Version**: 1.0
+> **Version**: 2.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -426,10 +426,14 @@ flowchart TD
 | Requirement Group | Features | Components | Use Cases |
 |---|---|---|---|
 | CR-ING (Ingestion) | FEAT-01..06 | 6 Ingestion Services, Wasm Transforms | UC001..UC007 |
+| CR-ING-011..012 *(v2.0)* | FEAT-16, FEAT-19 | Track Service (`StreamSensorObservations`), Ingestion Service (`ListSensorStatuses` + `SensorCoverage`) | UC016, UC017 |
 | CR-FUS (Fusion) | FEAT-07 | Fusion Engine | UC008 |
 | CR-INF (Inference) | FEAT-08 | Anomaly Detection Service | UC009 |
 | CR-FB (Feedback) | FEAT-12, FEAT-13 | Feedback Service, Training Pipeline | UC010, UC011 |
-| CR-UI (User Interface) | FEAT-09, FEAT-10, FEAT-11 | Track/Alert/Query Services, Gateway, COP UI | UC012, UC013 |
-| CR-HIS (Historical) | FEAT-14 | Query Service, ClickHouse, Redpanda Connect | UC013 |
+| CR-FB-008 *(v2.0)* | FEAT-18 | Alert Service (`AssignAlert`) | UC010 |
+| CR-UI (User Interface) | FEAT-13, FEAT-16..19 | Track/Alert/Query Services, Gateway, COP UI (Two-Level RBAC Shell) | UC012, UC016, UC017 |
+| CR-UI-009..020 *(v2.0)* | FEAT-13, FEAT-16..19 | `uiStore`, `RoleSelector`, `DashboardSelector`, `FusionDashboard`, `MultiDomainDashboard`, `OperatorDashboard`, `SensorHealthDashboard` | UC012, UC016, UC017 |
+| CR-HIS (Historical) | FEAT-14, FEAT-20 | Query Service, ClickHouse, Redpanda Connect | UC013 |
+| CR-HIS-008..009 *(v2.0)* | FEAT-20 | Query Service (`GetEventTimeline`), ClickHouse materialized views | UC013 |
 | CR-NATO (Interop) | FEAT-15 | NATO Adapter, Cross-Domain Guard | UC014, UC015 |
 | CR-SEC (Security) | All features | All services (cross-cutting) | All use cases |

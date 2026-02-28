@@ -4,8 +4,8 @@
 
 > **CLASSIFICATION: UNCLASSIFIED**
 > **Audience**: Operations Commanders, Watch Officers
-> **Version**: 1.0
-> **Last Updated**: 2026-02-26
+> **Version**: 2.0
+> **Last Updated**: 2026-02-28
 
 ---
 
@@ -179,6 +179,47 @@ You can replay the map at any previous point in time using the **Timeline Scrubb
 3. Press **▶ Play** — the map animates historical positions
 
 > This feature queries the historical database. It may take a moment for the data to load, especially for long time ranges.
+
+---
+
+## Dashboard Views for Operations Commander *(v2.0)*
+
+As Operations Commander, you have access to three dedicated dashboard views from the Level-2 dashboard selector:
+
+### 🔗 Fusion Dashboard (Default)
+
+The Fusion Dashboard is your primary operational view. It shows both fused tracks and the individual raw sensor observations that contributed to each track. This lets you see **how the intelligence picture is built** from multiple sources.
+
+| Map Element | What It Means |
+|---|---|
+| ● Filled circle (coloured by hostile status) | Fused entity track — confirmed from multiple sensors |
+| ◇ Cyan diamond | Raw radar plot — pre-fusion sensor detection |
+| △ Amber triangle | EW/SIGINT intercept — electronic warfare detection |
+| ◻ Purple square | ELINT/COMINT detection — emitter or communications intercept |
+| ▲ Blue solid triangle | AIS/BFT position — maritime or blue force report |
+| ⬟ Orange pentagon | ISR observation — imagery intelligence metadata |
+
+The **Fusion Side Panel** (right side) shows:
+- Active track count per domain (Air / Surface / Sub / Land / Cyber)
+- Confidence score histogram across all active tracks
+- Top-5 lowest-confidence tracks (review these)
+- Sensor observation rate and correlation success rate
+
+### 🌐 Multi-Domain Dashboard
+
+The Multi-Domain Dashboard provides a wide-angle view of the entire operational area across all five entity domains. Sensor coverage overlays show which areas of the map are actively monitored.
+
+**Use this when**: You need to assess sensor gaps, understand domain-level activity balance, or brief leadership on the operational picture.
+
+### 🎯 Operator UI Dashboard
+
+The Operator UI is the duty officer's action dashboard. It focuses on what **you need to decide right now**:
+
+- **Map** (left, blurred background) — current entity positions
+- **Event Timeline** (centre) — chronological sequence of events for the selected entity
+- **Alert Panel** (right) — active alerts sorted by severity with `[Inspect]` / `[Confirm]` / `[Reject]` / `[Assign]` quick-actions
+
+**Use this when**: You are the duty officer managing an active incident or elevated threat situation.
 
 ---
 
