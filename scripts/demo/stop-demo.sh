@@ -1,12 +1,22 @@
-#!/usr/bin/env bash
 # CLASSIFICATION: UNCLASSIFIED
+#!/usr/bin/env bash
 # scripts/demo/stop-demo.sh
-# Stop RTSA demo services with flexible options
+# Stop RTSA demo services with flexible scope options (v2.0).
+#
 # Usage: bash scripts/demo/stop-demo.sh [OPTIONS]
-#   Options: --live-feed (default), --containers, --volumes
-#   If no options are provided, defaults to stopping only the live-feed container.
+#
+# Options:
+#   --live-feed   Stop only the live-feed / simulator containers (default if no option given)
+#   --containers  Stop all demo containers (docker compose down)
+#   --volumes     Stop all containers and remove Docker volumes (full reset)
+#   -h, --help    Show this help
 
 set -euo pipefail
+
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
 
 usage() {
   cat <<'USAGE'
@@ -16,19 +26,27 @@ Usage:
   bash scripts/demo/stop-demo.sh [OPTIONS]
 
 Options:
-  --live-feed   Stop only the live-feed container (default).
-  --containers   Stop all demo containers.
-  --volumes     Stop all containers and remove Docker volumes.
-  -h, --help    Show this help message.
+  --live-feed    Stop only the live-feed / simulator containers (default).
+  --containers   Stop all demo containers (docker compose down).
+  --volumes      Stop all containers and remove Docker volumes (full teardown).
+  -h, --help     Show this help message.
+
+Examples:
+  bash scripts/demo/stop-demo.sh                  # Stop simulators only (default)
+  bash scripts/demo/stop-demo.sh --containers     # Stop all containers
+  bash scripts/demo/stop-demo.sh --volumes        # Full teardown including volumes
 USAGE
 }
 
-# Default behavior flags
-STOP_LIVE_FEED=true
+STOP_LIVE_FEED=false
 STOP_CONTAINERS=false
 STOP_VOLUMES=false
 
-# Parse arguments
+# Default: if no flags given, stop live-feed only
+if [ "$#" -eq 0 ]; then
+  STOP_LIVE_FEED=true
+fi
+
 while [[ "$#" -gt 0 ]]; do
   case "$1" in
     --live-feed)
@@ -57,21 +75,34 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$PROJECT_ROOT"
 
-echo "=== Stopping RTSA services ==="
+COMPOSE_ARGS="-f deploy/docker-compose.yml -f deploy/docker-compose.services.yml"
+
+echo -e "${CYAN}=== Stopping RTSA demo services ===${NC}"
 
 if $STOP_LIVE_FEED; then
-  echo "Stopping live-feed container only..."
-  docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml stop live-feed || true
+  echo -e "${CYAN}Stopping simulator / live-feed containers...${NC}"
+  # Stop simulator and live-feed containers specifically; tolerate missing containers
+  docker compose ${COMPOSE_ARGS} stop simulator live-feed 2>/dev/null || true
+  echo -e "${GREEN}[v]${NC} Simulator and live-feed stopped"
+  echo ""
+  echo "  Note: Infrastructure services (Redpanda, ClickHouse, microservices) are still running."
+  echo "  The UI at http://localhost:5173 remains accessible."
+  echo "  To stop everything: bash scripts/demo/stop-demo.sh --containers"
 fi
 
 if $STOP_CONTAINERS; then
-  echo "Stopping all demo containers..."
-  docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml down
+  echo -e "${CYAN}Stopping all demo containers...${NC}"
+  docker compose ${COMPOSE_ARGS} down
+  echo -e "${GREEN}[v]${NC} All containers stopped"
 fi
 
 if $STOP_VOLUMES; then
-  echo "Removing Docker volumes..."
-  docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml down -v
+  echo -e "${CYAN}Removing all containers and Docker volumes (full teardown)...${NC}"
+  docker compose ${COMPOSE_ARGS} down -v
+  echo -e "${GREEN}[v]${NC} Full teardown complete — all containers and volumes removed"
+  echo ""
+  echo "  To restart from scratch:"
+  echo "    bash scripts/demo/run-demo.sh multi-domain --setup --seed"
 fi
 
-echo "=== Demo stop script completed ==="
+echo -e "${GREEN}=== Demo stop script completed ===${NC}"
