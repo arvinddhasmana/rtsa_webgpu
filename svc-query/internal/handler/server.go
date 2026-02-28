@@ -20,19 +20,20 @@ auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
 
 // QueryServer implements the queryv1.QueryServiceServer interface.
 type QueryServer struct {
-queryv1.UnimplementedQueryServiceServer
-tracksRepo  *repository.TracksRepository
-anomalyRepo *repository.AnomalyRepository
-auditRepo   *repository.AuditRepository
-guardrail   *domain.QueryGuardrail
-auditEmitter AuditEmitter
-pageSize    int
-logger      *zap.Logger
+	queryv1.UnimplementedQueryServiceServer
+	tracksRepo   *repository.TracksRepository
+	anomalyRepo  *repository.AnomalyRepository
+	auditRepo    *repository.AuditRepository
+	timelineRepo *repository.TimelineRepository
+	guardrail    *domain.QueryGuardrail
+	auditEmitter AuditEmitter
+	pageSize     int
+	logger       *zap.Logger
 }
 
 // AuditEmitter is a minimal interface for emitting audit events.
 type AuditEmitter interface {
-Emit(ctx context.Context, eventType, resourceType, resourceID string)
+	Emit(ctx context.Context, eventType, resourceType, resourceID string)
 }
 
 // logAuditEmitter adapts pkg/audit.Emitter to the handler.AuditEmitter interface.
@@ -40,38 +41,40 @@ Emit(ctx context.Context, eventType, resourceType, resourceID string)
 type logAuditEmitter struct{ emitter *audit.Emitter }
 
 func (l *logAuditEmitter) Emit(ctx context.Context, eventType, resourceType, resourceID string) {
-l.emitter.Emit(ctx, audit.AuditParams{
-EventType:    eventType,
-ResourceType: resourceType,
-ResourceID:   resourceID,
-Action:       auditv1.AuditAction_AUDIT_ACTION_READ,
-})
+	l.emitter.Emit(ctx, audit.AuditParams{
+		EventType:    eventType,
+		ResourceType: resourceType,
+		ResourceID:   resourceID,
+		Action:       auditv1.AuditAction_AUDIT_ACTION_READ,
+	})
 }
 
 // NewQueryServer creates a new gRPC query server.
 func NewQueryServer(
-tracksRepo *repository.TracksRepository,
-anomalyRepo *repository.AnomalyRepository,
-auditRepo *repository.AuditRepository,
-guardrail *domain.QueryGuardrail,
-pageSize int,
-logger *zap.Logger,
+	tracksRepo *repository.TracksRepository,
+	anomalyRepo *repository.AnomalyRepository,
+	auditRepo *repository.AuditRepository,
+	timelineRepo *repository.TimelineRepository,
+	guardrail *domain.QueryGuardrail,
+	pageSize int,
+	logger *zap.Logger,
 ) *QueryServer {
-return &QueryServer{
-tracksRepo:   tracksRepo,
-anomalyRepo:  anomalyRepo,
-auditRepo:    auditRepo,
-guardrail:    guardrail,
-auditEmitter: &logAuditEmitter{emitter: audit.NewLogEmitter(logger)},
-pageSize:     pageSize,
-logger:       logger,
-}
+	return &QueryServer{
+		tracksRepo:   tracksRepo,
+		anomalyRepo:  anomalyRepo,
+		auditRepo:    auditRepo,
+		timelineRepo: timelineRepo,
+		guardrail:    guardrail,
+		auditEmitter: &logAuditEmitter{emitter: audit.NewLogEmitter(logger)},
+		pageSize:     pageSize,
+		logger:       logger,
+	}
 }
 
 // QueryTracks handles historical track queries from ClickHouse.
 func (s *QueryServer) QueryTracks(
-ctx context.Context,
-req *queryv1.QueryTracksRequest,
+	ctx context.Context,
+	req *queryv1.QueryTracksRequest,
 ) (*queryv1.QueryTracksResponse, error) {
 if err := s.guardrail.ValidateTimeRange(
 req.GetTimeRange().GetStartTime(),

@@ -50,6 +50,7 @@ func main() {
 	tracksRepo := repository.NewTracksRepository(chClient)
 	anomalyRepo := repository.NewAnomalyRepository(chClient)
 	auditRepo := repository.NewAuditRepository(chClient)
+	timelineRepo := repository.NewTimelineRepository(chClient.Conn())
 
 	// ─── Domain guardrail ────────────────────────────────────────────────────
 	guardrail := domain.NewQueryGuardrail(
@@ -60,7 +61,7 @@ func main() {
 
 	// ─── gRPC handler ────────────────────────────────────────────────────────
 	querySrv := handler.NewQueryServer(
-		tracksRepo, anomalyRepo, auditRepo,
+		tracksRepo, anomalyRepo, auditRepo, timelineRepo,
 		guardrail, cfg.DefaultPageSize, zapLogger,
 	)
 

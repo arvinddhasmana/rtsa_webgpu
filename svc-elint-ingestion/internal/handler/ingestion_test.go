@@ -26,7 +26,7 @@ validator := domain.NewValidator()
 normalizer := domain.NewNormalizer()
 guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET)
 enricher := mapper.NewEnricher("svc-elint-ingestion", guard)
-return handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger)
+return handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
 }
 
 func validObservation(sensorID string) *ingestionv1.SensorObservation {
@@ -79,7 +79,7 @@ validator := domain.NewValidator()
 normalizer := domain.NewNormalizer()
 guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
 enricher := mapper.NewEnricher("svc-elint-ingestion", guard)
-h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger)
+h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
 
 obs := validObservation("ELINT-001")
 obs.Classification = commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET

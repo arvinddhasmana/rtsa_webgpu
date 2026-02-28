@@ -153,39 +153,88 @@ Rejections:    rejections,
 
 // GetSensorStatus returns statistics for a sensor.
 func (h *Handler) GetSensorStatus(ctx context.Context, req *ingestionv1.GetSensorStatusRequest) (*ingestionv1.SensorStatusResponse, error) {
-sensorID := req.GetSensorId()
-v, ok := h.stats.Load(sensorID)
-if !ok {
-return &ingestionv1.SensorStatusResponse{
-SensorId:  sensorID,
-Connected: false,
-}, nil
-}
-s := v.(*sensorStats)
-s.mu.Lock()
-lastSeen := s.lastSeen
-s.mu.Unlock()
-return &ingestionv1.SensorStatusResponse{
-SensorId:            sensorID,
-SensorType:          commonv1.SensorType(0),
-Connected:           true,
-TotalReceived:       atomic.LoadInt64(&s.totalReceived),
-TotalAccepted:       atomic.LoadInt64(&s.totalAccepted),
-TotalRejected:       atomic.LoadInt64(&s.totalRejected),
-LastObservationTime: timestamppb.New(lastSeen),
-}, nil
+	sensorID := req.GetSensorId()
+	v, ok := h.stats.Load(sensorID)
+	if !ok {
+		return &ingestionv1.SensorStatusResponse{
+			SensorId:  sensorID,
+			Connected: false,
+		}, nil
+	}
+	s := v.(*sensorStats)
+	s.mu.Lock()
+	lastSeen := s.lastSeen
+	s.mu.Unlock()
+	resp := &ingestionv1.SensorStatusResponse{
+		SensorId:            sensorID,
+		SensorType:          commonv1.SensorType(0),
+		Connected:           true,
+		TotalReceived:       atomic.LoadInt64(&s.totalReceived),
+		TotalAccepted:       atomic.LoadInt64(&s.totalAccepted),
+		TotalRejected:       atomic.LoadInt64(&s.totalRejected),
+		LastObservationTime: timestamppb.New(lastSeen),
+	}
+
+	if h.cfg.Coverage != nil {
+		resp.Coverage = h.cfg.Coverage
+	}
+
+	return resp, nil
 }
 
 func (h *Handler) updateStats(sensorID string, accepted bool) {
-v, _ := h.stats.LoadOrStore(sensorID, &sensorStats{})
-s := v.(*sensorStats)
-atomic.AddInt64(&s.totalReceived, 1)
-if accepted {
-atomic.AddInt64(&s.totalAccepted, 1)
-} else {
-atomic.AddInt64(&s.totalRejected, 1)
+	v, _ := h.stats.LoadOrStore(sensorID, &sensorStats{})
+	s := v.(*sensorStats)
+	atomic.AddInt64(&s.totalReceived, 1)
+	if accepted {
+		atomic.AddInt64(&s.totalAccepted, 1)
+	} else {
+		atomic.AddInt64(&s.totalRejected, 1)
+	}
+	s.mu.Lock()
+	s.lastSeen = time.Now()
+	s.mu.Unlock()
 }
-s.mu.Lock()
-s.lastSeen = time.Now()
-s.mu.Unlock()
+
+// ListSensorStatuses returns a list of all active sensor statistics.
+func (h *Handler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListSensorStatusesRequest) (*ingestionv1.ListSensorStatusesResponse, error) {
+	var sensors []*ingestionv1.SensorStatusResponse
+	now := time.Now()
+
+	h.stats.Range(func(key, value any) bool {
+		sensorID := key.(string)
+		s := value.(*sensorStats)
+
+		s.mu.Lock()
+		lastSeen := s.lastSeen
+		s.mu.Unlock()
+
+		// Apply active_within_seconds filter if specified
+		if req.ActiveWithinSeconds > 0 {
+			if now.Sub(lastSeen).Seconds() > float64(req.ActiveWithinSeconds) {
+				return true // Continue iteration
+			}
+		}
+
+		statusResponse := &ingestionv1.SensorStatusResponse{
+			SensorId:            sensorID,
+			SensorType:          commonv1.SensorType(0), // Would map from config
+			Connected:           true,
+			TotalReceived:       atomic.LoadInt64(&s.totalReceived),
+			TotalAccepted:       atomic.LoadInt64(&s.totalAccepted),
+			TotalRejected:       atomic.LoadInt64(&s.totalRejected),
+			LastObservationTime: timestamppb.New(lastSeen),
+		}
+
+		if h.cfg.Coverage != nil {
+			statusResponse.Coverage = h.cfg.Coverage
+		}
+
+		sensors = append(sensors, statusResponse)
+		return true
+	})
+
+	return &ingestionv1.ListSensorStatusesResponse{
+		Sensors: sensors,
+	}, nil
 }

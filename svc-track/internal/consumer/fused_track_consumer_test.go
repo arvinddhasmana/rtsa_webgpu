@@ -11,7 +11,7 @@ import (
 	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // mockTrackPutter records Put calls for test assertions.
@@ -39,9 +39,9 @@ func TestHandleRecord_ValidTrack(t *testing.T) {
 		ConfidenceScore: 0.9,
 		Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
 	}
-	payload, err := proto.Marshal(track)
+	payload, err := protojson.Marshal(track)
 	if err != nil {
-		t.Fatalf("proto.Marshal: %v", err)
+		t.Fatalf("protojson.Marshal: %v", err)
 	}
 
 	record := &kgo.Record{
@@ -91,9 +91,9 @@ func TestHandleRecord_EmptyTrackID(t *testing.T) {
 		TrackId:    "", // empty — invalid
 		EntityType: commonv1.EntityType_ENTITY_TYPE_SURFACE,
 	}
-	payload, err := proto.Marshal(track)
+	payload, err := protojson.Marshal(track)
 	if err != nil {
-		t.Fatalf("proto.Marshal: %v", err)
+		t.Fatalf("protojson.Marshal: %v", err)
 	}
 
 	record := &kgo.Record{Topic: "tracks.fused.surface", Offset: 3, Value: payload}

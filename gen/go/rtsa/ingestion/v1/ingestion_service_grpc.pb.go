@@ -24,6 +24,7 @@ const (
 	IngestionService_IngestSensorData_FullMethodName        = "/rtsa.ingestion.v1.IngestionService/IngestSensorData"
 	IngestionService_IngestSingleObservation_FullMethodName = "/rtsa.ingestion.v1.IngestionService/IngestSingleObservation"
 	IngestionService_GetSensorStatus_FullMethodName         = "/rtsa.ingestion.v1.IngestionService/GetSensorStatus"
+	IngestionService_ListSensorStatuses_FullMethodName      = "/rtsa.ingestion.v1.IngestionService/ListSensorStatuses"
 )
 
 // IngestionServiceClient is the client API for IngestionService service.
@@ -43,6 +44,9 @@ type IngestionServiceClient interface {
 	// Unary: query sensor status
 	// Deadline: 5s
 	GetSensorStatus(ctx context.Context, in *GetSensorStatusRequest, opts ...grpc.CallOption) (*SensorStatusResponse, error)
+	// Unary: get status of all known sensors
+	// Deadline: 10s
+	ListSensorStatuses(ctx context.Context, in *ListSensorStatusesRequest, opts ...grpc.CallOption) (*ListSensorStatusesResponse, error)
 }
 
 type ingestionServiceClient struct {
@@ -86,6 +90,16 @@ func (c *ingestionServiceClient) GetSensorStatus(ctx context.Context, in *GetSen
 	return out, nil
 }
 
+func (c *ingestionServiceClient) ListSensorStatuses(ctx context.Context, in *ListSensorStatusesRequest, opts ...grpc.CallOption) (*ListSensorStatusesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSensorStatusesResponse)
+	err := c.cc.Invoke(ctx, IngestionService_ListSensorStatuses_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IngestionServiceServer is the server API for IngestionService service.
 // All implementations should embed UnimplementedIngestionServiceServer
 // for forward compatibility.
@@ -103,6 +117,9 @@ type IngestionServiceServer interface {
 	// Unary: query sensor status
 	// Deadline: 5s
 	GetSensorStatus(context.Context, *GetSensorStatusRequest) (*SensorStatusResponse, error)
+	// Unary: get status of all known sensors
+	// Deadline: 10s
+	ListSensorStatuses(context.Context, *ListSensorStatusesRequest) (*ListSensorStatusesResponse, error)
 }
 
 // UnimplementedIngestionServiceServer should be embedded to have
@@ -120,6 +137,9 @@ func (UnimplementedIngestionServiceServer) IngestSingleObservation(context.Conte
 }
 func (UnimplementedIngestionServiceServer) GetSensorStatus(context.Context, *GetSensorStatusRequest) (*SensorStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetSensorStatus not implemented")
+}
+func (UnimplementedIngestionServiceServer) ListSensorStatuses(context.Context, *ListSensorStatusesRequest) (*ListSensorStatusesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSensorStatuses not implemented")
 }
 func (UnimplementedIngestionServiceServer) testEmbeddedByValue() {}
 
@@ -184,6 +204,24 @@ func _IngestionService_GetSensorStatus_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IngestionService_ListSensorStatuses_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSensorStatusesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IngestionServiceServer).ListSensorStatuses(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IngestionService_ListSensorStatuses_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IngestionServiceServer).ListSensorStatuses(ctx, req.(*ListSensorStatusesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IngestionService_ServiceDesc is the grpc.ServiceDesc for IngestionService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -198,6 +236,10 @@ var IngestionService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSensorStatus",
 			Handler:    _IngestionService_GetSensorStatus_Handler,
+		},
+		{
+			MethodName: "ListSensorStatuses",
+			Handler:    _IngestionService_ListSensorStatuses_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

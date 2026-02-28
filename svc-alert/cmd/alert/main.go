@@ -56,7 +56,9 @@ AlertsUnacknowledged: m.AlertsUnacknowledged,
 streamH := handler.NewStreamHandler(queue, streamMetrics, logger)
 ackH := handler.NewAcknowledgeHandler(ack, logger)
 detailsH := handler.NewDetailsHandler(queue, logger)
-alertServer := handler.NewAlertServer(streamH, ackH, detailsH)
+assigner := domain.NewAssigner(queue, logger)
+	assignH := handler.NewAssignHandler(assigner, logger)
+	alertServer := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 
 // ─── Redpanda consumer ────────────────────────────────────────────────────
 consumerMetrics := &consumer.ConsumerMetrics{

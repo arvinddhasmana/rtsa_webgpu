@@ -98,13 +98,12 @@ t.Errorf("expected CRITICAL severity, got %v", qa.Alert.GetSeverity())
 }
 }
 
-// TestAlertConsumer_IgnoresEmptyBody verifies that empty message bodies are silently skipped.
 func TestAlertConsumer_IgnoresEmptyBody(t *testing.T) {
-mock := &mockConsumerClient{
-messages: []mockMessage{
-{topic: "alerts.anomaly.watch", key: []byte("k"), value: []byte{}},
-},
-}
+	mock := &mockConsumerClient{
+		messages: []mockMessage{
+			{topic: "alerts.anomaly.watch", key: []byte("k"), value: []byte{}},
+		},
+	}
 
 q := domain.NewAlertQueue(100)
 c := consumer.NewAlertConsumer(mock, q, nil, nil, newTestLogger())
@@ -119,13 +118,12 @@ t.Errorf("expected empty queue, got %d", q.Size())
 }
 }
 
-// TestAlertConsumer_IgnoresInvalidProto verifies that malformed messages are logged and skipped.
 func TestAlertConsumer_IgnoresInvalidProto(t *testing.T) {
-mock := &mockConsumerClient{
-messages: []mockMessage{
-{topic: "alerts.anomaly.elevated", key: []byte("k"), value: []byte("not-proto-data")},
-},
-}
+	mock := &mockConsumerClient{
+		messages: []mockMessage{
+			{topic: "alerts.anomaly.elevated", key: []byte("k"), value: []byte("not-proto-data")},
+		},
+	}
 
 q := domain.NewAlertQueue(100)
 c := consumer.NewAlertConsumer(mock, q, nil, nil, newTestLogger())

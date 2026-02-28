@@ -10,6 +10,7 @@ package entityv1
 
 import (
 	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v11 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -465,11 +466,128 @@ func (x *TrackHistoryPoint) GetStatus() v1.TrackStatus {
 	return v1.TrackStatus(0)
 }
 
+type StreamSensorObservationsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Filter by sensor types (empty = all)
+	SensorTypes []v1.SensorType `protobuf:"varint,1,rep,packed,name=sensor_types,json=sensorTypes,proto3,enum=rtsa.common.v1.SensorType" json:"sensor_types,omitempty"`
+	// Filter by geographic bounding box (empty = global)
+	BoundingBox *v1.BoundingBox `protobuf:"bytes,2,opt,name=bounding_box,json=boundingBox,proto3,oneof" json:"bounding_box,omitempty"`
+	// Caller's classification clearance level
+	ClearanceLevel v1.ClassificationLevel `protobuf:"varint,3,opt,name=clearance_level,json=clearanceLevel,proto3,enum=rtsa.common.v1.ClassificationLevel" json:"clearance_level,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *StreamSensorObservationsRequest) Reset() {
+	*x = StreamSensorObservationsRequest{}
+	mi := &file_rtsa_entity_v1_track_service_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamSensorObservationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamSensorObservationsRequest) ProtoMessage() {}
+
+func (x *StreamSensorObservationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_entity_v1_track_service_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamSensorObservationsRequest.ProtoReflect.Descriptor instead.
+func (*StreamSensorObservationsRequest) Descriptor() ([]byte, []int) {
+	return file_rtsa_entity_v1_track_service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *StreamSensorObservationsRequest) GetSensorTypes() []v1.SensorType {
+	if x != nil {
+		return x.SensorTypes
+	}
+	return nil
+}
+
+func (x *StreamSensorObservationsRequest) GetBoundingBox() *v1.BoundingBox {
+	if x != nil {
+		return x.BoundingBox
+	}
+	return nil
+}
+
+func (x *StreamSensorObservationsRequest) GetClearanceLevel() v1.ClassificationLevel {
+	if x != nil {
+		return x.ClearanceLevel
+	}
+	return v1.ClassificationLevel(0)
+}
+
+type SensorObservationUpdate struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The raw sensor observation
+	Observation *v11.SensorObservation `protobuf:"bytes,1,opt,name=observation,proto3" json:"observation,omitempty"`
+	// Whether the observation has been correlated to a fused track
+	CorrelatedTrackId *string `protobuf:"bytes,2,opt,name=correlated_track_id,json=correlatedTrackId,proto3,oneof" json:"correlated_track_id,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *SensorObservationUpdate) Reset() {
+	*x = SensorObservationUpdate{}
+	mi := &file_rtsa_entity_v1_track_service_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SensorObservationUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SensorObservationUpdate) ProtoMessage() {}
+
+func (x *SensorObservationUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_entity_v1_track_service_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SensorObservationUpdate.ProtoReflect.Descriptor instead.
+func (*SensorObservationUpdate) Descriptor() ([]byte, []int) {
+	return file_rtsa_entity_v1_track_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SensorObservationUpdate) GetObservation() *v11.SensorObservation {
+	if x != nil {
+		return x.Observation
+	}
+	return nil
+}
+
+func (x *SensorObservationUpdate) GetCorrelatedTrackId() string {
+	if x != nil && x.CorrelatedTrackId != nil {
+		return *x.CorrelatedTrackId
+	}
+	return ""
+}
+
 var File_rtsa_entity_v1_track_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_entity_v1_track_service_proto_rawDesc = "" +
 	"\n" +
-	"\"rtsa/entity/v1/track_service.proto\x12\x0ertsa.entity.v1\x1a rtsa/entity/v1/fused_track.proto\x1a\x1artsa/common/v1/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xef\x02\n" +
+	"\"rtsa/entity/v1/track_service.proto\x12\x0ertsa.entity.v1\x1a rtsa/entity/v1/fused_track.proto\x1a\x1artsa/common/v1/types.proto\x1a*rtsa/ingestion/v1/sensor_observation.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xef\x02\n" +
 	"\x13StreamTracksRequest\x12=\n" +
 	"\fentity_types\x18\x01 \x03(\x0e2\x1a.rtsa.common.v1.EntityTypeR\ventityTypes\x12N\n" +
 	"\x0fhostile_classes\x18\x02 \x03(\x0e2%.rtsa.common.v1.HostileClassificationR\x0ehostileClasses\x12C\n" +
@@ -510,11 +628,21 @@ const file_rtsa_entity_v1_track_service_proto_rawDesc = "" +
 	"\n" +
 	"confidence\x18\x03 \x01(\x01R\n" +
 	"confidence\x123\n" +
-	"\x06status\x18\x04 \x01(\x0e2\x1b.rtsa.common.v1.TrackStatusR\x06status2\x9a\x02\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x1b.rtsa.common.v1.TrackStatusR\x06status\"\x84\x02\n" +
+	"\x1fStreamSensorObservationsRequest\x12=\n" +
+	"\fsensor_types\x18\x01 \x03(\x0e2\x1a.rtsa.common.v1.SensorTypeR\vsensorTypes\x12C\n" +
+	"\fbounding_box\x18\x02 \x01(\v2\x1b.rtsa.common.v1.BoundingBoxH\x00R\vboundingBox\x88\x01\x01\x12L\n" +
+	"\x0fclearance_level\x18\x03 \x01(\x0e2#.rtsa.common.v1.ClassificationLevelR\x0eclearanceLevelB\x0f\n" +
+	"\r_bounding_box\"\xae\x01\n" +
+	"\x17SensorObservationUpdate\x12F\n" +
+	"\vobservation\x18\x01 \x01(\v2$.rtsa.ingestion.v1.SensorObservationR\vobservation\x123\n" +
+	"\x13correlated_track_id\x18\x02 \x01(\tH\x00R\x11correlatedTrackId\x88\x01\x01B\x16\n" +
+	"\x14_correlated_track_id2\x92\x03\n" +
 	"\fTrackService\x12R\n" +
 	"\fStreamTracks\x12#.rtsa.entity.v1.StreamTracksRequest\x1a\x1b.rtsa.entity.v1.TrackUpdate0\x01\x12U\n" +
 	"\x0fGetTrackDetails\x12&.rtsa.entity.v1.GetTrackDetailsRequest\x1a\x1a.rtsa.entity.v1.FusedTrack\x12_\n" +
-	"\x0fGetTrackHistory\x12&.rtsa.entity.v1.GetTrackHistoryRequest\x1a$.rtsa.entity.v1.TrackHistoryResponseBGZEgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1b\x06proto3"
+	"\x0fGetTrackHistory\x12&.rtsa.entity.v1.GetTrackHistoryRequest\x1a$.rtsa.entity.v1.TrackHistoryResponse\x12v\n" +
+	"\x18StreamSensorObservations\x12/.rtsa.entity.v1.StreamSensorObservationsRequest\x1a'.rtsa.entity.v1.SensorObservationUpdate0\x01BGZEgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1b\x06proto3"
 
 var (
 	file_rtsa_entity_v1_track_service_proto_rawDescOnce sync.Once
@@ -529,50 +657,60 @@ func file_rtsa_entity_v1_track_service_proto_rawDescGZIP() []byte {
 }
 
 var file_rtsa_entity_v1_track_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_rtsa_entity_v1_track_service_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_rtsa_entity_v1_track_service_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_rtsa_entity_v1_track_service_proto_goTypes = []any{
-	(TrackUpdate_UpdateType)(0),    // 0: rtsa.entity.v1.TrackUpdate.UpdateType
-	(*StreamTracksRequest)(nil),    // 1: rtsa.entity.v1.StreamTracksRequest
-	(*TrackUpdate)(nil),            // 2: rtsa.entity.v1.TrackUpdate
-	(*GetTrackDetailsRequest)(nil), // 3: rtsa.entity.v1.GetTrackDetailsRequest
-	(*GetTrackHistoryRequest)(nil), // 4: rtsa.entity.v1.GetTrackHistoryRequest
-	(*TrackHistoryResponse)(nil),   // 5: rtsa.entity.v1.TrackHistoryResponse
-	(*TrackHistoryPoint)(nil),      // 6: rtsa.entity.v1.TrackHistoryPoint
-	(v1.EntityType)(0),             // 7: rtsa.common.v1.EntityType
-	(v1.HostileClassification)(0),  // 8: rtsa.common.v1.HostileClassification
-	(*v1.BoundingBox)(nil),         // 9: rtsa.common.v1.BoundingBox
-	(v1.ClassificationLevel)(0),    // 10: rtsa.common.v1.ClassificationLevel
-	(*FusedTrack)(nil),             // 11: rtsa.entity.v1.FusedTrack
-	(*v1.TimeRange)(nil),           // 12: rtsa.common.v1.TimeRange
-	(*v1.Position)(nil),            // 13: rtsa.common.v1.Position
-	(*timestamppb.Timestamp)(nil),  // 14: google.protobuf.Timestamp
-	(v1.TrackStatus)(0),            // 15: rtsa.common.v1.TrackStatus
+	(TrackUpdate_UpdateType)(0),             // 0: rtsa.entity.v1.TrackUpdate.UpdateType
+	(*StreamTracksRequest)(nil),             // 1: rtsa.entity.v1.StreamTracksRequest
+	(*TrackUpdate)(nil),                     // 2: rtsa.entity.v1.TrackUpdate
+	(*GetTrackDetailsRequest)(nil),          // 3: rtsa.entity.v1.GetTrackDetailsRequest
+	(*GetTrackHistoryRequest)(nil),          // 4: rtsa.entity.v1.GetTrackHistoryRequest
+	(*TrackHistoryResponse)(nil),            // 5: rtsa.entity.v1.TrackHistoryResponse
+	(*TrackHistoryPoint)(nil),               // 6: rtsa.entity.v1.TrackHistoryPoint
+	(*StreamSensorObservationsRequest)(nil), // 7: rtsa.entity.v1.StreamSensorObservationsRequest
+	(*SensorObservationUpdate)(nil),         // 8: rtsa.entity.v1.SensorObservationUpdate
+	(v1.EntityType)(0),                      // 9: rtsa.common.v1.EntityType
+	(v1.HostileClassification)(0),           // 10: rtsa.common.v1.HostileClassification
+	(*v1.BoundingBox)(nil),                  // 11: rtsa.common.v1.BoundingBox
+	(v1.ClassificationLevel)(0),             // 12: rtsa.common.v1.ClassificationLevel
+	(*FusedTrack)(nil),                      // 13: rtsa.entity.v1.FusedTrack
+	(*v1.TimeRange)(nil),                    // 14: rtsa.common.v1.TimeRange
+	(*v1.Position)(nil),                     // 15: rtsa.common.v1.Position
+	(*timestamppb.Timestamp)(nil),           // 16: google.protobuf.Timestamp
+	(v1.TrackStatus)(0),                     // 17: rtsa.common.v1.TrackStatus
+	(v1.SensorType)(0),                      // 18: rtsa.common.v1.SensorType
+	(*v11.SensorObservation)(nil),           // 19: rtsa.ingestion.v1.SensorObservation
 }
 var file_rtsa_entity_v1_track_service_proto_depIdxs = []int32{
-	7,  // 0: rtsa.entity.v1.StreamTracksRequest.entity_types:type_name -> rtsa.common.v1.EntityType
-	8,  // 1: rtsa.entity.v1.StreamTracksRequest.hostile_classes:type_name -> rtsa.common.v1.HostileClassification
-	9,  // 2: rtsa.entity.v1.StreamTracksRequest.bounding_box:type_name -> rtsa.common.v1.BoundingBox
-	10, // 3: rtsa.entity.v1.StreamTracksRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	9,  // 0: rtsa.entity.v1.StreamTracksRequest.entity_types:type_name -> rtsa.common.v1.EntityType
+	10, // 1: rtsa.entity.v1.StreamTracksRequest.hostile_classes:type_name -> rtsa.common.v1.HostileClassification
+	11, // 2: rtsa.entity.v1.StreamTracksRequest.bounding_box:type_name -> rtsa.common.v1.BoundingBox
+	12, // 3: rtsa.entity.v1.StreamTracksRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
 	0,  // 4: rtsa.entity.v1.TrackUpdate.update_type:type_name -> rtsa.entity.v1.TrackUpdate.UpdateType
-	11, // 5: rtsa.entity.v1.TrackUpdate.track:type_name -> rtsa.entity.v1.FusedTrack
-	10, // 6: rtsa.entity.v1.GetTrackDetailsRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
-	12, // 7: rtsa.entity.v1.GetTrackHistoryRequest.time_range:type_name -> rtsa.common.v1.TimeRange
-	10, // 8: rtsa.entity.v1.GetTrackHistoryRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	13, // 5: rtsa.entity.v1.TrackUpdate.track:type_name -> rtsa.entity.v1.FusedTrack
+	12, // 6: rtsa.entity.v1.GetTrackDetailsRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	14, // 7: rtsa.entity.v1.GetTrackHistoryRequest.time_range:type_name -> rtsa.common.v1.TimeRange
+	12, // 8: rtsa.entity.v1.GetTrackHistoryRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
 	6,  // 9: rtsa.entity.v1.TrackHistoryResponse.points:type_name -> rtsa.entity.v1.TrackHistoryPoint
-	13, // 10: rtsa.entity.v1.TrackHistoryPoint.position:type_name -> rtsa.common.v1.Position
-	14, // 11: rtsa.entity.v1.TrackHistoryPoint.timestamp:type_name -> google.protobuf.Timestamp
-	15, // 12: rtsa.entity.v1.TrackHistoryPoint.status:type_name -> rtsa.common.v1.TrackStatus
-	1,  // 13: rtsa.entity.v1.TrackService.StreamTracks:input_type -> rtsa.entity.v1.StreamTracksRequest
-	3,  // 14: rtsa.entity.v1.TrackService.GetTrackDetails:input_type -> rtsa.entity.v1.GetTrackDetailsRequest
-	4,  // 15: rtsa.entity.v1.TrackService.GetTrackHistory:input_type -> rtsa.entity.v1.GetTrackHistoryRequest
-	2,  // 16: rtsa.entity.v1.TrackService.StreamTracks:output_type -> rtsa.entity.v1.TrackUpdate
-	11, // 17: rtsa.entity.v1.TrackService.GetTrackDetails:output_type -> rtsa.entity.v1.FusedTrack
-	5,  // 18: rtsa.entity.v1.TrackService.GetTrackHistory:output_type -> rtsa.entity.v1.TrackHistoryResponse
-	16, // [16:19] is the sub-list for method output_type
-	13, // [13:16] is the sub-list for method input_type
-	13, // [13:13] is the sub-list for extension type_name
-	13, // [13:13] is the sub-list for extension extendee
-	0,  // [0:13] is the sub-list for field type_name
+	15, // 10: rtsa.entity.v1.TrackHistoryPoint.position:type_name -> rtsa.common.v1.Position
+	16, // 11: rtsa.entity.v1.TrackHistoryPoint.timestamp:type_name -> google.protobuf.Timestamp
+	17, // 12: rtsa.entity.v1.TrackHistoryPoint.status:type_name -> rtsa.common.v1.TrackStatus
+	18, // 13: rtsa.entity.v1.StreamSensorObservationsRequest.sensor_types:type_name -> rtsa.common.v1.SensorType
+	11, // 14: rtsa.entity.v1.StreamSensorObservationsRequest.bounding_box:type_name -> rtsa.common.v1.BoundingBox
+	12, // 15: rtsa.entity.v1.StreamSensorObservationsRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	19, // 16: rtsa.entity.v1.SensorObservationUpdate.observation:type_name -> rtsa.ingestion.v1.SensorObservation
+	1,  // 17: rtsa.entity.v1.TrackService.StreamTracks:input_type -> rtsa.entity.v1.StreamTracksRequest
+	3,  // 18: rtsa.entity.v1.TrackService.GetTrackDetails:input_type -> rtsa.entity.v1.GetTrackDetailsRequest
+	4,  // 19: rtsa.entity.v1.TrackService.GetTrackHistory:input_type -> rtsa.entity.v1.GetTrackHistoryRequest
+	7,  // 20: rtsa.entity.v1.TrackService.StreamSensorObservations:input_type -> rtsa.entity.v1.StreamSensorObservationsRequest
+	2,  // 21: rtsa.entity.v1.TrackService.StreamTracks:output_type -> rtsa.entity.v1.TrackUpdate
+	13, // 22: rtsa.entity.v1.TrackService.GetTrackDetails:output_type -> rtsa.entity.v1.FusedTrack
+	5,  // 23: rtsa.entity.v1.TrackService.GetTrackHistory:output_type -> rtsa.entity.v1.TrackHistoryResponse
+	8,  // 24: rtsa.entity.v1.TrackService.StreamSensorObservations:output_type -> rtsa.entity.v1.SensorObservationUpdate
+	21, // [21:25] is the sub-list for method output_type
+	17, // [17:21] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_rtsa_entity_v1_track_service_proto_init() }
@@ -583,13 +721,15 @@ func file_rtsa_entity_v1_track_service_proto_init() {
 	file_rtsa_entity_v1_fused_track_proto_init()
 	file_rtsa_entity_v1_track_service_proto_msgTypes[0].OneofWrappers = []any{}
 	file_rtsa_entity_v1_track_service_proto_msgTypes[1].OneofWrappers = []any{}
+	file_rtsa_entity_v1_track_service_proto_msgTypes[6].OneofWrappers = []any{}
+	file_rtsa_entity_v1_track_service_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rtsa_entity_v1_track_service_proto_rawDesc), len(file_rtsa_entity_v1_track_service_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

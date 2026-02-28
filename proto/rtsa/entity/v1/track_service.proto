@@ -7,6 +7,7 @@ option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v
 
 import "rtsa/entity/v1/fused_track.proto";
 import "rtsa/common/v1/types.proto";
+import "rtsa/ingestion/v1/sensor_observation.proto";
 import "google/protobuf/timestamp.proto";
 
 // ──────────────────────────────────────────
@@ -25,6 +26,11 @@ service TrackService {
   // Unary: get recent position history for a track
   // Deadline: 10s
   rpc GetTrackHistory(GetTrackHistoryRequest) returns (TrackHistoryResponse);
+
+  // Server-streaming: receive raw sensor observations for correlation display
+  // Allows the UI to render individual sensor tracks alongside fused tracks
+  // Deadline: none (long-lived stream)
+  rpc StreamSensorObservations(StreamSensorObservationsRequest) returns (stream SensorObservationUpdate);
 }
 
 message StreamTracksRequest {
@@ -77,4 +83,20 @@ message TrackHistoryPoint {
   google.protobuf.Timestamp timestamp = 2;
   double confidence = 3;
   rtsa.common.v1.TrackStatus status = 4;
+}
+
+message StreamSensorObservationsRequest {
+  // Filter by sensor types (empty = all)
+  repeated rtsa.common.v1.SensorType sensor_types = 1;
+  // Filter by geographic bounding box (empty = global)
+  optional rtsa.common.v1.BoundingBox bounding_box = 2;
+  // Caller's classification clearance level
+  rtsa.common.v1.ClassificationLevel clearance_level = 3;
+}
+
+message SensorObservationUpdate {
+  // The raw sensor observation
+  rtsa.ingestion.v1.SensorObservation observation = 1;
+  // Whether the observation has been correlated to a fused track
+  optional string correlated_track_id = 2;
 }

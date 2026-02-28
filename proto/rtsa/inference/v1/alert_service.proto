@@ -25,6 +25,10 @@ service AlertService {
   // Unary: get details of a specific alert
   // Deadline: 5s
   rpc GetAlertDetails(GetAlertDetailsRequest) returns (AnomalyAlert);
+
+  // Unary: assign an alert to another operator for follow-up
+  // Deadline: 5s
+  rpc AssignAlert(AssignAlertRequest) returns (AssignAlertResponse);
 }
 
 message StreamAlertsRequest {
@@ -52,4 +56,16 @@ message AcknowledgeAlertResponse {
 message GetAlertDetailsRequest {
   string alert_id = 1;
   rtsa.common.v1.ClassificationLevel clearance_level = 2;
+}
+
+message AssignAlertRequest {
+  string alert_id = 1;
+  string assigner_operator_id = 2;
+  string assignee_operator_id = 3;
+  string comment = 4;
+}
+
+message AssignAlertResponse {
+  bool success = 1;
+  google.protobuf.Timestamp assigned_at = 2;
 }

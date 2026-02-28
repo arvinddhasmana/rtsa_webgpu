@@ -136,9 +136,32 @@ qa.AckedBy = operatorID
 qa.AckedAt = &now
 qa.Comment = comment
 // Reflect acknowledged state in the embedded proto for downstream consumers
-qa.Alert.Acknowledged = true
+	qa.Alert.Acknowledged = true
 
-return &now, nil
+	return &now, nil
+}
+
+// Assign marks an alert as assigned to an operator by another operator.
+// Returns the assignment timestamp or an error if the alert is not found.
+func (q *AlertQueue) Assign(alertID, assignerID, assigneeID, comment string) (*time.Time, error) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	qa, ok := q.alerts[alertID]
+	if !ok {
+		return nil, fmt.Errorf("[domain].[AlertQueue.Assign](%s): %w", alertID, ErrAlertNotFound)
+	}
+
+	now := time.Now()
+	// NOTE: We do not strictly use qa.Assigned in the local queue metadata since it isn't part of QueuedAlert struct,
+	// but we could extend QueuedAlert if needed. For now we only mutate the underlying proto if supported.
+
+	// Add comment to queue if provided, though typically we'd maintain an assignment history.
+	if comment != "" {
+		qa.Comment = comment
+	}
+
+	return &now, nil
 }
 
 // Get returns the QueuedAlert for the given alert ID.

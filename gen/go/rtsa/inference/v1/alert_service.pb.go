@@ -261,6 +261,126 @@ func (x *GetAlertDetailsRequest) GetClearanceLevel() v1.ClassificationLevel {
 	return v1.ClassificationLevel(0)
 }
 
+type AssignAlertRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	AlertId            string                 `protobuf:"bytes,1,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	AssignerOperatorId string                 `protobuf:"bytes,2,opt,name=assigner_operator_id,json=assignerOperatorId,proto3" json:"assigner_operator_id,omitempty"`
+	AssigneeOperatorId string                 `protobuf:"bytes,3,opt,name=assignee_operator_id,json=assigneeOperatorId,proto3" json:"assignee_operator_id,omitempty"`
+	Comment            string                 `protobuf:"bytes,4,opt,name=comment,proto3" json:"comment,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *AssignAlertRequest) Reset() {
+	*x = AssignAlertRequest{}
+	mi := &file_rtsa_inference_v1_alert_service_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssignAlertRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssignAlertRequest) ProtoMessage() {}
+
+func (x *AssignAlertRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_inference_v1_alert_service_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssignAlertRequest.ProtoReflect.Descriptor instead.
+func (*AssignAlertRequest) Descriptor() ([]byte, []int) {
+	return file_rtsa_inference_v1_alert_service_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AssignAlertRequest) GetAlertId() string {
+	if x != nil {
+		return x.AlertId
+	}
+	return ""
+}
+
+func (x *AssignAlertRequest) GetAssignerOperatorId() string {
+	if x != nil {
+		return x.AssignerOperatorId
+	}
+	return ""
+}
+
+func (x *AssignAlertRequest) GetAssigneeOperatorId() string {
+	if x != nil {
+		return x.AssigneeOperatorId
+	}
+	return ""
+}
+
+func (x *AssignAlertRequest) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
+type AssignAlertResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	AssignedAt    *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=assigned_at,json=assignedAt,proto3" json:"assigned_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AssignAlertResponse) Reset() {
+	*x = AssignAlertResponse{}
+	mi := &file_rtsa_inference_v1_alert_service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AssignAlertResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AssignAlertResponse) ProtoMessage() {}
+
+func (x *AssignAlertResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_inference_v1_alert_service_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AssignAlertResponse.ProtoReflect.Descriptor instead.
+func (*AssignAlertResponse) Descriptor() ([]byte, []int) {
+	return file_rtsa_inference_v1_alert_service_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AssignAlertResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *AssignAlertResponse) GetAssignedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AssignedAt
+	}
+	return nil
+}
+
 var File_rtsa_inference_v1_alert_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_inference_v1_alert_service_proto_rawDesc = "" +
@@ -281,11 +401,21 @@ const file_rtsa_inference_v1_alert_service_proto_rawDesc = "" +
 	"\x0facknowledged_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x0eacknowledgedAt\"\x81\x01\n" +
 	"\x16GetAlertDetailsRequest\x12\x19\n" +
 	"\balert_id\x18\x01 \x01(\tR\aalertId\x12L\n" +
-	"\x0fclearance_level\x18\x02 \x01(\x0e2#.rtsa.common.v1.ClassificationLevelR\x0eclearanceLevel2\xb5\x02\n" +
+	"\x0fclearance_level\x18\x02 \x01(\x0e2#.rtsa.common.v1.ClassificationLevelR\x0eclearanceLevel\"\xad\x01\n" +
+	"\x12AssignAlertRequest\x12\x19\n" +
+	"\balert_id\x18\x01 \x01(\tR\aalertId\x120\n" +
+	"\x14assigner_operator_id\x18\x02 \x01(\tR\x12assignerOperatorId\x120\n" +
+	"\x14assignee_operator_id\x18\x03 \x01(\tR\x12assigneeOperatorId\x12\x18\n" +
+	"\acomment\x18\x04 \x01(\tR\acomment\"l\n" +
+	"\x13AssignAlertResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12;\n" +
+	"\vassigned_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"assignedAt2\x93\x03\n" +
 	"\fAlertService\x12Y\n" +
 	"\fStreamAlerts\x12&.rtsa.inference.v1.StreamAlertsRequest\x1a\x1f.rtsa.inference.v1.AnomalyAlert0\x01\x12k\n" +
 	"\x10AcknowledgeAlert\x12*.rtsa.inference.v1.AcknowledgeAlertRequest\x1a+.rtsa.inference.v1.AcknowledgeAlertResponse\x12]\n" +
-	"\x0fGetAlertDetails\x12).rtsa.inference.v1.GetAlertDetailsRequest\x1a\x1f.rtsa.inference.v1.AnomalyAlertBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
+	"\x0fGetAlertDetails\x12).rtsa.inference.v1.GetAlertDetailsRequest\x1a\x1f.rtsa.inference.v1.AnomalyAlert\x12\\\n" +
+	"\vAssignAlert\x12%.rtsa.inference.v1.AssignAlertRequest\x1a&.rtsa.inference.v1.AssignAlertResponseBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
 
 var (
 	file_rtsa_inference_v1_alert_service_proto_rawDescOnce sync.Once
@@ -299,37 +429,42 @@ func file_rtsa_inference_v1_alert_service_proto_rawDescGZIP() []byte {
 	return file_rtsa_inference_v1_alert_service_proto_rawDescData
 }
 
-var file_rtsa_inference_v1_alert_service_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_rtsa_inference_v1_alert_service_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_rtsa_inference_v1_alert_service_proto_goTypes = []any{
 	(*StreamAlertsRequest)(nil),      // 0: rtsa.inference.v1.StreamAlertsRequest
 	(*AcknowledgeAlertRequest)(nil),  // 1: rtsa.inference.v1.AcknowledgeAlertRequest
 	(*AcknowledgeAlertResponse)(nil), // 2: rtsa.inference.v1.AcknowledgeAlertResponse
 	(*GetAlertDetailsRequest)(nil),   // 3: rtsa.inference.v1.GetAlertDetailsRequest
-	(v1.AlertSeverity)(0),            // 4: rtsa.common.v1.AlertSeverity
-	(v1.AnomalyType)(0),              // 5: rtsa.common.v1.AnomalyType
-	(v1.EntityType)(0),               // 6: rtsa.common.v1.EntityType
-	(v1.ClassificationLevel)(0),      // 7: rtsa.common.v1.ClassificationLevel
-	(*timestamppb.Timestamp)(nil),    // 8: google.protobuf.Timestamp
-	(*AnomalyAlert)(nil),             // 9: rtsa.inference.v1.AnomalyAlert
+	(*AssignAlertRequest)(nil),       // 4: rtsa.inference.v1.AssignAlertRequest
+	(*AssignAlertResponse)(nil),      // 5: rtsa.inference.v1.AssignAlertResponse
+	(v1.AlertSeverity)(0),            // 6: rtsa.common.v1.AlertSeverity
+	(v1.AnomalyType)(0),              // 7: rtsa.common.v1.AnomalyType
+	(v1.EntityType)(0),               // 8: rtsa.common.v1.EntityType
+	(v1.ClassificationLevel)(0),      // 9: rtsa.common.v1.ClassificationLevel
+	(*timestamppb.Timestamp)(nil),    // 10: google.protobuf.Timestamp
+	(*AnomalyAlert)(nil),             // 11: rtsa.inference.v1.AnomalyAlert
 }
 var file_rtsa_inference_v1_alert_service_proto_depIdxs = []int32{
-	4, // 0: rtsa.inference.v1.StreamAlertsRequest.min_severity:type_name -> rtsa.common.v1.AlertSeverity
-	5, // 1: rtsa.inference.v1.StreamAlertsRequest.anomaly_types:type_name -> rtsa.common.v1.AnomalyType
-	6, // 2: rtsa.inference.v1.StreamAlertsRequest.entity_types:type_name -> rtsa.common.v1.EntityType
-	7, // 3: rtsa.inference.v1.StreamAlertsRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
-	8, // 4: rtsa.inference.v1.AcknowledgeAlertResponse.acknowledged_at:type_name -> google.protobuf.Timestamp
-	7, // 5: rtsa.inference.v1.GetAlertDetailsRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
-	0, // 6: rtsa.inference.v1.AlertService.StreamAlerts:input_type -> rtsa.inference.v1.StreamAlertsRequest
-	1, // 7: rtsa.inference.v1.AlertService.AcknowledgeAlert:input_type -> rtsa.inference.v1.AcknowledgeAlertRequest
-	3, // 8: rtsa.inference.v1.AlertService.GetAlertDetails:input_type -> rtsa.inference.v1.GetAlertDetailsRequest
-	9, // 9: rtsa.inference.v1.AlertService.StreamAlerts:output_type -> rtsa.inference.v1.AnomalyAlert
-	2, // 10: rtsa.inference.v1.AlertService.AcknowledgeAlert:output_type -> rtsa.inference.v1.AcknowledgeAlertResponse
-	9, // 11: rtsa.inference.v1.AlertService.GetAlertDetails:output_type -> rtsa.inference.v1.AnomalyAlert
-	9, // [9:12] is the sub-list for method output_type
-	6, // [6:9] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	6,  // 0: rtsa.inference.v1.StreamAlertsRequest.min_severity:type_name -> rtsa.common.v1.AlertSeverity
+	7,  // 1: rtsa.inference.v1.StreamAlertsRequest.anomaly_types:type_name -> rtsa.common.v1.AnomalyType
+	8,  // 2: rtsa.inference.v1.StreamAlertsRequest.entity_types:type_name -> rtsa.common.v1.EntityType
+	9,  // 3: rtsa.inference.v1.StreamAlertsRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	10, // 4: rtsa.inference.v1.AcknowledgeAlertResponse.acknowledged_at:type_name -> google.protobuf.Timestamp
+	9,  // 5: rtsa.inference.v1.GetAlertDetailsRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	10, // 6: rtsa.inference.v1.AssignAlertResponse.assigned_at:type_name -> google.protobuf.Timestamp
+	0,  // 7: rtsa.inference.v1.AlertService.StreamAlerts:input_type -> rtsa.inference.v1.StreamAlertsRequest
+	1,  // 8: rtsa.inference.v1.AlertService.AcknowledgeAlert:input_type -> rtsa.inference.v1.AcknowledgeAlertRequest
+	3,  // 9: rtsa.inference.v1.AlertService.GetAlertDetails:input_type -> rtsa.inference.v1.GetAlertDetailsRequest
+	4,  // 10: rtsa.inference.v1.AlertService.AssignAlert:input_type -> rtsa.inference.v1.AssignAlertRequest
+	11, // 11: rtsa.inference.v1.AlertService.StreamAlerts:output_type -> rtsa.inference.v1.AnomalyAlert
+	2,  // 12: rtsa.inference.v1.AlertService.AcknowledgeAlert:output_type -> rtsa.inference.v1.AcknowledgeAlertResponse
+	11, // 13: rtsa.inference.v1.AlertService.GetAlertDetails:output_type -> rtsa.inference.v1.AnomalyAlert
+	5,  // 14: rtsa.inference.v1.AlertService.AssignAlert:output_type -> rtsa.inference.v1.AssignAlertResponse
+	11, // [11:15] is the sub-list for method output_type
+	7,  // [7:11] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_rtsa_inference_v1_alert_service_proto_init() }
@@ -344,7 +479,7 @@ func file_rtsa_inference_v1_alert_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rtsa_inference_v1_alert_service_proto_rawDesc), len(file_rtsa_inference_v1_alert_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

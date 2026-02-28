@@ -14,6 +14,7 @@ import (
 	v12 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -25,6 +26,73 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+type TimelineEventType int32
+
+const (
+	TimelineEventType_TIMELINE_EVENT_TYPE_UNSPECIFIED            TimelineEventType = 0
+	TimelineEventType_TIMELINE_EVENT_TYPE_TRACK_CREATED          TimelineEventType = 1
+	TimelineEventType_TIMELINE_EVENT_TYPE_TRACK_UPDATED          TimelineEventType = 2
+	TimelineEventType_TIMELINE_EVENT_TYPE_TRACK_MERGED           TimelineEventType = 3
+	TimelineEventType_TIMELINE_EVENT_TYPE_TRACK_DROPPED          TimelineEventType = 4
+	TimelineEventType_TIMELINE_EVENT_TYPE_ANOMALY_DETECTED       TimelineEventType = 5
+	TimelineEventType_TIMELINE_EVENT_TYPE_ALERT_ACKNOWLEDGED     TimelineEventType = 6
+	TimelineEventType_TIMELINE_EVENT_TYPE_FEEDBACK_SUBMITTED     TimelineEventType = 7
+	TimelineEventType_TIMELINE_EVENT_TYPE_CLASSIFICATION_CHANGED TimelineEventType = 8
+)
+
+// Enum value maps for TimelineEventType.
+var (
+	TimelineEventType_name = map[int32]string{
+		0: "TIMELINE_EVENT_TYPE_UNSPECIFIED",
+		1: "TIMELINE_EVENT_TYPE_TRACK_CREATED",
+		2: "TIMELINE_EVENT_TYPE_TRACK_UPDATED",
+		3: "TIMELINE_EVENT_TYPE_TRACK_MERGED",
+		4: "TIMELINE_EVENT_TYPE_TRACK_DROPPED",
+		5: "TIMELINE_EVENT_TYPE_ANOMALY_DETECTED",
+		6: "TIMELINE_EVENT_TYPE_ALERT_ACKNOWLEDGED",
+		7: "TIMELINE_EVENT_TYPE_FEEDBACK_SUBMITTED",
+		8: "TIMELINE_EVENT_TYPE_CLASSIFICATION_CHANGED",
+	}
+	TimelineEventType_value = map[string]int32{
+		"TIMELINE_EVENT_TYPE_UNSPECIFIED":            0,
+		"TIMELINE_EVENT_TYPE_TRACK_CREATED":          1,
+		"TIMELINE_EVENT_TYPE_TRACK_UPDATED":          2,
+		"TIMELINE_EVENT_TYPE_TRACK_MERGED":           3,
+		"TIMELINE_EVENT_TYPE_TRACK_DROPPED":          4,
+		"TIMELINE_EVENT_TYPE_ANOMALY_DETECTED":       5,
+		"TIMELINE_EVENT_TYPE_ALERT_ACKNOWLEDGED":     6,
+		"TIMELINE_EVENT_TYPE_FEEDBACK_SUBMITTED":     7,
+		"TIMELINE_EVENT_TYPE_CLASSIFICATION_CHANGED": 8,
+	}
+)
+
+func (x TimelineEventType) Enum() *TimelineEventType {
+	p := new(TimelineEventType)
+	*p = x
+	return p
+}
+
+func (x TimelineEventType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TimelineEventType) Descriptor() protoreflect.EnumDescriptor {
+	return file_rtsa_query_v1_query_service_proto_enumTypes[0].Descriptor()
+}
+
+func (TimelineEventType) Type() protoreflect.EnumType {
+	return &file_rtsa_query_v1_query_service_proto_enumTypes[0]
+}
+
+func (x TimelineEventType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TimelineEventType.Descriptor instead.
+func (TimelineEventType) EnumDescriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{0}
+}
 
 type QueryTracksRequest struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
@@ -609,11 +677,542 @@ func (x *AuditLogEntry) GetEventTime() string {
 	return ""
 }
 
+type GetEventTimelineRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Track ID to get timeline for (required)
+	TrackId string `protobuf:"bytes,1,opt,name=track_id,json=trackId,proto3" json:"track_id,omitempty"`
+	// Time range (required)
+	TimeRange *v1.TimeRange `protobuf:"bytes,2,opt,name=time_range,json=timeRange,proto3" json:"time_range,omitempty"`
+	// Maximum events to return (default: 200)
+	MaxEvents int32 `protobuf:"varint,3,opt,name=max_events,json=maxEvents,proto3" json:"max_events,omitempty"`
+	// Caller's classification clearance
+	ClearanceLevel v1.ClassificationLevel `protobuf:"varint,4,opt,name=clearance_level,json=clearanceLevel,proto3,enum=rtsa.common.v1.ClassificationLevel" json:"clearance_level,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *GetEventTimelineRequest) Reset() {
+	*x = GetEventTimelineRequest{}
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEventTimelineRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEventTimelineRequest) ProtoMessage() {}
+
+func (x *GetEventTimelineRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEventTimelineRequest.ProtoReflect.Descriptor instead.
+func (*GetEventTimelineRequest) Descriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetEventTimelineRequest) GetTrackId() string {
+	if x != nil {
+		return x.TrackId
+	}
+	return ""
+}
+
+func (x *GetEventTimelineRequest) GetTimeRange() *v1.TimeRange {
+	if x != nil {
+		return x.TimeRange
+	}
+	return nil
+}
+
+func (x *GetEventTimelineRequest) GetMaxEvents() int32 {
+	if x != nil {
+		return x.MaxEvents
+	}
+	return 0
+}
+
+func (x *GetEventTimelineRequest) GetClearanceLevel() v1.ClassificationLevel {
+	if x != nil {
+		return x.ClearanceLevel
+	}
+	return v1.ClassificationLevel(0)
+}
+
+type EventTimelineResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TrackId       string                 `protobuf:"bytes,1,opt,name=track_id,json=trackId,proto3" json:"track_id,omitempty"`
+	Events        []*TimelineEvent       `protobuf:"bytes,2,rep,name=events,proto3" json:"events,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EventTimelineResponse) Reset() {
+	*x = EventTimelineResponse{}
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EventTimelineResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EventTimelineResponse) ProtoMessage() {}
+
+func (x *EventTimelineResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EventTimelineResponse.ProtoReflect.Descriptor instead.
+func (*EventTimelineResponse) Descriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *EventTimelineResponse) GetTrackId() string {
+	if x != nil {
+		return x.TrackId
+	}
+	return ""
+}
+
+func (x *EventTimelineResponse) GetEvents() []*TimelineEvent {
+	if x != nil {
+		return x.Events
+	}
+	return nil
+}
+
+type TimelineEvent struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Event timestamp
+	EventTime *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=event_time,json=eventTime,proto3" json:"event_time,omitempty"`
+	// Event category
+	EventType TimelineEventType `protobuf:"varint,2,opt,name=event_type,json=eventType,proto3,enum=rtsa.query.v1.TimelineEventType" json:"event_type,omitempty"`
+	// Human-readable summary of the event
+	Summary string `protobuf:"bytes,3,opt,name=summary,proto3" json:"summary,omitempty"`
+	// Event-specific payload
+	//
+	// Types that are valid to be assigned to Detail:
+	//
+	//	*TimelineEvent_TrackChange
+	//	*TimelineEvent_Anomaly
+	//	*TimelineEvent_Feedback
+	//	*TimelineEvent_Audit
+	Detail        isTimelineEvent_Detail `protobuf_oneof:"detail"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TimelineEvent) Reset() {
+	*x = TimelineEvent{}
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TimelineEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TimelineEvent) ProtoMessage() {}
+
+func (x *TimelineEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TimelineEvent.ProtoReflect.Descriptor instead.
+func (*TimelineEvent) Descriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *TimelineEvent) GetEventTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.EventTime
+	}
+	return nil
+}
+
+func (x *TimelineEvent) GetEventType() TimelineEventType {
+	if x != nil {
+		return x.EventType
+	}
+	return TimelineEventType_TIMELINE_EVENT_TYPE_UNSPECIFIED
+}
+
+func (x *TimelineEvent) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *TimelineEvent) GetDetail() isTimelineEvent_Detail {
+	if x != nil {
+		return x.Detail
+	}
+	return nil
+}
+
+func (x *TimelineEvent) GetTrackChange() *TrackStateChange {
+	if x != nil {
+		if x, ok := x.Detail.(*TimelineEvent_TrackChange); ok {
+			return x.TrackChange
+		}
+	}
+	return nil
+}
+
+func (x *TimelineEvent) GetAnomaly() *AnomalyEventDetail {
+	if x != nil {
+		if x, ok := x.Detail.(*TimelineEvent_Anomaly); ok {
+			return x.Anomaly
+		}
+	}
+	return nil
+}
+
+func (x *TimelineEvent) GetFeedback() *FeedbackEventDetail {
+	if x != nil {
+		if x, ok := x.Detail.(*TimelineEvent_Feedback); ok {
+			return x.Feedback
+		}
+	}
+	return nil
+}
+
+func (x *TimelineEvent) GetAudit() *AuditEventDetail {
+	if x != nil {
+		if x, ok := x.Detail.(*TimelineEvent_Audit); ok {
+			return x.Audit
+		}
+	}
+	return nil
+}
+
+type isTimelineEvent_Detail interface {
+	isTimelineEvent_Detail()
+}
+
+type TimelineEvent_TrackChange struct {
+	TrackChange *TrackStateChange `protobuf:"bytes,10,opt,name=track_change,json=trackChange,proto3,oneof"`
+}
+
+type TimelineEvent_Anomaly struct {
+	Anomaly *AnomalyEventDetail `protobuf:"bytes,11,opt,name=anomaly,proto3,oneof"`
+}
+
+type TimelineEvent_Feedback struct {
+	Feedback *FeedbackEventDetail `protobuf:"bytes,12,opt,name=feedback,proto3,oneof"`
+}
+
+type TimelineEvent_Audit struct {
+	Audit *AuditEventDetail `protobuf:"bytes,13,opt,name=audit,proto3,oneof"`
+}
+
+func (*TimelineEvent_TrackChange) isTimelineEvent_Detail() {}
+
+func (*TimelineEvent_Anomaly) isTimelineEvent_Detail() {}
+
+func (*TimelineEvent_Feedback) isTimelineEvent_Detail() {}
+
+func (*TimelineEvent_Audit) isTimelineEvent_Detail() {}
+
+type TrackStateChange struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	PreviousStatus  string                 `protobuf:"bytes,1,opt,name=previous_status,json=previousStatus,proto3" json:"previous_status,omitempty"`
+	NewStatus       string                 `protobuf:"bytes,2,opt,name=new_status,json=newStatus,proto3" json:"new_status,omitempty"`
+	Position        *v1.Position           `protobuf:"bytes,3,opt,name=position,proto3" json:"position,omitempty"`
+	ConfidenceScore float64                `protobuf:"fixed64,4,opt,name=confidence_score,json=confidenceScore,proto3" json:"confidence_score,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *TrackStateChange) Reset() {
+	*x = TrackStateChange{}
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TrackStateChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TrackStateChange) ProtoMessage() {}
+
+func (x *TrackStateChange) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TrackStateChange.ProtoReflect.Descriptor instead.
+func (*TrackStateChange) Descriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *TrackStateChange) GetPreviousStatus() string {
+	if x != nil {
+		return x.PreviousStatus
+	}
+	return ""
+}
+
+func (x *TrackStateChange) GetNewStatus() string {
+	if x != nil {
+		return x.NewStatus
+	}
+	return ""
+}
+
+func (x *TrackStateChange) GetPosition() *v1.Position {
+	if x != nil {
+		return x.Position
+	}
+	return nil
+}
+
+func (x *TrackStateChange) GetConfidenceScore() float64 {
+	if x != nil {
+		return x.ConfidenceScore
+	}
+	return 0
+}
+
+type AnomalyEventDetail struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	AlertId         string                 `protobuf:"bytes,1,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	AnomalyType     v1.AnomalyType         `protobuf:"varint,2,opt,name=anomaly_type,json=anomalyType,proto3,enum=rtsa.common.v1.AnomalyType" json:"anomaly_type,omitempty"`
+	Severity        v1.AlertSeverity       `protobuf:"varint,3,opt,name=severity,proto3,enum=rtsa.common.v1.AlertSeverity" json:"severity,omitempty"`
+	ConfidenceScore float64                `protobuf:"fixed64,4,opt,name=confidence_score,json=confidenceScore,proto3" json:"confidence_score,omitempty"`
+	Explanation     string                 `protobuf:"bytes,5,opt,name=explanation,proto3" json:"explanation,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *AnomalyEventDetail) Reset() {
+	*x = AnomalyEventDetail{}
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AnomalyEventDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AnomalyEventDetail) ProtoMessage() {}
+
+func (x *AnomalyEventDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AnomalyEventDetail.ProtoReflect.Descriptor instead.
+func (*AnomalyEventDetail) Descriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *AnomalyEventDetail) GetAlertId() string {
+	if x != nil {
+		return x.AlertId
+	}
+	return ""
+}
+
+func (x *AnomalyEventDetail) GetAnomalyType() v1.AnomalyType {
+	if x != nil {
+		return x.AnomalyType
+	}
+	return v1.AnomalyType(0)
+}
+
+func (x *AnomalyEventDetail) GetSeverity() v1.AlertSeverity {
+	if x != nil {
+		return x.Severity
+	}
+	return v1.AlertSeverity(0)
+}
+
+func (x *AnomalyEventDetail) GetConfidenceScore() float64 {
+	if x != nil {
+		return x.ConfidenceScore
+	}
+	return 0
+}
+
+func (x *AnomalyEventDetail) GetExplanation() string {
+	if x != nil {
+		return x.Explanation
+	}
+	return ""
+}
+
+type FeedbackEventDetail struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FeedbackId    string                 `protobuf:"bytes,1,opt,name=feedback_id,json=feedbackId,proto3" json:"feedback_id,omitempty"`
+	FeedbackType  v1.FeedbackType        `protobuf:"varint,2,opt,name=feedback_type,json=feedbackType,proto3,enum=rtsa.common.v1.FeedbackType" json:"feedback_type,omitempty"`
+	TrustScore    float64                `protobuf:"fixed64,3,opt,name=trust_score,json=trustScore,proto3" json:"trust_score,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FeedbackEventDetail) Reset() {
+	*x = FeedbackEventDetail{}
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FeedbackEventDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FeedbackEventDetail) ProtoMessage() {}
+
+func (x *FeedbackEventDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FeedbackEventDetail.ProtoReflect.Descriptor instead.
+func (*FeedbackEventDetail) Descriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *FeedbackEventDetail) GetFeedbackId() string {
+	if x != nil {
+		return x.FeedbackId
+	}
+	return ""
+}
+
+func (x *FeedbackEventDetail) GetFeedbackType() v1.FeedbackType {
+	if x != nil {
+		return x.FeedbackType
+	}
+	return v1.FeedbackType(0)
+}
+
+func (x *FeedbackEventDetail) GetTrustScore() float64 {
+	if x != nil {
+		return x.TrustScore
+	}
+	return 0
+}
+
+type AuditEventDetail struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AuditId       string                 `protobuf:"bytes,1,opt,name=audit_id,json=auditId,proto3" json:"audit_id,omitempty"`
+	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"`
+	ActorId       string                 `protobuf:"bytes,3,opt,name=actor_id,json=actorId,proto3" json:"actor_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditEventDetail) Reset() {
+	*x = AuditEventDetail{}
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditEventDetail) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditEventDetail) ProtoMessage() {}
+
+func (x *AuditEventDetail) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_query_v1_query_service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditEventDetail.ProtoReflect.Descriptor instead.
+func (*AuditEventDetail) Descriptor() ([]byte, []int) {
+	return file_rtsa_query_v1_query_service_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AuditEventDetail) GetAuditId() string {
+	if x != nil {
+		return x.AuditId
+	}
+	return ""
+}
+
+func (x *AuditEventDetail) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *AuditEventDetail) GetActorId() string {
+	if x != nil {
+		return x.ActorId
+	}
+	return ""
+}
+
 var File_rtsa_query_v1_query_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_query_v1_query_service_proto_rawDesc = "" +
 	"\n" +
-	"!rtsa/query/v1/query_service.proto\x12\rrtsa.query.v1\x1a\x1artsa/common/v1/types.proto\x1a rtsa/entity/v1/fused_track.proto\x1a%rtsa/inference/v1/anomaly_alert.proto\"\x98\x04\n" +
+	"!rtsa/query/v1/query_service.proto\x12\rrtsa.query.v1\x1a\x1artsa/common/v1/types.proto\x1a rtsa/entity/v1/fused_track.proto\x1a%rtsa/inference/v1/anomaly_alert.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\x04\n" +
 	"\x12QueryTracksRequest\x128\n" +
 	"\n" +
 	"time_range\x18\x01 \x01(\v2\x19.rtsa.common.v1.TimeRangeR\ttimeRange\x12=\n" +
@@ -692,11 +1291,66 @@ const file_rtsa_query_v1_query_service_proto_rawDesc = "" +
 	"\x14classification_level\x18\n" +
 	" \x01(\x0e2#.rtsa.common.v1.ClassificationLevelR\x13classificationLevel\x12\x1d\n" +
 	"\n" +
-	"event_time\x18\v \x01(\tR\teventTime2\x9f\x02\n" +
+	"event_time\x18\v \x01(\tR\teventTime\"\xdb\x01\n" +
+	"\x17GetEventTimelineRequest\x12\x19\n" +
+	"\btrack_id\x18\x01 \x01(\tR\atrackId\x128\n" +
+	"\n" +
+	"time_range\x18\x02 \x01(\v2\x19.rtsa.common.v1.TimeRangeR\ttimeRange\x12\x1d\n" +
+	"\n" +
+	"max_events\x18\x03 \x01(\x05R\tmaxEvents\x12L\n" +
+	"\x0fclearance_level\x18\x04 \x01(\x0e2#.rtsa.common.v1.ClassificationLevelR\x0eclearanceLevel\"h\n" +
+	"\x15EventTimelineResponse\x12\x19\n" +
+	"\btrack_id\x18\x01 \x01(\tR\atrackId\x124\n" +
+	"\x06events\x18\x02 \x03(\v2\x1c.rtsa.query.v1.TimelineEventR\x06events\"\xaf\x03\n" +
+	"\rTimelineEvent\x129\n" +
+	"\n" +
+	"event_time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\teventTime\x12?\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\x0e2 .rtsa.query.v1.TimelineEventTypeR\teventType\x12\x18\n" +
+	"\asummary\x18\x03 \x01(\tR\asummary\x12D\n" +
+	"\ftrack_change\x18\n" +
+	" \x01(\v2\x1f.rtsa.query.v1.TrackStateChangeH\x00R\vtrackChange\x12=\n" +
+	"\aanomaly\x18\v \x01(\v2!.rtsa.query.v1.AnomalyEventDetailH\x00R\aanomaly\x12@\n" +
+	"\bfeedback\x18\f \x01(\v2\".rtsa.query.v1.FeedbackEventDetailH\x00R\bfeedback\x127\n" +
+	"\x05audit\x18\r \x01(\v2\x1f.rtsa.query.v1.AuditEventDetailH\x00R\x05auditB\b\n" +
+	"\x06detail\"\xbb\x01\n" +
+	"\x10TrackStateChange\x12'\n" +
+	"\x0fprevious_status\x18\x01 \x01(\tR\x0epreviousStatus\x12\x1d\n" +
+	"\n" +
+	"new_status\x18\x02 \x01(\tR\tnewStatus\x124\n" +
+	"\bposition\x18\x03 \x01(\v2\x18.rtsa.common.v1.PositionR\bposition\x12)\n" +
+	"\x10confidence_score\x18\x04 \x01(\x01R\x0fconfidenceScore\"\xf7\x01\n" +
+	"\x12AnomalyEventDetail\x12\x19\n" +
+	"\balert_id\x18\x01 \x01(\tR\aalertId\x12>\n" +
+	"\fanomaly_type\x18\x02 \x01(\x0e2\x1b.rtsa.common.v1.AnomalyTypeR\vanomalyType\x129\n" +
+	"\bseverity\x18\x03 \x01(\x0e2\x1d.rtsa.common.v1.AlertSeverityR\bseverity\x12)\n" +
+	"\x10confidence_score\x18\x04 \x01(\x01R\x0fconfidenceScore\x12 \n" +
+	"\vexplanation\x18\x05 \x01(\tR\vexplanation\"\x9a\x01\n" +
+	"\x13FeedbackEventDetail\x12\x1f\n" +
+	"\vfeedback_id\x18\x01 \x01(\tR\n" +
+	"feedbackId\x12A\n" +
+	"\rfeedback_type\x18\x02 \x01(\x0e2\x1c.rtsa.common.v1.FeedbackTypeR\ffeedbackType\x12\x1f\n" +
+	"\vtrust_score\x18\x03 \x01(\x01R\n" +
+	"trustScore\"`\n" +
+	"\x10AuditEventDetail\x12\x19\n" +
+	"\baudit_id\x18\x01 \x01(\tR\aauditId\x12\x16\n" +
+	"\x06action\x18\x02 \x01(\tR\x06action\x12\x19\n" +
+	"\bactor_id\x18\x03 \x01(\tR\aactorId*\x85\x03\n" +
+	"\x11TimelineEventType\x12#\n" +
+	"\x1fTIMELINE_EVENT_TYPE_UNSPECIFIED\x10\x00\x12%\n" +
+	"!TIMELINE_EVENT_TYPE_TRACK_CREATED\x10\x01\x12%\n" +
+	"!TIMELINE_EVENT_TYPE_TRACK_UPDATED\x10\x02\x12$\n" +
+	" TIMELINE_EVENT_TYPE_TRACK_MERGED\x10\x03\x12%\n" +
+	"!TIMELINE_EVENT_TYPE_TRACK_DROPPED\x10\x04\x12(\n" +
+	"$TIMELINE_EVENT_TYPE_ANOMALY_DETECTED\x10\x05\x12*\n" +
+	"&TIMELINE_EVENT_TYPE_ALERT_ACKNOWLEDGED\x10\x06\x12*\n" +
+	"&TIMELINE_EVENT_TYPE_FEEDBACK_SUBMITTED\x10\a\x12.\n" +
+	"*TIMELINE_EVENT_TYPE_CLASSIFICATION_CHANGED\x10\b2\x81\x03\n" +
 	"\fQueryService\x12T\n" +
 	"\vQueryTracks\x12!.rtsa.query.v1.QueryTracksRequest\x1a\".rtsa.query.v1.QueryTracksResponse\x12]\n" +
 	"\x0eQueryAnomalies\x12$.rtsa.query.v1.QueryAnomaliesRequest\x1a%.rtsa.query.v1.QueryAnomaliesResponse\x12Z\n" +
-	"\rQueryAuditLog\x12#.rtsa.query.v1.QueryAuditLogRequest\x1a$.rtsa.query.v1.QueryAuditLogResponseBEZCgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1;queryv1b\x06proto3"
+	"\rQueryAuditLog\x12#.rtsa.query.v1.QueryAuditLogRequest\x1a$.rtsa.query.v1.QueryAuditLogResponse\x12`\n" +
+	"\x10GetEventTimeline\x12&.rtsa.query.v1.GetEventTimelineRequest\x1a$.rtsa.query.v1.EventTimelineResponseBEZCgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1;queryv1b\x06proto3"
 
 var (
 	file_rtsa_query_v1_query_service_proto_rawDescOnce sync.Once
@@ -710,60 +1364,87 @@ func file_rtsa_query_v1_query_service_proto_rawDescGZIP() []byte {
 	return file_rtsa_query_v1_query_service_proto_rawDescData
 }
 
-var file_rtsa_query_v1_query_service_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_rtsa_query_v1_query_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_rtsa_query_v1_query_service_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_rtsa_query_v1_query_service_proto_goTypes = []any{
-	(*QueryTracksRequest)(nil),     // 0: rtsa.query.v1.QueryTracksRequest
-	(*QueryTracksResponse)(nil),    // 1: rtsa.query.v1.QueryTracksResponse
-	(*QueryAnomaliesRequest)(nil),  // 2: rtsa.query.v1.QueryAnomaliesRequest
-	(*QueryAnomaliesResponse)(nil), // 3: rtsa.query.v1.QueryAnomaliesResponse
-	(*QueryAuditLogRequest)(nil),   // 4: rtsa.query.v1.QueryAuditLogRequest
-	(*QueryAuditLogResponse)(nil),  // 5: rtsa.query.v1.QueryAuditLogResponse
-	(*AuditLogEntry)(nil),          // 6: rtsa.query.v1.AuditLogEntry
-	(*v1.TimeRange)(nil),           // 7: rtsa.common.v1.TimeRange
-	(v1.EntityType)(0),             // 8: rtsa.common.v1.EntityType
-	(v1.HostileClassification)(0),  // 9: rtsa.common.v1.HostileClassification
-	(*v1.BoundingBox)(nil),         // 10: rtsa.common.v1.BoundingBox
-	(*v1.PaginationRequest)(nil),   // 11: rtsa.common.v1.PaginationRequest
-	(v1.ClassificationLevel)(0),    // 12: rtsa.common.v1.ClassificationLevel
-	(*v11.FusedTrack)(nil),         // 13: rtsa.entity.v1.FusedTrack
-	(*v1.PaginationResponse)(nil),  // 14: rtsa.common.v1.PaginationResponse
-	(v1.AnomalyType)(0),            // 15: rtsa.common.v1.AnomalyType
-	(v1.AlertSeverity)(0),          // 16: rtsa.common.v1.AlertSeverity
-	(*v12.AnomalyAlert)(nil),       // 17: rtsa.inference.v1.AnomalyAlert
+	(TimelineEventType)(0),          // 0: rtsa.query.v1.TimelineEventType
+	(*QueryTracksRequest)(nil),      // 1: rtsa.query.v1.QueryTracksRequest
+	(*QueryTracksResponse)(nil),     // 2: rtsa.query.v1.QueryTracksResponse
+	(*QueryAnomaliesRequest)(nil),   // 3: rtsa.query.v1.QueryAnomaliesRequest
+	(*QueryAnomaliesResponse)(nil),  // 4: rtsa.query.v1.QueryAnomaliesResponse
+	(*QueryAuditLogRequest)(nil),    // 5: rtsa.query.v1.QueryAuditLogRequest
+	(*QueryAuditLogResponse)(nil),   // 6: rtsa.query.v1.QueryAuditLogResponse
+	(*AuditLogEntry)(nil),           // 7: rtsa.query.v1.AuditLogEntry
+	(*GetEventTimelineRequest)(nil), // 8: rtsa.query.v1.GetEventTimelineRequest
+	(*EventTimelineResponse)(nil),   // 9: rtsa.query.v1.EventTimelineResponse
+	(*TimelineEvent)(nil),           // 10: rtsa.query.v1.TimelineEvent
+	(*TrackStateChange)(nil),        // 11: rtsa.query.v1.TrackStateChange
+	(*AnomalyEventDetail)(nil),      // 12: rtsa.query.v1.AnomalyEventDetail
+	(*FeedbackEventDetail)(nil),     // 13: rtsa.query.v1.FeedbackEventDetail
+	(*AuditEventDetail)(nil),        // 14: rtsa.query.v1.AuditEventDetail
+	(*v1.TimeRange)(nil),            // 15: rtsa.common.v1.TimeRange
+	(v1.EntityType)(0),              // 16: rtsa.common.v1.EntityType
+	(v1.HostileClassification)(0),   // 17: rtsa.common.v1.HostileClassification
+	(*v1.BoundingBox)(nil),          // 18: rtsa.common.v1.BoundingBox
+	(*v1.PaginationRequest)(nil),    // 19: rtsa.common.v1.PaginationRequest
+	(v1.ClassificationLevel)(0),     // 20: rtsa.common.v1.ClassificationLevel
+	(*v11.FusedTrack)(nil),          // 21: rtsa.entity.v1.FusedTrack
+	(*v1.PaginationResponse)(nil),   // 22: rtsa.common.v1.PaginationResponse
+	(v1.AnomalyType)(0),             // 23: rtsa.common.v1.AnomalyType
+	(v1.AlertSeverity)(0),           // 24: rtsa.common.v1.AlertSeverity
+	(*v12.AnomalyAlert)(nil),        // 25: rtsa.inference.v1.AnomalyAlert
+	(*timestamppb.Timestamp)(nil),   // 26: google.protobuf.Timestamp
+	(*v1.Position)(nil),             // 27: rtsa.common.v1.Position
+	(v1.FeedbackType)(0),            // 28: rtsa.common.v1.FeedbackType
 }
 var file_rtsa_query_v1_query_service_proto_depIdxs = []int32{
-	7,  // 0: rtsa.query.v1.QueryTracksRequest.time_range:type_name -> rtsa.common.v1.TimeRange
-	8,  // 1: rtsa.query.v1.QueryTracksRequest.entity_types:type_name -> rtsa.common.v1.EntityType
-	9,  // 2: rtsa.query.v1.QueryTracksRequest.hostile_classes:type_name -> rtsa.common.v1.HostileClassification
-	10, // 3: rtsa.query.v1.QueryTracksRequest.bounding_box:type_name -> rtsa.common.v1.BoundingBox
-	11, // 4: rtsa.query.v1.QueryTracksRequest.pagination:type_name -> rtsa.common.v1.PaginationRequest
-	12, // 5: rtsa.query.v1.QueryTracksRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
-	13, // 6: rtsa.query.v1.QueryTracksResponse.tracks:type_name -> rtsa.entity.v1.FusedTrack
-	14, // 7: rtsa.query.v1.QueryTracksResponse.pagination:type_name -> rtsa.common.v1.PaginationResponse
-	7,  // 8: rtsa.query.v1.QueryAnomaliesRequest.time_range:type_name -> rtsa.common.v1.TimeRange
-	15, // 9: rtsa.query.v1.QueryAnomaliesRequest.anomaly_types:type_name -> rtsa.common.v1.AnomalyType
-	16, // 10: rtsa.query.v1.QueryAnomaliesRequest.severities:type_name -> rtsa.common.v1.AlertSeverity
-	11, // 11: rtsa.query.v1.QueryAnomaliesRequest.pagination:type_name -> rtsa.common.v1.PaginationRequest
-	12, // 12: rtsa.query.v1.QueryAnomaliesRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
-	17, // 13: rtsa.query.v1.QueryAnomaliesResponse.alerts:type_name -> rtsa.inference.v1.AnomalyAlert
-	14, // 14: rtsa.query.v1.QueryAnomaliesResponse.pagination:type_name -> rtsa.common.v1.PaginationResponse
-	7,  // 15: rtsa.query.v1.QueryAuditLogRequest.time_range:type_name -> rtsa.common.v1.TimeRange
-	11, // 16: rtsa.query.v1.QueryAuditLogRequest.pagination:type_name -> rtsa.common.v1.PaginationRequest
-	12, // 17: rtsa.query.v1.QueryAuditLogRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
-	6,  // 18: rtsa.query.v1.QueryAuditLogResponse.entries:type_name -> rtsa.query.v1.AuditLogEntry
-	14, // 19: rtsa.query.v1.QueryAuditLogResponse.pagination:type_name -> rtsa.common.v1.PaginationResponse
-	12, // 20: rtsa.query.v1.AuditLogEntry.classification_level:type_name -> rtsa.common.v1.ClassificationLevel
-	0,  // 21: rtsa.query.v1.QueryService.QueryTracks:input_type -> rtsa.query.v1.QueryTracksRequest
-	2,  // 22: rtsa.query.v1.QueryService.QueryAnomalies:input_type -> rtsa.query.v1.QueryAnomaliesRequest
-	4,  // 23: rtsa.query.v1.QueryService.QueryAuditLog:input_type -> rtsa.query.v1.QueryAuditLogRequest
-	1,  // 24: rtsa.query.v1.QueryService.QueryTracks:output_type -> rtsa.query.v1.QueryTracksResponse
-	3,  // 25: rtsa.query.v1.QueryService.QueryAnomalies:output_type -> rtsa.query.v1.QueryAnomaliesResponse
-	5,  // 26: rtsa.query.v1.QueryService.QueryAuditLog:output_type -> rtsa.query.v1.QueryAuditLogResponse
-	24, // [24:27] is the sub-list for method output_type
-	21, // [21:24] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	15, // 0: rtsa.query.v1.QueryTracksRequest.time_range:type_name -> rtsa.common.v1.TimeRange
+	16, // 1: rtsa.query.v1.QueryTracksRequest.entity_types:type_name -> rtsa.common.v1.EntityType
+	17, // 2: rtsa.query.v1.QueryTracksRequest.hostile_classes:type_name -> rtsa.common.v1.HostileClassification
+	18, // 3: rtsa.query.v1.QueryTracksRequest.bounding_box:type_name -> rtsa.common.v1.BoundingBox
+	19, // 4: rtsa.query.v1.QueryTracksRequest.pagination:type_name -> rtsa.common.v1.PaginationRequest
+	20, // 5: rtsa.query.v1.QueryTracksRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	21, // 6: rtsa.query.v1.QueryTracksResponse.tracks:type_name -> rtsa.entity.v1.FusedTrack
+	22, // 7: rtsa.query.v1.QueryTracksResponse.pagination:type_name -> rtsa.common.v1.PaginationResponse
+	15, // 8: rtsa.query.v1.QueryAnomaliesRequest.time_range:type_name -> rtsa.common.v1.TimeRange
+	23, // 9: rtsa.query.v1.QueryAnomaliesRequest.anomaly_types:type_name -> rtsa.common.v1.AnomalyType
+	24, // 10: rtsa.query.v1.QueryAnomaliesRequest.severities:type_name -> rtsa.common.v1.AlertSeverity
+	19, // 11: rtsa.query.v1.QueryAnomaliesRequest.pagination:type_name -> rtsa.common.v1.PaginationRequest
+	20, // 12: rtsa.query.v1.QueryAnomaliesRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	25, // 13: rtsa.query.v1.QueryAnomaliesResponse.alerts:type_name -> rtsa.inference.v1.AnomalyAlert
+	22, // 14: rtsa.query.v1.QueryAnomaliesResponse.pagination:type_name -> rtsa.common.v1.PaginationResponse
+	15, // 15: rtsa.query.v1.QueryAuditLogRequest.time_range:type_name -> rtsa.common.v1.TimeRange
+	19, // 16: rtsa.query.v1.QueryAuditLogRequest.pagination:type_name -> rtsa.common.v1.PaginationRequest
+	20, // 17: rtsa.query.v1.QueryAuditLogRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	7,  // 18: rtsa.query.v1.QueryAuditLogResponse.entries:type_name -> rtsa.query.v1.AuditLogEntry
+	22, // 19: rtsa.query.v1.QueryAuditLogResponse.pagination:type_name -> rtsa.common.v1.PaginationResponse
+	20, // 20: rtsa.query.v1.AuditLogEntry.classification_level:type_name -> rtsa.common.v1.ClassificationLevel
+	15, // 21: rtsa.query.v1.GetEventTimelineRequest.time_range:type_name -> rtsa.common.v1.TimeRange
+	20, // 22: rtsa.query.v1.GetEventTimelineRequest.clearance_level:type_name -> rtsa.common.v1.ClassificationLevel
+	10, // 23: rtsa.query.v1.EventTimelineResponse.events:type_name -> rtsa.query.v1.TimelineEvent
+	26, // 24: rtsa.query.v1.TimelineEvent.event_time:type_name -> google.protobuf.Timestamp
+	0,  // 25: rtsa.query.v1.TimelineEvent.event_type:type_name -> rtsa.query.v1.TimelineEventType
+	11, // 26: rtsa.query.v1.TimelineEvent.track_change:type_name -> rtsa.query.v1.TrackStateChange
+	12, // 27: rtsa.query.v1.TimelineEvent.anomaly:type_name -> rtsa.query.v1.AnomalyEventDetail
+	13, // 28: rtsa.query.v1.TimelineEvent.feedback:type_name -> rtsa.query.v1.FeedbackEventDetail
+	14, // 29: rtsa.query.v1.TimelineEvent.audit:type_name -> rtsa.query.v1.AuditEventDetail
+	27, // 30: rtsa.query.v1.TrackStateChange.position:type_name -> rtsa.common.v1.Position
+	23, // 31: rtsa.query.v1.AnomalyEventDetail.anomaly_type:type_name -> rtsa.common.v1.AnomalyType
+	24, // 32: rtsa.query.v1.AnomalyEventDetail.severity:type_name -> rtsa.common.v1.AlertSeverity
+	28, // 33: rtsa.query.v1.FeedbackEventDetail.feedback_type:type_name -> rtsa.common.v1.FeedbackType
+	1,  // 34: rtsa.query.v1.QueryService.QueryTracks:input_type -> rtsa.query.v1.QueryTracksRequest
+	3,  // 35: rtsa.query.v1.QueryService.QueryAnomalies:input_type -> rtsa.query.v1.QueryAnomaliesRequest
+	5,  // 36: rtsa.query.v1.QueryService.QueryAuditLog:input_type -> rtsa.query.v1.QueryAuditLogRequest
+	8,  // 37: rtsa.query.v1.QueryService.GetEventTimeline:input_type -> rtsa.query.v1.GetEventTimelineRequest
+	2,  // 38: rtsa.query.v1.QueryService.QueryTracks:output_type -> rtsa.query.v1.QueryTracksResponse
+	4,  // 39: rtsa.query.v1.QueryService.QueryAnomalies:output_type -> rtsa.query.v1.QueryAnomaliesResponse
+	6,  // 40: rtsa.query.v1.QueryService.QueryAuditLog:output_type -> rtsa.query.v1.QueryAuditLogResponse
+	9,  // 41: rtsa.query.v1.QueryService.GetEventTimeline:output_type -> rtsa.query.v1.EventTimelineResponse
+	38, // [38:42] is the sub-list for method output_type
+	34, // [34:38] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_rtsa_query_v1_query_service_proto_init() }
@@ -774,18 +1455,25 @@ func file_rtsa_query_v1_query_service_proto_init() {
 	file_rtsa_query_v1_query_service_proto_msgTypes[0].OneofWrappers = []any{}
 	file_rtsa_query_v1_query_service_proto_msgTypes[2].OneofWrappers = []any{}
 	file_rtsa_query_v1_query_service_proto_msgTypes[4].OneofWrappers = []any{}
+	file_rtsa_query_v1_query_service_proto_msgTypes[9].OneofWrappers = []any{
+		(*TimelineEvent_TrackChange)(nil),
+		(*TimelineEvent_Anomaly)(nil),
+		(*TimelineEvent_Feedback)(nil),
+		(*TimelineEvent_Audit)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rtsa_query_v1_query_service_proto_rawDesc), len(file_rtsa_query_v1_query_service_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   7,
+			NumEnums:      1,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_rtsa_query_v1_query_service_proto_goTypes,
 		DependencyIndexes: file_rtsa_query_v1_query_service_proto_depIdxs,
+		EnumInfos:         file_rtsa_query_v1_query_service_proto_enumTypes,
 		MessageInfos:      file_rtsa_query_v1_query_service_proto_msgTypes,
 	}.Build()
 	File_rtsa_query_v1_query_service_proto = out.File

@@ -21,9 +21,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	TrackService_StreamTracks_FullMethodName    = "/rtsa.entity.v1.TrackService/StreamTracks"
-	TrackService_GetTrackDetails_FullMethodName = "/rtsa.entity.v1.TrackService/GetTrackDetails"
-	TrackService_GetTrackHistory_FullMethodName = "/rtsa.entity.v1.TrackService/GetTrackHistory"
+	TrackService_StreamTracks_FullMethodName             = "/rtsa.entity.v1.TrackService/StreamTracks"
+	TrackService_GetTrackDetails_FullMethodName          = "/rtsa.entity.v1.TrackService/GetTrackDetails"
+	TrackService_GetTrackHistory_FullMethodName          = "/rtsa.entity.v1.TrackService/GetTrackHistory"
+	TrackService_StreamSensorObservations_FullMethodName = "/rtsa.entity.v1.TrackService/StreamSensorObservations"
 )
 
 // TrackServiceClient is the client API for TrackService service.
@@ -44,6 +45,10 @@ type TrackServiceClient interface {
 	// Unary: get recent position history for a track
 	// Deadline: 10s
 	GetTrackHistory(ctx context.Context, in *GetTrackHistoryRequest, opts ...grpc.CallOption) (*TrackHistoryResponse, error)
+	// Server-streaming: receive raw sensor observations for correlation display
+	// Allows the UI to render individual sensor tracks alongside fused tracks
+	// Deadline: none (long-lived stream)
+	StreamSensorObservations(ctx context.Context, in *StreamSensorObservationsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SensorObservationUpdate], error)
 }
 
 type trackServiceClient struct {
@@ -93,6 +98,25 @@ func (c *trackServiceClient) GetTrackHistory(ctx context.Context, in *GetTrackHi
 	return out, nil
 }
 
+func (c *trackServiceClient) StreamSensorObservations(ctx context.Context, in *StreamSensorObservationsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SensorObservationUpdate], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &TrackService_ServiceDesc.Streams[1], TrackService_StreamSensorObservations_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamSensorObservationsRequest, SensorObservationUpdate]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TrackService_StreamSensorObservationsClient = grpc.ServerStreamingClient[SensorObservationUpdate]
+
 // TrackServiceServer is the server API for TrackService service.
 // All implementations should embed UnimplementedTrackServiceServer
 // for forward compatibility.
@@ -111,6 +135,10 @@ type TrackServiceServer interface {
 	// Unary: get recent position history for a track
 	// Deadline: 10s
 	GetTrackHistory(context.Context, *GetTrackHistoryRequest) (*TrackHistoryResponse, error)
+	// Server-streaming: receive raw sensor observations for correlation display
+	// Allows the UI to render individual sensor tracks alongside fused tracks
+	// Deadline: none (long-lived stream)
+	StreamSensorObservations(*StreamSensorObservationsRequest, grpc.ServerStreamingServer[SensorObservationUpdate]) error
 }
 
 // UnimplementedTrackServiceServer should be embedded to have
@@ -128,6 +156,9 @@ func (UnimplementedTrackServiceServer) GetTrackDetails(context.Context, *GetTrac
 }
 func (UnimplementedTrackServiceServer) GetTrackHistory(context.Context, *GetTrackHistoryRequest) (*TrackHistoryResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetTrackHistory not implemented")
+}
+func (UnimplementedTrackServiceServer) StreamSensorObservations(*StreamSensorObservationsRequest, grpc.ServerStreamingServer[SensorObservationUpdate]) error {
+	return status.Error(codes.Unimplemented, "method StreamSensorObservations not implemented")
 }
 func (UnimplementedTrackServiceServer) testEmbeddedByValue() {}
 
@@ -196,6 +227,17 @@ func _TrackService_GetTrackHistory_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TrackService_StreamSensorObservations_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamSensorObservationsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(TrackServiceServer).StreamSensorObservations(m, &grpc.GenericServerStream[StreamSensorObservationsRequest, SensorObservationUpdate]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type TrackService_StreamSensorObservationsServer = grpc.ServerStreamingServer[SensorObservationUpdate]
+
 // TrackService_ServiceDesc is the grpc.ServiceDesc for TrackService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -216,6 +258,11 @@ var TrackService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "StreamTracks",
 			Handler:       _TrackService_StreamTracks_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamSensorObservations",
+			Handler:       _TrackService_StreamSensorObservations_Handler,
 			ServerStreams: true,
 		},
 	},

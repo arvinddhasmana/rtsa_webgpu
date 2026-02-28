@@ -487,12 +487,16 @@ t.Errorf("unexpected stream error: %v", err)
 
 // TestAlertServer_AcknowledgeAlert exercises the server wrapper for AcknowledgeAlert.
 func TestAlertServer_AcknowledgeAlert(t *testing.T) {
-q := domain.NewAlertQueue(100)
-ack := domain.NewAcknowledger(q, nil, newTestLogger())
-ackH := handler.NewAcknowledgeHandler(ack, newTestLogger())
-detailsH := handler.NewDetailsHandler(q, newTestLogger())
-streamH := handler.NewStreamHandler(q, nil, newTestLogger())
-srv := handler.NewAlertServer(streamH, ackH, detailsH)
+	q := domain.NewAlertQueue(100)
+	ack := domain.NewAcknowledger(q, nil, newTestLogger())
+	ackH := handler.NewAcknowledgeHandler(ack, newTestLogger())
+	detailsH := handler.NewDetailsHandler(q, newTestLogger())
+	streamH := handler.NewStreamHandler(q, nil, newTestLogger())
+
+	assigner := domain.NewAssigner(q, newTestLogger())
+	assignH := handler.NewAssignHandler(assigner, newTestLogger())
+
+	srv := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 
 q.Enqueue(makeAlert("srv-ack-1", commonv1.AlertSeverity_ALERT_SEVERITY_WATCH,
 commonv1.AnomalyType_ANOMALY_TYPE_SPEED,
@@ -513,12 +517,16 @@ t.Error("expected Success=true from server wrapper")
 
 // TestAlertServer_GetAlertDetails exercises the server wrapper for GetAlertDetails.
 func TestAlertServer_GetAlertDetails(t *testing.T) {
-q := domain.NewAlertQueue(100)
-ack := domain.NewAcknowledger(q, nil, newTestLogger())
-ackH := handler.NewAcknowledgeHandler(ack, newTestLogger())
-detailsH := handler.NewDetailsHandler(q, newTestLogger())
-streamH := handler.NewStreamHandler(q, nil, newTestLogger())
-srv := handler.NewAlertServer(streamH, ackH, detailsH)
+	q := domain.NewAlertQueue(100)
+	ack := domain.NewAcknowledger(q, nil, newTestLogger())
+	ackH := handler.NewAcknowledgeHandler(ack, newTestLogger())
+	detailsH := handler.NewDetailsHandler(q, newTestLogger())
+	streamH := handler.NewStreamHandler(q, nil, newTestLogger())
+
+	assigner := domain.NewAssigner(q, newTestLogger())
+	assignH := handler.NewAssignHandler(assigner, newTestLogger())
+
+	srv := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 
 q.Enqueue(makeAlert("srv-det-1", commonv1.AlertSeverity_ALERT_SEVERITY_ELEVATED,
 commonv1.AnomalyType_ANOMALY_TYPE_BEHAVIORAL,
@@ -539,14 +547,17 @@ t.Errorf("expected srv-det-1, got %s", resp.GetAlertId())
 
 // TestAlertServer_StreamAlerts exercises the server wrapper for StreamAlerts.
 func TestAlertServer_StreamAlerts(t *testing.T) {
-q := domain.NewAlertQueue(100)
-ack := domain.NewAcknowledger(q, nil, newTestLogger())
-ackH := handler.NewAcknowledgeHandler(ack, newTestLogger())
-detailsH := handler.NewDetailsHandler(q, newTestLogger())
+	q := domain.NewAlertQueue(100)
+	ack := domain.NewAcknowledger(q, nil, newTestLogger())
+	ackH := handler.NewAcknowledgeHandler(ack, newTestLogger())
+	detailsH := handler.NewDetailsHandler(q, newTestLogger())
 
-streamMetrics := &handler.StreamMetrics{} // nil gauges — should not panic
-streamH := handler.NewStreamHandler(q, streamMetrics, newTestLogger())
-srv := handler.NewAlertServer(streamH, ackH, detailsH)
+	assigner := domain.NewAssigner(q, newTestLogger())
+	assignH := handler.NewAssignHandler(assigner, newTestLogger())
+
+	streamMetrics := &handler.StreamMetrics{} // nil gauges — should not panic
+	streamH := handler.NewStreamHandler(q, streamMetrics, newTestLogger())
+	srv := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 
 ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 defer cancel()

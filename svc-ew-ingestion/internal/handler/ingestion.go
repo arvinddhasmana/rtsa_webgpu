@@ -31,8 +31,9 @@ normalizer   ingestion.Normalizer
 enricher     *mapper.Enricher
 prod         *producer.ObservationProducer
 dlqProd      *producer.ObservationProducer
-auditEmitter *audit.Emitter
-logger       *zap.Logger
+	auditEmitter *audit.Emitter
+	logger       *zap.Logger
+	coverage     *ingestionv1.SensorCoverage
 
 // Statistics (atomic for thread safety)
 totalReceived atomic.Int64
@@ -46,20 +47,22 @@ func NewIngestionHandler(
 validator ingestion.Validator,
 normalizer ingestion.Normalizer,
 enricher *mapper.Enricher,
-prod *producer.ObservationProducer,
-dlqProd *producer.ObservationProducer,
-auditEmitter *audit.Emitter,
-logger *zap.Logger,
+	prod *producer.ObservationProducer,
+	dlqProd *producer.ObservationProducer,
+	auditEmitter *audit.Emitter,
+	logger *zap.Logger,
+	coverage *ingestionv1.SensorCoverage,
 ) *IngestionHandler {
-h := &IngestionHandler{
+	h := &IngestionHandler{
 validator:    validator,
 normalizer:   normalizer,
 enricher:     enricher,
 prod:         prod,
 dlqProd:      dlqProd,
-auditEmitter: auditEmitter,
-logger:       logger,
-}
+		auditEmitter: auditEmitter,
+		logger:       logger,
+		coverage:     coverage,
+	}
 h.lastObsTime.Store(time.Time{})
 return h
 }
@@ -206,9 +209,40 @@ TotalAccepted: h.totalAccepted.Load(),
 TotalRejected: h.totalRejected.Load(),
 }
 
-if !lastTime.IsZero() {
-resp.LastObservationTime = timestamppb.New(lastTime)
+	if !lastTime.IsZero() {
+		resp.LastObservationTime = timestamppb.New(lastTime)
+	}
+	if h.coverage != nil {
+		resp.Coverage = h.coverage
+	}
+
+	return resp, nil
 }
 
-return resp, nil
+// ListSensorStatuses returns a list of all active EW sensor statistics.
+func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListSensorStatusesRequest) (*ingestionv1.ListSensorStatusesResponse, error) {
+	// For now, since EW ingestion only handles its own unified stream and doesn't multiplex
+	// multiple discrete EW IDs dynamically with independent states, we report the state of the EW cluster itself
+	// or returning a predefined list if we tracked them. Currently we track unified state.
+
+	// Get the unified status
+	statusReq := &ingestionv1.GetSensorStatusRequest{
+		SensorId: "ew-cluster-01", // Or dynamic if tracked
+	}
+
+	resp, err := h.GetSensorStatus(ctx, statusReq)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to get sensor status: %v", err)
+	}
+
+	// Filter by active within
+	if req.ActiveWithinSeconds > 0 && resp.LastObservationTime != nil {
+		if time.Since(resp.LastObservationTime.AsTime()).Seconds() > float64(req.ActiveWithinSeconds) {
+			return &ingestionv1.ListSensorStatusesResponse{Sensors: []*ingestionv1.SensorStatusResponse{}}, nil
+		}
+	}
+
+	return &ingestionv1.ListSensorStatusesResponse{
+		Sensors: []*ingestionv1.SensorStatusResponse{resp},
+	}, nil
 }

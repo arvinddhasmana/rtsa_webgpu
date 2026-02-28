@@ -29,9 +29,9 @@ t.Errorf("expected 40000.0 max frequency, got %f", cfg.MaxFrequencyMHz)
 if cfg.MaxFutureOffsetSec != 300 {
 t.Errorf("expected 300s future offset, got %d", cfg.MaxFutureOffsetSec)
 }
-if cfg.MaxPastOffsetSec != 86400 {
-t.Errorf("expected 86400s past offset, got %d", cfg.MaxPastOffsetSec)
-}
+	if cfg.MaxPastOffsetSec != 86400 {
+		t.Errorf("expected 86400s past offset, got %d", cfg.MaxPastOffsetSec)
+	}
 }
 
 func TestLoad_CustomValues(t *testing.T) {

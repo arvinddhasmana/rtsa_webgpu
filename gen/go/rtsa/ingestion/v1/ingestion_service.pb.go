@@ -259,6 +259,7 @@ type SensorStatusResponse struct {
 	TotalRejected       int64                  `protobuf:"varint,6,opt,name=total_rejected,json=totalRejected,proto3" json:"total_rejected,omitempty"`
 	LastObservationTime *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=last_observation_time,json=lastObservationTime,proto3" json:"last_observation_time,omitempty"`
 	EventsPerSecond     float64                `protobuf:"fixed64,8,opt,name=events_per_second,json=eventsPerSecond,proto3" json:"events_per_second,omitempty"`
+	Coverage            *SensorCoverage        `protobuf:"bytes,9,opt,name=coverage,proto3,oneof" json:"coverage,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -349,6 +350,192 @@ func (x *SensorStatusResponse) GetEventsPerSecond() float64 {
 	return 0
 }
 
+func (x *SensorStatusResponse) GetCoverage() *SensorCoverage {
+	if x != nil {
+		return x.Coverage
+	}
+	return nil
+}
+
+type SensorCoverage struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Coverage polygon vertices (for ISR, geo-fence type sensors)
+	CoveragePolygon []*v1.Position `protobuf:"bytes,1,rep,name=coverage_polygon,json=coveragePolygon,proto3" json:"coverage_polygon,omitempty"`
+	// Maximum sensor range in nautical miles (for radar, EW)
+	RangeNm *float64 `protobuf:"fixed64,2,opt,name=range_nm,json=rangeNm,proto3,oneof" json:"range_nm,omitempty"`
+	// Bearing sector start in degrees true (for directional sensors)
+	BearingStartDegrees *float64 `protobuf:"fixed64,3,opt,name=bearing_start_degrees,json=bearingStartDegrees,proto3,oneof" json:"bearing_start_degrees,omitempty"`
+	// Bearing sector end in degrees true (for directional sensors)
+	BearingEndDegrees *float64 `protobuf:"fixed64,4,opt,name=bearing_end_degrees,json=bearingEndDegrees,proto3,oneof" json:"bearing_end_degrees,omitempty"`
+	// Sensor geographic position
+	SensorPosition *v1.Position `protobuf:"bytes,5,opt,name=sensor_position,json=sensorPosition,proto3,oneof" json:"sensor_position,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *SensorCoverage) Reset() {
+	*x = SensorCoverage{}
+	mi := &file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SensorCoverage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SensorCoverage) ProtoMessage() {}
+
+func (x *SensorCoverage) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SensorCoverage.ProtoReflect.Descriptor instead.
+func (*SensorCoverage) Descriptor() ([]byte, []int) {
+	return file_rtsa_ingestion_v1_ingestion_service_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SensorCoverage) GetCoveragePolygon() []*v1.Position {
+	if x != nil {
+		return x.CoveragePolygon
+	}
+	return nil
+}
+
+func (x *SensorCoverage) GetRangeNm() float64 {
+	if x != nil && x.RangeNm != nil {
+		return *x.RangeNm
+	}
+	return 0
+}
+
+func (x *SensorCoverage) GetBearingStartDegrees() float64 {
+	if x != nil && x.BearingStartDegrees != nil {
+		return *x.BearingStartDegrees
+	}
+	return 0
+}
+
+func (x *SensorCoverage) GetBearingEndDegrees() float64 {
+	if x != nil && x.BearingEndDegrees != nil {
+		return *x.BearingEndDegrees
+	}
+	return 0
+}
+
+func (x *SensorCoverage) GetSensorPosition() *v1.Position {
+	if x != nil {
+		return x.SensorPosition
+	}
+	return nil
+}
+
+type ListSensorStatusesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Filter by sensor types (empty = all)
+	SensorTypes []v1.SensorType `protobuf:"varint,1,rep,packed,name=sensor_types,json=sensorTypes,proto3,enum=rtsa.common.v1.SensorType" json:"sensor_types,omitempty"`
+	// Only return sensors with observations in the last N seconds (0 = all)
+	ActiveWithinSeconds int32 `protobuf:"varint,2,opt,name=active_within_seconds,json=activeWithinSeconds,proto3" json:"active_within_seconds,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ListSensorStatusesRequest) Reset() {
+	*x = ListSensorStatusesRequest{}
+	mi := &file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSensorStatusesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSensorStatusesRequest) ProtoMessage() {}
+
+func (x *ListSensorStatusesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSensorStatusesRequest.ProtoReflect.Descriptor instead.
+func (*ListSensorStatusesRequest) Descriptor() ([]byte, []int) {
+	return file_rtsa_ingestion_v1_ingestion_service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListSensorStatusesRequest) GetSensorTypes() []v1.SensorType {
+	if x != nil {
+		return x.SensorTypes
+	}
+	return nil
+}
+
+func (x *ListSensorStatusesRequest) GetActiveWithinSeconds() int32 {
+	if x != nil {
+		return x.ActiveWithinSeconds
+	}
+	return 0
+}
+
+type ListSensorStatusesResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Sensors       []*SensorStatusResponse `protobuf:"bytes,1,rep,name=sensors,proto3" json:"sensors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSensorStatusesResponse) Reset() {
+	*x = ListSensorStatusesResponse{}
+	mi := &file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSensorStatusesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSensorStatusesResponse) ProtoMessage() {}
+
+func (x *ListSensorStatusesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSensorStatusesResponse.ProtoReflect.Descriptor instead.
+func (*ListSensorStatusesResponse) Descriptor() ([]byte, []int) {
+	return file_rtsa_ingestion_v1_ingestion_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListSensorStatusesResponse) GetSensors() []*SensorStatusResponse {
+	if x != nil {
+		return x.Sensors
+	}
+	return nil
+}
+
 var File_rtsa_ingestion_v1_ingestion_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_ingestion_v1_ingestion_service_proto_rawDesc = "" +
@@ -369,7 +556,7 @@ const file_rtsa_ingestion_v1_ingestion_service_proto_rawDesc = "" +
 	"\x0eobservation_id\x18\x01 \x01(\tR\robservationId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\"5\n" +
 	"\x16GetSensorStatusRequest\x12\x1b\n" +
-	"\tsensor_id\x18\x01 \x01(\tR\bsensorId\"\xff\x02\n" +
+	"\tsensor_id\x18\x01 \x01(\tR\bsensorId\"\xd0\x03\n" +
 	"\x14SensorStatusResponse\x12\x1b\n" +
 	"\tsensor_id\x18\x01 \x01(\tR\bsensorId\x12;\n" +
 	"\vsensor_type\x18\x02 \x01(\x0e2\x1a.rtsa.common.v1.SensorTypeR\n" +
@@ -379,11 +566,29 @@ const file_rtsa_ingestion_v1_ingestion_service_proto_rawDesc = "" +
 	"\x0etotal_accepted\x18\x05 \x01(\x03R\rtotalAccepted\x12%\n" +
 	"\x0etotal_rejected\x18\x06 \x01(\x03R\rtotalRejected\x12N\n" +
 	"\x15last_observation_time\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x13lastObservationTime\x12*\n" +
-	"\x11events_per_second\x18\b \x01(\x01R\x0feventsPerSecond2\xb9\x02\n" +
+	"\x11events_per_second\x18\b \x01(\x01R\x0feventsPerSecond\x12B\n" +
+	"\bcoverage\x18\t \x01(\v2!.rtsa.ingestion.v1.SensorCoverageH\x00R\bcoverage\x88\x01\x01B\v\n" +
+	"\t_coverage\"\xfe\x02\n" +
+	"\x0eSensorCoverage\x12C\n" +
+	"\x10coverage_polygon\x18\x01 \x03(\v2\x18.rtsa.common.v1.PositionR\x0fcoveragePolygon\x12\x1e\n" +
+	"\brange_nm\x18\x02 \x01(\x01H\x00R\arangeNm\x88\x01\x01\x127\n" +
+	"\x15bearing_start_degrees\x18\x03 \x01(\x01H\x01R\x13bearingStartDegrees\x88\x01\x01\x123\n" +
+	"\x13bearing_end_degrees\x18\x04 \x01(\x01H\x02R\x11bearingEndDegrees\x88\x01\x01\x12F\n" +
+	"\x0fsensor_position\x18\x05 \x01(\v2\x18.rtsa.common.v1.PositionH\x03R\x0esensorPosition\x88\x01\x01B\v\n" +
+	"\t_range_nmB\x18\n" +
+	"\x16_bearing_start_degreesB\x16\n" +
+	"\x14_bearing_end_degreesB\x12\n" +
+	"\x10_sensor_position\"\x8e\x01\n" +
+	"\x19ListSensorStatusesRequest\x12=\n" +
+	"\fsensor_types\x18\x01 \x03(\x0e2\x1a.rtsa.common.v1.SensorTypeR\vsensorTypes\x122\n" +
+	"\x15active_within_seconds\x18\x02 \x01(\x05R\x13activeWithinSeconds\"_\n" +
+	"\x1aListSensorStatusesResponse\x12A\n" +
+	"\asensors\x18\x01 \x03(\v2'.rtsa.ingestion.v1.SensorStatusResponseR\asensors2\xac\x03\n" +
 	"\x10IngestionService\x12\\\n" +
 	"\x10IngestSensorData\x12$.rtsa.ingestion.v1.SensorObservation\x1a .rtsa.ingestion.v1.IngestSummary(\x01\x12`\n" +
 	"\x17IngestSingleObservation\x12$.rtsa.ingestion.v1.SensorObservation\x1a\x1f.rtsa.ingestion.v1.IngestionAck\x12e\n" +
-	"\x0fGetSensorStatus\x12).rtsa.ingestion.v1.GetSensorStatusRequest\x1a'.rtsa.ingestion.v1.SensorStatusResponseBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1b\x06proto3"
+	"\x0fGetSensorStatus\x12).rtsa.ingestion.v1.GetSensorStatusRequest\x1a'.rtsa.ingestion.v1.SensorStatusResponse\x12q\n" +
+	"\x12ListSensorStatuses\x12,.rtsa.ingestion.v1.ListSensorStatusesRequest\x1a-.rtsa.ingestion.v1.ListSensorStatusesResponseBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1b\x06proto3"
 
 var (
 	file_rtsa_ingestion_v1_ingestion_service_proto_rawDescOnce sync.Once
@@ -397,32 +602,43 @@ func file_rtsa_ingestion_v1_ingestion_service_proto_rawDescGZIP() []byte {
 	return file_rtsa_ingestion_v1_ingestion_service_proto_rawDescData
 }
 
-var file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_rtsa_ingestion_v1_ingestion_service_proto_goTypes = []any{
-	(*IngestionAck)(nil),           // 0: rtsa.ingestion.v1.IngestionAck
-	(*IngestSummary)(nil),          // 1: rtsa.ingestion.v1.IngestSummary
-	(*RejectionDetail)(nil),        // 2: rtsa.ingestion.v1.RejectionDetail
-	(*GetSensorStatusRequest)(nil), // 3: rtsa.ingestion.v1.GetSensorStatusRequest
-	(*SensorStatusResponse)(nil),   // 4: rtsa.ingestion.v1.SensorStatusResponse
-	(v1.SensorType)(0),             // 5: rtsa.common.v1.SensorType
-	(*timestamppb.Timestamp)(nil),  // 6: google.protobuf.Timestamp
-	(*SensorObservation)(nil),      // 7: rtsa.ingestion.v1.SensorObservation
+	(*IngestionAck)(nil),               // 0: rtsa.ingestion.v1.IngestionAck
+	(*IngestSummary)(nil),              // 1: rtsa.ingestion.v1.IngestSummary
+	(*RejectionDetail)(nil),            // 2: rtsa.ingestion.v1.RejectionDetail
+	(*GetSensorStatusRequest)(nil),     // 3: rtsa.ingestion.v1.GetSensorStatusRequest
+	(*SensorStatusResponse)(nil),       // 4: rtsa.ingestion.v1.SensorStatusResponse
+	(*SensorCoverage)(nil),             // 5: rtsa.ingestion.v1.SensorCoverage
+	(*ListSensorStatusesRequest)(nil),  // 6: rtsa.ingestion.v1.ListSensorStatusesRequest
+	(*ListSensorStatusesResponse)(nil), // 7: rtsa.ingestion.v1.ListSensorStatusesResponse
+	(v1.SensorType)(0),                 // 8: rtsa.common.v1.SensorType
+	(*timestamppb.Timestamp)(nil),      // 9: google.protobuf.Timestamp
+	(*v1.Position)(nil),                // 10: rtsa.common.v1.Position
+	(*SensorObservation)(nil),          // 11: rtsa.ingestion.v1.SensorObservation
 }
 var file_rtsa_ingestion_v1_ingestion_service_proto_depIdxs = []int32{
-	2, // 0: rtsa.ingestion.v1.IngestSummary.rejections:type_name -> rtsa.ingestion.v1.RejectionDetail
-	5, // 1: rtsa.ingestion.v1.SensorStatusResponse.sensor_type:type_name -> rtsa.common.v1.SensorType
-	6, // 2: rtsa.ingestion.v1.SensorStatusResponse.last_observation_time:type_name -> google.protobuf.Timestamp
-	7, // 3: rtsa.ingestion.v1.IngestionService.IngestSensorData:input_type -> rtsa.ingestion.v1.SensorObservation
-	7, // 4: rtsa.ingestion.v1.IngestionService.IngestSingleObservation:input_type -> rtsa.ingestion.v1.SensorObservation
-	3, // 5: rtsa.ingestion.v1.IngestionService.GetSensorStatus:input_type -> rtsa.ingestion.v1.GetSensorStatusRequest
-	1, // 6: rtsa.ingestion.v1.IngestionService.IngestSensorData:output_type -> rtsa.ingestion.v1.IngestSummary
-	0, // 7: rtsa.ingestion.v1.IngestionService.IngestSingleObservation:output_type -> rtsa.ingestion.v1.IngestionAck
-	4, // 8: rtsa.ingestion.v1.IngestionService.GetSensorStatus:output_type -> rtsa.ingestion.v1.SensorStatusResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2,  // 0: rtsa.ingestion.v1.IngestSummary.rejections:type_name -> rtsa.ingestion.v1.RejectionDetail
+	8,  // 1: rtsa.ingestion.v1.SensorStatusResponse.sensor_type:type_name -> rtsa.common.v1.SensorType
+	9,  // 2: rtsa.ingestion.v1.SensorStatusResponse.last_observation_time:type_name -> google.protobuf.Timestamp
+	5,  // 3: rtsa.ingestion.v1.SensorStatusResponse.coverage:type_name -> rtsa.ingestion.v1.SensorCoverage
+	10, // 4: rtsa.ingestion.v1.SensorCoverage.coverage_polygon:type_name -> rtsa.common.v1.Position
+	10, // 5: rtsa.ingestion.v1.SensorCoverage.sensor_position:type_name -> rtsa.common.v1.Position
+	8,  // 6: rtsa.ingestion.v1.ListSensorStatusesRequest.sensor_types:type_name -> rtsa.common.v1.SensorType
+	4,  // 7: rtsa.ingestion.v1.ListSensorStatusesResponse.sensors:type_name -> rtsa.ingestion.v1.SensorStatusResponse
+	11, // 8: rtsa.ingestion.v1.IngestionService.IngestSensorData:input_type -> rtsa.ingestion.v1.SensorObservation
+	11, // 9: rtsa.ingestion.v1.IngestionService.IngestSingleObservation:input_type -> rtsa.ingestion.v1.SensorObservation
+	3,  // 10: rtsa.ingestion.v1.IngestionService.GetSensorStatus:input_type -> rtsa.ingestion.v1.GetSensorStatusRequest
+	6,  // 11: rtsa.ingestion.v1.IngestionService.ListSensorStatuses:input_type -> rtsa.ingestion.v1.ListSensorStatusesRequest
+	1,  // 12: rtsa.ingestion.v1.IngestionService.IngestSensorData:output_type -> rtsa.ingestion.v1.IngestSummary
+	0,  // 13: rtsa.ingestion.v1.IngestionService.IngestSingleObservation:output_type -> rtsa.ingestion.v1.IngestionAck
+	4,  // 14: rtsa.ingestion.v1.IngestionService.GetSensorStatus:output_type -> rtsa.ingestion.v1.SensorStatusResponse
+	7,  // 15: rtsa.ingestion.v1.IngestionService.ListSensorStatuses:output_type -> rtsa.ingestion.v1.ListSensorStatusesResponse
+	12, // [12:16] is the sub-list for method output_type
+	8,  // [8:12] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_rtsa_ingestion_v1_ingestion_service_proto_init() }
@@ -431,13 +647,15 @@ func file_rtsa_ingestion_v1_ingestion_service_proto_init() {
 		return
 	}
 	file_rtsa_ingestion_v1_sensor_observation_proto_init()
+	file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[4].OneofWrappers = []any{}
+	file_rtsa_ingestion_v1_ingestion_service_proto_msgTypes[5].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_rtsa_ingestion_v1_ingestion_service_proto_rawDesc), len(file_rtsa_ingestion_v1_ingestion_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

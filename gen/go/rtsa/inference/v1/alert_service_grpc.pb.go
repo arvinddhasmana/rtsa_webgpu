@@ -24,6 +24,7 @@ const (
 	AlertService_StreamAlerts_FullMethodName     = "/rtsa.inference.v1.AlertService/StreamAlerts"
 	AlertService_AcknowledgeAlert_FullMethodName = "/rtsa.inference.v1.AlertService/AcknowledgeAlert"
 	AlertService_GetAlertDetails_FullMethodName  = "/rtsa.inference.v1.AlertService/GetAlertDetails"
+	AlertService_AssignAlert_FullMethodName      = "/rtsa.inference.v1.AlertService/AssignAlert"
 )
 
 // AlertServiceClient is the client API for AlertService service.
@@ -44,6 +45,9 @@ type AlertServiceClient interface {
 	// Unary: get details of a specific alert
 	// Deadline: 5s
 	GetAlertDetails(ctx context.Context, in *GetAlertDetailsRequest, opts ...grpc.CallOption) (*AnomalyAlert, error)
+	// Unary: assign an alert to another operator for follow-up
+	// Deadline: 5s
+	AssignAlert(ctx context.Context, in *AssignAlertRequest, opts ...grpc.CallOption) (*AssignAlertResponse, error)
 }
 
 type alertServiceClient struct {
@@ -93,6 +97,16 @@ func (c *alertServiceClient) GetAlertDetails(ctx context.Context, in *GetAlertDe
 	return out, nil
 }
 
+func (c *alertServiceClient) AssignAlert(ctx context.Context, in *AssignAlertRequest, opts ...grpc.CallOption) (*AssignAlertResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AssignAlertResponse)
+	err := c.cc.Invoke(ctx, AlertService_AssignAlert_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AlertServiceServer is the server API for AlertService service.
 // All implementations should embed UnimplementedAlertServiceServer
 // for forward compatibility.
@@ -111,6 +125,9 @@ type AlertServiceServer interface {
 	// Unary: get details of a specific alert
 	// Deadline: 5s
 	GetAlertDetails(context.Context, *GetAlertDetailsRequest) (*AnomalyAlert, error)
+	// Unary: assign an alert to another operator for follow-up
+	// Deadline: 5s
+	AssignAlert(context.Context, *AssignAlertRequest) (*AssignAlertResponse, error)
 }
 
 // UnimplementedAlertServiceServer should be embedded to have
@@ -128,6 +145,9 @@ func (UnimplementedAlertServiceServer) AcknowledgeAlert(context.Context, *Acknow
 }
 func (UnimplementedAlertServiceServer) GetAlertDetails(context.Context, *GetAlertDetailsRequest) (*AnomalyAlert, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAlertDetails not implemented")
+}
+func (UnimplementedAlertServiceServer) AssignAlert(context.Context, *AssignAlertRequest) (*AssignAlertResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AssignAlert not implemented")
 }
 func (UnimplementedAlertServiceServer) testEmbeddedByValue() {}
 
@@ -196,6 +216,24 @@ func _AlertService_GetAlertDetails_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AlertService_AssignAlert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignAlertRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlertServiceServer).AssignAlert(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AlertService_AssignAlert_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlertServiceServer).AssignAlert(ctx, req.(*AssignAlertRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AlertService_ServiceDesc is the grpc.ServiceDesc for AlertService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -210,6 +248,10 @@ var AlertService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAlertDetails",
 			Handler:    _AlertService_GetAlertDetails_Handler,
+		},
+		{
+			MethodName: "AssignAlert",
+			Handler:    _AlertService_AssignAlert_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -26,8 +26,9 @@ validator := domain.NewRadarValidator(logger)
 normalizer := domain.NewRadarNormalizer()
 guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET)
 enricher := mapper.NewEnricher("svc-radar-ingestion", guard)
-// nil producers — no actual Redpanda needed for unit tests
-return handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger)
+	// nil producers — no actual Redpanda needed for unit tests
+	// nil coverage
+	return handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
 }
 
 func validObservation(sensorID string) *ingestionv1.SensorObservation {
@@ -94,9 +95,9 @@ logger := zap.NewNop()
 validator := domain.NewRadarValidator(logger)
 normalizer := domain.NewRadarNormalizer()
 // Set ceiling to UNCLASSIFIED only
-guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
-enricher := mapper.NewEnricher("svc-radar-ingestion", guard)
-h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger)
+	guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
+	enricher := mapper.NewEnricher("svc-radar-ingestion", guard)
+	h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
 
 obs := validObservation("RADAR-001")
 obs.Classification = commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET
@@ -158,10 +159,10 @@ guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEV
 enricher := mapper.NewEnricher("svc-radar-ingestion", guard)
 
 // nil DLQ producer
-h := handler.NewIngestionHandler(validator, normalizer, enricher,
-nil, // main producer nil
-nil, // dlq nil
-nil, logger)
+	h := handler.NewIngestionHandler(validator, normalizer, enricher,
+		nil, // main producer nil
+		nil, // dlq nil
+		nil, logger, nil)
 
 obs := validObservation("RADAR-001")
 obs.SensorId = "" // force rejection

@@ -77,19 +77,38 @@ func main() {
 	// ── 5. Track cache ───────────────────────────────────────────────────────
 	cache := domain.NewTrackCache(cfg.HistoryMaxPoints)
 
-	// ── 6. gRPC handlers ─────────────────────────────────────────────────────
+	// ── 6. Redpanda consumers ────────────────────────────────────────────────
+	fusedConsumer, err := consumer.NewFusedTrackConsumer(
+		cfg.RedpandaBrokers, cfg.ConsumerGroupID, cache, logger)
+	if err != nil {
+		logger.Error("failed to create fused track consumer", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer fusedConsumer.Close()
+
+	sensorConsumer, err := consumer.NewSensorObservationConsumer(
+		cfg.RedpandaBrokers, "track-svc-sensor-stream", logger)
+	if err != nil {
+		logger.Error("failed to create sensor consumer", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	defer sensorConsumer.Close()
+
+	// ── 7. gRPC handlers ─────────────────────────────────────────────────────
 	filter := &domain.FilterEngine{}
 	streamH := handler.NewStreamHandler(cache, filter, m, logger, cfg.StreamChannelBufferSize)
+	sensorStreamH := handler.NewSensorStreamHandler(sensorConsumer, logger)
 	detailsH := handler.NewDetailsHandler(cache)
 	historyH := handler.NewHistoryHandler(cache)
 
 	trackSvc := &trackServiceServer{
-		stream:  streamH,
-		details: detailsH,
-		history: historyH,
+		stream:       streamH,
+		sensorStream: sensorStreamH,
+		details:      detailsH,
+		history:      historyH,
 	}
 
-	// ── 7. gRPC server ───────────────────────────────────────────────────────
+	// ── 8. gRPC server ───────────────────────────────────────────────────────
 	// RULE-SEC-02: production deployments MUST use mTLS (RTSA_TLS_ENABLED=true).
 	// TLS toggle is preserved for development convenience only.
 	var grpcCreds grpc.ServerOption
@@ -117,26 +136,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ── 8. Redpanda consumer ─────────────────────────────────────────────────
-	fusedConsumer, err := consumer.NewFusedTrackConsumer(
-		cfg.RedpandaBrokers, cfg.ConsumerGroupID, cache, logger)
-	if err != nil {
-		logger.Error("failed to create fused track consumer", slog.String("error", err.Error()))
-		os.Exit(1)
-	}
-	defer fusedConsumer.Close()
-
+	// ── 9. Start Redpanda consumers ──────────────────────────────────────────
 	go func() {
 		if runErr := fusedConsumer.Run(ctx); runErr != nil {
 			logger.Error("fused track consumer error", slog.String("error", runErr.Error()))
 		}
 	}()
 
-	// ── 9. Health + metrics HTTP servers ─────────────────────────────────────
+	go func() {
+		if runErr := sensorConsumer.Run(ctx); runErr != nil {
+			logger.Error("sensor observation consumer error", slog.String("error", runErr.Error()))
+		}
+	}()
+
+	// ── 10. Health + metrics HTTP servers ────────────────────────────────────
 	go startHealthServer(ctx, cfg.HealthPort, logger)
 	go startMetricsServer(ctx, cfg.MetricsPort, reg, logger)
 
-	// ── 10. gRPC serve ───────────────────────────────────────────────────────
+	// ── 11. gRPC serve ───────────────────────────────────────────────────────
 	go func() {
 		logger.Info("gRPC server listening", slog.String("addr", cfg.GRPCAddr))
 		if serveErr := grpcServer.Serve(lis); serveErr != nil {
@@ -144,7 +161,7 @@ func main() {
 		}
 	}()
 
-	// ── 11. Wait for shutdown ─────────────────────────────────────────────────
+	// ── 12. Wait for shutdown ─────────────────────────────────────────────────
 	<-ctx.Done()
 	logger.Info("shutdown signal received, draining in-flight requests")
 
@@ -168,13 +185,18 @@ func main() {
 // trackServiceServer composes the individual handlers into a single gRPC server.
 type trackServiceServer struct {
 	entityv1.UnimplementedTrackServiceServer
-	stream  *handler.StreamHandler
-	details *handler.DetailsHandler
-	history *handler.HistoryHandler
+	stream       *handler.StreamHandler
+	sensorStream *handler.SensorStreamHandler
+	details      *handler.DetailsHandler
+	history      *handler.HistoryHandler
 }
 
 func (s *trackServiceServer) StreamTracks(req *entityv1.StreamTracksRequest, stream grpc.ServerStreamingServer[entityv1.TrackUpdate]) error {
 	return s.stream.StreamTracks(req, stream)
+}
+
+func (s *trackServiceServer) StreamSensorObservations(req *entityv1.StreamSensorObservationsRequest, stream grpc.ServerStreamingServer[entityv1.SensorObservationUpdate]) error {
+	return s.sensorStream.StreamSensorObservations(req, stream)
 }
 
 func (s *trackServiceServer) GetTrackDetails(ctx context.Context, req *entityv1.GetTrackDetailsRequest) (*entityv1.FusedTrack, error) {

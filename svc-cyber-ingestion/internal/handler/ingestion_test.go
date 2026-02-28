@@ -26,7 +26,7 @@ validator := domain.NewValidator()
 normalizer := domain.NewNormalizer()
 guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET)
 enricher := mapper.NewEnricher("svc-cyber-ingestion", guard)
-return handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger)
+return handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
 }
 
 // validCyberObservation creates a valid Cyber IOC observation with a unique dedup hash.
@@ -82,7 +82,7 @@ validator := domain.NewValidator()
 normalizer := domain.NewNormalizer()
 guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
 enricher := mapper.NewEnricher("svc-cyber-ingestion", guard)
-h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger)
+h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
 
 obs := validCyberObservation("CYBER-001", "b1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2")
 obs.Classification = commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET

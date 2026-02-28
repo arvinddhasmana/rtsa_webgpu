@@ -21,9 +21,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	QueryService_QueryTracks_FullMethodName    = "/rtsa.query.v1.QueryService/QueryTracks"
-	QueryService_QueryAnomalies_FullMethodName = "/rtsa.query.v1.QueryService/QueryAnomalies"
-	QueryService_QueryAuditLog_FullMethodName  = "/rtsa.query.v1.QueryService/QueryAuditLog"
+	QueryService_QueryTracks_FullMethodName      = "/rtsa.query.v1.QueryService/QueryTracks"
+	QueryService_QueryAnomalies_FullMethodName   = "/rtsa.query.v1.QueryService/QueryAnomalies"
+	QueryService_QueryAuditLog_FullMethodName    = "/rtsa.query.v1.QueryService/QueryAuditLog"
+	QueryService_GetEventTimeline_FullMethodName = "/rtsa.query.v1.QueryService/GetEventTimeline"
 )
 
 // QueryServiceClient is the client API for QueryService service.
@@ -44,6 +45,10 @@ type QueryServiceClient interface {
 	// Unary: query audit log
 	// Deadline: 30s
 	QueryAuditLog(ctx context.Context, in *QueryAuditLogRequest, opts ...grpc.CallOption) (*QueryAuditLogResponse, error)
+	// Unary: get a unified chronological timeline for an entity
+	// Merges track state changes, anomaly alerts, and operator feedback
+	// Deadline: 30s
+	GetEventTimeline(ctx context.Context, in *GetEventTimelineRequest, opts ...grpc.CallOption) (*EventTimelineResponse, error)
 }
 
 type queryServiceClient struct {
@@ -84,6 +89,16 @@ func (c *queryServiceClient) QueryAuditLog(ctx context.Context, in *QueryAuditLo
 	return out, nil
 }
 
+func (c *queryServiceClient) GetEventTimeline(ctx context.Context, in *GetEventTimelineRequest, opts ...grpc.CallOption) (*EventTimelineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EventTimelineResponse)
+	err := c.cc.Invoke(ctx, QueryService_GetEventTimeline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServiceServer is the server API for QueryService service.
 // All implementations should embed UnimplementedQueryServiceServer
 // for forward compatibility.
@@ -102,6 +117,10 @@ type QueryServiceServer interface {
 	// Unary: query audit log
 	// Deadline: 30s
 	QueryAuditLog(context.Context, *QueryAuditLogRequest) (*QueryAuditLogResponse, error)
+	// Unary: get a unified chronological timeline for an entity
+	// Merges track state changes, anomaly alerts, and operator feedback
+	// Deadline: 30s
+	GetEventTimeline(context.Context, *GetEventTimelineRequest) (*EventTimelineResponse, error)
 }
 
 // UnimplementedQueryServiceServer should be embedded to have
@@ -119,6 +138,9 @@ func (UnimplementedQueryServiceServer) QueryAnomalies(context.Context, *QueryAno
 }
 func (UnimplementedQueryServiceServer) QueryAuditLog(context.Context, *QueryAuditLogRequest) (*QueryAuditLogResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method QueryAuditLog not implemented")
+}
+func (UnimplementedQueryServiceServer) GetEventTimeline(context.Context, *GetEventTimelineRequest) (*EventTimelineResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEventTimeline not implemented")
 }
 func (UnimplementedQueryServiceServer) testEmbeddedByValue() {}
 
@@ -194,6 +216,24 @@ func _QueryService_QueryAuditLog_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _QueryService_GetEventTimeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEventTimelineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServiceServer).GetEventTimeline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: QueryService_GetEventTimeline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServiceServer).GetEventTimeline(ctx, req.(*GetEventTimelineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // QueryService_ServiceDesc is the grpc.ServiceDesc for QueryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -212,6 +252,10 @@ var QueryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "QueryAuditLog",
 			Handler:    _QueryService_QueryAuditLog_Handler,
+		},
+		{
+			MethodName: "GetEventTimeline",
+			Handler:    _QueryService_GetEventTimeline_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

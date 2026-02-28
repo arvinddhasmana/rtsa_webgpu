@@ -24,6 +24,10 @@ service IngestionService {
   // Unary: query sensor status
   // Deadline: 5s
   rpc GetSensorStatus(GetSensorStatusRequest) returns (SensorStatusResponse);
+
+  // Unary: get status of all known sensors
+  // Deadline: 10s
+  rpc ListSensorStatuses(ListSensorStatusesRequest) returns (ListSensorStatusesResponse);
 }
 
 message IngestionAck {
@@ -57,4 +61,29 @@ message SensorStatusResponse {
   int64 total_rejected = 6;
   google.protobuf.Timestamp last_observation_time = 7;
   double events_per_second = 8;
+  optional SensorCoverage coverage = 9;
+}
+
+message SensorCoverage {
+  // Coverage polygon vertices (for ISR, geo-fence type sensors)
+  repeated rtsa.common.v1.Position coverage_polygon = 1;
+  // Maximum sensor range in nautical miles (for radar, EW)
+  optional double range_nm = 2;
+  // Bearing sector start in degrees true (for directional sensors)
+  optional double bearing_start_degrees = 3;
+  // Bearing sector end in degrees true (for directional sensors)
+  optional double bearing_end_degrees = 4;
+  // Sensor geographic position
+  optional rtsa.common.v1.Position sensor_position = 5;
+}
+
+message ListSensorStatusesRequest {
+  // Filter by sensor types (empty = all)
+  repeated rtsa.common.v1.SensorType sensor_types = 1;
+  // Only return sensors with observations in the last N seconds (0 = all)
+  int32 active_within_seconds = 2;
+}
+
+message ListSensorStatusesResponse {
+  repeated SensorStatusResponse sensors = 1;
 }

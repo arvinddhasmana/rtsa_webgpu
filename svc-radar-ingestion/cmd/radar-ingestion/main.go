@@ -97,9 +97,9 @@ obsProd := producer.NewObservationProducer(prod, cfg.OutputTopic)
 dlqObsProd := producer.NewObservationProducer(dlqProd, cfg.DLQTopic)
 
 // 9. Create gRPC handler
-ingestionHandler := handler.NewIngestionHandler(
-validator, normalizer, enricher,
-obsProd, dlqObsProd, auditEmitter, logger)
+	ingestionHandler := handler.NewIngestionHandler(
+		validator, normalizer, enricher,
+		obsProd, dlqObsProd, auditEmitter, logger, cfg.Coverage)
 
 // 10. Create gRPC server with interceptor chain
 meter := tp.MeterProvider.Meter("svc-radar-ingestion")
