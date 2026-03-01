@@ -12,10 +12,10 @@ import (
 	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-fusion-engine/internal/domain"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-fusion-engine/internal/handler"
-	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -49,7 +49,7 @@ func newTestPipeline(mp *mockProducer) *handler.FusionPipeline {
 }
 
 func makeRecord(obs *ingestionv1.SensorObservation) *kgo.Record {
-	b, _ := proto.Marshal(obs)
+	b, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(obs)
 	return &kgo.Record{Value: b}
 }
 

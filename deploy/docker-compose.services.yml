@@ -27,9 +27,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
-    # Note: grpc_health_probe requires standard grpc.health.v1.Health service
-    # svc-radar-ingestion uses custom commonv1.HealthServiceServer instead
-    # TODO: Register google.golang.org/grpc/health in the service for standard health checks
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -54,6 +57,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -78,6 +87,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -102,6 +117,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -126,6 +147,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -150,6 +177,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -176,6 +209,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -200,6 +239,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -227,6 +272,12 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -251,6 +302,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -275,6 +332,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -298,6 +361,12 @@ services:
     depends_on:
       clickhouse:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -325,6 +394,12 @@ services:
         condition: service_healthy
       clickhouse:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
 
@@ -348,6 +423,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
     restart: unless-stopped
@@ -370,6 +451,12 @@ services:
     depends_on:
       redpanda:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
       - rtsa-net
     restart: unless-stopped
@@ -507,12 +594,18 @@ services:
       SIM_CYBER_ENDPOINT: svc-cyber-ingestion:50051
       SIM_TLS_ENABLED: "false"
     depends_on:
-      - svc-radar-ingestion
-      - svc-ew-ingestion
-      - svc-elint-ingestion
-      - svc-isr-ingestion
-      - svc-ais-ingestion
-      - svc-cyber-ingestion
+      svc-radar-ingestion:
+        condition: service_healthy
+      svc-ew-ingestion:
+        condition: service_healthy
+      svc-elint-ingestion:
+        condition: service_healthy
+      svc-isr-ingestion:
+        condition: service_healthy
+      svc-ais-ingestion:
+        condition: service_healthy
+      svc-cyber-ingestion:
+        condition: service_healthy
     networks:
       - rtsa-net
     profiles:

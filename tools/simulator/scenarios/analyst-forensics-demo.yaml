@@ -1,0 +1,77 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Analyst Forensics Demo — long-running historical dataset
+# Duration: 20 minutes, Eastern Mediterranean
+# Exercises: UC008 (Historical Track Query), UC009 (Forensic Analysis), UC010 (Trend Reporting)
+name: "Analyst Forensics Demo — Historical Dataset"
+description: >
+  Generates a rich historical dataset for forensic analysis and trend queries.
+  Runs for a longer duration with a high entity count to populate ClickHouse
+  with meaningful data. Use the Analyst Forensics view to query past tracks,
+  replay sensor history, and examine anomaly patterns over time.
+seed: 20240607
+duration_minutes: 20
+
+entities:
+  surface:
+    count: 25
+    hostile_ratio: 0.15
+    friendly_ratio: 0.40
+    neutral_ratio: 0.30
+    unknown_ratio: 0.15
+    speed_range: [5, 25]
+    patterns:
+      straight_line: 0.40
+      patrol: 0.20
+      loitering: 0.20
+      random: 0.20
+  air:
+    count: 12
+    hostile_ratio: 0.10
+    friendly_ratio: 0.50
+    neutral_ratio: 0.25
+    unknown_ratio: 0.15
+    speed_range: [200, 600]
+    altitude_range: [1000, 15000]
+    patterns:
+      straight_line: 0.50
+      patrol: 0.30
+      random: 0.20
+
+sensors:
+  radar:
+    count: 3
+    sensor_ids: ["RADAR-EMED-01", "RADAR-EMED-02", "RADAR-EMED-03"]
+    update_interval_ms: 1500
+    coverage_nm: 180
+  ais:
+    count: 2
+    sensor_ids: ["AIS-EMED-01", "AIS-EMED-02"]
+    update_interval_ms: 2000
+  ew:
+    count: 1
+    sensor_ids: ["EW-EMED-01"]
+    update_interval_ms: 3000
+  elint:
+    count: 1
+    sensor_ids: ["ELINT-EMED-01"]
+    update_interval_ms: 4000
+  isr:
+    count: 1
+    sensor_ids: ["ISR-UAV-EMED"]
+    update_interval_ms: 5000
+
+anomalies:
+  injection_rate: 0.06
+  types:
+    speed: 0.30
+    route_deviation: 0.25
+    ais_manipulation: 0.25
+    behavioral: 0.20
+
+operational_area:
+  center: { lat: 34.5, lon: 32.0 }
+  radius_nm: 250
+  exclusion_zones:
+    - name: "Cyprus TMA"
+      center: { lat: 34.9, lon: 33.6 }
+      radius_nm: 15

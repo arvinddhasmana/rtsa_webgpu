@@ -4,7 +4,7 @@ package main
 import (
 	feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
 	"github.com/redpanda-data/redpanda/src/transform-sdk/go/transform"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // requiredFeedbackHeaders lists all mandatory message headers for feedback topics.
@@ -51,7 +51,7 @@ func validateFeedbackMessage(event transform.WriteEvent, writer transform.Record
 
 	// Validate protobuf can be deserialized as OperatorFeedback.
 	var feedback feedbackv1.OperatorFeedback
-	if err := proto.Unmarshal(record.Value, &feedback); err != nil {
+	if err := protojson.Unmarshal(record.Value, &feedback); err != nil {
 		return writeToDLQ(writer, record, "invalid protobuf: "+err.Error())
 	}
 

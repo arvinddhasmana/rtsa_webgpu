@@ -1,0 +1,70 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Fusion Dashboard Demo — focus on multi-sensor fusion visibility
+# Duration: 15 minutes, Halifax approaches
+# Exercises: UC008 (Multi-Source Fusion), UC012 (UI), UC016 (Fusion Dashboard)
+name: "Fusion Dashboard Demo — Sensor-by-Sensor Startup"
+description: >
+  Designed to make the multi-source fusion algorithm visible. Sensors come
+  online sequentially so the audience can see raw sensor icons appear before
+  fused tracks form. 20 surface + 10 air entities, 3 radar + 1 AIS + 1 EW
+  sensor. Good for demonstrating FusionSidePanel, confidence histograms,
+  and per-sensor source attribution.
+seed: 20240603
+duration_minutes: 15
+
+entities:
+  surface:
+    count: 20
+    hostile_ratio: 0.10
+    friendly_ratio: 0.45
+    neutral_ratio: 0.30
+    unknown_ratio: 0.15
+    speed_range: [6, 20]
+    patterns:
+      straight_line: 0.50
+      patrol: 0.25
+      loitering: 0.15
+      random: 0.10
+  air:
+    count: 10
+    hostile_ratio: 0.15
+    friendly_ratio: 0.50
+    neutral_ratio: 0.20
+    unknown_ratio: 0.15
+    speed_range: [180, 500]
+    altitude_range: [2000, 12000]
+    patterns:
+      straight_line: 0.55
+      patrol: 0.30
+      random: 0.15
+
+sensors:
+  radar:
+    count: 3
+    sensor_ids: ["RADAR-FD-001", "RADAR-FD-002", "RADAR-FD-003"]
+    update_interval_ms: 1000
+    coverage_nm: 120
+  ais:
+    count: 1
+    sensor_ids: ["AIS-FD-001"]
+    update_interval_ms: 2000
+  ew:
+    count: 1
+    sensor_ids: ["EW-FD-001"]
+    update_interval_ms: 2500
+
+anomalies:
+  injection_rate: 0.10
+  types:
+    speed: 0.30
+    route_deviation: 0.25
+    ais_manipulation: 0.25
+    behavioral: 0.20
+
+operational_area:
+  center: { lat: 44.65, lon: -63.57 }
+  radius_nm: 80
+  exclusion_zones:
+    - name: "Halifax Inner Harbour"
+      center: { lat: 44.65, lon: -63.57 }
+      radius_nm: 3

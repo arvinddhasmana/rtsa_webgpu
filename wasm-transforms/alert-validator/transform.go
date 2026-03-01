@@ -4,7 +4,7 @@ package main
 import (
 	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
 	"github.com/redpanda-data/redpanda/src/transform-sdk/go/transform"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // requiredAlertHeaders lists all mandatory message headers for alert topics.
@@ -51,7 +51,7 @@ func validateAlertMessage(event transform.WriteEvent, writer transform.RecordWri
 
 	// Validate protobuf can be deserialized as AnomalyAlert.
 	var alert inferencev1.AnomalyAlert
-	if err := proto.Unmarshal(record.Value, &alert); err != nil {
+	if err := protojson.Unmarshal(record.Value, &alert); err != nil {
 		return writeToDLQ(writer, record, "invalid protobuf: "+err.Error())
 	}
 

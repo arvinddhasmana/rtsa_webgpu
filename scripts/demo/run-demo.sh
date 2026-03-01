@@ -125,54 +125,59 @@ if [ "$RUN_SETUP" = "true" ]; then
 fi
 
 echo -e "${CYAN}[2/4] Starting infrastructure and services...${NC}"
-run_cmd "docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d --build --wait"
-run_cmd "bash scripts/dev/init-topics.sh"
-run_cmd "bash scripts/dev/init-clickhouse.sh"
-
-if [ "$SEED_DATA" = "true" ]; then
-  echo -e "${CYAN}[3/4] Seeding ClickHouse with demo data...${NC}"
-  run_cmd "bash scripts/demo/seed-demo-data.sh"
-fi
+# Source _common.sh for start_infrastructure_and_services
+source "$SCRIPT_DIR/_common.sh"
+start_infrastructure_and_services
 
 echo -e "${CYAN}[4/4] Launching scenario: ${SCENARIO}${NC}"
 
+# Build child script args: pass --skip-infra to avoid duplicate setup;
+# forward --seed and --dry-run if they were set.
+CHILD_ARGS="--skip-infra"
+if [ "$SEED_DATA" = "true" ]; then
+  CHILD_ARGS="$CHILD_ARGS --seed"
+fi
+if [ "$DRY_RUN" = "true" ]; then
+  CHILD_ARGS="$CHILD_ARGS --dry-run"
+fi
+
 case "$SCENARIO" in
   maritime)
-    run_cmd "bash scripts/demo/run-maritime-demo.sh"
+    run_cmd "bash scripts/demo/run-maritime-demo.sh $CHILD_ARGS"
     ;;
   multi-domain)
-    run_cmd "bash scripts/demo/run-multi-domain-demo.sh"
+    run_cmd "bash scripts/demo/run-multi-domain-demo.sh $CHILD_ARGS"
     ;;
   fusion-dashboard)
-    run_cmd "bash scripts/demo/run-fusion-dashboard-demo.sh"
+    run_cmd "bash scripts/demo/run-fusion-dashboard-demo.sh $CHILD_ARGS"
     ;;
   operator-ui)
-    run_cmd "bash scripts/demo/run-operator-ui-demo.sh"
+    run_cmd "bash scripts/demo/run-operator-ui-demo.sh $CHILD_ARGS"
     ;;
   sensor-health)
-    run_cmd "bash scripts/demo/run-sensor-health-demo.sh"
+    run_cmd "bash scripts/demo/run-sensor-health-demo.sh $CHILD_ARGS"
     ;;
   nato-exchange)
-    run_cmd "bash scripts/demo/run-nato-exchange-demo.sh"
+    run_cmd "bash scripts/demo/run-nato-exchange-demo.sh $CHILD_ARGS"
     ;;
   analyst-forensics)
-    run_cmd "bash scripts/demo/run-analyst-forensics-demo.sh"
+    run_cmd "bash scripts/demo/run-analyst-forensics-demo.sh $CHILD_ARGS"
     ;;
   full-suite)
     echo -e "${CYAN}=== Full Suite: running all 7 scenarios in sequence (~60 min) ===${NC}"
-    run_cmd "bash scripts/demo/run-maritime-demo.sh"
+    run_cmd "bash scripts/demo/run-maritime-demo.sh $CHILD_ARGS"
     run_cmd "sleep 300"  # 5-minute transition
-    run_cmd "bash scripts/demo/run-fusion-dashboard-demo.sh"
+    run_cmd "bash scripts/demo/run-fusion-dashboard-demo.sh $CHILD_ARGS"
     run_cmd "sleep 300"
-    run_cmd "bash scripts/demo/run-operator-ui-demo.sh"
+    run_cmd "bash scripts/demo/run-operator-ui-demo.sh $CHILD_ARGS"
     run_cmd "sleep 300"
-    run_cmd "bash scripts/demo/run-multi-domain-demo.sh"
+    run_cmd "bash scripts/demo/run-multi-domain-demo.sh $CHILD_ARGS"
     run_cmd "sleep 300"
-    run_cmd "bash scripts/demo/run-sensor-health-demo.sh"
+    run_cmd "bash scripts/demo/run-sensor-health-demo.sh $CHILD_ARGS"
     run_cmd "sleep 300"
-    run_cmd "bash scripts/demo/run-nato-exchange-demo.sh"
+    run_cmd "bash scripts/demo/run-nato-exchange-demo.sh $CHILD_ARGS"
     run_cmd "sleep 300"
-    run_cmd "bash scripts/demo/run-analyst-forensics-demo.sh"
+    run_cmd "bash scripts/demo/run-analyst-forensics-demo.sh $CHILD_ARGS"
     ;;
 esac
 

@@ -8,32 +8,32 @@ Envoy serves as the single entry point for the COP Web Application. It terminate
 
 ## Configuration Files
 
-| File | Purpose |
-|---|---|
-| `envoy.yaml` | Production — full mTLS, TLS 1.3 only, CSE-approved ciphers, rate limiting |
+| File             | Purpose                                                                     |
+| ---------------- | --------------------------------------------------------------------------- |
+| `envoy.yaml`     | Production — full mTLS, TLS 1.3 only, CSE-approved ciphers, rate limiting   |
 | `envoy-dev.yaml` | Development — relaxed (no client certs, plaintext upstream, localhost CORS) |
 
 ---
 
 ## Port Assignments
 
-| Port | Purpose |
-|---|---|
-| `8443` | gRPC-Web listener (TLS) |
+| Port   | Purpose                                            |
+| ------ | -------------------------------------------------- |
+| `8443` | gRPC-Web listener (TLS)                            |
 | `9901` | Envoy admin interface (production: localhost only) |
 
 ---
 
 ## Route Summary
 
-| gRPC Service | Route Prefix | Backend | Timeout |
-|---|---|---|---|
-| TrackService | `/rtsa.entity.v1.TrackService/` | `svc-track:50070` | `0s` (streaming) |
-| AlertService | `/rtsa.inference.v1.AlertService/` | `svc-alert:50071` | `0s` (streaming) |
-| QueryService | `/rtsa.query.v1.QueryService/` | `svc-query:50072` | `60s` |
-| FeedbackService | `/rtsa.feedback.v1.FeedbackService/` | `svc-feedback:50062` | `10s` |
-| AuditService | `/rtsa.audit.v1.AuditService/` | `svc-audit:50073` | `60s` |
-| Health | `/grpc.health.v1.Health/` | `svc-track:50070` | `5s` |
+| gRPC Service    | Route Prefix                         | Backend              | Timeout          |
+| --------------- | ------------------------------------ | -------------------- | ---------------- |
+| TrackService    | `/rtsa.entity.v1.TrackService/`      | `svc-track:50051`    | `0s` (streaming) |
+| AlertService    | `/rtsa.inference.v1.AlertService/`   | `svc-alert:50051`    | `0s` (streaming) |
+| QueryService    | `/rtsa.query.v1.QueryService/`       | `svc-query:50051`    | `60s`            |
+| FeedbackService | `/rtsa.feedback.v1.FeedbackService/` | `svc-feedback:50051` | `10s`            |
+| AuditService    | `/rtsa.audit.v1.AuditService/`       | `svc-audit:50051`    | `60s`            |
+| Health          | `/grpc.health.v1.Health/`            | `svc-track:50051`    | `5s`             |
 
 ---
 
@@ -63,13 +63,13 @@ Envoy serves as the single entry point for the COP Web Application. It terminate
 
 ## Certificate Paths
 
-| File | Mount Path | Description |
-|---|---|---|
-| CA certificate | `/certs/ca.crt` | Root CA for validation |
-| Server certificate | `/certs/server.crt` | Envoy TLS server cert |
-| Server key | `/certs/server.key` | Envoy TLS server key |
+| File               | Mount Path          | Description                  |
+| ------------------ | ------------------- | ---------------------------- |
+| CA certificate     | `/certs/ca.crt`     | Root CA for validation       |
+| Server certificate | `/certs/server.crt` | Envoy TLS server cert        |
+| Server key         | `/certs/server.key` | Envoy TLS server key         |
 | Client certificate | `/certs/client.crt` | mTLS client cert (prod only) |
-| Client key | `/certs/client.key` | mTLS client key (prod only) |
+| Client key         | `/certs/client.key` | mTLS client key (prod only)  |
 
 Generate development certificates using:
 

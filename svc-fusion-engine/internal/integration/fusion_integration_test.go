@@ -15,7 +15,7 @@ import (
 	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
 	"github.com/twmb/franz-go/pkg/kgo"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -63,9 +63,9 @@ func TestIT01_ProduceRadarObs_ConsumeFusedTrack(t *testing.T) {
 	defer producer.Close()
 
 	obs := makeRadarObs("RADAR-INTEG-01", 45.0, -60.0)
-	payload, _ := proto.Marshal(obs)
+	payload, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(obs)
 	producer.ProduceSync(ctx, &kgo.Record{
-		Topic: "sensors.radar",
+		Topic: "sensors.radar.tracks",
 		Key:   []byte(obs.SensorId),
 		Value: payload,
 	})

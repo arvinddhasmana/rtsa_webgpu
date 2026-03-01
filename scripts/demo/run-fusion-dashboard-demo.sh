@@ -8,53 +8,13 @@
 # Demonstrates: StreamSensorObservations v2.0 RPC, raw sensor icons alongside fused tracks,
 # FusionSidePanel confidence histograms, track list with per-sensor attribution.
 #
-# Usage: bash scripts/demo/run-fusion-dashboard-demo.sh [--seed] [--dry-run]
+# Usage: bash scripts/demo/run-fusion-dashboard-demo.sh [--seed] [--dry-run] [--skip-infra]
 
-set -euo pipefail
+# shellcheck source=scripts/demo/_common.sh
+source "$(cd "$(dirname "$0")" && pwd)/_common.sh"
+parse_common_args "$@"
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-SEED_DATA="false"
-DRY_RUN="false"
-
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-while [ "$#" -gt 0 ]; do
-  case "$1" in
-    --seed) SEED_DATA="true" ;;
-    --dry-run) DRY_RUN="true" ;;
-    *) echo "Unknown argument: $1"; exit 1 ;;
-  esac
-  shift
-done
-
-run_cmd() {
-  if [ "$DRY_RUN" = "true" ]; then
-    echo -e "${YELLOW}[dry-run]${NC} $1"
-  else
-    eval "$1"
-  fi
-}
-
-cd "$PROJECT_ROOT"
-
-echo -e "${CYAN}=== RTSA Fusion Dashboard Demo — Starting infrastructure ===${NC}"
-run_cmd "docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml up -d --build --wait"
-
-echo -e "${CYAN}=== Waiting for services to stabilise (30s) ===${NC}"
-run_cmd "sleep 30"
-
-echo -e "${CYAN}=== Initialising Redpanda topics and ClickHouse schema ===${NC}"
-run_cmd "bash scripts/dev/init-topics.sh"
-run_cmd "bash scripts/dev/init-clickhouse.sh"
-
-if [ "$SEED_DATA" = "true" ]; then
-  echo -e "${CYAN}=== Seeding ClickHouse demo data ===${NC}"
-  run_cmd "bash scripts/demo/seed-demo-data.sh"
-fi
+start_infrastructure_and_services
 
 echo ""
 echo -e "${CYAN}--- Scenario: Fusion Algorithm Transparency ---${NC}"
@@ -85,11 +45,7 @@ echo "    Green circle       : AIS position (AIS_BFT type)"
 echo "    Red hexagon        : Cyber IOC (CYBER type)"
 echo ""
 
-echo -e "${CYAN}=== Starting fusion dashboard scenario simulator ===${NC}"
-run_cmd "docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml \
-  run --rm simulator \
-  --scenario /app/scenarios/fusion-dashboard-demo.yaml \
-  --log-level info"
+run_simulator "fusion-dashboard-demo.yaml"
 
 echo -e "${GREEN}=== Fusion Dashboard demo complete ===${NC}"
 echo "  Key things to point out in the UI:"

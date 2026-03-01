@@ -1,0 +1,71 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Operator UI Demo — focus on alert workflow and event timeline
+# Duration: 15 minutes, Halifax approaches
+# Exercises: UC010 (Operator Feedback), UC012 (UI), UC013 (Historical Query)
+name: "Operator UI Demo — Alert Workflow"
+description: >
+  Focuses on the alert lifecycle and operator interaction patterns. Higher
+  anomaly injection rate (25%) to generate frequent alerts for demonstrating
+  AlertCard quick-actions (Inspect/Confirm/Reject/Assign), TimelineView,
+  GetEventTimeline, and feedback submission. Best run with --seed for
+  pre-loaded historical alerts.
+seed: 20240604
+duration_minutes: 15
+
+entities:
+  surface:
+    count: 15
+    hostile_ratio: 0.20
+    friendly_ratio: 0.35
+    neutral_ratio: 0.30
+    unknown_ratio: 0.15
+    speed_range: [6, 22]
+    patterns:
+      straight_line: 0.40
+      patrol: 0.25
+      loitering: 0.20
+      random: 0.15
+  air:
+    count: 5
+    hostile_ratio: 0.25
+    friendly_ratio: 0.40
+    neutral_ratio: 0.20
+    unknown_ratio: 0.15
+    speed_range: [200, 500]
+    altitude_range: [3000, 12000]
+    patterns:
+      straight_line: 0.50
+      patrol: 0.35
+      random: 0.15
+
+sensors:
+  radar:
+    count: 2
+    sensor_ids: ["RADAR-OP-001", "RADAR-OP-002"]
+    update_interval_ms: 1000
+    coverage_nm: 100
+  ais:
+    count: 1
+    sensor_ids: ["AIS-OP-001"]
+    update_interval_ms: 2000
+  ew:
+    count: 1
+    sensor_ids: ["EW-OP-001"]
+    update_interval_ms: 3000
+
+anomalies:
+  # Higher anomaly rate to generate frequent alerts
+  injection_rate: 0.25
+  types:
+    speed: 0.30
+    route_deviation: 0.25
+    ais_manipulation: 0.25
+    behavioral: 0.20
+
+operational_area:
+  center: { lat: 44.65, lon: -63.57 }
+  radius_nm: 80
+  exclusion_zones:
+    - name: "Halifax Inner Harbour"
+      center: { lat: 44.65, lon: -63.57 }
+      radius_nm: 3

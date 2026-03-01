@@ -122,9 +122,9 @@ func sensorTypeToEntityType(st commonv1.SensorType) commonv1.EntityType {
 	case commonv1.SensorType_SENSOR_TYPE_RADAR:
 		return commonv1.EntityType_ENTITY_TYPE_SURFACE
 	case commonv1.SensorType_SENSOR_TYPE_EW_SIGINT:
-		return commonv1.EntityType_ENTITY_TYPE_AIR
+		return commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED // EW detects across all domains
 	case commonv1.SensorType_SENSOR_TYPE_ELINT_COMINT:
-		return commonv1.EntityType_ENTITY_TYPE_AIR
+		return commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED // ELINT detects across all domains
 	case commonv1.SensorType_SENSOR_TYPE_ISR:
 		return commonv1.EntityType_ENTITY_TYPE_SURFACE
 	case commonv1.SensorType_SENSOR_TYPE_AIS_BFT:

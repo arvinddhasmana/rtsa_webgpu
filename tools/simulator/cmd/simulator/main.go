@@ -2,23 +2,31 @@
 package main
 
 import (
-"context"
-"flag"
-"log/slog"
-"math/rand"
-"os"
-"os/signal"
-"syscall"
-"time"
+	"context"
+	"flag"
+	"log/slog"
+	"math/rand"
+	"os"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/client"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/config"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/scenario"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/sensor"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/client"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/config"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/scenario"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/sensor"
 )
+
+// consecutiveFailures tracks how many gRPC sends have failed without a single
+// success in between. After consecutiveFailureThreshold the simulator escalates
+// from Warn to Error so operators notice immediately.
+var consecutiveFailures atomic.Int64
+
+const consecutiveFailureThreshold = 10
 
 func main() {
 // ── CLI flags ────────────────────────────────────────────────────────────
@@ -149,62 +157,85 @@ runTick(ctx, mgr, sender, simRNG)
 
 // runTick generates and dispatches sensor observations for one simulation tick.
 func runTick(ctx context.Context, mgr *generator.EntityManager, sender client.ObservationSender, r *rand.Rand) {
-entities := mgr.Entities()
-sent := 0
+	entities := mgr.Entities()
+	sent := 0
+	failed := 0
 
-radarIDs := []string{"RADAR-SIM-001", "RADAR-SIM-002", "RADAR-SIM-003"}
-ewIDs := []string{"EW-SIM-001", "EW-SIM-002"}
+	radarIDs := []string{"RADAR-SIM-001", "RADAR-SIM-002", "RADAR-SIM-003"}
+	ewIDs := []string{"EW-SIM-001", "EW-SIM-002"}
 
-for _, e := range entities {
-// Radar: surface + air entities.
-if e.EntityType == commonv1.EntityType_ENTITY_TYPE_SURFACE ||
-e.EntityType == commonv1.EntityType_ENTITY_TYPE_AIR {
-rid := radarIDs[r.Intn(len(radarIDs))]
-sendObs(ctx, sensor.GenerateRadarObservation(e, rid), client.SensorTypeRadar, sender, &sent)
+	for _, e := range entities {
+		// Radar: surface + air entities.
+		if e.EntityType == commonv1.EntityType_ENTITY_TYPE_SURFACE ||
+			e.EntityType == commonv1.EntityType_ENTITY_TYPE_AIR {
+			rid := radarIDs[r.Intn(len(radarIDs))]
+			sendObs(ctx, sensor.GenerateRadarObservation(e, rid), client.SensorTypeRadar, sender, &sent, &failed)
+		}
+
+		// AIS: surface entities only. AIS manipulation generates both radar AND ais.
+		if e.EntityType == commonv1.EntityType_ENTITY_TYPE_SURFACE {
+			var manipPos *generator.Position
+			if e.IsAnomalous && e.AnomalyType == commonv1.AnomalyType_ANOMALY_TYPE_AIS_MANIPULATION {
+				p := e.AISOffset
+				manipPos = &p
+			}
+			sendObs(ctx, sensor.GenerateAISObservation(e, manipPos), client.SensorTypeAIS, sender, &sent, &failed)
+		}
+
+		// EW: 50% probability per entity per tick.
+		if r.Float64() < 0.5 {
+			ewID := ewIDs[r.Intn(len(ewIDs))]
+			sendObs(ctx, sensor.GenerateEWObservation(e, ewID), client.SensorTypeEW, sender, &sent, &failed)
+		}
+
+		// ELINT: 30% probability.
+		if r.Float64() < 0.3 {
+			sendObs(ctx, sensor.GenerateELINTObservation(e, "ELINT-SIM-001"), client.SensorTypeELINT, sender, &sent, &failed)
+		}
+
+		// ISR: 20% probability.
+		if r.Float64() < 0.2 {
+			sendObs(ctx, sensor.GenerateISRObservation(e, "ISR-SIM-001"), client.SensorTypeISR, sender, &sent, &failed)
+		}
+	}
+
+	// Cyber: 1-3 IOCs per tick, independent of entities.
+	for i := 0; i < 1+r.Intn(3); i++ {
+		sendObs(ctx, sensor.GenerateCyberObservation(r), client.SensorTypeCyber, sender, &sent, &failed)
+	}
+
+	if failed > 0 {
+		slog.Warn("tick completed with failures",
+			"entities", len(entities),
+			"sent", sent,
+			"failed", failed,
+		)
+	} else {
+		slog.Debug("tick complete", "entities", len(entities), "observations", sent)
+	}
 }
 
-// AIS: surface entities only. AIS manipulation generates both radar AND ais.
-if e.EntityType == commonv1.EntityType_ENTITY_TYPE_SURFACE {
-var manipPos *generator.Position
-if e.IsAnomalous && e.AnomalyType == commonv1.AnomalyType_ANOMALY_TYPE_AIS_MANIPULATION {
-p := e.AISOffset
-manipPos = &p
-}
-sendObs(ctx, sensor.GenerateAISObservation(e, manipPos), client.SensorTypeAIS, sender, &sent)
-}
-
-// EW: 50% probability per entity per tick.
-if r.Float64() < 0.5 {
-ewID := ewIDs[r.Intn(len(ewIDs))]
-sendObs(ctx, sensor.GenerateEWObservation(e, ewID), client.SensorTypeEW, sender, &sent)
-}
-
-// ELINT: 30% probability.
-if r.Float64() < 0.3 {
-sendObs(ctx, sensor.GenerateELINTObservation(e, "ELINT-SIM-001"), client.SensorTypeELINT, sender, &sent)
-}
-
-// ISR: 20% probability.
-if r.Float64() < 0.2 {
-sendObs(ctx, sensor.GenerateISRObservation(e, "ISR-SIM-001"), client.SensorTypeISR, sender, &sent)
-}
-}
-
-// Cyber: 1-3 IOCs per tick, independent of entities.
-for i := 0; i < 1+r.Intn(3); i++ {
-sendObs(ctx, sensor.GenerateCyberObservation(r), client.SensorTypeCyber, sender, &sent)
-}
-
-slog.Debug("tick complete", "entities", len(entities), "observations", sent)
-}
-
-// sendObs dispatches one observation and increments the counter on success.
-func sendObs(ctx context.Context, obs *ingestionv1.SensorObservation, st client.SensorType, sender client.ObservationSender, count *int) {
-if err := sender.Send(ctx, obs, st); err != nil {
-slog.Warn("send failed", "sensor_type", string(st), "error", err)
-return
-}
-*count++
+// sendObs dispatches one observation, increments count on success, and tracks
+// consecutive failures. After consecutiveFailureThreshold failures without a
+// single success the log level escalates from Warn → Error so the problem is
+// impossible to miss.
+func sendObs(ctx context.Context, obs *ingestionv1.SensorObservation, st client.SensorType, sender client.ObservationSender, count *int, failed *int) {
+	if err := sender.Send(ctx, obs, st); err != nil {
+		*failed++
+		n := consecutiveFailures.Add(1)
+		if n >= consecutiveFailureThreshold {
+			slog.Error("gRPC sends failing — are ingestion services running?",
+				"sensor_type", string(st),
+				"consecutive_failures", n,
+				"error", err,
+			)
+		} else {
+			slog.Warn("send failed", "sensor_type", string(st), "consecutive_failures", n, "error", err)
+		}
+		return
+	}
+	consecutiveFailures.Store(0)
+	*count++
 }
 
 // applyScenarioToConfig copies relevant scenario fields into the config.

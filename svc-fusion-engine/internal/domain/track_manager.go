@@ -287,9 +287,20 @@ func (ts *TrackState) ToFusedTrack() *entityv1.FusedTrack {
 	}
 
 	if ts.KalmanState != nil {
+		speedMS := math.Sqrt(ts.KalmanState.VelocityN*ts.KalmanState.VelocityN +
+			ts.KalmanState.VelocityE*ts.KalmanState.VelocityE)
+		speedKnots := speedMS / 0.514444
+		headingRad := math.Atan2(ts.KalmanState.VelocityE, ts.KalmanState.VelocityN)
+		headingDeg := headingRad * 180.0 / math.Pi
+		if headingDeg < 0 {
+			headingDeg += 360.0
+		}
+
 		ft.EstimatedPosition = &commonv1.Position{
-			Latitude:  ts.KalmanState.Latitude,
-			Longitude: ts.KalmanState.Longitude,
+			Latitude:       ts.KalmanState.Latitude,
+			Longitude:      ts.KalmanState.Longitude,
+			SpeedKnots:     speedKnots,
+			HeadingDegrees: headingDeg,
 		}
 		ft.Velocity = &commonv1.Velocity{
 			NorthMps: ts.KalmanState.VelocityN,

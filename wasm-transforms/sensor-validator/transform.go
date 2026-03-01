@@ -4,7 +4,7 @@ package main
 import (
 	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
 	"github.com/redpanda-data/redpanda/src/transform-sdk/go/transform"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 )
@@ -53,7 +53,7 @@ func validateSensorMessage(event transform.WriteEvent, writer transform.RecordWr
 
 	// Validate protobuf can be deserialized as SensorObservation.
 	var obs ingestionv1.SensorObservation
-	if err := proto.Unmarshal(record.Value, &obs); err != nil {
+	if err := protojson.Unmarshal(record.Value, &obs); err != nil {
 		return writeToDLQ(writer, record, "invalid protobuf: "+err.Error())
 	}
 

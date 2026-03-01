@@ -233,7 +233,7 @@ func (fp *FusionPipeline) HandleObservation(ctx context.Context, record *kgo.Rec
 
 	// Produce the fused track event
 	if err := fp.producer.Produce(ctx, track.ToFusedTrack()); err != nil {
-		fp.logger.Warn("produce failed", zap.Error(err))
+		return fmt.Errorf("fusion_pipeline: produce fused track: %w", err)
 	}
 
 	fp.emitAudit(ctx, "TRACK_LIFECYCLE", track.TrackID)

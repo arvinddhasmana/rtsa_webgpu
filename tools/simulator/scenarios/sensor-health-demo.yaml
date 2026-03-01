@@ -1,0 +1,79 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Sensor Health Demo — focus on sensor degradation and recovery
+# Duration: 10 minutes, North Atlantic
+# Exercises: UC017 (Sensor Health Monitoring), UC001 (System Initialization)
+name: "Sensor Health Demo — Degradation and Recovery"
+description: >
+  Demonstrates sensor health monitoring with multiple sensors that go through
+  degradation and recovery cycles. Uses a moderate entity count with extra
+  sensor redundancy to show how coverage gaps affect the track picture.
+  SensorHealthDashboard highlights status changes.
+seed: 20240605
+duration_minutes: 10
+
+entities:
+  surface:
+    count: 15
+    hostile_ratio: 0.10
+    friendly_ratio: 0.45
+    neutral_ratio: 0.30
+    unknown_ratio: 0.15
+    speed_range: [6, 20]
+    patterns:
+      straight_line: 0.50
+      patrol: 0.25
+      loitering: 0.15
+      random: 0.10
+  air:
+    count: 8
+    hostile_ratio: 0.15
+    friendly_ratio: 0.50
+    neutral_ratio: 0.20
+    unknown_ratio: 0.15
+    speed_range: [200, 500]
+    altitude_range: [2000, 12000]
+    patterns:
+      straight_line: 0.60
+      patrol: 0.30
+      random: 0.10
+
+sensors:
+  # Multiple radars to demonstrate redundancy and degradation
+  radar:
+    count: 4
+    sensor_ids:
+      ["RADAR-NORTH-01", "RADAR-SOUTH-02", "RADAR-EAST-03", "RADAR-WEST-04"]
+    update_interval_ms: 1000
+    coverage_nm: 150
+  ais:
+    count: 2
+    sensor_ids: ["AIS-COAST-01", "AIS-COAST-02"]
+    update_interval_ms: 2000
+  ew:
+    count: 2
+    sensor_ids: ["EW-STATION-01", "EW-STATION-03"]
+    update_interval_ms: 2500
+  elint:
+    count: 1
+    sensor_ids: ["ELINT-ARRAY-01"]
+    update_interval_ms: 3000
+  isr:
+    count: 1
+    sensor_ids: ["ISR-UAV-ALPHA"]
+    update_interval_ms: 5000
+
+anomalies:
+  injection_rate: 0.08
+  types:
+    speed: 0.30
+    route_deviation: 0.30
+    ais_manipulation: 0.20
+    behavioral: 0.20
+
+operational_area:
+  center: { lat: 58.0, lon: -10.0 }
+  radius_nm: 200
+  exclusion_zones:
+    - name: "Coastal Exclusion"
+      center: { lat: 58.5, lon: -8.0 }
+      radius_nm: 5
