@@ -5,11 +5,12 @@
 package producer
 
 import (
-"context"
-"fmt"
+	"context"
+	"fmt"
 
-"github.com/twmb/franz-go/pkg/kgo"
-"google.golang.org/protobuf/proto"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // MessageProducer is the interface for producing protobuf-encoded messages
@@ -47,10 +48,12 @@ return nil, fmt.Errorf("[producer.NewFeedbackProducer(%s)]: %w", topic, err)
 return &FeedbackProducer{client: client, topic: topic}, nil
 }
 
-// Produce serialises the protobuf message and publishes it synchronously.
+// Produce serialises the protobuf message as JSON and publishes it synchronously.
+// Uses protojson (UseProtoNames=true) so downstream wasm-transforms and
+// Redpanda Connect Bloblang pipelines can parse field names without a schema registry.
 // The key is used as the Kafka record key for partition routing.
 func (p *FeedbackProducer) Produce(ctx context.Context, key string, msg proto.Message) error {
-payload, err := proto.Marshal(msg)
+payload, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(msg)
 if err != nil {
 return fmt.Errorf("[producer.FeedbackProducer.Produce]: marshal: %w", err)
 }

@@ -16,9 +16,9 @@ use (
 	./svc-feedback
 	./svc-fusion-engine
 	./svc-isr-ingestion
+	./svc-nato-adapter
 	./svc-query
 	./svc-radar-ingestion
-	./svc-nato-adapter
 	./svc-track
 	./svc-training
 	./tests/benchmark

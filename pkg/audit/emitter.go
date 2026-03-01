@@ -2,18 +2,18 @@
 package audit
 
 import (
-"context"
-"encoding/json"
-"time"
+	"context"
+	"encoding/json"
+	"time"
 
-"github.com/google/uuid"
-auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
-"go.opentelemetry.io/otel/trace"
-"go.uber.org/zap"
-"google.golang.org/protobuf/proto"
-"google.golang.org/protobuf/types/known/timestamppb"
+	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	"github.com/google/uuid"
+	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // AuditParams contains the parameters for an audit event.
@@ -84,7 +84,8 @@ EventTime:           timestamppb.New(time.Now().UTC()),
 TraceId:             traceID,
 }
 
-b, err := proto.Marshal(event)
+// protojson so Redpanda Connect Bloblang and svc-audit can parse field names.
+b, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(event)
 if err != nil {
 e.logger.Error("audit: failed to marshal event", zap.Error(err))
 return

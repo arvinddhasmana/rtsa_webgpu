@@ -299,8 +299,8 @@ func (ts *TrackState) ToFusedTrack() *entityv1.FusedTrack {
 		ft.EstimatedPosition = &commonv1.Position{
 			Latitude:       ts.KalmanState.Latitude,
 			Longitude:      ts.KalmanState.Longitude,
-			SpeedKnots:     speedKnots,
-			HeadingDegrees: headingDeg,
+			SpeedKnots:     &speedKnots,
+			HeadingDegrees: &headingDeg,
 		}
 		ft.Velocity = &commonv1.Velocity{
 			NorthMps: ts.KalmanState.VelocityN,

@@ -158,17 +158,14 @@ export const MapView: React.FC = () => {
             "VITE_MAP_TILE_URL"
           ] ?? "";
 
-        // Reliable publicly-hosted font server (Open Sans, Noto, etc.).
-        // demotiles.maplibre.org/font/ returns 404 for many font stacks.
-        const glyphsUrl =
-          "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
-
+        // Note: no glyphs URL — text symbol layers are omitted so that the
+        // map works offline / without a font PBF tile server. Track circles
+        // render entirely on the GPU without glyph lookups.
         const map = new maplibregl.Map({
           container: mapContainerRef.current,
           style: tileUrl
             ? {
                 version: 8 as const,
-                glyphs: glyphsUrl,
                 sources: {
                   tiles: {
                     type: "raster" as const,
@@ -182,7 +179,6 @@ export const MapView: React.FC = () => {
               }
             : {
                 version: 8 as const,
-                glyphs: glyphsUrl,
                 sources: {},
                 layers: [
                   {
@@ -317,43 +313,11 @@ export const MapView: React.FC = () => {
             },
           });
 
-          // Classification label (Badge) — evaluated on GPU
-          map.addLayer({
-            id: "tracks-label",
-            type: "symbol",
-            source: "tracks",
-            layout: {
-              "text-field": ["get", "classification"],
-              "text-font": [
-                "Open Sans Bold",
-                "Noto Sans Bold",
-                "Arial Unicode MS Regular",
-              ],
-              "text-size": 10,
-              "text-offset": [0, 1.2],
-              "text-anchor": "top",
-              visibility: "visible",
-            },
-            paint: {
-              "text-color": [
-                "match",
-                ["get", "classification"],
-                "UNCLASSIFIED",
-                "#16A34A",
-                "PROTECTED_A",
-                "#2563EB",
-                "PROTECTED_B",
-                "#2563EB",
-                "PROTECTED_C",
-                "#2563EB",
-                "SECRET",
-                "#DC2626",
-                /* default */ "#F1F5F9",
-              ],
-              "text-halo-color": "#0F172A",
-              "text-halo-width": 1.5,
-            },
-          });
+          // Note: tracks-label symbol layer is intentionally omitted —
+          // symbol layers require a glyphs/font PBF server which is not
+          // available in offline/dev deployments. Track identity is conveyed
+          // via circle colour (hostile=red, friendly=blue, unknown=amber)
+          // and the detail panel on click.
 
           // Click to select track and open detail panel
           map.on("click", "tracks-circle", (e: any) => {

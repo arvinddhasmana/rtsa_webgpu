@@ -374,35 +374,46 @@ test.describe("Geo-Fence Overlays (CR-UI-002)", () => {
 test.describe("Layer Controls & Classification Badges", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+    await page
+      .waitForLoadState("networkidle", { timeout: 15_000 })
+      .catch(() => {});
     await waitForMapReady(page);
   });
 
-  test("layer controls panel is visible at bottom-right of map", async ({ page }) => {
+  test("layer controls panel is visible at bottom-right of map", async ({
+    page,
+  }) => {
     const layerControls = page.getByTestId("layer-controls");
     await expect(layerControls).toBeVisible();
   });
 
-  test("classification badge/label layer is added to the map", async ({ page }) => {
-    // Inject a track with a specific classification
-    await injectTestTrack(page, {
-      trackId: "M-CLASS-1",
-      lat: 40.0,
-      lon: -60.0,
-      // helpers.ts injectTestTrack defaults to UNCLASSIFIED
-    });
-
-    await page.waitForTimeout(500);
-
-    const hasBadgeLayer = await page.evaluate(() => {
+  test("tracks-circle layer exists and tracks-label is absent (no glyphs dependency)", async ({
+    page,
+  }) => {
+    // tracks-label (symbol layer) was intentionally removed — it required a
+    // glyphs/font PBF tile server which 404s in offline/dev deployments.
+    // Track classification is conveyed via the data-driven circle colour in
+    // tracks-circle instead (HOSTILE=red, FRIENDLY=blue, UNKNOWN=amber).
+    const layers = await page.evaluate(() => {
       const w = window as unknown as Record<string, unknown>;
       const map = w["__RTSA_MAP__"] as
         | { getLayer?: (id: string) => unknown }
         | undefined;
       if (!map?.getLayer) return null;
-      return !!map.getLayer("tracks-label");
+      return {
+        hasCircle: !!map.getLayer("tracks-circle"),
+        hasLabel: !!map.getLayer("tracks-label"),
+      };
     });
 
-    expect(hasBadgeLayer === null || hasBadgeLayer === true).toBeTruthy();
+    if (layers !== null) {
+      // tracks-circle must exist (primary track rendering layer)
+      expect(layers.hasCircle).toBe(true);
+      // tracks-label must NOT exist (requires glyphs — omitted to avoid 404s)
+      expect(
+        layers.hasLabel,
+        "tracks-label symbol layer must not be added — it requires a glyphs/font PBF server. Remove it or add a valid glyphs URL.",
+      ).toBe(false);
+    }
   });
 });

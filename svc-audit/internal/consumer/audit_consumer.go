@@ -11,7 +11,7 @@ import (
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/repository"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 const auditTopic = "audit.events"
@@ -115,7 +115,8 @@ func (c *AuditConsumer) Start(ctx context.Context) error {
 // processRecord deserializes and validates a Redpanda record.
 func (c *AuditConsumer) processRecord(r *kgo.Record) error {
 	var event auditv1.AuditEvent
-	if err := proto.Unmarshal(r.Value, &event); err != nil {
+	// protojson: matches pkg/audit emitter which uses protojson.MarshalOptions{UseProtoNames: true}.
+	if err := protojson.Unmarshal(r.Value, &event); err != nil {
 		c.logger.Warn("audit_consumer: skipping malformed record",
 			zap.String("topic", r.Topic),
 			zap.Int64("offset", r.Offset),

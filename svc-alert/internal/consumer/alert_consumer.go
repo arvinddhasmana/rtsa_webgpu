@@ -10,7 +10,7 @@ import (
 	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
 	"github.com/prometheus/client_golang/prometheus"
-	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // MessageHandler is called for each message consumed from Redpanda.
@@ -82,7 +82,9 @@ return nil
 }
 
 // handleMessage processes a single consumed message.
-// It deserializes the protobuf-encoded AnomalyAlert and enqueues it.
+// It deserializes the JSON-encoded AnomalyAlert (protojson) and enqueues it.
+// svc-anomaly-detection produces via protojson.Marshal; all consumers in this
+// pipeline use protojson — do NOT use proto.Unmarshal here.
 func (c *AlertConsumer) handleMessage(ctx context.Context, topic string, key, value []byte) error {
 if len(value) == 0 {
 c.logger.WarnContext(ctx, "received empty message body", "topic", topic)
@@ -90,7 +92,7 @@ return nil
 }
 
 var alert inferencev1.AnomalyAlert
-if err := proto.Unmarshal(value, &alert); err != nil {
+if err := protojson.Unmarshal(value, &alert); err != nil {
 c.logger.ErrorContext(ctx, "failed to unmarshal alert",
 "topic", topic,
 "error", err.Error(),

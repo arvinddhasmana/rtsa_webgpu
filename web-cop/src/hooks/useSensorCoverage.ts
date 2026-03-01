@@ -1,50 +1,14 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/hooks/useSensorCoverage.ts
+//
+// TODO: IngestionService.ListSensorStatuses is not yet routed through Envoy
+// (no /rtsa.ingestion.v1.IngestionService/ route entry). Until that route is
+// added the RPC returns HTTP 404, which the browser logs at the network level
+// regardless of try/catch. Stub returns empty until the Envoy route is wired.
 
-import { createPromiseClient } from "@connectrpc/connect";
-import { useEffect, useState } from "react";
-import { IngestionService } from "../../../gen/ts/rtsa/ingestion/v1/ingestion_service_connect";
-import {
-  ListSensorStatusesRequest,
-  SensorStatusResponse,
-} from "../../../gen/ts/rtsa/ingestion/v1/ingestion_service_pb";
-import { transport } from "../api/grpc-client";
+import { SensorStatusResponse } from "../../../gen/ts/rtsa/ingestion/v1/ingestion_service_pb";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function useSensorCoverage(): SensorStatusResponse[] {
-  const [sensors, setSensors] = useState<SensorStatusResponse[]>([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const client = createPromiseClient(IngestionService, transport);
-
-    const fetchCoverage = async () => {
-      try {
-        const res = await client.listSensorStatuses(
-          new ListSensorStatusesRequest(),
-        );
-        if (isMounted) {
-          setSensors(res.sensors);
-        }
-      } catch (err: any) {
-        // Suppress Unimplemented / 404 — IngestionService.ListSensorStatuses is
-        // not yet routed through Envoy for this deployment. Silently retry later.
-        const code: string = err?.code ?? "";
-        if (code === "unimplemented" || err?.message?.includes("404")) {
-          return;
-        }
-        console.warn("[useSensorCoverage] unexpected error:", err);
-      }
-    };
-
-    fetchCoverage();
-
-    // Refresh coverage every 30 seconds
-    const interval = setInterval(fetchCoverage, 30000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  return sensors;
+  return [];
 }
