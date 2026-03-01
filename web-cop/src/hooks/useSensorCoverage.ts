@@ -4,7 +4,10 @@
 import { createPromiseClient } from "@connectrpc/connect";
 import { useEffect, useState } from "react";
 import { IngestionService } from "../../../gen/ts/rtsa/ingestion/v1/ingestion_service_connect";
-import { ListSensorStatusesRequest, SensorStatusResponse } from "../../../gen/ts/rtsa/ingestion/v1/ingestion_service_pb";
+import {
+  ListSensorStatusesRequest,
+  SensorStatusResponse,
+} from "../../../gen/ts/rtsa/ingestion/v1/ingestion_service_pb";
 import { transport } from "../api/grpc-client";
 
 export function useSensorCoverage(): SensorStatusResponse[] {
@@ -16,12 +19,20 @@ export function useSensorCoverage(): SensorStatusResponse[] {
 
     const fetchCoverage = async () => {
       try {
-        const res = await client.listSensorStatuses(new ListSensorStatusesRequest());
+        const res = await client.listSensorStatuses(
+          new ListSensorStatusesRequest(),
+        );
         if (isMounted) {
           setSensors(res.sensors);
         }
-      } catch (err) {
-        console.error("Failed to fetch sensor coverage:", err);
+      } catch (err: any) {
+        // Suppress Unimplemented / 404 — IngestionService.ListSensorStatuses is
+        // not yet routed through Envoy for this deployment. Silently retry later.
+        const code: string = err?.code ?? "";
+        if (code === "unimplemented" || err?.message?.includes("404")) {
+          return;
+        }
+        console.warn("[useSensorCoverage] unexpected error:", err);
       }
     };
 

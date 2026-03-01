@@ -147,19 +147,28 @@ export const MapView: React.FC = () => {
       if (!mapContainerRef.current || mapRef.current) return;
 
       try {
-        const maplibregl = await import("maplibre-gl");
+        // maplibre-gl ships as a UMD bundle. Vite's esbuild CJS interop places
+        // the maplibregl object on .default — NOT as named exports (maplibregl.Map
+        // would be undefined, making `new maplibregl.Map()` throw silently).
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const maplibregl: any = ((await import("maplibre-gl")) as any).default;
 
         const tileUrl =
           (import.meta as { env?: Record<string, string> }).env?.[
             "VITE_MAP_TILE_URL"
           ] ?? "";
 
+        // Reliable publicly-hosted font server (Open Sans, Noto, etc.).
+        // demotiles.maplibre.org/font/ returns 404 for many font stacks.
+        const glyphsUrl =
+          "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf";
+
         const map = new maplibregl.Map({
           container: mapContainerRef.current,
           style: tileUrl
             ? {
                 version: 8 as const,
-                glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+                glyphs: glyphsUrl,
                 sources: {
                   tiles: {
                     type: "raster" as const,
@@ -171,9 +180,9 @@ export const MapView: React.FC = () => {
                   { id: "base", type: "raster" as const, source: "tiles" },
                 ],
               }
-              : {
+            : {
                 version: 8 as const,
-                glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+                glyphs: glyphsUrl,
                 sources: {},
                 layers: [
                   {
@@ -315,11 +324,15 @@ export const MapView: React.FC = () => {
             source: "tracks",
             layout: {
               "text-field": ["get", "classification"],
-              "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+              "text-font": [
+                "Open Sans Bold",
+                "Noto Sans Bold",
+                "Arial Unicode MS Regular",
+              ],
               "text-size": 10,
               "text-offset": [0, 1.2],
               "text-anchor": "top",
-              "visibility": "visible",
+              visibility: "visible",
             },
             paint: {
               "text-color": [
@@ -375,12 +388,7 @@ export const MapView: React.FC = () => {
                 "#3B82F6",
                 "#06B6D4",
               ],
-              "circle-opacity": [
-                "case",
-                ["get", "isCorrelated"],
-                0.3,
-                0.8,
-              ],
+              "circle-opacity": ["case", ["get", "isCorrelated"], 0.3, 0.8],
               "circle-stroke-width": 0,
             },
           });
@@ -463,7 +471,11 @@ export const MapView: React.FC = () => {
 
     const setVis = (layerId: string, visible: boolean) => {
       if (map.getLayer(layerId)) {
-        map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+        map.setLayoutProperty(
+          layerId,
+          "visibility",
+          visible ? "visible" : "none",
+        );
       }
     };
 

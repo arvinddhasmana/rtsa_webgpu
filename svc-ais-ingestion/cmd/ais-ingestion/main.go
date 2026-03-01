@@ -7,7 +7,6 @@ import (
 "net"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
 "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
 "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
@@ -110,7 +109,7 @@ grpc.ChainStreamInterceptor(interceptors.BuildStreamServerInterceptors(chainCfg)
 
 // 11. Register services
 ingestionv1.RegisterIngestionServiceServer(srv, ingestionHandler)
-commonv1.RegisterHealthServiceServer(srv, health.NewServer(healthChecker))
+health.RegisterAll(srv, healthChecker)
 
 // 12. Create shutdown manager
 sm := shutdown.NewManager(logger, 30*time.Second)

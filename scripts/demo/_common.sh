@@ -46,16 +46,16 @@ parse_common_args() {
 # ── Docker Compose helper ─────────────────────────────────────────────────────
 DC="docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml"
 
-# wait_for_service_health polls the HTTP health endpoint of a container until
-# it returns HTTP 200, or fails after a timeout.
+# wait_for_service_health polls the gRPC health endpoint of a container using
+# grpc_health_probe (built into every distroless service image) until it returns
+# SERVING, or fails after a timeout.
 # Args: container_name max_attempts
 wait_for_service_health() {
   local container="$1"
   local max="${2:-60}"
   local attempt=0
   while [ "$attempt" -lt "$max" ]; do
-    # Use docker exec + wget (alpine) or curl to hit the health endpoint inside the container
-    if docker exec "$container" wget -qO- http://localhost:8081/healthz >/dev/null 2>&1; then
+    if docker exec "$container" /bin/grpc_health_probe -addr=:50051 >/dev/null 2>&1; then
       return 0
     fi
     attempt=$(( attempt + 1 ))
@@ -127,8 +127,7 @@ start_infrastructure_and_services() {
 # ── Simulator runner ──────────────────────────────────────────────────────────
 run_simulator() {
   local scenario_file="$1"
-  local log_level="${2:-info}"
 
   echo -e "${CYAN}=== Starting simulator (scenario: ${scenario_file}) ===${NC}"
-  run_cmd "$DC run --rm simulator --scenario /app/scenarios/${scenario_file} --log-level ${log_level}"
+  run_cmd "$DC run --rm simulator --scenario /app/scenarios/${scenario_file}"
 }
