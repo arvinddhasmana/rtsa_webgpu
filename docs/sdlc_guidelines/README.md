@@ -33,7 +33,7 @@ graph TD
     end
 
     subgraph "Tier 4 — Technology-Specific"
-        TECH[08_tech_specific/<br/>Redpanda, ClickHouse<br/>gRPC Services, Wasm]
+        TECH["08_tech_specific/<br/>Redpanda, ClickHouse<br/>gRPC Services, Wasm<br/>Docker & Containers"]
     end
 
     subgraph "Tier 5 — Governance & Validation"
@@ -86,6 +86,7 @@ graph TD
 | **ClickHouse** | + `08_tech_specific/clickhouse_guidelines.md` |
 | **gRPC services** | + `08_tech_specific/grpc_service_guidelines.md` |
 | **Wasm transforms** | + `08_tech_specific/wasm_transforms.md` |
+| **Docker development** | + `development/docker_development.md` → `08_tech_specific/docker_container_guidelines.md` |
 | **Review/Governance** | + `09_governance/agent_governance.md` → `review_checklists.md` |
 
 ## Directory Structure
@@ -129,7 +130,10 @@ docs/sdlc_guidelines/
 │   ├── redpanda_guidelines.md             ← Topics, partitions, tiering
 │   ├── clickhouse_guidelines.md           ← Schema, engines, queries
 │   ├── grpc_service_guidelines.md         ← Interceptors, patterns
-│   └── wasm_transforms.md                 ← Anti-poisoning filters
+│   ├── wasm_transforms.md                 ← Broker-side data transforms
+│   └── docker_container_guidelines.md     ← Container images, security, ops
+├── development/
+│   └── docker_development.md              ← Docker Compose dev workflow
 └── 09_governance/
     ├── agent_governance.md                ← AI output validation rules
     ├── prompt_templates.md                ← Structured prompt templates

@@ -254,27 +254,34 @@ grpc.NewServer(
 
 ### 9.1 Feedback Trust Scoring
 
-All operator feedback must be trust-scored before being used for model retraining:
+All operator feedback that influences model retraining must be trust-scored before acceptance. Trust scoring defends against adversarial or erroneous feedback corrupting model behavior.
 
-```
-Trust Score = f(operator_clearance, historical_accuracy, temporal_consistency, statistical_deviation)
-```
+**Trust score design best practices:**
+- Compute a composite trust score from multiple independent factors
+- Common factors to incorporate:
+  - **Operator authority level** — higher access/clearance yields a higher base trust
+  - **Historical accuracy** — track record of the feedback provider against verified ground truth
+  - **Temporal consistency** — whether feedback timing is plausible given the event timeline
+  - **Statistical deviation** — how far the feedback diverges from the model's current consensus or from peer feedback
+- Weight factors based on domain analysis — no single factor should dominate
+- Normalize the composite score to a [0.0, 1.0] range for consistent thresholding
 
-| Factor | Weight | Description |
-|---|---|---|
-| Operator clearance level | 0.2 | Higher clearance → higher base trust |
-| Historical accuracy | 0.3 | Past feedback accuracy vs. ground truth |
-| Temporal consistency | 0.2 | Feedback timing consistent with entity timeline |
-| Statistical deviation | 0.3 | How far feedback deviates from model consensus |
+### 9.2 Trust Score Action Tiers
 
-### 9.2 Trust Score Thresholds
+Define configurable threshold tiers (do not hard-code specific values into business logic):
 
-| Score Range | Action |
+| Tier | Action |
 |---|---|
-| 0.8–1.0 | Auto-accept for training |
-| 0.5–0.79 | Accept with logging; include in training batch |
-| 0.2–0.49 | Flag for human review; exclude from auto-training |
-| 0.0–0.19 | Reject; alert Security Operations; audit investigation |
+| **High trust** | Auto-accept for training pipeline |
+| **Moderate trust** | Accept with logging; include in training batch |
+| **Low trust** | Flag for human review; exclude from automated training |
+| **Very low trust** | Reject; alert Security Operations; trigger audit investigation |
+
+**Best practices:**
+- Store threshold values in configuration (environment variables / config files) — not in code
+- Log all trust score computations for auditability
+- Monitor the distribution of trust scores over time — sudden shifts may indicate coordinated poisoning
+- Implement rate limiting per feedback provider to prevent volume-based attacks
 
 ## 10. AI Agent Instructions
 

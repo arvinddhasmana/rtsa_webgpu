@@ -52,30 +52,41 @@ graph LR
 
 ### 3.1 Required Metrics (Every Service)
 
-| Metric | Type | Labels |
+Every microservice must expose these core operational metrics as a minimum:
+
+| Metric Pattern | Type | Labels |
 |---|---|---|
-| `rtsa_grpc_requests_total` | Counter | `service`, `method`, `status_code` |
-| `rtsa_grpc_request_duration_seconds` | Histogram | `service`, `method` |
-| `rtsa_grpc_active_connections` | Gauge | `service` |
-| `rtsa_redpanda_messages_produced_total` | Counter | `service`, `topic` |
-| `rtsa_redpanda_messages_consumed_total` | Counter | `service`, `topic`, `consumer_group` |
-| `rtsa_redpanda_consumer_lag` | Gauge | `topic`, `partition`, `consumer_group` |
+| `<prefix>_grpc_requests_total` | Counter | `service`, `method`, `status_code` |
+| `<prefix>_grpc_request_duration_seconds` | Histogram | `service`, `method` |
+| `<prefix>_grpc_active_connections` | Gauge | `service` |
+| `<prefix>_messages_produced_total` | Counter | `service`, `topic` |
+| `<prefix>_messages_consumed_total` | Counter | `service`, `topic`, `consumer_group` |
+| `<prefix>_consumer_lag` | Gauge | `topic`, `partition`, `consumer_group` |
 
-### 3.2 Domain-Specific Metrics
+### 3.2 Domain-Specific Metric Design
 
-| Metric | Type | Service | Purpose |
-|---|---|---|---|
-| `rtsa_sensor_events_ingested_total` | Counter | Sensor Ingestion | Event throughput per sensor type |
-| `rtsa_sensor_events_rejected_total` | Counter | Sensor Ingestion | Validation failures |
-| `rtsa_fused_tracks_total` | Counter | Fusion Engine | Track creation/update rate |
-| `rtsa_inference_anomaly_score` | Histogram | Inference Engine | Anomaly score distribution |
-| `rtsa_inference_latency_seconds` | Histogram | Inference Engine | Model inference time |
-| `rtsa_feedback_submissions_total` | Counter | Feedback Service | Feedback by trust level |
-| `rtsa_feedback_trust_score` | Histogram | Feedback Service | Trust score distribution |
-| `rtsa_feedback_rejected_total` | Counter | Feedback Service | Anti-poisoning rejections |
-| `rtsa_clickhouse_query_duration_seconds` | Histogram | Query Service | Query performance |
-| `rtsa_nato_messages_exchanged_total` | Counter | NATO Adapter | NATO message throughput |
-| `rtsa_classification_guard_blocked_total` | Counter | All Services | Cross-classification attempts |
+Each service should define domain-specific metrics that reflect its business function. Follow these guidelines:
+
+**Naming convention:**
+- Use the pattern: `<project_prefix>_<domain>_<metric_name>_<unit>`
+- Units follow Prometheus conventions: `_total` (counters), `_seconds` (duration), `_bytes` (size)
+- Example: `myapp_ingestion_events_processed_total`, `myapp_inference_latency_seconds`
+
+**Categories of domain metrics:**
+
+| Category | Metric Examples | Type |
+|---|---|---|
+| **Ingestion** | Events ingested total, events rejected total, validation failure rate | Counter |
+| **Processing / ML** | Inference latency, anomaly score distribution, model confidence | Histogram |
+| **Data Quality** | Feedback submissions, trust score distribution, rejected feedback | Counter / Histogram |
+| **External Integration** | Messages exchanged, protocol errors, connection state | Counter / Gauge |
+| **Security** | Classification guard violations, authentication failures | Counter |
+| **Query** | Query latency, rows scanned, result set size | Histogram |
+
+**Cardinality management:**
+- Limit label cardinality to prevent metric explosion (< 1000 unique label combinations per metric)
+- Never use unbounded values (user IDs, request IDs) as metric labels
+- Use `LowCardinality` labels: service name, method, status code, event type
 
 ### 3.3 Metric Rules
 

@@ -91,30 +91,34 @@ proto/
 
 ## 3. Data Partitioning Strategy
 
-### 3.1 Redpanda Partitioning
+### 3.1 Event Streaming Partitioning
 
 Strict event ordering is maintained per partition. Partition keys must be chosen to balance ordering requirements with parallelism:
 
-| Topic Category | Partition Key | Rationale | Partition Count |
-|---|---|---|---|
-| Sensor events (radar) | `radar_id:track_id` | Ordering per track from same radar | 16–64 per radar cluster |
-| Sensor events (SIGINT) | `sensor_id:emitter_id` | Ordering per emitter detection | 16–32 |
-| Sensor events (ISR) | `platform_id:mission_id` | Ordering per mission | 8–16 |
-| Sensor events (AIS/BFT) | `unit_id` | Ordering per friendly unit | 16–32 |
-| Sensor events (Cyber) | `sensor_id:source_ip` | Ordering per source | 32–128 |
-| Entity tracks (fused) | `entity_id` | Ordering per entity | 32–64 |
-| Feedback events | `entity_id:operator_id` | Ordering per entity per operator | 16 |
-| Audit events | `service_id` | Ordering per service | 8–16 |
-| NATO exchange | Per standard | STANAG/NFFI specific | 8 per direction |
+| Consideration | Guideline | Example |
+|---|---|---|
+| **Entity ordering** | Use the primary entity identifier as partition key | `sensor_id`, `entity_id`, `user_id` |
+| **Compound keys** | Combine type and ID for finer-grained ordering with better distribution | `sensor_type:sensor_id`, `entity_type:entity_id` |
+| **Even distribution** | Choose keys with high cardinality to avoid hot partitions | Avoid partitioning by a low-cardinality category alone |
+| **Partition count** | Start with 6–12 partitions; increase for high-throughput topics | High-volume streams: 16–64; control channels: 1–3 |
+| **Ordering guarantee** | Messages with the same key are ordered within a partition | Use this to maintain entity-level ordering |
 
-### 3.2 ClickHouse Partitioning
+**Anti-patterns:**
+- Do not use timestamps as partition keys (no ordering benefit, poor distribution)
+- Do not use random keys unless ordering is irrelevant (sacrifices locality)
+- Do not over-partition (creates overhead; consumer groups limited by partition count)
 
-| Table Category | Partition Expression | Order Key | Rationale |
-|---|---|---|---|
-| Sensor events | `toYYYYMM(event_time)` | `(sensor_type, sensor_id, event_time)` | Time-based queries, sensor filtering |
-| Entity tracks | `toYYYYMM(detection_time)` | `(entity_id, detection_time)` | Entity history queries |
-| Feedback | `toYYYYMM(feedback_time)` | `(entity_id, operator_id, feedback_time)` | Feedback analysis |
-| Audit logs | `toYYYYMM(audit_time)` | `(service_id, audit_time)` | Chronological audit queries |
+### 3.2 OLAP Store Partitioning
+
+For columnar OLAP stores (e.g., ClickHouse), partitioning controls physical data layout:
+
+| Guideline | Explanation |
+|---|---|
+| Partition by time | Use monthly (`toYYYYMM`) for moderate volume or daily (`toYYYYMMDD`) for high volume |
+| Lead ORDER BY with filter columns | Place most-filtered, low-cardinality columns first in the ORDER BY |
+| Include entity + time in ORDER BY | Common pattern: `ORDER BY (category, entity_id, timestamp)` |
+| Target 50–300 partitions | Too many degrade merge performance; too few reduce pruning benefit |
+| Match retention to partition | TTL should align with partition boundaries for efficient expiration |
 
 ## 4. Event Schema Evolution Rules
 

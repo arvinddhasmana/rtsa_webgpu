@@ -84,6 +84,7 @@ graph LR
 | Analytics / OLAP | ClickHouse | Historical storage, forensics, complex analytical queries |
 | Frontend | React + gRPC-Web / WebSockets | Real-time situational awareness visualization |
 | Data Pipeline | Redpanda Connect | Batch ETL: stream → ClickHouse / S3 |
+| Containerization | Docker + Docker Compose / Kubernetes | Container-based development, deployment, and orchestration |
 | Anti-Poisoning | Wasm Data Transforms / Go middleware | Feedback trust validation before model retraining |
 | Interoperability | STANAG 5516 / NFFI / MIP adapters | NATO data exchange with allied systems |
 
