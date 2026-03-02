@@ -2,18 +2,18 @@
 # CLASSIFICATION: UNCLASSIFIED
 # RTSA Go Unit Test Runner
 # Runs all Go unit tests with race detection and coverage reporting.
-# Usage: ./scripts/dev/test-go.sh [service-name]
+# Usage: ./scripts/dev/test-go.sh [module-name]
+#   module-name: optional filter, e.g. "svc-radar-ingestion" or "pkg"
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SERVICES_DIR="${REPO_ROOT}/services"
 COVERAGE_DIR="${REPO_ROOT}/.coverage"
 MIN_COVERAGE=80
 
-# Optional: filter to a single service
-TARGET_SERVICE="${1:-}"
+# Optional: filter to a single module
+TARGET_MODULE="${1:-}"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -26,26 +26,26 @@ log_pass() { echo -e "${GREEN}[✓]${NC} $*"; }
 log_fail() { echo -e "${RED}[✗]${NC} $*"; }
 log_warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 
-TOTAL_SERVICES=0
-PASSED_SERVICES=0
-FAILED_SERVICES=0
+TOTAL_MODULES=0
+PASSED_MODULES=0
+FAILED_MODULES=0
 
-run_tests_for_service() {
-  local service_dir="$1"
-  local service_name
-  service_name="$(basename "$service_dir")"
-  local coverage_file="${COVERAGE_DIR}/${service_name}.out"
-  local coverage_html="${COVERAGE_DIR}/${service_name}.html"
+run_tests_for_module() {
+  local module_dir="$1"
+  local module_name
+  module_name="$(basename "$module_dir")"
+  local coverage_file="${COVERAGE_DIR}/${module_name}.out"
+  local coverage_html="${COVERAGE_DIR}/${module_name}.html"
 
-  TOTAL_SERVICES=$(( TOTAL_SERVICES + 1 ))
+  TOTAL_MODULES=$(( TOTAL_MODULES + 1 ))
   echo ""
-  log_info "Testing ${service_name} ..."
+  log_info "Testing ${module_name} ..."
 
   mkdir -p "$COVERAGE_DIR"
 
   # Run tests with race detector and coverage
   local exit_code=0
-  go test \
+  (cd "$module_dir" && go test \
     -race \
     -timeout 120s \
     -coverprofile="${coverage_file}" \
@@ -60,11 +60,11 @@ run_tests_for_service() {
       else
         echo "  ${line}"
       fi
-    done || exit_code=$?
+    done) || exit_code=$?
 
   if [ "${exit_code:-0}" -ne 0 ]; then
-    log_fail "${service_name} — TESTS FAILED"
-    FAILED_SERVICES=$(( FAILED_SERVICES + 1 ))
+    log_fail "${module_name} — TESTS FAILED"
+    FAILED_MODULES=$(( FAILED_MODULES + 1 ))
     return
   fi
 
@@ -81,17 +81,41 @@ run_tests_for_service() {
     coverage_int="$(printf "%.0f" "$coverage_pct" 2>/dev/null || echo "0")"
 
     if [ "${coverage_int}" -ge "${MIN_COVERAGE}" ]; then
-      log_pass "${service_name} — ${coverage_pct}% coverage (>= ${MIN_COVERAGE}% required)"
-      PASSED_SERVICES=$(( PASSED_SERVICES + 1 ))
+      log_pass "${module_name} — ${coverage_pct}% coverage (>= ${MIN_COVERAGE}% required)"
+      PASSED_MODULES=$(( PASSED_MODULES + 1 ))
     else
-      log_fail "${service_name} — ${coverage_pct}% coverage (< ${MIN_COVERAGE}% required)"
+      log_fail "${module_name} — ${coverage_pct}% coverage (< ${MIN_COVERAGE}% required)"
       log_info "  Coverage report: ${coverage_html}"
-      FAILED_SERVICES=$(( FAILED_SERVICES + 1 ))
+      FAILED_MODULES=$(( FAILED_MODULES + 1 ))
     fi
   else
-    log_warn "${service_name} — no coverage data (no testable packages?)"
-    PASSED_SERVICES=$(( PASSED_SERVICES + 1 ))
+    log_warn "${module_name} — no coverage data (no testable packages?)"
+    PASSED_MODULES=$(( PASSED_MODULES + 1 ))
   fi
+}
+
+# Discover all Go modules in the repository (svc-*, pkg, wasm-transforms, tools/*)
+discover_modules() {
+  local modules=()
+
+  # pkg/ shared library
+  if [ -f "${REPO_ROOT}/pkg/go.mod" ]; then
+    modules+=("${REPO_ROOT}/pkg")
+  fi
+
+  # svc-* service modules
+  for dir in "${REPO_ROOT}"/svc-*/; do
+    if [ -f "${dir}/go.mod" ]; then
+      modules+=("$dir")
+    fi
+  done
+
+  # wasm-transforms
+  if [ -f "${REPO_ROOT}/wasm-transforms/go.mod" ]; then
+    modules+=("${REPO_ROOT}/wasm-transforms")
+  fi
+
+  printf '%s\n' "${modules[@]}"
 }
 
 main() {
@@ -104,44 +128,46 @@ main() {
     exit 1
   fi
 
-  if [ ! -d "$SERVICES_DIR" ]; then
-    log_warn "No services/ directory — nothing to test"
-    exit 0
-  fi
+  if [ -n "$TARGET_MODULE" ]; then
+    # Try to find the module by name
+    local module_path=""
+    for candidate in "${REPO_ROOT}/${TARGET_MODULE}" "${REPO_ROOT}/svc-${TARGET_MODULE}"; do
+      if [ -f "${candidate}/go.mod" ]; then
+        module_path="$candidate"
+        break
+      fi
+    done
 
-  if [ -n "$TARGET_SERVICE" ]; then
-    local service_path="${SERVICES_DIR}/${TARGET_SERVICE}"
-    if [ ! -d "$service_path" ]; then
-      echo -e "${RED}ERROR: Service '${TARGET_SERVICE}' not found in ${SERVICES_DIR}/${NC}"
+    if [ -z "$module_path" ]; then
+      echo -e "${RED}ERROR: Module '${TARGET_MODULE}' not found (tried ${TARGET_MODULE}/ and svc-${TARGET_MODULE}/)${NC}"
       exit 1
     fi
-    (cd "$service_path" && run_tests_for_service "$service_path")
+    run_tests_for_module "$module_path"
   else
-    while IFS= read -r -d '' mod_file; do
-      local service_dir
-      service_dir="$(dirname "$mod_file")"
-      (cd "$service_dir" && run_tests_for_service "$service_dir")
-    done < <(find "$SERVICES_DIR" -name "go.mod" -print0 2>/dev/null)
+    while IFS= read -r module_dir; do
+      [ -z "$module_dir" ] && continue
+      run_tests_for_module "$module_dir"
+    done < <(discover_modules)
   fi
 
   echo ""
   echo "─────────────────────────────────────────────────────"
   echo "  Test suite summary:"
-  echo "  Services: ${TOTAL_SERVICES} total | ${PASSED_SERVICES} passed | ${FAILED_SERVICES} failed"
+  echo "  Modules: ${TOTAL_MODULES} total | ${PASSED_MODULES} passed | ${FAILED_MODULES} failed"
   echo "  Coverage reports: ${COVERAGE_DIR}/"
   echo "─────────────────────────────────────────────────────"
 
-  if [ "$FAILED_SERVICES" -gt 0 ]; then
-    echo -e "${RED}FAILED — ${FAILED_SERVICES} service(s) did not meet requirements${NC}"
+  if [ "$FAILED_MODULES" -gt 0 ]; then
+    echo -e "${RED}FAILED — ${FAILED_MODULES} module(s) did not meet requirements${NC}"
     exit 1
   fi
 
-  if [ "$TOTAL_SERVICES" -eq 0 ]; then
-    log_warn "No Go services found to test"
+  if [ "$TOTAL_MODULES" -eq 0 ]; then
+    log_warn "No Go modules found to test"
     exit 0
   fi
 
-  echo -e "${GREEN}PASSED — All ${PASSED_SERVICES} service(s) meet coverage requirements${NC}"
+  echo -e "${GREEN}PASSED — All ${PASSED_MODULES} module(s) meet coverage requirements${NC}"
 }
 
 main "$@"

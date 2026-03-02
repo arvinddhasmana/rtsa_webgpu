@@ -80,9 +80,9 @@ gate_1_pre_build() {
   fi
 
   # Go formatting
-  if command -v gofmt &>/dev/null && [ -d "${REPO_ROOT}/services" ]; then
+  if command -v gofmt &>/dev/null; then
     local unformatted
-    unformatted="$(find "${REPO_ROOT}/services" -name "*.go" \
+    unformatted="$(find "${REPO_ROOT}/svc-"* "${REPO_ROOT}/pkg" -name "*.go" \
       -not -path '*/vendor/*' \
       -exec gofmt -l {} \; 2>/dev/null | head -20)"
 
@@ -91,7 +91,7 @@ gate_1_pre_build() {
     else
       log_fail "Go formatting (gofmt) — unformatted files:"
       echo "$unformatted" | while read -r f; do echo "  ${f}"; done
-      log_info "Fix with: gofmt -w ./services/..."
+      log_info "Fix with: gofmt -w ./svc-*/... ./pkg/..."
     fi
   fi
 
@@ -136,9 +136,10 @@ gate_2_build() {
   fi
 
   # Go compilation
-  if command -v go &>/dev/null && [ -d "${REPO_ROOT}/services" ]; then
+  if command -v go &>/dev/null; then
     local build_errors=0
-    while IFS= read -r -d '' mod_file; do
+    for mod_file in "${REPO_ROOT}"/svc-*/go.mod "${REPO_ROOT}/pkg/go.mod"; do
+      [ -f "$mod_file" ] || continue
       local service_dir
       service_dir="$(dirname "$mod_file")"
       local service_name
@@ -150,7 +151,7 @@ gate_2_build() {
         log_fail "  Go build: ${service_name} — COMPILATION ERROR"
         build_errors=$(( build_errors + 1 ))
       fi
-    done < <(find "${REPO_ROOT}/services" -name "go.mod" -print0 2>/dev/null)
+    done
   fi
 
   # TypeScript compilation
@@ -177,9 +178,10 @@ gate_3_test() {
       log_fail "Go unit tests — FAILED (coverage or test failures)"
     fi
   else
-    if command -v go &>/dev/null && [ -d "${REPO_ROOT}/services" ]; then
+    if command -v go &>/dev/null; then
       log_info "Running quick Go tests (no coverage threshold)..."
-      while IFS= read -r -d '' mod_file; do
+      for mod_file in "${REPO_ROOT}"/svc-*/go.mod "${REPO_ROOT}/pkg/go.mod"; do
+        [ -f "$mod_file" ] || continue
         local service_dir
         service_dir="$(dirname "$mod_file")"
         local service_name
@@ -189,7 +191,7 @@ gate_3_test() {
         else
           log_fail "  ${service_name} — tests FAILED"
         fi
-      done < <(find "${REPO_ROOT}/services" -name "go.mod" -print0 2>/dev/null)
+      done
     fi
   fi
 
@@ -210,9 +212,9 @@ gate_4_security() {
   log_gate 4 "Security (SAST + Dependency Scan)"
 
   # gosec — Go SAST
-  if command -v gosec &>/dev/null && [ -d "${REPO_ROOT}/services" ]; then
+  if command -v gosec &>/dev/null; then
     local gosec_output
-    if gosec_output="$(gosec -quiet -severity high ./services/... 2>&1)"; then
+    if gosec_output="$(gosec -quiet -severity high ./svc-*/... ./pkg/... 2>&1)"; then
       log_pass "Go SAST (gosec) — no HIGH/CRITICAL issues"
     else
       log_fail "Go SAST (gosec) — HIGH or CRITICAL issues found:"
@@ -223,9 +225,10 @@ gate_4_security() {
   fi
 
   # govulncheck — Go dependency vulnerabilities
-  if command -v govulncheck &>/dev/null && [ -d "${REPO_ROOT}/services" ]; then
+  if command -v govulncheck &>/dev/null; then
     local vuln_errors=0
-    while IFS= read -r -d '' mod_file; do
+    for mod_file in "${REPO_ROOT}"/svc-*/go.mod "${REPO_ROOT}/pkg/go.mod"; do
+      [ -f "$mod_file" ] || continue
       local service_dir
       service_dir="$(dirname "$mod_file")"
       local service_name
@@ -236,15 +239,16 @@ gate_4_security() {
         log_fail "  govulncheck: ${service_name} — vulnerabilities found"
         vuln_errors=$(( vuln_errors + 1 ))
       fi
-    done < <(find "${REPO_ROOT}/services" -name "go.mod" -print0 2>/dev/null)
+    done
   else
     log_warn "govulncheck not installed — skipping Go vulnerability scan (REQUIRED for CI)"
   fi
 
   # golangci-lint — Go linting
-  if command -v golangci-lint &>/dev/null && [ -d "${REPO_ROOT}/services" ]; then
+  if command -v golangci-lint &>/dev/null; then
     local lint_errors=0
-    while IFS= read -r -d '' mod_file; do
+    for mod_file in "${REPO_ROOT}"/svc-*/go.mod "${REPO_ROOT}/pkg/go.mod"; do
+      [ -f "$mod_file" ] || continue
       local service_dir
       service_dir="$(dirname "$mod_file")"
       local service_name
@@ -255,7 +259,7 @@ gate_4_security() {
         log_fail "  golangci-lint: ${service_name} — lint issues found"
         lint_errors=$(( lint_errors + 1 ))
       fi
-    done < <(find "${REPO_ROOT}/services" -name "go.mod" -print0 2>/dev/null)
+    done
   else
     log_warn "golangci-lint not installed — skipping Go lint (REQUIRED for CI)"
   fi

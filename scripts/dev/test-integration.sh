@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # CLASSIFICATION: UNCLASSIFIED
 # RTSA Integration Test Runner
-# Runs integration tests against the live local dev stack.
-# Requires: docker compose -f deploy/docker-compose.yml up -d
+# Runs integration tests from the centralized tests/ directory and
+# per-service integration tests found in svc-*/internal/integration/.
+# Requires: Docker (for testcontainers-go)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SERVICES_DIR="${REPO_ROOT}/services"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -24,54 +24,62 @@ log_warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 ERRORS=0
 
 # ─────────────────────────────────────────────────────────────
-# Check the dev stack is running
+# Check Docker is available (needed for testcontainers-go)
 # ─────────────────────────────────────────────────────────────
-check_stack() {
-  log_info "Verifying dev stack is running ..."
+check_docker() {
+  log_info "Verifying Docker is available ..."
 
-  local redpanda_ok=false
-  local clickhouse_ok=false
-
-  if curl -sf "http://localhost:19644/v1/cluster/health_overview" &>/dev/null; then
-    redpanda_ok=true
-  fi
-
-  if curl -sf "http://localhost:8123/ping" &>/dev/null; then
-    clickhouse_ok=true
-  fi
-
-  if $redpanda_ok && $clickhouse_ok; then
-    log_pass "Dev stack is running (Redpanda + ClickHouse)"
+  if docker info &>/dev/null; then
+    log_pass "Docker is running"
   else
-    echo -e "${RED}ERROR: Dev stack is not fully running.${NC}"
-    echo "  Start it with: docker compose -f deploy/docker-compose.yml up -d"
-    $redpanda_ok || echo -e "  ${RED}  Redpanda: NOT reachable${NC}"
-    $clickhouse_ok || echo -e "  ${RED}  ClickHouse: NOT reachable${NC}"
+    echo -e "${RED}ERROR: Docker is not running or not available.${NC}"
+    echo "  testcontainers-go requires Docker to spin up test containers."
     exit 1
   fi
 }
 
 # ─────────────────────────────────────────────────────────────
-# Run integration tests for all services
+# Run centralized integration tests (tests/integration/)
 # ─────────────────────────────────────────────────────────────
-run_integration_tests() {
-  if [ ! -d "$SERVICES_DIR" ]; then
-    log_warn "No services/ directory — nothing to test"
+run_centralized_integration() {
+  local tests_dir="${REPO_ROOT}/tests"
+
+  if [ ! -d "${tests_dir}/integration" ]; then
+    log_warn "No tests/integration/ directory found — skipping centralized tests"
     return
   fi
 
-  log_info "Running integration tests (build tag: integration) ..."
+  log_info "Running centralized integration tests (tests/integration/) ..."
   echo ""
 
-  while IFS= read -r -d '' mod_file; do
-    local service_dir
-    service_dir="$(dirname "$mod_file")"
-    local service_name
-    service_name="$(basename "$service_dir")"
+  if (cd "$tests_dir" && \
+    RTSA_INTEGRATION_TESTS=true go test \
+      -v \
+      -tags=integration \
+      -timeout 10m \
+      -count=1 \
+      ./integration/... 2>&1 | sed "s/^/    /"); then
+    log_pass "Centralized integration tests — PASSED"
+  else
+    log_fail "Centralized integration tests — FAILED"
+    ERRORS=$(( ERRORS + 1 ))
+  fi
+}
 
-    # Skip if no integration test files exist
+# ─────────────────────────────────────────────────────────────
+# Run per-service integration tests (svc-*/internal/integration/)
+# ─────────────────────────────────────────────────────────────
+run_service_integration_tests() {
+  log_info "Scanning for per-service integration tests ..."
+  echo ""
+
+  for dir in "${REPO_ROOT}"/svc-*/; do
+    local service_name
+    service_name="$(basename "$dir")"
+
+    # Check for integration test files
     local int_test_count
-    int_test_count="$(find "$service_dir" -name "*_integration_test.go" 2>/dev/null | wc -l | tr -d ' ')"
+    int_test_count="$(find "$dir" -name "*_integration_test.go" -o -name "*_integration_*.go" 2>/dev/null | wc -l | tr -d ' ')"
 
     if [ "$int_test_count" -eq 0 ]; then
       log_info "  ${service_name} — no integration tests (skipping)"
@@ -80,19 +88,19 @@ run_integration_tests() {
 
     log_info "  Running integration tests for ${service_name} (${int_test_count} test files) ..."
 
-    if (cd "$service_dir" && \
-      go test \
+    if (cd "$dir" && \
+      RTSA_INTEGRATION_TESTS=true go test \
         -tags=integration \
         -timeout 300s \
         -count=1 \
+        -v \
         ./... 2>&1 | sed "s/^/    /"); then
       log_pass "  ${service_name} — integration tests PASSED"
     else
       log_fail "  ${service_name} — integration tests FAILED"
       ERRORS=$(( ERRORS + 1 ))
     fi
-
-  done < <(find "$SERVICES_DIR" -name "go.mod" -print0 2>/dev/null)
+  done
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -102,8 +110,9 @@ main() {
   echo ""
   echo -e "${CYAN}══ RTSA Integration Tests (CLASSIFICATION: UNCLASSIFIED) ══${NC}"
 
-  check_stack
-  run_integration_tests
+  check_docker
+  run_centralized_integration
+  run_service_integration_tests
 
   echo ""
   if [ "$ERRORS" -eq 0 ]; then
