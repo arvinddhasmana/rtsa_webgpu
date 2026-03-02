@@ -2,94 +2,135 @@
 package consumer_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/consumer"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"go.uber.org/zap"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TestValidateEvent_Valid(t *testing.T) {
+type mockKafka struct {
+	fetches kgo.Fetches
+	closed  bool
+}
+
+func (m *mockKafka) PollFetches(ctx context.Context) kgo.Fetches {
+	if !m.fetches.Empty() {
+		f := m.fetches
+		m.fetches = kgo.Fetches{}
+		return f
+	}
+	select {
+	case <-ctx.Done():
+		return kgo.NewErrFetch(ctx.Err())
+	case <-time.After(10 * time.Millisecond):
+		return kgo.Fetches{}
+	}
+}
+func (m *mockKafka) Close() { m.closed = true }
+
+type mockRepo struct {
+	lastBatch []*auditv1.AuditEvent
+}
+
+func (m *mockRepo) BatchInsert(ctx context.Context, events []*auditv1.AuditEvent) error {
+	m.lastBatch = events
+	return nil
+}
+
+func TestAuditConsumer_ProcessAndFlush(t *testing.T) {
 	event := &auditv1.AuditEvent{
-		AuditId:   "audit-001",
-		ServiceId: "svc-radar-ingestion",
-		EventType: "observation.ingested",
-		EventTime: timestamppb.New(time.Now()),
+		AuditId:            "test-audit-id",
+		ServiceId:          "test-svc",
+		EventType:          "test-event",
+		EventTime:          timestamppb.Now(),
+		ClassificationLevel: 1,
 	}
-	// Validate by checking fields directly — exported func tested via consumer tests.
-	if event.AuditId == "" {
-		t.Error("audit_id should not be empty")
+	data, _ := protojson.Marshal(event)
+
+	mockK := &mockKafka{
+		fetches: kgo.Fetches{
+			kgo.Fetch{
+				Topics: []kgo.FetchTopic{
+					{
+						Topic: "audit.events",
+						Partitions: []kgo.FetchPartition{
+							{
+								Records: []*kgo.Record{
+									{Value: data},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
-	if event.EventTime == nil {
-		t.Error("event_time should not be nil")
+	mockR := &mockRepo{}
+
+	// Create consumer with small batch size
+	c := consumer.NewAuditConsumer(mockK, mockR, 1, 1, zap.NewNop())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		cancel()
+	}()
+
+	_ = c.Start(ctx)
+
+	if len(mockR.lastBatch) == 0 {
+		t.Error("expected batch to be flushed")
+	} else if mockR.lastBatch[0].AuditId != "test-audit-id" {
+		t.Errorf("expected audit-id test-audit-id, got %s", mockR.lastBatch[0].AuditId)
 	}
 }
 
-func TestValidateEvent_MissingAuditId(t *testing.T) {
-	event := &auditv1.AuditEvent{
-		ServiceId: "svc-test",
-		EventType: "test.event",
-		EventTime: timestamppb.New(time.Now()),
+func TestAuditConsumer_MalformedRecord(t *testing.T) {
+	mockK := &mockKafka{
+		fetches: kgo.Fetches{
+			kgo.Fetch{
+				Topics: []kgo.FetchTopic{
+					{
+						Topic: "audit.events",
+						Partitions: []kgo.FetchPartition{
+							{
+								Records: []*kgo.Record{
+									{Value: []byte("malformed")},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
-	if event.AuditId != "" {
-		t.Error("audit_id should be empty for this test")
+	mockR := &mockRepo{}
+
+	c := consumer.NewAuditConsumer(mockK, mockR, 1, 1, zap.NewNop())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	_ = c.Start(ctx)
+
+	if len(mockR.lastBatch) != 0 {
+		t.Error("expected no batch to be flushed for malformed record")
 	}
 }
 
-func TestValidateEvent_MissingServiceId(t *testing.T) {
-event := &auditv1.AuditEvent{
-AuditId:   "audit-001",
-EventType: "test.event",
-EventTime: timestamppb.New(time.Now()),
-// ServiceId intentionally missing
-}
-if event.ServiceId != "" {
-t.Error("service_id should be empty for this test")
-}
-}
-
-func TestValidateEvent_MissingEventType(t *testing.T) {
-event := &auditv1.AuditEvent{
-AuditId:   "audit-001",
-ServiceId: "svc-test",
-EventTime: timestamppb.New(time.Now()),
-// EventType intentionally missing
-}
-if event.EventType != "" {
-t.Error("event_type should be empty for this test")
-}
-}
-
-func TestValidateEvent_MissingEventTime(t *testing.T) {
-event := &auditv1.AuditEvent{
-AuditId:   "audit-001",
-ServiceId: "svc-test",
-EventType: "test.event",
-// EventTime intentionally missing
-}
-if event.EventTime != nil {
-t.Error("event_time should be nil for this test")
-}
-}
-
-func TestAuditEvent_FullyPopulated(t *testing.T) {
-now := time.Now()
-event := &auditv1.AuditEvent{
-AuditId:   "audit-001",
-ServiceId: "svc-radar-ingestion",
-EventType: "observation.ingested",
-ActorId:   "svc-radar-ingestion",
-ActorType: auditv1.ActorType_ACTOR_TYPE_SERVICE,
-EventTime: timestamppb.New(now),
-TraceId:   "trace-xyz",
-}
-if event.AuditId == "" {
-t.Error("AuditId should not be empty")
-}
-if event.ActorType != auditv1.ActorType_ACTOR_TYPE_SERVICE {
-t.Errorf("expected ACTOR_TYPE_SERVICE, got %v", event.ActorType)
-}
-if !event.EventTime.AsTime().Equal(now.Truncate(time.Nanosecond)) {
-t.Error("EventTime mismatch")
-}
+func TestAuditConsumer_Close(t *testing.T) {
+	mockK := &mockKafka{}
+	c := consumer.NewAuditConsumer(mockK, nil, 1, 1, zap.NewNop())
+	c.Close()
+	if !mockK.closed {
+		t.Error("expected kafka client to be closed")
+	}
 }

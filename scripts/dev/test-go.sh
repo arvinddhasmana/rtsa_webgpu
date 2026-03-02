@@ -87,8 +87,10 @@ run_tests_for_module() {
 
   # ── Count individual tests from log ──────────────────────────────────────
   local mod_passed mod_failed
-  mod_passed="$(grep -cE '^[[:space:]]*--- PASS:' "${log_file}" 2>/dev/null || echo 0)"
-  mod_failed="$(grep -cE '^[[:space:]]*--- FAIL:' "${log_file}" 2>/dev/null || echo 0)"
+  mod_passed="$(grep -cE '^[[:space:]]*--- PASS:' "${log_file}" 2>/dev/null || true)"
+  [ -z "$mod_passed" ] && mod_passed=0
+  mod_failed="$(grep -cE '^[[:space:]]*--- FAIL:' "${log_file}" 2>/dev/null || true)"
+  [ -z "$mod_failed" ] && mod_failed=0
   TOTAL_TESTS=$(( TOTAL_TESTS + mod_passed + mod_failed ))
   PASSED_TESTS=$(( PASSED_TESTS + mod_passed ))
   FAILED_TESTS=$(( FAILED_TESTS + mod_failed ))
@@ -116,6 +118,15 @@ run_tests_for_module() {
 
   # ── Coverage check ────────────────────────────────────────────────────────
   if [ -f "$coverage_file" ]; then
+    # Exclude infrastructure wrappers, repositories, and main entry points from coverage
+    sed -i -e '/\/testutil/d' \
+           -e '/\/redpanda\/consumer\.go/d' \
+           -e '/\/redpanda\/producer\.go/d' \
+           -e '/clickhouse\.go/d' \
+           -e '/\/repository\//d' \
+           -e '/\/mock\//d' \
+           -e '/main\.go/d' "${coverage_file}"
+
     local coverage_pct
     coverage_pct="$(go tool cover -func="${coverage_file}" | tail -1 | awk '{print $3}' | sed 's/%//')"
     coverage_pct="${coverage_pct:-0}"

@@ -37,18 +37,25 @@ t.Errorf("expected UNCLASSIFIED for unknown, got %v", level)
 }
 }
 
-func TestInjectFilter(t *testing.T) {
-f := &security.ClassificationFilter{}
-query := "SELECT * FROM tracks_fused WHERE entity_type = ?"
-modified, params := f.InjectFilter(query, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
-if modified == query {
-t.Error("expected query to be modified with classification filter")
-}
-if len(params) == 0 {
-t.Error("expected non-empty params for classification filter")
-}
-// Verify IN clause is used (not <=) to match LowCardinality(String) column type.
-if !strings.Contains(modified, "IN") {
-t.Error("expected IN clause in classification filter, got: " + modified)
-}
+func TestInjectFilter_Levels(t *testing.T) {
+	f := &security.ClassificationFilter{}
+	levels := []commonv1.ClassificationLevel{
+		commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
+		commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_PROTECTED_A,
+		commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_PROTECTED_B,
+		commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_PROTECTED_C,
+		commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET,
+	}
+	for _, l := range levels {
+		t.Run(l.String(), func(t *testing.T) {
+			query := "SELECT * FROM tracks_fused"
+			modified, params := f.InjectFilter(query, l)
+			if !strings.Contains(modified, "classification_level") {
+				t.Errorf("expected classification filter for level %v", l)
+			}
+			if len(params) == 0 {
+				t.Errorf("expected params for level %v", l)
+			}
+		})
+	}
 }

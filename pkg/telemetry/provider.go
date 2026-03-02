@@ -27,9 +27,10 @@ MetricsPort    int
 
 // Provider holds initialized telemetry providers.
 type Provider struct {
-TracerProvider *sdktrace.TracerProvider
-MeterProvider  *metric.MeterProvider
-Logger         *zap.Logger
+	ServiceName    string
+	TracerProvider *sdktrace.TracerProvider
+	MeterProvider  *metric.MeterProvider
+	Logger         *zap.Logger
 }
 
 // Init initializes OpenTelemetry tracing, metrics, and structured logging.
@@ -97,11 +98,17 @@ metric.WithResource(res),
 )
 otel.SetMeterProvider(mp)
 
-return &Provider{
-TracerProvider: tp,
-MeterProvider:  mp,
-Logger:         logger,
-}, nil
+	svcName := cfg.ServiceName
+	if svcName == "" {
+		svcName = "unknown"
+	}
+
+	return &Provider{
+		ServiceName:    svcName,
+		TracerProvider: tp,
+		MeterProvider:  mp,
+		Logger:         logger,
+	}, nil
 }
 
 // Shutdown gracefully shuts down all telemetry providers.

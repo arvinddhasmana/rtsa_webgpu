@@ -2,41 +2,47 @@
 package handler
 
 import (
-"context"
-"fmt"
+	"context"
+	"fmt"
 
-auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/repository"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/security"
-"go.uber.org/zap"
-"google.golang.org/grpc"
-"google.golang.org/grpc/codes"
-"google.golang.org/grpc/status"
+	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/domain"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/security"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+// AuditRepo defines the subset of repository.AuditRepository used by AuditServer.
+type AuditRepo interface {
+	GetEntry(ctx context.Context, auditID string, callerClearance commonv1.ClassificationLevel) (*auditv1.AuditEvent, error)
+	QueryAuditLog(ctx context.Context, req *auditv1.StreamAuditLogRequest, callerClearance commonv1.ClassificationLevel, pageToken *domain.PaginationToken, pageSize int) ([]*auditv1.AuditEvent, *domain.PaginationToken, error)
+}
 
 // AuditServer implements the auditv1.AuditServiceServer interface.
 type AuditServer struct {
-auditv1.UnimplementedAuditServiceServer
-repo      *repository.AuditRepository
-guardrail *domain.QueryGuardrail
-pageSize  int
-logger    *zap.Logger
+	auditv1.UnimplementedAuditServiceServer
+	repo      AuditRepo
+	guardrail *domain.QueryGuardrail
+	pageSize  int
+	logger    *zap.Logger
 }
 
 // NewAuditServer creates a new gRPC audit server.
 func NewAuditServer(
-repo *repository.AuditRepository,
-guardrail *domain.QueryGuardrail,
-pageSize int,
-logger *zap.Logger,
+	repo AuditRepo,
+	guardrail *domain.QueryGuardrail,
+	pageSize int,
+	logger *zap.Logger,
 ) *AuditServer {
-return &AuditServer{
-repo:      repo,
-guardrail: guardrail,
-pageSize:  pageSize,
-logger:    logger,
-}
+	return &AuditServer{
+		repo:      repo,
+		guardrail: guardrail,
+		pageSize:  pageSize,
+		logger:    logger,
+	}
 }
 
 // GetAuditEntry returns a single audit event by ID with classification filtering.

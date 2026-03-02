@@ -22,15 +22,20 @@ Status    string    `json:"status"`
 Timestamp time.Time `json:"timestamp"`
 }
 
+// KafkaClient defines the subset of kgo.Client used by NoopProducer.
+type KafkaClient interface {
+	Produce(ctx context.Context, r *kgo.Record, promise func(*kgo.Record, error))
+}
+
 // NoopProducer publishes noop model candidates to the output topic.
 type NoopProducer struct {
-client   *kgo.Client
-outTopic string
-logger   *zap.Logger
+	client   KafkaClient
+	outTopic string
+	logger   *zap.Logger
 }
 
 // New creates a new NoopProducer.
-func New(client *kgo.Client, outTopic string, logger *zap.Logger) *NoopProducer {
+func New(client KafkaClient, outTopic string, logger *zap.Logger) *NoopProducer {
 return &NoopProducer{
 client:   client,
 outTopic: outTopic,

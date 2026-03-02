@@ -21,6 +21,7 @@ import (
 	"google.golang.org/grpc"
 	grpchealth "google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
 func main() {
@@ -47,17 +48,23 @@ func main() {
 	defer func() { _ = repo.Close() }()
 
 	// ─── Audit consumer ──────────────────────────────────────────────────────
-	auditConsumer, err := consumer.NewAuditConsumer(
-		cfg.RedpandaBrokers,
-		cfg.ConsumerGroup,
+	kClient, err := kgo.NewClient(
+		kgo.SeedBrokers(cfg.RedpandaBrokers...),
+		kgo.ConsumerGroup(cfg.ConsumerGroup),
+		kgo.ConsumeTopics("audit.events"),
+		kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()),
+	)
+	if err != nil {
+		logger.Fatal("failed to create Kafka client", zap.Error(err))
+	}
+
+	auditConsumer := consumer.NewAuditConsumer(
+		kClient,
 		repo,
 		cfg.BatchSize,
 		cfg.FlushPeriodSec,
 		logger,
 	)
-	if err != nil {
-		logger.Fatal("failed to create audit consumer", zap.Error(err))
-	}
 	defer auditConsumer.Close()
 
 	// ─── Domain guardrail ─────────────────────────────────────────────────────

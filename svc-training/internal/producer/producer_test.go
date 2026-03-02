@@ -2,76 +2,63 @@
 package producer_test
 
 import (
-"encoding/json"
-"testing"
-"time"
+	"context"
+	"testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-training/internal/producer"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-training/internal/producer"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"go.uber.org/zap"
 )
 
-func TestModelCandidateJSONMarshal(t *testing.T) {
-tests := []struct {
-name      string
-candidate producer.ModelCandidate
-}{
-{
-name: "noop candidate",
-candidate: producer.ModelCandidate{
-ModelID:   "noop-v0",
-Status:    "stub",
-Timestamp: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-},
-},
-{
-name: "empty candidate",
-candidate: producer.ModelCandidate{},
-},
+type mockKafka struct {
+	lastRecord *kgo.Record
 }
 
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-data, err := json.Marshal(tt.candidate)
-if err != nil {
-t.Fatalf("json.Marshal() error = %v", err)
-}
-if len(data) == 0 {
-t.Fatal("json.Marshal() returned empty bytes")
+func (m *mockKafka) Produce(ctx context.Context, r *kgo.Record, promise func(*kgo.Record, error)) {
+	m.lastRecord = r
+	if promise != nil {
+		promise(r, nil)
+	}
 }
 
-var decoded producer.ModelCandidate
-if err := json.Unmarshal(data, &decoded); err != nil {
-t.Fatalf("json.Unmarshal() error = %v", err)
-}
-if decoded.ModelID != tt.candidate.ModelID {
-t.Errorf("ModelID = %q, want %q", decoded.ModelID, tt.candidate.ModelID)
-}
-if decoded.Status != tt.candidate.Status {
-t.Errorf("Status = %q, want %q", decoded.Status, tt.candidate.Status)
-}
-})
-}
+func TestNew(t *testing.T) {
+	p := producer.New(nil, "topic", zap.NewNop())
+	if p == nil {
+		t.Fatal("expected non-nil NoopProducer")
+	}
 }
 
-func TestModelCandidateJSONKeys(t *testing.T) {
-candidate := producer.ModelCandidate{
-ModelID:   "noop-v0",
-Status:    "stub",
-Timestamp: time.Now().UTC(),
+func TestNoopProducer_PublishCandidate(t *testing.T) {
+	mock := &mockKafka{}
+	p := producer.New(mock, "training-out", zap.NewNop())
+
+	err := p.PublishCandidate(context.Background())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if mock.lastRecord == nil {
+		t.Fatal("expected record to be produced")
+	}
+	if mock.lastRecord.Topic != "training-out" {
+		t.Errorf("expected topic training-out, got %s", mock.lastRecord.Topic)
+	}
 }
 
-data, err := json.Marshal(candidate)
-if err != nil {
-t.Fatalf("json.Marshal() error = %v", err)
+func TestNoopProducer_PublishCandidate_ProduceError(t *testing.T) {
+	mock := &mockKafkaErr{}
+	p := producer.New(mock, "training-out", zap.NewNop())
+
+	err := p.PublishCandidate(context.Background())
+	if err == nil {
+		t.Error("expected error from produce callback")
+	}
 }
 
-var raw map[string]interface{}
-if err := json.Unmarshal(data, &raw); err != nil {
-t.Fatalf("json.Unmarshal() error = %v", err)
-}
+type mockKafkaErr struct{}
 
-for _, key := range []string{"model_id", "status", "timestamp"} {
-if _, ok := raw[key]; !ok {
-t.Errorf("expected JSON key %q in output", key)
-}
-}
+func (m *mockKafkaErr) Produce(ctx context.Context, r *kgo.Record, promise func(*kgo.Record, error)) {
+	if promise != nil {
+		promise(r, context.DeadlineExceeded)
+	}
 }

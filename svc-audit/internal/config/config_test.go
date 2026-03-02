@@ -55,8 +55,8 @@ func TestLoad_InvalidBatchSize(t *testing.T) {
 }
 
 func TestLoad_GRPCPortOverride(t *testing.T) {
-os.Setenv("RTSA_AUDIT_GRPC_PORT", "50099")
-defer os.Unsetenv("RTSA_AUDIT_GRPC_PORT")
+os.Setenv("RTSA_GRPC_PORT", "50099")
+defer os.Unsetenv("RTSA_GRPC_PORT")
 
 cfg, err := config.Load()
 if err != nil {
@@ -68,8 +68,8 @@ t.Errorf("expected GRPCPort 50099, got %d", cfg.GRPCPort)
 }
 
 func TestLoad_InvalidGRPCPort(t *testing.T) {
-os.Setenv("RTSA_AUDIT_GRPC_PORT", "notanint")
-defer os.Unsetenv("RTSA_AUDIT_GRPC_PORT")
+os.Setenv("RTSA_GRPC_PORT", "notanint")
+defer os.Unsetenv("RTSA_GRPC_PORT")
 
 _, err := config.Load()
 if err == nil {

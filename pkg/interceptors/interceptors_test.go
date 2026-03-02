@@ -327,3 +327,25 @@ if len(chain) < 5 {
 t.Errorf("expected at least 5 stream interceptors, got %d", len(chain))
 }
 }
+
+func TestClassificationInterceptor_MissingKey(t *testing.T) {
+	guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET)
+	interceptor := interceptors.UnaryClassificationInterceptor(guard)
+
+	// Metadata exists but DOES NOT have the classification key
+	md := metadata.Pairs("some-other-key", "value")
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return "ok", nil
+	}
+
+	resp, err := interceptor(ctx, nil, &grpc.UnaryServerInfo{FullMethod: "/test.Service/Method"}, handler)
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if resp != "ok" {
+		t.Errorf("expected ok, got %v", resp)
+	}
+}
+

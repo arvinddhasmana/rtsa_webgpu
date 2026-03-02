@@ -2,80 +2,104 @@
 package consumer_test
 
 import (
-"encoding/json"
-"testing"
-"time"
+	"context"
+	"encoding/json"
+	"testing"
+	"time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-training/internal/consumer"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-training/internal/consumer"
+	"github.com/twmb/franz-go/pkg/kgo"
+	"go.uber.org/zap"
 )
 
+type mockKafka struct {
+	fetches    kgo.Fetches
+	lastRecord *kgo.Record
+	cancelFunc context.CancelFunc
+}
+
+func (m *mockKafka) PollFetches(ctx context.Context) kgo.Fetches {
+	if !m.fetches.Empty() {
+		f := m.fetches
+		m.fetches = kgo.Fetches{}
+		return f
+	}
+	select {
+	case <-ctx.Done():
+		return kgo.NewErrFetch(ctx.Err())
+	case <-time.After(10 * time.Millisecond):
+		return kgo.Fetches{}
+	}
+}
+
+func (m *mockKafka) Produce(ctx context.Context, r *kgo.Record, promise func(*kgo.Record, error)) {
+	m.lastRecord = r
+	if promise != nil {
+		promise(r, nil)
+	}
+	if m.cancelFunc != nil {
+		m.cancelFunc()
+	}
+}
+
+func TestNew(t *testing.T) {
+	tc := consumer.New(nil, nil, "out", zap.NewNop())
+	if tc == nil {
+		t.Fatal("expected non-nil TrainingConsumer")
+	}
+}
+
+func TestTrainingConsumer_Run_Cancelled(t *testing.T) {
+	mock := &mockKafka{}
+	tc := consumer.New(mock, mock, "out", zap.NewNop())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	err := tc.Run(ctx)
+	if err != nil {
+		t.Errorf("expected no error on cancel, got %v", err)
+	}
+}
+
+func TestTrainingConsumer_Run_ProcessRecord(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	mock := &mockKafka{
+		fetches: kgo.Fetches{
+			kgo.Fetch{
+				Topics: []kgo.FetchTopic{
+					{
+						Topic: "in",
+						Partitions: []kgo.FetchPartition{
+							{
+								Records: []*kgo.Record{
+									{Value: []byte("feedback")},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		cancelFunc: cancel, // cancel the context once the record is produced
+	}
+	tc := consumer.New(mock, mock, "out", zap.NewNop())
+
+	_ = tc.Run(ctx)
+
+	if mock.lastRecord == nil {
+		t.Error("expected record to be produced")
+	}
+}
+
 func TestNoopModelCandidateJSONMarshal(t *testing.T) {
-tests := []struct {
-name      string
-candidate consumer.NoopModelCandidate
-}{
-{
-name: "noop candidate",
-candidate: consumer.NoopModelCandidate{
-ModelID:   "noop-v0",
-Status:    "stub",
-Timestamp: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC),
-},
-},
-{
-name: "empty candidate",
-candidate: consumer.NoopModelCandidate{},
-},
-}
-
-for _, tt := range tests {
-t.Run(tt.name, func(t *testing.T) {
-data, err := json.Marshal(tt.candidate)
-if err != nil {
-t.Fatalf("json.Marshal() error = %v", err)
-}
-if len(data) == 0 {
-t.Fatal("json.Marshal() returned empty bytes")
-}
-
-var decoded consumer.NoopModelCandidate
-if err := json.Unmarshal(data, &decoded); err != nil {
-t.Fatalf("json.Unmarshal() error = %v", err)
-}
-if decoded.ModelID != tt.candidate.ModelID {
-t.Errorf("ModelID = %q, want %q", decoded.ModelID, tt.candidate.ModelID)
-}
-if decoded.Status != tt.candidate.Status {
-t.Errorf("Status = %q, want %q", decoded.Status, tt.candidate.Status)
-}
-})
-}
-}
-
-func TestNoopModelCandidateJSONFields(t *testing.T) {
-candidate := consumer.NoopModelCandidate{
-ModelID:   "noop-v0",
-Status:    "stub",
-Timestamp: time.Now().UTC(),
-}
-
-data, err := json.Marshal(candidate)
-if err != nil {
-t.Fatalf("json.Marshal() error = %v", err)
-}
-
-var raw map[string]interface{}
-if err := json.Unmarshal(data, &raw); err != nil {
-t.Fatalf("json.Unmarshal() error = %v", err)
-}
-
-if _, ok := raw["model_id"]; !ok {
-t.Error("expected field 'model_id' in JSON output")
-}
-if _, ok := raw["status"]; !ok {
-t.Error("expected field 'status' in JSON output")
-}
-if _, ok := raw["timestamp"]; !ok {
-t.Error("expected field 'timestamp' in JSON output")
-}
+	candidate := consumer.NoopModelCandidate{
+		ModelID: "noop",
+	}
+	data, err := json.Marshal(candidate)
+	if err != nil || len(data) == 0 {
+		t.Fatal("marshal failed")
+	}
 }

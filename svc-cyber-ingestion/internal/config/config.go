@@ -51,7 +51,8 @@ func Load() (*Config, error) {
 
 	// Parse coverage
 	if rangeNmStr := os.Getenv("RTSA_CYBER_RANGE_NM"); rangeNmStr != "" {
-		if rangeNm, err := strconv.ParseFloat(rangeNmStr, 64); err == nil {
+		rangeNm := parseFloat("RTSA_CYBER_RANGE_NM", -1.0)
+		if rangeNm >= 0 {
 			if cfg.Coverage == nil {
 				cfg.Coverage = &ingestionv1.SensorCoverage{}
 			}
@@ -59,7 +60,8 @@ func Load() (*Config, error) {
 		}
 	}
 	if bStartStr := os.Getenv("RTSA_CYBER_BEARING_START"); bStartStr != "" {
-		if bStart, err := strconv.ParseFloat(bStartStr, 64); err == nil {
+		bStart := parseFloat("RTSA_CYBER_BEARING_START", -1.0)
+		if bStart >= 0 {
 			if cfg.Coverage == nil {
 				cfg.Coverage = &ingestionv1.SensorCoverage{}
 			}
@@ -67,7 +69,8 @@ func Load() (*Config, error) {
 		}
 	}
 	if bEndStr := os.Getenv("RTSA_CYBER_BEARING_END"); bEndStr != "" {
-		if bEnd, err := strconv.ParseFloat(bEndStr, 64); err == nil {
+		bEnd := parseFloat("RTSA_CYBER_BEARING_END", -1.0)
+		if bEnd >= 0 {
 			if cfg.Coverage == nil {
 				cfg.Coverage = &ingestionv1.SensorCoverage{}
 			}
@@ -76,9 +79,9 @@ func Load() (*Config, error) {
 	}
 	if latStr := os.Getenv("RTSA_CYBER_LAT"); latStr != "" {
 		if lonStr := os.Getenv("RTSA_CYBER_LON"); lonStr != "" {
-			lat, er1 := strconv.ParseFloat(latStr, 64)
-			lon, er2 := strconv.ParseFloat(lonStr, 64)
-			if er1 == nil && er2 == nil {
+			lat := parseFloat("RTSA_CYBER_LAT", -999.0)
+			lon := parseFloat("RTSA_CYBER_LON", -999.0)
+			if lat != -999.0 && lon != -999.0 {
 				if cfg.Coverage == nil {
 					cfg.Coverage = &ingestionv1.SensorCoverage{}
 				}
@@ -91,18 +94,6 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func parseFloat(key string, defaultVal float64) float64 {
-	val := os.Getenv(key)
-	if val == "" {
-		return defaultVal
-	}
-	f, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
-	if err != nil {
-		return defaultVal
-	}
-	return f
 }
 
 func getEnvOrDefault(key, defaultVal string) string {
@@ -122,4 +113,16 @@ func parseInt(key string, defaultVal int) int {
 		return defaultVal
 	}
 	return n
+}
+
+func parseFloat(key string, defaultVal float64) float64 {
+	val := os.Getenv(key)
+	if val == "" {
+		return defaultVal
+	}
+	f, err := strconv.ParseFloat(strings.TrimSpace(val), 64)
+	if err != nil {
+		return defaultVal
+	}
+	return f
 }

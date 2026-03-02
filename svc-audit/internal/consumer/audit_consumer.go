@@ -8,7 +8,6 @@ import (
 	"time"
 
 	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/repository"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -16,13 +15,24 @@ import (
 
 const auditTopic = "audit.events"
 
+// KafkaClient defines the subset of kgo.Client used by AuditConsumer.
+type KafkaClient interface {
+	PollFetches(ctx context.Context) kgo.Fetches
+	Close()
+}
+
+// Repository defines the subset of repository.AuditRepository used by AuditConsumer.
+type Repository interface {
+	BatchInsert(ctx context.Context, events []*auditv1.AuditEvent) error
+}
+
 // AuditConsumer consumes from the audit.events topic and writes
 // each record to the audit_log ClickHouse table.
 //
 // IMMUTABILITY RULE: Only INSERT operations. Never UPDATE, DELETE, or ALTER.
 type AuditConsumer struct {
-	client      *kgo.Client
-	repo        *repository.AuditRepository
+	client      KafkaClient
+	repo        Repository
 	batchSize   int
 	flushPeriod time.Duration
 	logger      *zap.Logger
@@ -31,31 +41,21 @@ type AuditConsumer struct {
 	buffer []*auditv1.AuditEvent
 }
 
-// NewAuditConsumer creates an AuditConsumer.
+// NewAuditConsumer creates an AuditConsumer with the provided Kafka client and repository.
 func NewAuditConsumer(
-	brokers []string,
-	consumerGroup string,
-	repo *repository.AuditRepository,
+	client KafkaClient,
+	repo Repository,
 	batchSize int,
 	flushPeriodSec int,
 	logger *zap.Logger,
-) (*AuditConsumer, error) {
-	client, err := kgo.NewClient(
-		kgo.SeedBrokers(brokers...),
-		kgo.ConsumerGroup(consumerGroup),
-		kgo.ConsumeTopics(auditTopic),
-		kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("audit_consumer: create franz-go client: %w", err)
-	}
+) *AuditConsumer {
 	return &AuditConsumer{
 		client:      client,
 		repo:        repo,
 		batchSize:   batchSize,
 		flushPeriod: time.Duration(flushPeriodSec) * time.Second,
 		logger:      logger,
-	}, nil
+	}
 }
 
 // Start begins consuming audit events until ctx is cancelled.

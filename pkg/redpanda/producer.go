@@ -9,11 +9,18 @@ import (
 "github.com/twmb/franz-go/pkg/kgo"
 )
 
+// RedpandaProducer defines the interface for producing messages.
+type RedpandaProducer interface {
+	Produce(ctx context.Context, topic string, key []byte, value []byte, classification string, traceID string, extraHeaders ...kgo.RecordHeader) error
+	Close() error
+	Healthy(ctx context.Context) bool
+}
+
 // Producer wraps franz-go client for producing messages to Redpanda.
 type Producer struct {
-client      *kgo.Client
-serviceName string
-schemaVer   string
+	client      *kgo.Client
+	serviceName string
+	schemaVer   string
 }
 
 // ProducerConfig configures a new Producer.

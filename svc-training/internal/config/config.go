@@ -7,10 +7,9 @@
 package config
 
 import (
-"fmt"
-"os"
-"strconv"
-"strings"
+	"fmt"
+	"os"
+	"strings"
 )
 
 // Config holds all runtime configuration for svc-training.
@@ -90,21 +89,8 @@ return nil
 
 // getEnv returns the environment variable value or the default.
 func getEnv(key, defaultVal string) string {
-if val := os.Getenv(key); val != "" {
-return val
-}
-return defaultVal
-}
-
-// getEnvInt returns the environment variable as int or the default.
-func getEnvInt(key string, defaultVal int) int {
-v := os.Getenv(key)
-if v == "" {
-return defaultVal
-}
-i, err := strconv.Atoi(v)
-if err != nil {
-return defaultVal
-}
-return i
+	if val := os.Getenv(key); val != "" {
+		return val
+	}
+	return defaultVal
 }

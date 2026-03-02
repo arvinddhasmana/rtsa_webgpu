@@ -2,96 +2,159 @@
 package domain_test
 
 import (
-"testing"
-"time"
+	"strings"
+	"testing"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-isr-ingestion/internal/domain"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-isr-ingestion/internal/domain"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func validISRObs() *ingestionv1.SensorObservation {
-return &ingestionv1.SensorObservation{
-SensorId:        "ISR-01",
-SensorType:      commonv1.SensorType_SENSOR_TYPE_ISR,
-Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
-ObservationTime: timestamppb.New(time.Now()),
-SensorData: &ingestionv1.SensorObservation_Isr{
-Isr: &ingestionv1.ISRObservation{
-PlatformId: "PLATFORM-01",
-SensorName: "EO",
-ImageId:    "IMG-001",
-CoveragePolygon: []*commonv1.Position{
-{Latitude: 44.0, Longitude: -63.0},
-{Latitude: 45.0, Longitude: -63.0},
-{Latitude: 45.0, Longitude: -64.0},
-},
-Detections: []*ingestionv1.ISRDetection{
-{Confidence: 0.9},
-{Confidence: 0.7},
-},
-},
-},
-}
+func validIsrObs() *ingestionv1.SensorObservation {
+	return &ingestionv1.SensorObservation{
+		SensorId:        "ISR-01",
+		SensorType:      commonv1.SensorType_SENSOR_TYPE_ISR,
+		Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
+		ObservationTime: timestamppb.New(time.Now()),
+		SensorData: &ingestionv1.SensorObservation_Isr{
+			Isr: &ingestionv1.ISRObservation{
+				PlatformId: "GlobalHawk",
+				SensorName: "EO",
+				ImageId:    "IMG-123",
+				CoveragePolygon: []*commonv1.Position{
+					{Latitude: 0, Longitude: 0},
+					{Latitude: 1, Longitude: 0},
+					{Latitude: 1, Longitude: 1},
+				},
+			},
+		},
+	}
 }
 
-func TestISRValidator_T01_ValidObservation(t *testing.T) {
-v := domain.NewValidator()
-result := v.Validate(validISRObs())
-if !result.Valid {
-t.Errorf("expected valid, got errors: %+v", result.Errors)
-}
-}
+func TestISRValidator_Exhaustive(t *testing.T) {
+	v := domain.NewValidator()
 
-func TestISRValidator_T02_PolygonLessThan3Vertices(t *testing.T) {
-obs := validISRObs()
-obs.GetIsr().CoveragePolygon = []*commonv1.Position{
-{Latitude: 44.0, Longitude: -63.0},
-}
-v := domain.NewValidator()
-result := v.Validate(obs)
-if result.Valid {
-t.Error("expected invalid")
-}
-}
+	t.Run("Valid", func(t *testing.T) {
+		if !v.Validate(validIsrObs()).Valid {
+			t.Error("expected valid")
+		}
+	})
 
-func TestISRValidator_T03_InvalidSensorName(t *testing.T) {
-obs := validISRObs()
-obs.GetIsr().SensorName = "LIDAR"
-v := domain.NewValidator()
-result := v.Validate(obs)
-if result.Valid {
-t.Error("expected invalid")
-}
-}
+	t.Run("SensorID_Empty", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.SensorId = ""
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: empty sensor id")
+		}
+	})
 
-func TestISRValidator_T04_DetectionConfidenceAbove1(t *testing.T) {
-obs := validISRObs()
-obs.GetIsr().Detections[0].Confidence = 1.5
-v := domain.NewValidator()
-result := v.Validate(obs)
-if result.Valid {
-t.Error("expected invalid")
-}
-}
+	t.Run("SensorID_Long", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.SensorId = strings.Repeat("a", 129)
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: long sensor id")
+		}
+	})
 
-func TestISRValidator_T05_MissingPlatformID(t *testing.T) {
-obs := validISRObs()
-obs.GetIsr().PlatformId = ""
-v := domain.NewValidator()
-result := v.Validate(obs)
-if result.Valid {
-t.Error("expected invalid")
-}
-}
+	t.Run("WrongSensorType", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.SensorType = commonv1.SensorType_SENSOR_TYPE_RADAR
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: wrong sensor type")
+		}
+	})
 
-func TestISRValidator_MissingISRPayload(t *testing.T) {
-obs := validISRObs()
-obs.SensorData = nil
-v := domain.NewValidator()
-result := v.Validate(obs)
-if result.Valid {
-t.Error("expected invalid when isr payload is nil")
-}
+	t.Run("ObservationTime_Nil", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.ObservationTime = nil
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: nil time")
+		}
+	})
+
+	t.Run("ObservationTime_Future", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.ObservationTime = timestamppb.New(time.Now().Add(10 * time.Minute))
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: future time")
+		}
+	})
+
+	t.Run("Classification_Unspecified", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.Classification = commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNSPECIFIED
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: unspecified classification")
+		}
+	})
+
+	t.Run("MissingPayload", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.SensorData = nil
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: missing payload")
+		}
+	})
+
+	t.Run("PlatformID_Empty", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.GetIsr().PlatformId = ""
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: empty platform id")
+		}
+	})
+
+	t.Run("SensorName_Empty", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.GetIsr().SensorName = ""
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: empty sensor name")
+		}
+	})
+
+	t.Run("ImageID_Empty", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.GetIsr().ImageId = ""
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: empty image id")
+		}
+	})
+
+	t.Run("Polygon_Invalid", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.GetIsr().CoveragePolygon = []*commonv1.Position{
+			{Latitude: 0, Longitude: 0},
+		}
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: too few vertices")
+		}
+	})
+
+	t.Run("Detection_InvalidConfidence", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.GetIsr().Detections = []*ingestionv1.ISRDetection{
+			{Confidence: 2.0},
+		}
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: confidence")
+		}
+	})
+
+	t.Run("Position_Latitude", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.Position = &commonv1.Position{Latitude: 100}
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: latitude")
+		}
+	})
+
+	t.Run("Position_Longitude", func(t *testing.T) {
+		obs := validIsrObs()
+		obs.Position = &commonv1.Position{Longitude: 200}
+		if v.Validate(obs).Valid {
+			t.Error("expected invalid: longitude")
+		}
+	})
 }

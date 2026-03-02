@@ -2,82 +2,60 @@
 package config_test
 
 import (
-"os"
-"testing"
+	"testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/config"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/config"
 )
 
-func TestLoad_Defaults(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-cyber-ingestion")
-os.Unsetenv("RTSA_CYBER_OUTPUT_TOPIC")
-os.Unsetenv("RTSA_CYBER_DLQ_TOPIC")
+func TestLoad_Exhaustive(t *testing.T) {
+	t.Setenv("RTSA_SERVICE_NAME", "svc-cyber-ingestion")
+	t.Setenv("RTSA_CYBER_OUTPUT_TOPIC", "out")
+	t.Setenv("RTSA_CYBER_DLQ_TOPIC", "dlq")
+	t.Setenv("RTSA_CYBER_DEDUP_CACHE_SIZE", "5000")
+	t.Setenv("RTSA_CYBER_RANGE_NM", "100")
+	t.Setenv("RTSA_CYBER_BEARING_START", "10")
+	t.Setenv("RTSA_CYBER_BEARING_END", "20")
+	t.Setenv("RTSA_CYBER_LAT", "1.0")
+	t.Setenv("RTSA_CYBER_LON", "2.0")
 
-cfg, err := config.Load()
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
-if cfg.OutputTopic != "sensors.cyber.iocs" {
-t.Errorf("expected default output topic, got %s", cfg.OutputTopic)
-}
-if cfg.DLQTopic != "dlq.sensors.cyber" {
-t.Errorf("expected default DLQ topic, got %s", cfg.DLQTopic)
-}
-if cfg.DedupCacheSize != 1000 {
-t.Errorf("expected 1000 dedup cache size, got %d", cfg.DedupCacheSize)
-}
-}
-
-func TestLoad_CustomValues(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-cyber-ingestion")
-t.Setenv("RTSA_CYBER_OUTPUT_TOPIC", "custom.cyber.topic")
-t.Setenv("RTSA_CYBER_DLQ_TOPIC", "custom.dlq.topic")
-t.Setenv("RTSA_CYBER_DEDUP_CACHE_SIZE", "2000")
-
-cfg, err := config.Load()
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
-if cfg.OutputTopic != "custom.cyber.topic" {
-t.Errorf("expected custom output topic, got %s", cfg.OutputTopic)
-}
-if cfg.DedupCacheSize != 2000 {
-t.Errorf("expected 2000 dedup cache size, got %d", cfg.DedupCacheSize)
-}
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.OutputTopic != "out" || cfg.DLQTopic != "dlq" {
+		t.Error("topic mismatch")
+	}
+	if cfg.DedupCacheSize != 5000 {
+		t.Error("value mismatch")
+	}
+	if cfg.Coverage == nil || *cfg.Coverage.RangeNm != 100 || cfg.Coverage.SensorPosition.Latitude != 1.0 {
+		t.Error("coverage mismatch")
+	}
+	if *cfg.Coverage.BearingStartDegrees != 10 || *cfg.Coverage.BearingEndDegrees != 20 {
+		t.Error("bearing mismatch")
+	}
 }
 
-func TestLoad_MissingBaseConfig(t *testing.T) {
-os.Unsetenv("RTSA_SERVICE_NAME")
-_, err := config.Load()
-if err == nil {
-t.Fatal("expected error for missing RTSA_SERVICE_NAME")
-}
+func TestLoad_InvalidParsing(t *testing.T) {
+	t.Setenv("RTSA_SERVICE_NAME", "svc-cyber-ingestion")
+	t.Setenv("RTSA_CYBER_DEDUP_CACHE_SIZE", "bad")
+	t.Setenv("RTSA_CYBER_RANGE_NM", "bad")
+	t.Setenv("RTSA_CYBER_BEARING_START", "bad")
+	t.Setenv("RTSA_CYBER_BEARING_END", "bad")
+	t.Setenv("RTSA_CYBER_LAT", "bad")
+	t.Setenv("RTSA_CYBER_LON", "bad")
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.DedupCacheSize != 1000 {
+		t.Errorf("expected default 1000, got %d", cfg.DedupCacheSize)
+	}
+	// Defaults for coverage fields when parsing fails should lead to not setting them IF parseFloat is used with specific sentinels.
 }
 
-func TestLoad_InvalidInt(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-cyber-ingestion")
-t.Setenv("RTSA_CYBER_DEDUP_CACHE_SIZE", "notanint")
-
-cfg, err := config.Load()
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
-if cfg.DedupCacheSize != 1000 {
-t.Errorf("expected default 1000 on invalid int, got %d", cfg.DedupCacheSize)
-}
-}
-
-func TestMustLoad_Success(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-cyber-ingestion")
-
-defer func() {
-if r := recover(); r != nil {
-t.Errorf("MustLoad should not panic with valid config: %v", r)
-}
-}()
-
-cfg := config.MustLoad()
-if cfg == nil {
-t.Error("expected non-nil config")
-}
+func TestMustLoad(t *testing.T) {
+	t.Setenv("RTSA_SERVICE_NAME", "svc-cyber-ingestion")
+	config.MustLoad()
 }

@@ -4,7 +4,7 @@ package main
 import (
 	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
 	"github.com/redpanda-data/redpanda/src/transform-sdk/go/transform"
-	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 // requiredTrackHeaders lists all mandatory message headers for track topics.
@@ -51,7 +51,7 @@ func validateTrackMessage(event transform.WriteEvent, writer transform.RecordWri
 
 	// Validate protobuf can be deserialized as FusedTrack.
 	var track entityv1.FusedTrack
-	if err := protojson.Unmarshal(record.Value, &track); err != nil {
+	if err := proto.Unmarshal(record.Value, &track); err != nil {
 		return writeToDLQ(writer, record, "invalid protobuf: "+err.Error())
 	}
 

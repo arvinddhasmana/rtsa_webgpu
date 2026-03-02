@@ -124,3 +124,69 @@ if result.Valid {
 t.Error("expected invalid when ais_bft payload is nil")
 }
 }
+
+func TestAISValidator_EdgeCases(t *testing.T) {
+	v := domain.NewValidator()
+	baseObs := func() *ingestionv1.SensorObservation {
+		return &ingestionv1.SensorObservation{
+			SensorId:        "AIS-001",
+			SensorType:      commonv1.SensorType_SENSOR_TYPE_AIS_BFT,
+			ObservationTime: timestamppb.New(time.Now()),
+			Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
+			Position:        &commonv1.Position{Latitude: 45.0, Longitude: -60.0},
+			SensorData: &ingestionv1.SensorObservation_AisBft{
+				AisBft: &ingestionv1.AISPosition{Mmsi: "123456789", VesselTypeCode: 30, AisMessageType: 1},
+			},
+		}
+	}
+
+	t.Run("long sensor id", func(t *testing.T) {
+		obs := baseObs()
+		obs.SensorId = string(make([]byte, 130))
+		res := v.Validate(obs)
+		if res.Valid { t.Error("expected invalid for long sensor id") }
+	})
+
+	t.Run("future time", func(t *testing.T) {
+		obs := baseObs()
+		obs.ObservationTime = timestamppb.New(time.Now().Add(10 * time.Minute))
+		res := v.Validate(obs)
+		if res.Valid { t.Error("expected invalid for future time") }
+	})
+
+	t.Run("old time", func(t *testing.T) {
+		obs := baseObs()
+		obs.ObservationTime = timestamppb.New(time.Now().Add(-48 * time.Hour))
+		res := v.Validate(obs)
+		if res.Valid { t.Error("expected invalid for old time") }
+	})
+
+	t.Run("invalid lat lon", func(t *testing.T) {
+		obs := baseObs()
+		obs.Position.Latitude = 100
+		res := v.Validate(obs)
+		if res.Valid { t.Error("expected invalid for lat 100") }
+		obs = baseObs()
+		obs.Position.Longitude = 200
+		res = v.Validate(obs)
+		if res.Valid { t.Error("expected invalid for lon 200") }
+	})
+
+	t.Run("bft classification too low", func(t *testing.T) {
+		obs := baseObs()
+		obs.GetAisBft().IsBft = true
+		obs.Classification = commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED
+		res := v.Validate(obs)
+		if res.Valid { t.Error("expected invalid for BFT with UNCLASSIFIED") }
+	})
+
+	t.Run("spoofing jump", func(t *testing.T) {
+		v2 := domain.NewValidator()
+		obs1 := baseObs()
+		v2.Validate(obs1)
+		obs2 := baseObs()
+		obs2.Position.Latitude = 48.0 // ~180 NM jump
+		res := v2.Validate(obs2)
+		if !res.Suspect { t.Error("expected suspect for big jump") }
+	})
+}

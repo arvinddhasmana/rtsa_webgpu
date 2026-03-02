@@ -12,7 +12,7 @@ commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/consumer"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
-"google.golang.org/protobuf/proto"
+"google.golang.org/protobuf/encoding/protojson"
 "google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -49,7 +49,7 @@ return nil
 
 func marshalAlert(t *testing.T, alert *inferencev1.AnomalyAlert) []byte {
 t.Helper()
-b, err := proto.Marshal(alert)
+b, err := protojson.Marshal(alert)
 if err != nil {
 t.Fatalf("marshal alert: %v", err)
 }

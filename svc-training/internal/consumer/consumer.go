@@ -23,16 +23,22 @@ Status    string    `json:"status"`
 Timestamp time.Time `json:"timestamp"`
 }
 
+// KafkaClient defines the subset of kgo.Client used by TrainingConsumer.
+type KafkaClient interface {
+	PollFetches(ctx context.Context) kgo.Fetches
+	Produce(ctx context.Context, r *kgo.Record, promise func(*kgo.Record, error))
+}
+
 // TrainingConsumer reads validated feedback and produces noop model candidates.
 type TrainingConsumer struct {
-consumer *kgo.Client
-producer *kgo.Client
-outTopic string
-logger   *zap.Logger
+	consumer KafkaClient
+	producer KafkaClient
+	outTopic string
+	logger   *zap.Logger
 }
 
 // New creates a new TrainingConsumer.
-func New(consumer, producer *kgo.Client, outTopic string, logger *zap.Logger) *TrainingConsumer {
+func New(consumer, producer KafkaClient, outTopic string, logger *zap.Logger) *TrainingConsumer {
 return &TrainingConsumer{
 consumer: consumer,
 producer: producer,

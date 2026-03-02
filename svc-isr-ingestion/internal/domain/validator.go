@@ -87,14 +87,24 @@ errs = append(errs, ingestion.ValidationError{Field: fmt.Sprintf("isr.coverage_p
 }
 }
 
-// Detection confidences
-for i, det := range isr.GetDetections() {
-if det.GetConfidence() < 0.0 || det.GetConfidence() > 1.0 {
-errs = append(errs, ingestion.ValidationError{Field: fmt.Sprintf("isr.detections[%d].confidence", i), Rule: "range", Message: fmt.Sprintf("detection %d confidence out of range [0.0, 1.0]: %.2f", i, det.GetConfidence())})
-}
-}
+	// Detection confidences
+	for i, det := range isr.GetDetections() {
+		if det.GetConfidence() < 0.0 || det.GetConfidence() > 1.0 {
+			errs = append(errs, ingestion.ValidationError{Field: fmt.Sprintf("isr.detections[%d].confidence", i), Rule: "range", Message: fmt.Sprintf("detection %d confidence out of range [0.0, 1.0]: %.2f", i, det.GetConfidence())})
+		}
+	}
 
-if len(errs) > 0 {
+	// position (optional)
+	if pos := obs.GetPosition(); pos != nil {
+		if pos.GetLatitude() < -90 || pos.GetLatitude() > 90 {
+			errs = append(errs, ingestion.ValidationError{Field: "position.latitude", Rule: "range", Message: fmt.Sprintf("position.latitude out of range: %.4f", pos.GetLatitude())})
+		}
+		if pos.GetLongitude() < -180 || pos.GetLongitude() > 180 {
+			errs = append(errs, ingestion.ValidationError{Field: "position.longitude", Rule: "range", Message: fmt.Sprintf("position.longitude out of range: %.4f", pos.GetLongitude())})
+		}
+	}
+
+	if len(errs) > 0 {
 return ingestion.ValidationResult{Valid: false, Errors: errs}
 }
 return ingestion.ValidationResult{Valid: true}

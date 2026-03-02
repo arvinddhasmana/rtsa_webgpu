@@ -14,20 +14,23 @@ import (
 
 // ObservationProducer produces SensorObservation messages to Redpanda.
 type ObservationProducer struct {
-producer *redpanda.Producer
-topic    string
+	producer redpanda.RedpandaProducer
+	topic    string
 }
 
 // NewObservationProducer creates a producer for a specific topic.
-func NewObservationProducer(producer *redpanda.Producer, topic string) *ObservationProducer {
-return &ObservationProducer{
-producer: producer,
-topic:    topic,
-}
+func NewObservationProducer(producer redpanda.RedpandaProducer, topic string) *ObservationProducer {
+	return &ObservationProducer{
+		producer: producer,
+		topic:    topic,
+	}
 }
 
 // Produce serializes and sends a SensorObservation.
 func (p *ObservationProducer) Produce(ctx context.Context, obs *ingestionv1.SensorObservation) error {
+	if p.producer == nil {
+		return fmt.Errorf("producer: internal redpanda producer is nil")
+	}
 	b, err := protojson.MarshalOptions{UseProtoNames: true}.Marshal(obs)
 if err != nil {
 return fmt.Errorf("producer: marshal observation: %w", err)

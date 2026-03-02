@@ -11,20 +11,33 @@ inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
 queryv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1"
 auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/repository"
 "github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
 "go.uber.org/zap"
 "google.golang.org/grpc/codes"
 "google.golang.org/grpc/status"
 )
 
+// Repository interfaces for mocking.
+type TracksRepository interface {
+	QueryTracks(ctx context.Context, req *queryv1.QueryTracksRequest, clearance commonv1.ClassificationLevel, pageToken *domain.PaginationToken, pageSize int) ([]*entityv1.FusedTrack, *domain.PaginationToken, error)
+}
+type AnomalyRepository interface {
+	QueryAnomalies(ctx context.Context, req *queryv1.QueryAnomaliesRequest, clearance commonv1.ClassificationLevel, pageToken *domain.PaginationToken, pageSize int) ([]*inferencev1.AnomalyAlert, *domain.PaginationToken, error)
+}
+type AuditRepository interface {
+	QueryAuditLog(ctx context.Context, req *queryv1.QueryAuditLogRequest, clearance commonv1.ClassificationLevel, pageToken *domain.PaginationToken, pageSize int) ([]*queryv1.AuditLogEntry, *domain.PaginationToken, error)
+}
+type TimelineRepository interface {
+	GetEventTimeline(ctx context.Context, req *queryv1.GetEventTimelineRequest, clearance commonv1.ClassificationLevel) ([]*queryv1.TimelineEvent, error)
+}
+
 // QueryServer implements the queryv1.QueryServiceServer interface.
 type QueryServer struct {
 	queryv1.UnimplementedQueryServiceServer
-	tracksRepo   *repository.TracksRepository
-	anomalyRepo  *repository.AnomalyRepository
-	auditRepo    *repository.AuditRepository
-	timelineRepo *repository.TimelineRepository
+	tracksRepo   TracksRepository
+	anomalyRepo  AnomalyRepository
+	auditRepo    AuditRepository
+	timelineRepo TimelineRepository
 	guardrail    *domain.QueryGuardrail
 	auditEmitter AuditEmitter
 	pageSize     int
@@ -51,10 +64,10 @@ func (l *logAuditEmitter) Emit(ctx context.Context, eventType, resourceType, res
 
 // NewQueryServer creates a new gRPC query server.
 func NewQueryServer(
-	tracksRepo *repository.TracksRepository,
-	anomalyRepo *repository.AnomalyRepository,
-	auditRepo *repository.AuditRepository,
-	timelineRepo *repository.TimelineRepository,
+	tracksRepo TracksRepository,
+	anomalyRepo AnomalyRepository,
+	auditRepo AuditRepository,
+	timelineRepo TimelineRepository,
 	guardrail *domain.QueryGuardrail,
 	pageSize int,
 	logger *zap.Logger,
@@ -67,6 +80,27 @@ func NewQueryServer(
 		guardrail:    guardrail,
 		auditEmitter: &logAuditEmitter{emitter: audit.NewLogEmitter(logger)},
 		pageSize:     pageSize,
+		logger:       logger,
+	}
+}
+
+// NewQueryServerForTest creates a QueryServer suitable for unit tests.
+func NewQueryServerForTest(
+	guardrail *domain.QueryGuardrail,
+	logger *zap.Logger,
+	tracksRepo TracksRepository,
+	anomalyRepo AnomalyRepository,
+	auditRepo AuditRepository,
+	timelineRepo TimelineRepository,
+) *QueryServer {
+	return &QueryServer{
+		tracksRepo:   tracksRepo,
+		anomalyRepo:  anomalyRepo,
+		auditRepo:    auditRepo,
+		timelineRepo: timelineRepo,
+		guardrail:    guardrail,
+		auditEmitter: &logAuditEmitter{emitter: audit.NewLogEmitter(logger)},
+		pageSize:     100,
 		logger:       logger,
 	}
 }

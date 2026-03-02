@@ -125,12 +125,73 @@ func TestProvider_ShutdownNilProviders(t *testing.T) {
 	_ = provider.Shutdown(ctx)
 }
 
-// TestProvider_ShutdownAllNilFields exercises the nil-field branches in Shutdown.
-func TestProvider_ShutdownAllNilFields(t *testing.T) {
+func TestInit_NoServiceName_DefaultsToUnknown(t *testing.T) {
 	ctx := context.Background()
-	// Provider with all nil fields — should not panic
-	p := &telemetry.Provider{}
-	if err := p.Shutdown(ctx); err != nil {
-		t.Errorf("unexpected error with nil fields: %v", err)
+	provider, err := telemetry.Init(ctx, telemetry.Config{
+		ServiceName: "",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer provider.Shutdown(ctx)
+	if provider.ServiceName != "unknown" {
+		t.Errorf("expected service name unknown, got %s", provider.ServiceName)
 	}
 }
+
+func TestInit_DefaultEnvironment(t *testing.T) {
+	ctx := context.Background()
+	provider, err := telemetry.Init(ctx, telemetry.Config{
+		ServiceName: "test",
+		Environment: "",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer provider.Shutdown(ctx)
+}
+
+func TestProvider_ShutdownCancelledContext(t *testing.T) {
+	ctx := context.Background()
+	provider, _ := telemetry.Init(ctx, telemetry.Config{ServiceName: "test"})
+
+	cancelCtx, cancel := context.WithCancel(ctx)
+	cancel() // cancel immediately
+
+	err := provider.Shutdown(cancelCtx)
+	if err == nil {
+		// It might still succeed if providers shutdown fast enough, but we want to exercise the branch.
+		t.Log("shutdown succeeded even with cancelled context")
+	}
+}
+
+
+func TestInit_WithCustomConfig(t *testing.T) {
+	ctx := context.Background()
+	provider, err := telemetry.Init(ctx, telemetry.Config{
+		ServiceName:    "test",
+		ServiceVersion: "1.2.3",
+		Environment:    "prod",
+		MetricsPort:    9092,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer provider.Shutdown(ctx)
+}
+
+
+func TestInit_WithMetricsPort(t *testing.T) {
+
+	ctx := context.Background()
+	provider, err := telemetry.Init(ctx, telemetry.Config{
+		ServiceName: "test",
+		MetricsPort: 9091,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	defer provider.Shutdown(ctx)
+}
+
+

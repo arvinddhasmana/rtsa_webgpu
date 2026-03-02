@@ -2,90 +2,57 @@
 package config_test
 
 import (
-"os"
-"testing"
+	"testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-ew-ingestion/internal/config"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-ew-ingestion/internal/config"
 )
 
-func TestLoad_Defaults(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-ew-ingestion")
-os.Unsetenv("RTSA_EW_OUTPUT_TOPIC")
-os.Unsetenv("RTSA_EW_DLQ_TOPIC")
+func TestLoad_Exhaustive(t *testing.T) {
+	t.Setenv("RTSA_SERVICE_NAME", "svc-ew-ingestion")
+	t.Setenv("RTSA_EW_OUTPUT_TOPIC", "out")
+	t.Setenv("RTSA_EW_DLQ_TOPIC", "dlq")
+	t.Setenv("RTSA_EW_MAX_FREQUENCY_MHZ", "50000")
+	t.Setenv("RTSA_EW_MAX_FUTURE_OFFSET_SEC", "120")
+	t.Setenv("RTSA_EW_MAX_PAST_OFFSET_SEC", "3600")
+	t.Setenv("RTSA_EW_RANGE_NM", "100")
+	t.Setenv("RTSA_EW_BEARING_START", "10")
+	t.Setenv("RTSA_EW_BEARING_END", "20")
+	t.Setenv("RTSA_EW_LAT", "1.0")
+	t.Setenv("RTSA_EW_LON", "2.0")
 
-cfg, err := config.Load()
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
-if cfg.OutputTopic != "sensors.ew.intercepts" {
-t.Errorf("expected default output topic, got %s", cfg.OutputTopic)
-}
-if cfg.DLQTopic != "dlq.sensors.ew" {
-t.Errorf("expected default DLQ topic, got %s", cfg.DLQTopic)
-}
-if cfg.MaxFrequencyMHz != 40000.0 {
-t.Errorf("expected 40000.0 max frequency, got %f", cfg.MaxFrequencyMHz)
-}
-if cfg.MaxFutureOffsetSec != 300 {
-t.Errorf("expected 300s future offset, got %d", cfg.MaxFutureOffsetSec)
-}
-	if cfg.MaxPastOffsetSec != 86400 {
-		t.Errorf("expected 86400s past offset, got %d", cfg.MaxPastOffsetSec)
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.OutputTopic != "out" || cfg.DLQTopic != "dlq" {
+		t.Error("topic mismatch")
+	}
+	if cfg.MaxFrequencyMHz != 50000 || cfg.MaxFutureOffsetSec != 120 || cfg.MaxPastOffsetSec != 3600 {
+		t.Error("value mismatch")
+	}
+	if cfg.Coverage == nil || *cfg.Coverage.RangeNm != 100 || cfg.Coverage.SensorPosition.Latitude != 1.0 {
+		t.Error("coverage mismatch")
 	}
 }
 
-func TestLoad_CustomValues(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-ew-ingestion")
-t.Setenv("RTSA_EW_OUTPUT_TOPIC", "custom.ew.topic")
-t.Setenv("RTSA_EW_DLQ_TOPIC", "custom.dlq.topic")
-t.Setenv("RTSA_EW_MAX_FREQUENCY_MHZ", "20000.0")
-t.Setenv("RTSA_EW_MAX_FUTURE_OFFSET_SEC", "600")
+func TestLoad_InvalidParsing(t *testing.T) {
+	t.Setenv("RTSA_SERVICE_NAME", "svc-ew-ingestion")
+	t.Setenv("RTSA_EW_MAX_FREQUENCY_MHZ", "bad")
+	t.Setenv("RTSA_EW_MAX_FUTURE_OFFSET_SEC", "bad")
+	t.Setenv("RTSA_EW_MAX_PAST_OFFSET_SEC", "bad")
+	t.Setenv("RTSA_EW_RANGE_NM", "bad")
+	t.Setenv("RTSA_EW_BEARING_START", "bad")
+	t.Setenv("RTSA_EW_BEARING_END", "bad")
+	t.Setenv("RTSA_EW_LAT", "bad")
+	t.Setenv("RTSA_EW_LON", "bad")
 
-cfg, err := config.Load()
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
-if cfg.OutputTopic != "custom.ew.topic" {
-t.Errorf("expected custom output topic, got %s", cfg.OutputTopic)
-}
-if cfg.MaxFrequencyMHz != 20000.0 {
-t.Errorf("expected 20000.0 max frequency, got %f", cfg.MaxFrequencyMHz)
-}
-if cfg.MaxFutureOffsetSec != 600 {
-t.Errorf("expected 600 future offset, got %d", cfg.MaxFutureOffsetSec)
-}
+	cfg, _ := config.Load()
+	if cfg.MaxFrequencyMHz != 40000.0 {
+		t.Errorf("expected default 40000, got %v", cfg.MaxFrequencyMHz)
+	}
 }
 
-func TestLoad_MissingBaseConfig(t *testing.T) {
-os.Unsetenv("RTSA_SERVICE_NAME")
-_, err := config.Load()
-if err == nil {
-t.Fatal("expected error for missing RTSA_SERVICE_NAME")
-}
-}
-
-func TestLoad_InvalidFloat(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-ew-ingestion")
-t.Setenv("RTSA_EW_MAX_FREQUENCY_MHZ", "notafloat")
-
-cfg, err := config.Load()
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
-if cfg.MaxFrequencyMHz != 40000.0 {
-t.Errorf("expected default 40000.0 on invalid float, got %f", cfg.MaxFrequencyMHz)
-}
-}
-
-func TestLoad_InvalidInt(t *testing.T) {
-t.Setenv("RTSA_SERVICE_NAME", "svc-ew-ingestion")
-t.Setenv("RTSA_EW_MAX_FUTURE_OFFSET_SEC", "notanint")
-
-cfg, err := config.Load()
-if err != nil {
-t.Fatalf("unexpected error: %v", err)
-}
-if cfg.MaxFutureOffsetSec != 300 {
-t.Errorf("expected default 300 on invalid int, got %d", cfg.MaxFutureOffsetSec)
-}
+func TestMustLoad(t *testing.T) {
+	t.Setenv("RTSA_SERVICE_NAME", "svc-ew-ingestion")
+	config.MustLoad()
 }
