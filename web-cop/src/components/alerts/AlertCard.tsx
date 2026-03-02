@@ -87,13 +87,15 @@ export const AlertCard: React.FC<AlertCardProps> = React.memo(({ alert }) => {
       style={{
         margin: "4px 8px",
         padding: "8px",
-        backgroundColor: "#0F172A",
+        backgroundColor: feedbackStatus === "Confirmed" ? "rgba(22, 163, 74, 0.2)" :
+                         feedbackStatus === "Rejected" ? "rgba(220, 38, 38, 0.2)" : "#0F172A",
         border: `1px solid ${color}`,
         borderRadius: "4px",
         opacity: isAcknowledged ? 0.5 : 1,
         animation:
           isCritical && !isAcknowledged ? "pulse 1.5s infinite" : undefined,
         cursor: "pointer",
+        transition: "background-color 0.3s ease-out",
       }}
       onClick={handleAcknowledge}
     >

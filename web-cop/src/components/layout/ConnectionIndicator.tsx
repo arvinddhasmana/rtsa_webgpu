@@ -23,9 +23,10 @@ export const ConnectionIndicator: React.FC = () => {
       style={{ display: "flex", alignItems: "center", gap: "6px" }}
       title={`Status: ${status}${lastCheck ? ` (checked: ${lastCheck.toISOString()})` : ""}`}
     >
-      <div
+      <span
+        className={status.toUpperCase() === "CONNECTED" ? "connection-live" : ""}
         style={{
-          width: "10px",
+          width: "8px",
           height: "10px",
           borderRadius: "50%",
           backgroundColor: STATUS_COLORS[status],

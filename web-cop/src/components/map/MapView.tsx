@@ -7,6 +7,7 @@ import { useSensorStore } from "../../stores/sensorStore";
 import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
 import { LayerControls } from "./LayerControls";
+import { MapTooltip } from "./MapTooltip";
 import { SensorCoverageLayer } from "./SensorCoverageLayer";
 
 /**
@@ -37,6 +38,8 @@ export const MapView: React.FC = () => {
   const selectTrack = useTrackStore((s) => s.selectTrack);
   const toggleDetailPanel = useUIStore((s) => s.toggleDetailPanel);
 
+  const [hoverInfo, setHoverInfo] = React.useState<{ trackId: string, x: number, y: number } | null>(null);
+
   useEffect(() => {
     let isMounted = true;
     let unsubscribeStore: (() => void) | null = null;
@@ -59,6 +62,8 @@ export const MapView: React.FC = () => {
     // No DOM element creation. All rendering happens on the GPU via MapLibre GL.
     const updateMapData = () => {
       const map = mapRef.current;
+      if (!map) return;
+
       const currentTracks = useTrackStore.getState().tracks;
       const currentSensors = useSensorStore.getState().rawObservations;
 
@@ -313,6 +318,33 @@ export const MapView: React.FC = () => {
             },
           });
 
+          // Hover layer for track markers (20% larger + glow)
+          map.addLayer({
+            id: "tracks-circle-hover",
+            type: "circle",
+            source: "tracks",
+            filter: ["==", "trackId", ""], // Initially empty filter
+            paint: {
+              "circle-radius": 8, // Roughly 20% larger than 6
+              "circle-color": [
+                "match",
+                ["get", "hostileClass"],
+                "HOSTILE",
+                "#DC2626",
+                "FRIENDLY",
+                "#2563EB",
+                "NEUTRAL",
+                "#16A34A",
+                "UNKNOWN",
+                "#CA8A04",
+                /* default */ "#6B7280",
+              ],
+              "circle-stroke-width": 2,
+              "circle-stroke-color": "#60A5FA", // Blue glow color
+              "circle-opacity": 1,
+            },
+          });
+
           // Note: tracks-label symbol layer is intentionally omitted —
           // symbol layers require a glyphs/font PBF server which is not
           // available in offline/dev deployments. Track identity is conveyed
@@ -328,9 +360,32 @@ export const MapView: React.FC = () => {
             }
           });
 
-          // Pointer cursor on hover to indicate interactivity
+          // Pointer cursor and tooltip on hover
+          map.on("mousemove", "tracks-circle", (e: any) => {
+            map.getCanvas().style.cursor = "pointer";
+            const feature = e.features?.[0];
+            if (feature?.properties?.trackId) {
+              const trackId = feature.properties.trackId;
+
+              // Only update state if hover changes
+              setHoverInfo(prev => {
+                if (prev?.trackId !== trackId) {
+                  // Update hover layer filter
+                  map.setFilter("tracks-circle-hover", ["==", "trackId", trackId]);
+
+                  // Add optional DOM glow
+                  map.getCanvas().style.boxShadow = "var(--shadow-glow-blue)";
+                }
+                return { trackId, x: e.point.x, y: e.point.y };
+              });
+            }
+          });
+
           map.on("mouseleave", "tracks-circle", () => {
             map.getCanvas().style.cursor = "";
+            map.getCanvas().style.boxShadow = "none";
+            map.setFilter("tracks-circle-hover", ["==", "trackId", ""]);
+            setHoverInfo(null);
           });
 
           // ── Raw Sensor Observations (Uncorrelated vs Correlated) ──────────
@@ -476,6 +531,9 @@ export const MapView: React.FC = () => {
         >
           No tracks — awaiting data stream
         </div>
+      )}
+      {hoverInfo && (
+        <MapTooltip trackId={hoverInfo.trackId} x={hoverInfo.x} y={hoverInfo.y} />
       )}
       <SensorCoverageLayer />
       <LayerControls />

@@ -129,6 +129,7 @@ export const DetailPanel: React.FC = () => {
                   activeTab === tab.key ? "2px solid #3B82F6" : "2px solid transparent",
                 cursor: "pointer",
                 letterSpacing: "0.05em",
+                transition: "all 0.2s ease-in-out",
               }}
             >
               {tab.label.toUpperCase()}
@@ -152,7 +153,7 @@ export const DetailPanel: React.FC = () => {
       </div>
 
       {/* Action Bar */}
-      <div style={{ display: "flex", gap: "8px", padding: "8px", borderBottom: "1px solid #334155", backgroundColor: "#1E293B" }}>
+      <div className="glass-panel" style={{ display: "flex", gap: "8px", padding: "8px", borderBottom: "1px solid var(--glass-border)", backgroundColor: "var(--glass-bg)" }}>
         <button data-testid="detail-zoom" onClick={handleZoom} style={actionButtonStyle}>Zoom</button>
         <button data-testid="detail-export" onClick={handleExport} style={actionButtonStyle}>Export</button>
         <button data-testid="detail-add-note" onClick={() => setNoteOpen(!noteOpen)} style={actionButtonStyle}>Note</button>
@@ -187,10 +188,10 @@ export const DetailPanel: React.FC = () => {
 
 const actionButtonStyle: React.CSSProperties = {
   padding: "4px 8px",
-  backgroundColor: "#374151",
+  backgroundColor: "rgba(55, 65, 81, 0.5)",
   color: "#F1F5F9",
-  border: "1px solid #4B5563",
+  border: "1px solid var(--glass-border)",
   borderRadius: "4px",
   cursor: "pointer",
-  fontSize: "0.65rem"
+  fontSize: "var(--text-xs)"
 };

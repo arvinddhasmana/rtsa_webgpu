@@ -2,12 +2,16 @@
 // src/components/layout/OperatorDashboard.tsx
 
 import React from "react";
+import { useUIStore } from "../../stores/uiStore";
 import { AlertPanel } from "../alerts/AlertPanel";
+import { DetailPanel } from "../detail/DetailPanel";
 import { MapView } from "../map/MapView";
 import { TimelineView } from "../timeline/TimelineView";
 import { CollapsiblePane } from "./CollapsiblePane";
 
 export const OperatorDashboard: React.FC = () => {
+  const detailPanelOpen = useUIStore((s) => s.detailPanelOpen);
+
   return (
     <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
       {/* Background Map with Blur */}
@@ -28,7 +32,11 @@ export const OperatorDashboard: React.FC = () => {
 
         {/* Center: Open Space for clicking map through the transparent gap. Could host DetailPanel later */}
         <div style={{ flex: 2, pointerEvents: "auto", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-           {/* Future DetailPanel slot if needed in Operator View */}
+           {detailPanelOpen && (
+              <CollapsiblePane title="Entity Detail" width="100%" height="320px" direction="vertical">
+                <DetailPanel />
+              </CollapsiblePane>
+           )}
         </div>
 
         {/* Right Side: Alerts */}

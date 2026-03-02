@@ -78,19 +78,42 @@ export const MainLayout: React.FC = () => {
           toggleForensicsPanel();
           break;
         case "f":
-          // Quick fullscreen/maximize focus mode
-          useUIStore.getState().setDashboardView("multi-domain");
+          e.preventDefault();
+          const uiStore = useUIStore.getState();
+          if (!uiStore.isFullscreen) {
+            document.documentElement.requestFullscreen().catch(err => console.error(err));
+          } else {
+            if (document.fullscreenElement) {
+              document.exitFullscreen().catch(err => console.error(err));
+            }
+          }
+          uiStore.toggleFullscreen();
           break;
         case "escape":
           closeDetailPanel();
           break;
         case "tab":
           e.preventDefault();
-          // Cycle through views
-          const views: typeof activeDashboardView[] = ["operator", "fusion", "multi-domain"];
-          const currentIdx = views.indexOf(useUIStore.getState().activeDashboardView);
-          if (currentIdx > -1) {
-            useUIStore.getState().setDashboardView(views[(currentIdx + 1) % views.length]);
+          // Cycle focus between major panels for keyboard accessibility
+          const mainPanels = [
+            document.querySelector('[aria-label="Map View"]') as HTMLElement,
+            document.querySelector('[data-testid="alert-panel"]') as HTMLElement,
+            document.querySelector('[data-testid="detail-panel"]') as HTMLElement,
+            document.querySelector('[data-testid="forensics-panel"]') as HTMLElement,
+          ].filter(Boolean); // Filter out nulls
+
+          if (mainPanels.length > 0) {
+            const currentFocused = document.activeElement as HTMLElement;
+            let currentIdx = mainPanels.indexOf(currentFocused);
+
+            // If focused element is inside a panel but isn't the panel root itself,
+            // try to find which panel it's inside
+            if (currentIdx === -1 && currentFocused) {
+               currentIdx = mainPanels.findIndex(p => p.contains(currentFocused));
+            }
+
+            const nextIdx = (currentIdx + 1) % mainPanels.length;
+            mainPanels[nextIdx].focus();
           }
           break;
       }
@@ -102,9 +125,8 @@ export const MainLayout: React.FC = () => {
 
       if (e.ctrlKey && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        // Acknowledges top alert as an undo/quick action placeholder
-        const openAlerts = useUIStore.getState().alertPanelOpen;
-        if (!openAlerts) toggleAlertPanel();
+        // Undo last filter change
+        useUIStore.getState().undoFilterChange();
       }
     };
     window.addEventListener("keydown", handleKeyDown);

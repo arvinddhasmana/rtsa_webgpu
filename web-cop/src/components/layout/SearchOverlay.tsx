@@ -49,6 +49,7 @@ export const SearchOverlay: React.FC = () => {
   return (
     <div
       data-testid="search-overlay"
+      className="glass-panel"
       style={{
         position: "absolute",
         top: "76px", // Below toolbar
@@ -56,8 +57,6 @@ export const SearchOverlay: React.FC = () => {
         transform: "translateX(-50%)",
         width: "600px",
         minHeight: "100px",
-        backgroundColor: "#1E293B",
-        border: "1px solid #334155",
         borderRadius: "4px",
         padding: "16px",
         zIndex: 9999, // Ensure it's above map controls
@@ -87,9 +86,9 @@ export const SearchOverlay: React.FC = () => {
         style={{
           width: "100%",
           padding: "8px",
-          backgroundColor: "#0F172A",
+          backgroundColor: "rgba(15, 23, 42, 0.5)",
           color: "#F1F5F9",
-          border: "1px solid #4B5563",
+          border: "1px solid var(--glass-border)",
           borderRadius: "4px",
           outline: "none",
           boxSizing: "border-box",
@@ -108,8 +107,8 @@ export const SearchOverlay: React.FC = () => {
                 onClick={() => handleResultClick(t.trackId)}
                 style={{
                   padding: "8px",
-                  backgroundColor: "#0F172A",
-                  border: "1px solid #334155",
+                  backgroundColor: "rgba(15, 23, 42, 0.5)",
+                  border: "1px solid var(--glass-border)",
                   borderRadius: "4px",
                   cursor: "pointer",
                   display: "flex",

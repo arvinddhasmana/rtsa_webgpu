@@ -15,10 +15,10 @@ test.describe("Role-Based Dashboards & Navigation", () => {
     await expect(page.getByTestId("role-selector")).toHaveValue("commander");
 
     // Map should be visible
-    await expect(page.locator("canvas").first()).toBeVisible();
+    await expect(page.getByTestId("map-container").first()).toBeVisible();
 
     // Alert panel should be visible
-    await expect(page.getByLabel("Alert Panel").first()).toBeVisible();
+    await expect(page.getByTestId("alert-panel").first()).toBeVisible();
 
     // Audit view should not be visible
     await expect(page.getByTestId("audit-view")).toBeHidden();
@@ -28,7 +28,7 @@ test.describe("Role-Based Dashboards & Navigation", () => {
     await page.getByTestId("role-selector").selectOption("security");
 
     // Map should be hidden
-    await expect(page.locator("canvas").first()).toBeHidden();
+    await expect(page.getByTestId("map-container").first()).toBeHidden();
 
     // Alert panel and Audit view should be visible side by side
     await expect(page.getByTestId("alert-panel").first()).toBeVisible();
@@ -39,7 +39,7 @@ test.describe("Role-Based Dashboards & Navigation", () => {
     await page.getByTestId("role-selector").selectOption("analyst");
 
     // Map should be visible
-    await expect(page.locator("canvas").first()).toBeVisible();
+    await expect(page.getByTestId("map-container").first()).toBeVisible();
 
     // Forensics panel should be visible
     await expect(page.getByTestId("forensics-panel").first()).toBeVisible();

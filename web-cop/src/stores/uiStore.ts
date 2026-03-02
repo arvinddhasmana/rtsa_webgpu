@@ -8,16 +8,23 @@ export type ActiveRole = "commander" | "security" | "analyst" | "sensor_operator
 export type DashboardView = "fusion" | "multi-domain" | "operator" | "forensics" | "audit" | "sensor-health" | "nato-exchange";
 export type LayerKey = "trackLabels" | "trackTrails" | "sensorCoverage" | "geofences" | "mgrsGrid";
 
+interface FilterState {
+  entityTypeFilter: string[];
+  hostileClassFilter: string[];
+}
+
 interface UIState {
   alertPanelOpen: boolean;
   detailPanelOpen: boolean;
   forensicsPanelOpen: boolean;
+  isFullscreen: boolean;
 
   mapCenter: [number, number];
   mapZoom: number;
 
   entityTypeFilter: string[];
   hostileClassFilter: string[];
+  filterHistory: FilterState[];
   showStaleTracksEnabled: boolean;
 
   theme: Theme;
@@ -33,6 +40,7 @@ interface UIState {
   toggleDetailPanel: () => void;
   closeDetailPanel: () => void;
   toggleForensicsPanel: () => void;
+  toggleFullscreen: () => void;
   setMapView: (center: [number, number], zoom: number) => void;
   setEntityTypeFilter: (types: string[]) => void;
   setHostileClassFilter: (classes: string[]) => void;
@@ -44,12 +52,14 @@ interface UIState {
   openSearch: () => void;
   closeSearch: () => void;
   setSearchQuery: (query: string) => void;
+  undoFilterChange: () => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
   alertPanelOpen: true,
   detailPanelOpen: false,
   forensicsPanelOpen: false,
+  isFullscreen: false,
 
   // Default: Mid-Atlantic (43-47°N, 55-65°W)
   mapCenter: [-60.0, 45.0],
@@ -57,6 +67,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   entityTypeFilter: [],
   hostileClassFilter: [],
+  filterHistory: [],
   showStaleTracksEnabled: false,
 
   theme: "dark",
@@ -78,9 +89,27 @@ export const useUIStore = create<UIState>((set) => ({
   closeDetailPanel: () => set({ detailPanelOpen: false }),
   toggleForensicsPanel: () =>
     set((s) => ({ forensicsPanelOpen: !s.forensicsPanelOpen })),
+  toggleFullscreen: () =>
+    set((s) => ({ isFullscreen: !s.isFullscreen })),
   setMapView: (center, zoom) => set({ mapCenter: center, mapZoom: zoom }),
-  setEntityTypeFilter: (types) => set({ entityTypeFilter: types }),
-  setHostileClassFilter: (classes) => set({ hostileClassFilter: classes }),
+  setEntityTypeFilter: (types) => set((s) => ({
+    filterHistory: [...s.filterHistory, { entityTypeFilter: s.entityTypeFilter, hostileClassFilter: s.hostileClassFilter }],
+    entityTypeFilter: types,
+  })),
+  setHostileClassFilter: (classes) => set((s) => ({
+    filterHistory: [...s.filterHistory, { entityTypeFilter: s.entityTypeFilter, hostileClassFilter: s.hostileClassFilter }],
+    hostileClassFilter: classes,
+  })),
+  undoFilterChange: () => set((s) => {
+    if (s.filterHistory.length === 0) return s;
+    const history = [...s.filterHistory];
+    const previous = history.pop()!;
+    return {
+      filterHistory: history,
+      entityTypeFilter: previous.entityTypeFilter,
+      hostileClassFilter: previous.hostileClassFilter,
+    };
+  }),
   toggleStaleTracks: () =>
     set((s) => ({ showStaleTracksEnabled: !s.showStaleTracksEnabled })),
   setTheme: (theme) => set({ theme }),
