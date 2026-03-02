@@ -12,14 +12,14 @@
 
 The RTSA project follows a **test pyramid** strategy with four layers:
 
-| Layer | Location | Build Tag | Infrastructure | Coverage Target |
-|---|---|---|---|---|
-| **Unit Tests** | `svc-*/…/*_test.go`, `pkg/…/*_test.go` | _(none)_ | None | 80%+ (90%+ for domain) |
-| **Integration Tests** | `tests/integration/` | `integration` | testcontainers-go (auto) | Scenario-complete |
-| **E2E Tests** | `tests/e2e/` | `e2e` | Full Docker Compose stack | Critical paths |
-| **Benchmarks** | `tests/benchmark/` | `integration` | testcontainers-go (auto) | NFR thresholds |
-| **Frontend Unit** | `web-cop/src/__tests__/` | — | Vitest | 80%+ |
-| **Frontend E2E** | `web-cop/e2e/` | — | Playwright + Docker | Critical flows |
+| Layer                 | Location                               | Build Tag     | Infrastructure            | Coverage Target        |
+| --------------------- | -------------------------------------- | ------------- | ------------------------- | ---------------------- |
+| **Unit Tests**        | `svc-*/…/*_test.go`, `pkg/…/*_test.go` | _(none)_      | None                      | 80%+ (90%+ for domain) |
+| **Integration Tests** | `tests/integration/`                   | `integration` | testcontainers-go (auto)  | Scenario-complete      |
+| **E2E Tests**         | `tests/e2e/`                           | `e2e`         | Full Docker Compose stack | Critical paths         |
+| **Benchmarks**        | `tests/benchmark/`                     | `integration` | testcontainers-go (auto)  | NFR thresholds         |
+| **Frontend Unit**     | `web-cop/src/__tests__/`               | —             | Vitest                    | 80%+                   |
+| **Frontend E2E**      | `web-cop/e2e/`                         | —             | Playwright + Docker       | Critical flows         |
 
 ---
 
@@ -121,16 +121,16 @@ Unit tests have **no build tag** and run with a plain `go test ./...`.
 
 ## 4. Coverage Requirements
 
-| Component Type | Line Coverage | Branch Coverage |
-|---|---|---|
-| Core domain logic (fusion, inference) | 90%+ | 85%+ |
-| gRPC service handlers | 85%+ | 80%+ |
-| Sensor adapters / parsers | 90%+ | 85%+ |
-| Feedback trust scoring | 95%+ | 90%+ |
-| Anti-poisoning logic | 95%+ | 90%+ |
-| Configuration / startup | 80%+ | 75%+ |
-| React components | 80%+ | 75%+ |
-| **Global minimum** | **80%** | — |
+| Component Type                        | Line Coverage | Branch Coverage |
+| ------------------------------------- | ------------- | --------------- |
+| Core domain logic (fusion, inference) | 90%+          | 85%+            |
+| gRPC service handlers                 | 85%+          | 80%+            |
+| Sensor adapters / parsers             | 90%+          | 85%+            |
+| Feedback trust scoring                | 95%+          | 90%+            |
+| Anti-poisoning logic                  | 95%+          | 90%+            |
+| Configuration / startup               | 80%+          | 75%+            |
+| React components                      | 80%+          | 75%+            |
+| **Global minimum**                    | **80%**       | —               |
 
 Coverage below threshold causes CI failure.
 
@@ -140,42 +140,42 @@ Coverage below threshold causes CI failure.
 
 ### Integration Tests (IT01–IT14)
 
-| ID | Category | Validates |
-|---|---|---|
-| IT01 | Ingestion | Radar → Redpanda topic |
-| IT02 | Ingestion | Invalid → DLQ routing |
-| IT03 | Ingestion | All 6 sensor types |
-| IT04 | Fusion | 3 obs → fused track |
-| IT05 | Fusion | Track merging (score ≥ 0.85) |
-| IT06 | Fusion | Stale timeout (60s → STALE) |
-| IT07 | Fusion | Classification MAX propagation |
-| IT08 | Anomaly | Speed anomaly (>3σ) |
-| IT09 | Anomaly | AIS manipulation (>0.5 NM) |
-| IT10 | Anomaly | Severity routing (CRITICAL/ELEVATED/WATCH) |
-| IT11 | ETL | Tracks → ClickHouse (100 rows) |
-| IT12 | ETL | Audit → ClickHouse (ITSG-33 no TTL) |
-| IT13 | ETL | Materialized view aggregations |
-| **IT14** | **Classification** | **MANDATORY: Full propagation chain** |
+| ID       | Category           | Validates                                  |
+| -------- | ------------------ | ------------------------------------------ |
+| IT01     | Ingestion          | Radar → Redpanda topic                     |
+| IT02     | Ingestion          | Invalid → DLQ routing                      |
+| IT03     | Ingestion          | All 6 sensor types                         |
+| IT04     | Fusion             | 3 obs → fused track                        |
+| IT05     | Fusion             | Track merging (score ≥ 0.85)               |
+| IT06     | Fusion             | Stale timeout (60s → STALE)                |
+| IT07     | Fusion             | Classification MAX propagation             |
+| IT08     | Anomaly            | Speed anomaly (>3σ)                        |
+| IT09     | Anomaly            | AIS manipulation (>0.5 NM)                 |
+| IT10     | Anomaly            | Severity routing (CRITICAL/ELEVATED/WATCH) |
+| IT11     | ETL                | Tracks → ClickHouse (100 rows)             |
+| IT12     | ETL                | Audit → ClickHouse (ITSG-33 no TTL)        |
+| IT13     | ETL                | Materialized view aggregations             |
+| **IT14** | **Classification** | **MANDATORY: Full propagation chain**      |
 
 ### E2E Tests (E2E01–E2E03 + Negative)
 
-| ID | Validates |
-|---|---|
+| ID    | Validates                                |
+| ----- | ---------------------------------------- |
 | E2E01 | Sim → Ingestion → Fusion → Alert → Query |
-| E2E02 | Alert generation → acknowledgment |
-| E2E03 | Feedback → Trust → Validated |
-| Neg01 | Malformed sensor → DLQ |
-| Neg02 | Anti-poisoning rejects feedback |
-| Neg03 | Classification violation rejected |
-| Neg04 | Rate limiting enforcement |
+| E2E02 | Alert generation → acknowledgment        |
+| E2E03 | Feedback → Trust → Validated             |
+| Neg01 | Malformed sensor → DLQ                   |
+| Neg02 | Anti-poisoning rejects feedback          |
+| Neg03 | Classification violation rejected        |
+| Neg04 | Rate limiting enforcement                |
 
 ### Benchmarks (B01–B04)
 
-| ID | NFR | Threshold |
-|---|---|---|
+| ID  | NFR          | Threshold                 |
+| --- | ------------ | ------------------------- |
 | B01 | NFR-PERF-002 | Ingestion ≥ 1,000 obs/sec |
-| B02 | NFR-PERF-004 | Fusion p95 ≤ 100ms |
-| B03 | NFR-PERF-005 | Anomaly p95 ≤ 150ms |
+| B02 | NFR-PERF-004 | Fusion p95 ≤ 100ms        |
+| B03 | NFR-PERF-005 | Anomaly p95 ≤ 150ms       |
 | B04 | NFR-PERF-001 | Query 100-row p95 ≤ 500ms |
 
 ---
@@ -206,14 +206,14 @@ SG-1: Pre-Build  →  SG-2: Build  →  SG-3: Unit Tests  →  SG-4: Security  �
   formatting)        tsc, buf)        coverage)          semgrep, audit)    + E2E optional)
 ```
 
-| Stage | Blocks PR | Time Budget |
-|---|---|---|
-| Lint & Formatting | Yes | < 2 min |
-| Build | Yes | < 5 min |
-| Unit Tests + Coverage | Yes | < 5 min |
-| Security (SAST/deps) | Yes (High+) | < 15 min |
-| Integration | Yes | < 10 min |
-| E2E | Warn only | < 30 min |
+| Stage                 | Blocks PR   | Time Budget |
+| --------------------- | ----------- | ----------- |
+| Lint & Formatting     | Yes         | < 2 min     |
+| Build                 | Yes         | < 5 min     |
+| Unit Tests + Coverage | Yes         | < 5 min     |
+| Security (SAST/deps)  | Yes (High+) | < 15 min    |
+| Integration           | Yes         | < 10 min    |
+| E2E                   | Warn only   | < 30 min    |
 
 ---
 
@@ -260,13 +260,13 @@ When a sub-script is run **standalone** (outside `test-all.sh`), it creates its 
 
 ### Key files for AI agents
 
-| File | Contents |
-|---|---|
-| `SUMMARY.txt` | Structured text: stage table, per-stage failure lists, `RESULTS_DIR=` path |
-| `*/failures.txt` | One `<stage/TestName>` per line — consumed by automated triage tools |
-| `*/counts.txt` | `TOTAL=N PASSED=N FAILED=N` key=value — consumed by CI dashboards |
-| `unit/*.log` | Full `go test -v` output per module — searched for diagnostic context |
-| `integration/run.log` | Full integration run — all suites concatenated |
+| File                  | Contents                                                                   |
+| --------------------- | -------------------------------------------------------------------------- |
+| `SUMMARY.txt`         | Structured text: stage table, per-stage failure lists, `RESULTS_DIR=` path |
+| `*/failures.txt`      | One `<stage/TestName>` per line — consumed by automated triage tools       |
+| `*/counts.txt`        | `TOTAL=N PASSED=N FAILED=N` key=value — consumed by CI dashboards          |
+| `unit/*.log`          | Full `go test -v` output per module — searched for diagnostic context      |
+| `integration/run.log` | Full integration run — all suites concatenated                             |
 
 ### Summary output format (`test-all.sh`)
 

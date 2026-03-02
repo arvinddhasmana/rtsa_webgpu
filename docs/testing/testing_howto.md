@@ -10,13 +10,13 @@
 
 ## Prerequisites
 
-| Tool | Version | Check |
-|---|---|---|
-| Go | 1.22+ | `go version` |
-| Docker | 24+ | `docker --version` |
-| Docker Compose | v2+ | `docker compose version` |
-| Node.js | 20+ | `node --version` |
-| pnpm | 9+ | `pnpm --version` |
+| Tool           | Version | Check                    |
+| -------------- | ------- | ------------------------ |
+| Go             | 1.22+   | `go version`             |
+| Docker         | 24+     | `docker --version`       |
+| Docker Compose | v2+     | `docker compose version` |
+| Node.js        | 20+     | `node --version`         |
+| pnpm           | 9+      | `pnpm --version`         |
 
 ---
 
@@ -32,6 +32,7 @@ Unit tests run **without any infrastructure**. They use mocks for all external d
 ```
 
 This will:
+
 - Discover all Go modules (`svc-*`, `pkg/`, `wasm-transforms`)
 - Run `go test -race -coverprofile=... ./...` in each module
 - Enforce ≥ 80% coverage threshold
@@ -138,6 +139,7 @@ cd tests && make test-e2e
 ```
 
 This will:
+
 1. Build all Docker images
 2. Start the full stack (`docker compose up --build --wait`)
 3. Initialize Redpanda topics and ClickHouse schema
@@ -170,11 +172,11 @@ RTSA_INTEGRATION_TESTS=true go test -v -tags e2e -run TestE2E01_FullPipeline ./e
 
 ### Troubleshooting
 
-| Problem | Solution |
-|---|---|
+| Problem                                | Solution                                                                                               |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | Port conflict (port already allocated) | `docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml down -v` then retry |
-| Container unhealthy | Check logs: `docker logs rtsa-<service>` |
-| `UNKNOWN_TOPIC_OR_PARTITION` | Run `./scripts/dev/init-topics.sh` before tests |
+| Container unhealthy                    | Check logs: `docker logs rtsa-<service>`                                                               |
+| `UNKNOWN_TOPIC_OR_PARTITION`           | Run `./scripts/dev/init-topics.sh` before tests                                                        |
 
 ---
 
@@ -196,6 +198,7 @@ RTSA_INTEGRATION_TESTS=true go test -v -tags integration \
 ### Threshold violations
 
 Benchmarks call `b.Errorf()` if thresholds are not met:
+
 - **B01**: Ingestion ≥ 1,000 obs/sec
 - **B02**: Fusion p95 ≤ 100ms
 - **B03**: Anomaly p95 ≤ 150ms
@@ -307,6 +310,7 @@ pnpm test:coverage
 ```
 
 Runs in sequence:
+
 1. Go unit tests (all modules)
 2. Frontend unit tests (Vitest)
 3. Integration tests (testcontainers)
@@ -376,12 +380,12 @@ Before opening a Pull Request, run the full 5-gate check:
 ./scripts/dev/pre-pr-check.sh
 ```
 
-| Gate | What it checks |
-|---|---|
-| SG-1: Pre-Build | Secrets (gitleaks), classification headers, formatting |
-| SG-2: Build | Go build, TypeScript compile, proto lint |
-| SG-3: Test | Unit tests + 80% coverage |
-| SG-4: Security | gosec, govulncheck, golangci-lint, semgrep, npm audit |
+| Gate              | What it checks                                            |
+| ----------------- | --------------------------------------------------------- |
+| SG-1: Pre-Build   | Secrets (gitleaks), classification headers, formatting    |
+| SG-2: Build       | Go build, TypeScript compile, proto lint                  |
+| SG-3: Test        | Unit tests + 80% coverage                                 |
+| SG-4: Security    | gosec, govulncheck, golangci-lint, semgrep, npm audit     |
 | SG-5: Integration | Integration tests (optional — skips if stack not running) |
 
 ---
@@ -417,12 +421,12 @@ Every test script persists structured output under `.test-results/` so failures 
 
 ### Standalone vs. orchestrated runs
 
-| How script is invoked | Where logs go |
-|---|---|
-| `./scripts/dev/test-all.sh` | `.test-results/<ts>/` — all stages in one directory |
-| `./scripts/dev/test-go.sh` (standalone) | `.test-results/<ts>/unit/` — own timestamped dir |
+| How script is invoked                            | Where logs go                                           |
+| ------------------------------------------------ | ------------------------------------------------------- |
+| `./scripts/dev/test-all.sh`                      | `.test-results/<ts>/` — all stages in one directory     |
+| `./scripts/dev/test-go.sh` (standalone)          | `.test-results/<ts>/unit/` — own timestamped dir        |
 | `./scripts/dev/test-integration.sh` (standalone) | `.test-results/<ts>/integration/` — own timestamped dir |
-| `./scripts/dev/test-e2e.sh` (standalone) | `.test-results/<ts>/e2e/` — own timestamped dir |
+| `./scripts/dev/test-e2e.sh` (standalone)         | `.test-results/<ts>/e2e/` — own timestamped dir         |
 
 This is controlled by the `RTSA_TEST_RESULTS_DIR` environment variable, which `test-all.sh` exports before calling sub-scripts.
 
@@ -447,30 +451,30 @@ grep -oP 'FAILED=\K[0-9]+' "${LATEST}e2e/counts.txt"
 
 ### File formats
 
-| File | Format | Example |
-|---|---|---|
-| `failures.txt` | One `<stage/TestName>` per line | `svc-radar-ingestion/TestParseNMEA_Invalid_ReturnsError` |
-| `counts.txt` | Space-separated `KEY=VALUE` | `TOTAL=47 PASSED=46 FAILED=1 MODULES_TOTAL=15 MODULES_PASSED=14 MODULES_FAILED=1` |
-| `SUMMARY.txt` | Structured plaintext sections | `STAGES`, `STAGES_RUN=N`, `RESULTS_DIR=`, `FAILURE DETAILS` |
-| `*.log` | Raw `go test -v` / `pnpm test` output | Standard Go test output, unmodified |
+| File           | Format                                | Example                                                                           |
+| -------------- | ------------------------------------- | --------------------------------------------------------------------------------- |
+| `failures.txt` | One `<stage/TestName>` per line       | `svc-radar-ingestion/TestParseNMEA_Invalid_ReturnsError`                          |
+| `counts.txt`   | Space-separated `KEY=VALUE`           | `TOTAL=47 PASSED=46 FAILED=1 MODULES_TOTAL=15 MODULES_PASSED=14 MODULES_FAILED=1` |
+| `SUMMARY.txt`  | Structured plaintext sections         | `STAGES`, `STAGES_RUN=N`, `RESULTS_DIR=`, `FAILURE DETAILS`                       |
+| `*.log`        | Raw `go test -v` / `pnpm test` output | Standard Go test output, unmodified                                               |
 
 ---
 
 ## 11. Quick Reference
 
-| What | Command |
-|---|---|
-| All Go unit tests | `./scripts/dev/test-go.sh` |
-| Single service tests | `cd svc-<name> && go test -race -v ./...` |
-| Integration tests | `cd tests && make test-integration` |
-| E2E tests | `cd tests && make test-e2e` |
-| Benchmarks | `cd tests && make test-bench` |
-| Frontend unit tests | `cd web-cop && pnpm test` |
-| Frontend E2E | `cd web-cop && pnpm test:e2e` |
-| Coverage (Go) | `./scripts/dev/test-go.sh` → `.coverage/` |
-| Coverage (frontend) | `cd web-cop && pnpm test:coverage` |
-| Pre-PR gate | `./scripts/dev/pre-pr-check.sh` |
-| Everything | `./scripts/dev/test-all.sh` |
-| Skip E2E + benchmarks | `./scripts/dev/test-all.sh --skip-e2e --skip-bench` |
-| View latest results | `cat .test-results/$(ls -t .test-results/ \| head -1)/SUMMARY.txt` |
-| Latest unit failures | `cat .test-results/$(ls -t .test-results/ \| head -1)/unit/failures.txt` |
+| What                  | Command                                                                  |
+| --------------------- | ------------------------------------------------------------------------ |
+| All Go unit tests     | `./scripts/dev/test-go.sh`                                               |
+| Single service tests  | `cd svc-<name> && go test -race -v ./...`                                |
+| Integration tests     | `cd tests && make test-integration`                                      |
+| E2E tests             | `cd tests && make test-e2e`                                              |
+| Benchmarks            | `cd tests && make test-bench`                                            |
+| Frontend unit tests   | `cd web-cop && pnpm test`                                                |
+| Frontend E2E          | `cd web-cop && pnpm test:e2e`                                            |
+| Coverage (Go)         | `./scripts/dev/test-go.sh` → `.coverage/`                                |
+| Coverage (frontend)   | `cd web-cop && pnpm test:coverage`                                       |
+| Pre-PR gate           | `./scripts/dev/pre-pr-check.sh`                                          |
+| Everything            | `./scripts/dev/test-all.sh`                                              |
+| Skip E2E + benchmarks | `./scripts/dev/test-all.sh --skip-e2e --skip-bench`                      |
+| View latest results   | `cat .test-results/$(ls -t .test-results/ \| head -1)/SUMMARY.txt`       |
+| Latest unit failures  | `cat .test-results/$(ls -t .test-results/ \| head -1)/unit/failures.txt` |
