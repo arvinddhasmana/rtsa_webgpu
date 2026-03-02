@@ -2,7 +2,7 @@
 
 # RTSA Testing Architecture Guide
 
-> **Version**: 1.0
+> **Version**: 1.1
 > **Date**: 2026-03-02
 > **Compliance**: ITSG-33 SA-11, NIST 800-53 SA-11
 
@@ -88,10 +88,10 @@ RTSA_VS_Opus/
 │   └── playwright.config.ts
 │
 ├── scripts/dev/                  # Helper scripts
-│   ├── test-go.sh                # Go unit tests + coverage
-│   ├── test-integration.sh       # Integration test runner
-│   ├── test-e2e.sh               # E2E test runner (Docker lifecycle)
-│   ├── test-all.sh               # Master runner — all test types
+│   ├── test-go.sh                # Go unit tests + coverage + per-module log files
+│   ├── test-integration.sh       # Integration test runner + per-suite log files
+│   ├── test-e2e.sh               # E2E test runner (Docker lifecycle) + run log
+│   ├── test-all.sh               # Master runner — all stages, table summary, SUMMARY.txt
 │   └── pre-pr-check.sh           # 5-gate local CI mirror
 │
 └── deploy/
@@ -217,7 +217,83 @@ SG-1: Pre-Build  →  SG-2: Build  →  SG-3: Unit Tests  →  SG-4: Security  �
 
 ---
 
-## 9. Related Documents
+## 9. Test Result Artifacts
+
+Every test script saves structured output to a **timestamped results directory** so that failures can be inspected after the run, and so AI agents can consume a machine-readable summary without re-parsing terminal output.
+
+### Directory layout
+
+```
+.test-results/<YYYY-MM-DDTHH-MM-SS>/     # created by test-all.sh or sub-scripts (standalone)
+  unit/
+    <module-name>.log       # raw go test -v output, one file per Go module
+    failures.txt            # one "module/TestName" line per failed test
+    counts.txt              # TOTAL=N PASSED=N FAILED=N MODULES_TOTAL=N …
+  frontend/
+    run.log                 # pnpm test stderr+stdout
+    failures.txt
+    counts.txt
+  integration/
+    centralized.log         # tests/integration/ output
+    <svc-name>.log          # per-service integration test output
+    run.log                 # concatenation of all integration logs
+    failures.txt            # one "integration/<suite>/TestName" line per failure
+    counts.txt
+  e2e/
+    run.log
+    failures.txt
+    counts.txt
+  benchmark/
+    run.log
+    failures.txt
+    counts.txt
+  SUMMARY.txt               # machine-readable aggregate (AI agent entry point)
+```
+
+> **`.test-results/` is in `.gitignore`** — log artifacts are never committed.
+
+### Environment variable coordination
+
+`test-all.sh` exports `RTSA_TEST_RESULTS_DIR` pointing to the run directory. All sub-scripts (`test-go.sh`, `test-integration.sh`, `test-e2e.sh`) honour this variable so everything lands in **one directory per run**.
+
+When a sub-script is run **standalone** (outside `test-all.sh`), it creates its own `.test-results/<timestamp>/` directory in the repo root.
+
+### Key files for AI agents
+
+| File | Contents |
+|---|---|
+| `SUMMARY.txt` | Structured text: stage table, per-stage failure lists, `RESULTS_DIR=` path |
+| `*/failures.txt` | One `<stage/TestName>` per line — consumed by automated triage tools |
+| `*/counts.txt` | `TOTAL=N PASSED=N FAILED=N` key=value — consumed by CI dashboards |
+| `unit/*.log` | Full `go test -v` output per module — searched for diagnostic context |
+| `integration/run.log` | Full integration run — all suites concatenated |
+
+### Summary output format (`test-all.sh`)
+
+After all stages complete, `test-all.sh` prints:
+
+1. A stage table showing Tests / Passed / Failed / Status for every stage
+2. A **FAILURE DETAILS BY STAGE** block listing the first 10 failed tests per failing stage (full list in `failures.txt`)
+3. The absolute path to the results directory with subdirectory descriptions
+
+```
+  Stage                                   Tests  Passed  Failed    Status
+  ──────────────────────────────────────  ─────  ───────  ───────  ────────
+  Unit — Go                                 142      138        4    FAILED
+  Unit — Frontend                            23       23        0    PASSED
+  Integration                                18       16        2    FAILED
+  E2E                                         8        7        1    FAILED
+  Benchmarks                                  4        4        0    PASSED
+
+── FAILED TESTS: Unit — Go [4 failure(s), showing first 10] ──────────
+   1. svc-radar-ingestion/TestParseNMEA_Invalid_ReturnsError
+   2. pkg/TestClassificationPropagation_Downgrade_Blocked
+   ...
+```
+
+---
+
+## 10. Related Documents
 
 - [Testing Strategy (SDLC)](../sdlc_guidelines/05_testing/testing_strategy.md)
 - [Test Data Audit](test-data-audit.md)

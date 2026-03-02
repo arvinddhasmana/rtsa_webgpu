@@ -2,7 +2,7 @@
 
 # RTSA Testing How-To Guide
 
-> **Version**: 1.0 | **Date**: 2026-03-02
+> **Version**: 1.1 | **Date**: 2026-03-02
 >
 > Step-by-step instructions for running every type of test in the RTSA project.
 
@@ -33,9 +33,14 @@ Unit tests run **without any infrastructure**. They use mocks for all external d
 
 This will:
 - Discover all Go modules (`svc-*`, `pkg/`, `wasm-transforms`)
-- Run `go test -race -coverprofile=... ./...` in each
+- Run `go test -race -coverprofile=... ./...` in each module
 - Enforce ≥ 80% coverage threshold
 - Generate HTML coverage reports in `.coverage/`
+- Save per-module `go test -v` output to `.test-results/<timestamp>/unit/<module>.log`
+- Append failed test names to `.test-results/<timestamp>/unit/failures.txt`
+- Print a detailed failure list (first 10 failures) at the end of the run
+
+When called by `test-all.sh`, logs go into the master run directory. When run standalone, a new timestamped directory is created automatically.
 
 ### Run tests for a single service
 
@@ -61,6 +66,15 @@ go test -race -v -run TestSpeedDetector_HighSpeed ./internal/domain/detectors/
 --- PASS: TestSpeedDetector_HighSpeed_ReturnsAnomaly (0.00s)
 PASS
 ok      github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/domain/detectors   0.004s
+
+─────────────────────────────────────────────────────
+  Go unit test summary:
+  Tests  : 47 run | 46 passed | 1 failed
+  Modules: 15 total | 14 passed | 1 failed
+  Coverage reports : .coverage/
+  Per-module logs  : .test-results/2026-03-02T14-30-00/unit/*.log
+  Failed test list : .test-results/2026-03-02T14-30-00/unit/failures.txt
+─────────────────────────────────────────────────────
 ```
 
 ---
@@ -251,14 +265,18 @@ pnpm test:e2e:report
 ### Go coverage — aggregate across all modules
 
 ```bash
-# Run the script (generates per-service .out and .html files)
+# Run the script (generates per-service .out and .html files and per-module log files)
 ./scripts/dev/test-go.sh
 
-# Reports are in:
+# Coverage HTML reports:
 ls .coverage/
 # svc-radar-ingestion.out  svc-radar-ingestion.html
 # svc-alert.out            svc-alert.html
-# ...
+# …
+
+# Raw test logs (go test -v output per module):
+ls .test-results/<timestamp>/unit/
+# svc-radar-ingestion.log  svc-alert.log  …  failures.txt  counts.txt
 ```
 
 ### Go coverage — single module with HTML
@@ -285,16 +303,57 @@ pnpm test:coverage
 ### Master script
 
 ```bash
-./scripts/dev/test-all.sh
+./scripts/dev/test-all.sh [--skip-e2e] [--skip-bench]
 ```
 
 Runs in sequence:
 1. Go unit tests (all modules)
 2. Frontend unit tests (Vitest)
 3. Integration tests (testcontainers)
-4. E2E tests (Docker Compose lifecycle)
-5. Benchmarks
-6. Summary report
+4. E2E tests (Docker Compose lifecycle) — skipped with `--skip-e2e`
+5. Benchmarks — skipped with `--skip-bench`
+6. Stage table + failure details + results directory location
+
+### Summary output
+
+After all stages complete, a table is printed followed by per-stage failure details:
+
+```
+  Stage                                   Tests  Passed  Failed    Status
+  ──────────────────────────────────────  ─────  ───────  ───────  ────────
+  Unit — Go                                 142      138        4    FAILED
+  Unit — Frontend                            23       23        0    PASSED
+  Integration                                18       16        2    FAILED
+  E2E                                         8        7        1    FAILED
+  Benchmarks                                  4        4        0    SKIPPED
+
+  Stages: 4 run | 2 passed | 2 failed | 1 skipped
+  Elapsed: 183s
+
+════════════════════════════════════════════════════════════════
+  FAILURE DETAILS BY STAGE
+════════════════════════════════════════════════════════════════
+── FAILED TESTS: Unit — Go [4 failure(s), showing first 10] ────────
+   1. svc-radar-ingestion/TestParseNMEA_Invalid_ReturnsError
+   2. pkg/TestClassificationPropagation_Downgrade_Blocked
+   3. svc-fusion-engine/TestFuseTrack_DuplicateID_Deduped
+   4. svc-anomaly-detection/TestScore_BelowThreshold_NoAlert
+
+── FAILED TESTS: Integration [2 failure(s), showing first 10] ──────
+   1. integration/centralized/TestIngestionPipeline_RadarTrack
+   2. integration/centralized/TestFusionPipeline_AISPosition
+
+── Test Results Location ────────────────────────────────────────────
+  /home/user/workspace/RTSA_VS_Opus/.test-results/2026-03-02T14-30-00/
+
+  Subdirectories:
+    unit/         — per-module Go unit test logs (*.log, failures.txt)
+    frontend/     — Vitest output (run.log, failures.txt)
+    integration/  — integration test logs (*.log, run.log, failures.txt)
+    e2e/          — E2E test log (run.log, failures.txt)
+    benchmark/    — benchmark log (run.log, failures.txt)
+    SUMMARY.txt   — machine-readable aggregate for AI agents
+```
 
 ### Make targets
 
@@ -327,7 +386,77 @@ Before opening a Pull Request, run the full 5-gate check:
 
 ---
 
-## 10. Quick Reference
+## 10. Test Results & Logs
+
+Every test script persists structured output under `.test-results/` so failures can be inspected offline and AI agents can consume a machine-readable aggregate without re-parsing terminal output.
+
+### Directory structure
+
+```
+.test-results/<YYYY-MM-DDTHH-MM-SS>/        ← created once per test-all.sh run
+  unit/
+    <module-name>.log       ← full go test -v output per Go module
+    failures.txt            ← one "module/TestName" entry per failed test
+    counts.txt              ← TOTAL=N PASSED=N FAILED=N MODULES_TOTAL=N …
+  frontend/
+    run.log  failures.txt  counts.txt
+  integration/
+    centralized.log         ← tests/integration/ output
+    <svc-name>.log          ← per-service integration test output
+    run.log                 ← all integration logs concatenated
+    failures.txt            ← one "integration/<suite>/TestName" per failure
+    counts.txt
+  e2e/
+    run.log  failures.txt  counts.txt
+  benchmark/
+    run.log  failures.txt  counts.txt
+  SUMMARY.txt               ← machine-readable aggregate (AI agent entry point)
+```
+
+> **`.test-results/` is in `.gitignore`** — log artifacts are never committed.
+
+### Standalone vs. orchestrated runs
+
+| How script is invoked | Where logs go |
+|---|---|
+| `./scripts/dev/test-all.sh` | `.test-results/<ts>/` — all stages in one directory |
+| `./scripts/dev/test-go.sh` (standalone) | `.test-results/<ts>/unit/` — own timestamped dir |
+| `./scripts/dev/test-integration.sh` (standalone) | `.test-results/<ts>/integration/` — own timestamped dir |
+| `./scripts/dev/test-e2e.sh` (standalone) | `.test-results/<ts>/e2e/` — own timestamped dir |
+
+This is controlled by the `RTSA_TEST_RESULTS_DIR` environment variable, which `test-all.sh` exports before calling sub-scripts.
+
+### Reading results programmatically or with an AI agent
+
+```bash
+# Latest run directory
+LATEST=$(ls -td .test-results/*/ | head -1)
+
+# All failed unit tests
+cat "${LATEST}unit/failures.txt"
+
+# Stage-level summary
+cat "${LATEST}SUMMARY.txt"
+
+# Full integration run log
+cat "${LATEST}integration/run.log"
+
+# Count of failed E2E tests
+grep -oP 'FAILED=\K[0-9]+' "${LATEST}e2e/counts.txt"
+```
+
+### File formats
+
+| File | Format | Example |
+|---|---|---|
+| `failures.txt` | One `<stage/TestName>` per line | `svc-radar-ingestion/TestParseNMEA_Invalid_ReturnsError` |
+| `counts.txt` | Space-separated `KEY=VALUE` | `TOTAL=47 PASSED=46 FAILED=1 MODULES_TOTAL=15 MODULES_PASSED=14 MODULES_FAILED=1` |
+| `SUMMARY.txt` | Structured plaintext sections | `STAGES`, `STAGES_RUN=N`, `RESULTS_DIR=`, `FAILURE DETAILS` |
+| `*.log` | Raw `go test -v` / `pnpm test` output | Standard Go test output, unmodified |
+
+---
+
+## 11. Quick Reference
 
 | What | Command |
 |---|---|
@@ -342,3 +471,6 @@ Before opening a Pull Request, run the full 5-gate check:
 | Coverage (frontend) | `cd web-cop && pnpm test:coverage` |
 | Pre-PR gate | `./scripts/dev/pre-pr-check.sh` |
 | Everything | `./scripts/dev/test-all.sh` |
+| Skip E2E + benchmarks | `./scripts/dev/test-all.sh --skip-e2e --skip-bench` |
+| View latest results | `cat .test-results/$(ls -t .test-results/ \| head -1)/SUMMARY.txt` |
+| Latest unit failures | `cat .test-results/$(ls -t .test-results/ \| head -1)/unit/failures.txt` |
