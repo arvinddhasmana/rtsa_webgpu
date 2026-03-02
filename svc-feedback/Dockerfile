@@ -27,6 +27,10 @@ COPY gen/go/ ./gen/go/
 COPY pkg/ ./pkg/
 COPY svc-feedback/ ./svc-feedback/
 
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.25 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
 # Build the binary with security flags.
 # CGO_ENABLED=0 for static binary.
 # -trimpath removes local path information.
@@ -45,6 +49,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # Use distroless for minimal attack surface (no shell, no package manager).
 # ──────────────────────────────────────────────────────────────────────────────
 FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 
 # Copy trusted CA certificates for TLS.
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

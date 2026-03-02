@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"time"
 
@@ -17,6 +18,9 @@ import (
 	pipeline "github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/handler"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/producer"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/state"
+	"google.golang.org/grpc"
+	grpchealth "google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
@@ -52,6 +56,17 @@ func run() error {
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	}
 	logger := slog.New(handler).With("service", cfg.ServiceName)
+
+	// --- Dummy gRPC Health Server ---
+	grpcLis, _ := net.Listen("tcp", ":50051")
+	grpcServerDummy := grpc.NewServer()
+	grpchealth_server := grpchealth.NewServer()
+	grpchealth_server.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServerDummy, grpchealth_server)
+	go grpcServerDummy.Serve(grpcLis)
+	defer grpcServerDummy.GracefulStop()
+
+
 	slog.SetDefault(logger)
 
 	logger.Info("starting anomaly detection service",

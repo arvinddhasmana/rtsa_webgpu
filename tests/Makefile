@@ -5,31 +5,32 @@
 
 ## help: Show this help
 help:
-@grep -E '^##[^#]' $(MAKEFILE_LIST) | sed 's/## //'
+	@grep -E '^##[^#]' $(MAKEFILE_LIST) | sed 's/## //'
 
 ## test-integration: Run integration tests (requires Docker)
 test-integration:
-RTSA_INTEGRATION_TESTS=true go test -v -tags integration -timeout 10m \
-./integration/...
+	RTSA_INTEGRATION_TESTS=true go test -v -tags integration -timeout 10m \
+	./integration/...
 
 ## test-e2e: Run end-to-end tests (requires full Docker Compose stack)
 test-e2e:
-docker compose -f docker-compose.test.yml up -d --wait
-RTSA_INTEGRATION_TESTS=true go test -v -tags e2e -timeout 15m \
-./e2e/...
-docker compose -f docker-compose.test.yml down -v
+	docker compose -f ../deploy/docker-compose.yml -f ../deploy/docker-compose.services.yml up -d --build --wait
+	../scripts/dev/init-topics.sh
+	../scripts/dev/init-clickhouse.sh
+	RTSA_INTEGRATION_TESTS=true go test -v -tags e2e -timeout 15m ./e2e/...
+	docker compose -f ../deploy/docker-compose.yml -f ../deploy/docker-compose.services.yml down -v
 
 ## test-bench: Run performance benchmarks with threshold assertions
 test-bench:
-RTSA_INTEGRATION_TESTS=true go test -v -tags integration \
--bench=. -benchtime=10s -timeout 10m \
-./benchmark/...
+	RTSA_INTEGRATION_TESTS=true go test -v -tags integration \
+	-bench=. -benchtime=10s -timeout 10m \
+	./benchmark/...
 
 ## test-all: Run all tests (integration + e2e + benchmarks)
 test-all: test-integration test-e2e test-bench
 
 ## test-unit: Run unit-level integration tests only (no Docker infrastructure required)
 test-unit:
-RTSA_INTEGRATION_TESTS=true go test -v -tags integration -timeout 5m \
--run "TestIT0[1-7]_|TestFeedback|TestQuery" \
-./integration/...
+	RTSA_INTEGRATION_TESTS=true go test -v -tags integration -timeout 5m \
+	-run "TestIT0[1-7]_|TestFeedback|TestQuery" \
+	./integration/...

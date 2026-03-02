@@ -45,15 +45,15 @@ build: ## Build all services
 test: ## Run all unit tests with race detector
 	@for svc in $(SERVICES); do \
 		echo "Testing $$svc..."; \
-		cd $$svc && go test -race -count=1 -coverprofile=coverage.out ./... && cd ..; \
+		(cd $$svc && go test -race -count=1 -coverprofile=coverage.out ./...); \
 	done
 	@cd pkg && go test -race -count=1 -coverprofile=coverage.out ./...
 
 test-coverage: ## Run tests and show coverage summary
 	@for svc in $(SERVICES); do \
 		echo "=== $$svc ==="; \
-		cd $$svc && go test -race -count=1 -coverprofile=coverage.out ./... && \
-		go tool cover -func=coverage.out | tail -1 && cd ..; \
+		(cd $$svc && go test -race -count=1 -coverprofile=coverage.out ./... && \
+		go tool cover -func=coverage.out | tail -1); \
 	done
 
 integration-test: ## Run integration tests (requires docker stack running)

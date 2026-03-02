@@ -23,6 +23,10 @@ COPY gen/go/ ./gen/go/
 COPY pkg/ ./pkg/
 COPY svc-alert/ ./svc-alert/
 
+RUN GRPC_HEALTH_PROBE_VERSION=v0.4.25 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    chmod +x /bin/grpc_health_probe
+
 # Build the binary
 WORKDIR /workspace/svc-alert
 ENV GOWORK=off
@@ -32,6 +36,8 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 
 # ─── Runtime stage ────────────────────────────────────────────────────────────
 FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=builder /bin/grpc_health_probe /bin/grpc_health_probe
 
 COPY --from=builder /out/svc-alert /svc-alert
 

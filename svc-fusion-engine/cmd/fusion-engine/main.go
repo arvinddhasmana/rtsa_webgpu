@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -16,12 +17,26 @@ import (
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-fusion-engine/internal/producer"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	grpchealth "google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
 	cfg := config.Load()
 
 	logger, err := buildLogger(cfg.LogLevel)
+
+	// --- Dummy gRPC Health Server ---
+	grpcLis, _ := net.Listen("tcp", ":50051")
+	grpcServerDummy := grpc.NewServer()
+	grpchealth_server := grpchealth.NewServer()
+	grpchealth_server.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServerDummy, grpchealth_server)
+	go grpcServerDummy.Serve(grpcLis)
+	defer grpcServerDummy.GracefulStop()
+
+
 	if err != nil {
 		os.Stderr.WriteString("failed to build logger: " + err.Error() + "\n")
 		os.Exit(1)

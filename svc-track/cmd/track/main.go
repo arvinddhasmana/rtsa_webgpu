@@ -44,6 +44,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	grpchealth "google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -125,6 +127,11 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer(grpcCreds)
+
+	grpchealth_server := grpchealth.NewServer()
+	grpchealth_server.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServer, grpchealth_server)
+
 	entityv1.RegisterTrackServiceServer(grpcServer, trackSvc)
 	reflection.Register(grpcServer) // dev convenience
 

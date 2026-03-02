@@ -99,10 +99,10 @@ func Load() (*Config, error) {
 		}
 		cfg.HealthPort = n
 	}
-	if v := os.Getenv("RTSA_AUDIT_GRPC_PORT"); v != "" {
+	if v := os.Getenv("RTSA_GRPC_PORT"); v != "" {
 		n, err := strconv.Atoi(v)
 		if err != nil {
-			return nil, fmt.Errorf("config: invalid RTSA_AUDIT_GRPC_PORT %q: %w", v, err)
+			return nil, fmt.Errorf("config: invalid RTSA_GRPC_PORT %q: %w", v, err)
 		}
 		cfg.GRPCPort = n
 	}

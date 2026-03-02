@@ -19,6 +19,8 @@ import (
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/repository"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	grpchealth "google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
@@ -73,6 +75,11 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
+
+	grpchealth_server := grpchealth.NewServer()
+	grpchealth_server.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServer, grpchealth_server)
+
 	queryv1.RegisterQueryServiceServer(grpcServer, querySrv)
 
 	// ─── Health check HTTP server ─────────────────────────────────────────────
