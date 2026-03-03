@@ -2,7 +2,7 @@
 # RTSA Project Root Makefile
 
 .PHONY: help proto-gen proto-lint proto-breaking build test test-coverage \
-        integration-test lint docker-up docker-down docker-logs \
+        integration-test test-bench lint docker-up docker-down docker-logs \
         docker-up-all docker-down-all docker-logs-all \
         init-topics init-clickhouse health-check clean
 
@@ -58,6 +58,9 @@ test-coverage: ## Run tests and show coverage summary
 
 integration-test: ## Run integration tests (requires docker stack running)
 	go test -race -count=1 -tags=integration ./tests/integration/...
+
+test-bench: ## Run performance benchmarks (B01–B04) via test-bench.sh
+	./scripts/dev/test-bench.sh
 
 # ──────────────────────────────────────────
 # Lint

@@ -134,51 +134,6 @@ run_stage() {
   fi
 }
 
-# ── Inline benchmark runner ───────────────────────────────────────────────
-run_benchmarks() {
-  local bench_dir="${RTSA_TEST_RESULTS_DIR}/benchmark"
-  local bench_log="${bench_dir}/run.log"
-
-  STAGES_RUN=$(( STAGES_RUN + 1 ))
-  STAGE_NAMES+=("Benchmarks")
-  echo ""
-  echo -e "${BOLD}${CYAN}── Performance Benchmarks ──${NC}"
-
-  local bench_ok=true
-  set +e
-  (cd "${REPO_ROOT}/tests" && \
-    RTSA_INTEGRATION_TESTS=true go test \
-      -v -tags integration \
-      -bench=. -benchtime=10s \
-      -timeout 10m \
-      ./benchmark/... 2>&1) | tee "${bench_log}"
-  local _pe=("${PIPESTATUS[@]}")
-  set -e
-  [ "${_pe[0]}" -eq 0 ] || bench_ok=false
-
-  local bp bf bt
-  bp="$(grep -cE '^[[:space:]]*--- PASS:' "${bench_log}" 2>/dev/null || echo 0)"
-  bf="$(grep -cE '^[[:space:]]*--- FAIL:' "${bench_log}" 2>/dev/null || echo 0)"
-  bt=$(( bp + bf ))
-  grep -E '^[[:space:]]*--- FAIL:' "${bench_log}" 2>/dev/null \
-    | sed 's|.*--- FAIL: \([^ ]*\).*|benchmark/\1|' \
-    >> "${bench_dir}/failures.txt" || true
-  printf 'TOTAL=%d PASSED=%d FAILED=%d\n' "$bt" "$bp" "$bf" > "${bench_dir}/counts.txt"
-
-  STAGE_TOTAL+=("$bt")
-  STAGE_PASSED+=("$bp")
-  STAGE_FAILED+=("$bf")
-
-  if [ "$bench_ok" = true ] && [ "$bf" -eq 0 ]; then
-    log_pass "Performance Benchmarks — PASSED"
-    STAGE_STATUS+=("PASSED")
-    STAGES_PASSED=$(( STAGES_PASSED + 1 ))
-  else
-    log_fail "Performance Benchmarks — FAILED"
-    STAGE_STATUS+=("FAILED")
-    STAGES_FAILED=$(( STAGES_FAILED + 1 ))
-  fi
-}
 
 # ── Inline frontend runner ─────────────────────────────────────────────────
 run_frontend() {
@@ -417,7 +372,10 @@ main() {
     STAGE_STATUS+=("SKIPPED")
     STAGES_SKIPPED=$(( STAGES_SKIPPED + 1 ))
   else
-    run_benchmarks
+    run_stage "Benchmarks" \
+      "${RTSA_TEST_RESULTS_DIR}/benchmark/counts.txt" \
+      "${RTSA_TEST_RESULTS_DIR}/benchmark/failures.txt" \
+      bash "${SCRIPT_DIR}/test-bench.sh"
   fi
 
   # ── Final summary ────────────────────────────────────────────────────────────
