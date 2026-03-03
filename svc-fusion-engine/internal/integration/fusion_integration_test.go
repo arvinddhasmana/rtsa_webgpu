@@ -55,6 +55,20 @@ func TestIT01_ProduceRadarObs_ConsumeFusedTrack(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// Verify the broker is reachable — this is an E2E test requiring a running RTSA stack.
+	// If the broker is not reachable, skip rather than fail.
+	probe, err := kgo.NewClient(kgo.SeedBrokers(b...))
+	if err == nil {
+		probeCtx, probeCancel := context.WithTimeout(ctx, 3*time.Second)
+		if probeErr := probe.Ping(probeCtx); probeErr != nil {
+			probe.Close()
+			probeCancel()
+			t.Skipf("IT01: broker %v unreachable (start the full RTSA stack first): %v", b, probeErr)
+		}
+		probe.Close()
+		probeCancel()
+	}
+
 	// Produce a radar observation to sensors.radar
 	producer, err := kgo.NewClient(kgo.SeedBrokers(b...))
 	if err != nil {
@@ -96,3 +110,4 @@ func TestIT01_ProduceRadarObs_ConsumeFusedTrack(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 }
+

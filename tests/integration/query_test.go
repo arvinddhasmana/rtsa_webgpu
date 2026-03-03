@@ -60,11 +60,11 @@ t.Fatalf("insertQueryTestTracks: send: %v", err)
 }
 }
 
-// TestQuery_TracksInTimeRange validates:
+// TestQueryTracks_TimeRangeFilter_ReturnsMatchingRows validates:
 //  1. Insert 20 tracks into ClickHouse in a known time range
 //  2. Query via direct SQL with matching time range
 //  3. Verify results are returned with correct count
-func TestQuery_TracksInTimeRange(t *testing.T) {
+func TestQueryTracks_TimeRangeFilter_ReturnsMatchingRows(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 env := testutil.SetupClickHouseOnly(t)
@@ -99,11 +99,11 @@ t.Errorf("Query: expected >= 20 tracks, got %d", count)
 t.Logf("Query PASS: %d tracks found in time range query", count)
 }
 
-// TestQuery_ClassificationFilter validates:
+// TestQueryTracks_ClassificationFilter_SecretCallerSeesMoreTracks validates:
 //  1. Insert UNCLASSIFIED and SECRET tracks
 //  2. Query with UNCLASSIFIED clearance filter → only UNCLASSIFIED returned
 //  3. Query with SECRET clearance filter → all returned
-func TestQuery_ClassificationFilter(t *testing.T) {
+func TestQueryTracks_ClassificationFilter_SecretCallerSeesMoreTracks(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 env := testutil.SetupClickHouseOnly(t)

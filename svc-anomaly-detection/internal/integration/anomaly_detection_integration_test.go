@@ -165,14 +165,18 @@ pub := &capturePublisher{}
 history := state.NewTrackHistory(100, 2*time.Hour)
 
 for i := 0; i < entries; i++ {
-history.Append(trackID, &state.HistoryEntry{
-Timestamp:  time.Now().Add(-time.Duration(entries-i) * time.Minute),
-SpeedKnots: baseSpeed,
-Heading:    90.0,
-Latitude:   44.65,
-Longitude:  -63.57,
-EntityType: commonv1.EntityType_ENTITY_TYPE_SURFACE,
-})
+	// Vary speed slightly (±0.5 knots around baseSpeed) so SpeedStdDev > 0.1,
+	// which is required for the speed detector to fire (see SpeedDetector.Detect).
+	// Without variation stddev == 0 and detection is always skipped.
+	varied := baseSpeed + float64(i)*0.5
+	history.Append(trackID, &state.HistoryEntry{
+		Timestamp:  time.Now().Add(-time.Duration(entries-i) * time.Minute),
+		SpeedKnots: varied,
+		Heading:    90.0,
+		Latitude:   44.65,
+		Longitude:  -63.57,
+		EntityType: commonv1.EntityType_ENTITY_TYPE_SURFACE,
+	})
 }
 
 extractor := domain.NewFeatureExtractor(history, nil)

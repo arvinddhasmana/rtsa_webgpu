@@ -19,12 +19,12 @@ feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
 "google.golang.org/protobuf/proto"
 )
 
-// TestFeedback_SubmissionProducedToTopic validates:
+// TestFeedbackSubmission_ProduceToTopic_ConsumedWithCorrectHeaders validates:
 //  1. Operator feedback serialized to protobuf
 //  2. Produced to feedback.operator.submissions topic
 //  3. Consumed back with correct classification header
 //  4. Deserialized with all required fields
-func TestFeedback_SubmissionProducedToTopic(t *testing.T) {
+func TestFeedbackSubmission_ProduceToTopic_ConsumedWithCorrectHeaders(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 env := testutil.SetupRedpandaOnly(t)
@@ -73,10 +73,10 @@ testutil.AssertHeaderValue(t, received[0], redpanda.HeaderSourceService, "svc-fe
 t.Log("Feedback PASS: submission produced and consumed with correct classification header")
 }
 
-// TestFeedback_ValidatedTopicMessage validates:
+// TestFeedbackValidated_HighTrustFeedback_OnValidatedTopic validates:
 //  1. Validated feedback messages (trust_score >= 0.5) are routed to feedback.operator.validated
 //  2. Classification header matches the operator's clearance level
-func TestFeedback_ValidatedTopicMessage(t *testing.T) {
+func TestFeedbackValidated_HighTrustFeedback_OnValidatedTopic(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 env := testutil.SetupRedpandaOnly(t)
@@ -123,10 +123,10 @@ testutil.AssertHeaderPresent(t, received[0], redpanda.HeaderClassification)
 t.Logf("FeedbackValidated PASS: validated feedback on topic (trust_score=%.2f)", decoded.GetTrustScore())
 }
 
-// TestFeedback_ClassificationGuardEnforcement validates:
+// TestFeedbackClassificationGuard_ClearanceLevelMismatch_AccessDenied validates:
 //  1. UNCLASSIFIED operator cannot submit SECRET feedback
 //  2. Classification guard CanAccess correctly evaluates clearance
-func TestFeedback_ClassificationGuardEnforcement(t *testing.T) {
+func TestFeedbackClassificationGuard_ClearanceLevelMismatch_AccessDenied(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 // UNCLASSIFIED operator cannot access SECRET content.

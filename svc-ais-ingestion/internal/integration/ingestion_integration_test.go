@@ -26,7 +26,7 @@ normalizer := domain.NewNormalizer()
 guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET)
 enricher := mapper.NewEnricher("svc-ais-ingestion", guard)
 
-h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger)
+h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
 
 // Test 1: Valid AIS observation accepted
 obs := &ingestionv1.SensorObservation{

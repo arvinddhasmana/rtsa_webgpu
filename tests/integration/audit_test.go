@@ -18,11 +18,11 @@ auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
 "google.golang.org/protobuf/proto"
 )
 
-// TestAudit_TrailCompleteness validates:
+// TestAuditTrail_MultiServiceEvents_AllStoredInClickHouse validates:
 //  1. Audit events from multiple services can be stored in ClickHouse
 //  2. Events are insertable and readable via direct ClickHouse client
 //  3. Classification header is correct for each service's events
-func TestAudit_TrailCompleteness(t *testing.T) {
+func TestAuditTrail_MultiServiceEvents_AllStoredInClickHouse(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 env := testutil.SetupTestEnv(t)
@@ -99,11 +99,11 @@ t.Errorf("Audit: expected >= %d audit rows, got %d", len(services), count)
 t.Logf("Audit PASS: %d service audit events stored in ClickHouse", count)
 }
 
-// TestAudit_AuditEventOnRedpanda validates:
+// TestAuditEvent_ProduceToTopic_ConsumedWithIntactProtobuf validates:
 //  1. Audit events are produced to the audit.events Redpanda topic
 //  2. Classification header is preserved
 //  3. Protobuf content is intact
-func TestAudit_AuditEventOnRedpanda(t *testing.T) {
+func TestAuditEvent_ProduceToTopic_ConsumedWithIntactProtobuf(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 env := testutil.SetupRedpandaOnly(t)
@@ -149,8 +149,8 @@ t.Logf("Audit PASS: audit event on audit.events topic (service=%s, action=%v)",
 decoded.GetServiceId(), decoded.GetAction())
 }
 
-// TestAudit_ImmutableAuditLog validates no TTL on audit_log per ITSG-33 AU-11.
-func TestAudit_ImmutableAuditLog(t *testing.T) {
+// TestAuditLog_IdempotentDuplicateInsert_RowPresent validates no TTL on audit_log per ITSG-33 AU-11.
+func TestAuditLog_IdempotentDuplicateInsert_RowPresent(t *testing.T) {
 testutil.SkipUnlessEnabled(t)
 
 env := testutil.SetupTestEnv(t)

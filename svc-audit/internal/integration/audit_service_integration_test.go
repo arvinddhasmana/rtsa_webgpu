@@ -41,11 +41,16 @@ func startClickHouseForAudit(ctx context.Context) (*auditClickHouseContainer, er
 req := testcontainers.ContainerRequest{
 Image:        "clickhouse/clickhouse-server:24.3-alpine",
 ExposedPorts: []string{"9000/tcp"},
-WaitingFor:   wait.ForLog("Ready for connections").WithStartupTimeout(90 * time.Second),
+// ForListeningPort is more reliable than ForLog("Ready for connections") because
+// the ClickHouse entrypoint may suppress that log line when CLICKHOUSE_PASSWORD is
+// empty. CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1 is required to avoid the
+// "disabling network access" restriction that makes the container unreachable.
+WaitingFor: wait.ForListeningPort("9000/tcp").WithStartupTimeout(120 * time.Second),
 Env: map[string]string{
-"CLICKHOUSE_DB":       "rtsa",
-"CLICKHOUSE_USER":     "default",
-"CLICKHOUSE_PASSWORD": "",
+"CLICKHOUSE_DB":                       "rtsa",
+"CLICKHOUSE_USER":                     "default",
+"CLICKHOUSE_PASSWORD":                 "",
+"CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT": "1",
 },
 }
 
@@ -59,16 +64,63 @@ return nil, fmt.Errorf("start clickhouse container: %w", err)
 
 host, err := container.Host(ctx)
 if err != nil {
+_ = container.Terminate(ctx)
 return nil, fmt.Errorf("get container host: %w", err)
 }
 port, err := container.MappedPort(ctx, "9000")
 if err != nil {
+_ = container.Terminate(ctx)
 return nil, fmt.Errorf("get container port: %w", err)
 }
 
 dsn := fmt.Sprintf("clickhouse://default:@%s:%s/rtsa", host, port.Port())
+
+// Wait for ClickHouse to fully initialise — the port may open before the rtsa database
+// is created and the server is ready to accept SQL. Uses same pattern as centralized testutil.
+if err := waitForClickHouseAuditReady(ctx, dsn); err != nil {
+_ = container.Terminate(ctx)
+return nil, fmt.Errorf("clickhouse readiness: %w", err)
+}
+
 return &auditClickHouseContainer{container: container, dsn: dsn}, nil
 }
+
+// waitForClickHouseAuditReady retries pinging ClickHouse until the DB is ready
+// or the context expires. Matches the pattern in tests/integration/testutil/setup.go.
+func waitForClickHouseAuditReady(ctx context.Context, dsn string) error {
+opts, err := clickhouse.ParseDSN(dsn)
+if err != nil {
+return fmt.Errorf("parse DSN: %w", err)
+}
+
+deadline := time.After(30 * time.Second)
+ticker := time.NewTicker(500 * time.Millisecond)
+defer ticker.Stop()
+
+var lastErr error
+for {
+select {
+case <-ctx.Done():
+return fmt.Errorf("context cancelled while waiting for ClickHouse: %w", lastErr)
+case <-deadline:
+return fmt.Errorf("timeout after 30s waiting for ClickHouse: %w", lastErr)
+case <-ticker.C:
+conn, connErr := clickhouse.Open(opts)
+if connErr != nil {
+lastErr = connErr
+continue
+}
+if pingErr := conn.Ping(ctx); pingErr != nil {
+_ = conn.Close()
+lastErr = pingErr
+continue
+}
+_ = conn.Close()
+return nil
+}
+}
+}
+
 
 // createAuditLogTable creates the audit_log table in ClickHouse.
 // IMMUTABILITY NOTE: Table has NO TTL per ITSG-33 AU-11.
@@ -88,7 +140,7 @@ audit_id String,
 service_id String,
 event_type String,
 actor_id String,
-actor_type Enum8('SERVICE' = 1, 'OPERATOR' = 2, 'SYSTEM' = 3),
+actor_type Enum8('ACTOR_TYPE_SERVICE' = 1, 'ACTOR_TYPE_OPERATOR' = 2, 'ACTOR_TYPE_SYSTEM' = 3),
 resource_type String,
 resource_id String,
 action String,
@@ -433,8 +485,9 @@ time.Sleep(500 * time.Millisecond)
 req := &auditv1.StreamAuditLogRequest{
 TimeRange: &commonv1.TimeRange{
 StartTime: timestamppb.New(now.Add(-time.Minute)),
-EndTime:   timestamppb.New(now.Add(time.Minute)),
+EndTime: timestamppb.New(now.Add(time.Minute)),
 },
+ServiceIds: []string{"svc-test"},
 }
 
 guardrail := domain.NewQueryGuardrail(90, 10000, 30)
@@ -479,5 +532,5 @@ if nextToken3 != nil {
 t.Error("T10: expected nil next token on last page")
 }
 
-t.Log("T10: Cursor-based pagination traversal verified")
+for _, e := range page1 { t.Logf("P1: %s %v", e.AuditId, e.EventTime.AsTime()) }; for _, e := range page2 { t.Logf("P2: %s %v", e.AuditId, e.EventTime.AsTime()) }; for _, e := range page3 { t.Logf("P3: %s %v", e.AuditId, e.EventTime.AsTime()) }
 }

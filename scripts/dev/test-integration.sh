@@ -55,8 +55,11 @@ extract_failures() {
 tally_counts() {
   local log="$1"
   local p f
-  p="$(grep -cE '^[[:space:]]*--- PASS:' "${log}" 2>/dev/null || echo 0)"
-  f="$(grep -cE '^[[:space:]]*--- FAIL:' "${log}" 2>/dev/null || echo 0)"
+  p="$(grep -cE '^[[:space:]]*--- PASS:' "${log}" 2>/dev/null; true)"
+  f="$(grep -cE '^[[:space:]]*--- FAIL:' "${log}" 2>/dev/null; true)"
+  # Strip any trailing whitespace/newlines; default to 0 if empty (file missing).
+  p="${p//[[:space:]]/}"; p="${p:-0}"
+  f="${f//[[:space:]]/}"; f="${f:-0}"
   TOTAL_TESTS=$(( TOTAL_TESTS + p + f ))
   PASSED_TESTS=$(( PASSED_TESTS + p ))
   FAILED_TESTS=$(( FAILED_TESTS + f ))
@@ -147,7 +150,7 @@ run_service_integration_tests() {
     service_name="$(basename "$dir")"
 
     local int_test_count
-    int_test_count="$(find "$dir" -name "*_integration_test.go" -o -name "*_integration_*.go" 2>/dev/null | wc -l | tr -d ' ')"
+    int_test_count="$(find "$dir" -name "*_integration_test.go" -o -name "*_integration_*.go" -o -path "*/integration/*_test.go" 2>/dev/null | wc -l | tr -d ' ')"
 
     if [ "$int_test_count" -eq 0 ]; then
       log_info "  ${service_name} — no integration tests (skipping)"
