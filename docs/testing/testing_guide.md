@@ -19,9 +19,19 @@ The RTSA project follows a **test pyramid** strategy with four layers:
 | **E2E Tests**         | `tests/e2e/`                           | `e2e`         | Full Docker Compose stack | Critical paths         |
 | **Benchmarks**        | `tests/benchmark/`                     | `integration` | testcontainers-go (auto)  | NFR thresholds         |
 | **Frontend Unit**     | `web-cop/src/__tests__/`               | —             | Vitest                    | 80%+                   |
-| **Frontend E2E**      | `web-cop/e2e/`                         | —             | Playwright + Docker       | Critical flows         |
+| **Frontend E2E (T1)** | `web-cop/e2e/mocked/`                  | —             | Playwright (Mocked)       | Critical flows         |
+| **Frontend E2E (T2)** | `web-cop/e2e/live/`                    | —             | Playwright (Live Backend) | Integration flows      |
+| **Frontend QA (T3)**  | Ad-hoc / AI Agents                     | —             | Browser Subagent          | UX Verification        |
 
 ---
+
+## 1.1 Frontend Hybrid Validation Strategy
+
+The Web COP follows an industry-standard **Hybrid Validation** approach for UI testing to bridge the gap between fast deterministic feedback and real-world system behavior:
+
+1. **Tier 1: Fully Mocked E2E (Pre-Merge)**: Deterministic, sub-second Playwright tests using mocked gRPC streams to validate state, routing, and component mounting. Used as CI/CD gates.
+2. **Tier 2: Live Backend E2E (Nightly)**: Playwright tests executed against the real Docker cluster (`start-backend.sh`), processing live space-seed data to guarantee full-stack communication (Envoy → Handlers → ClickHouse).
+3. **Tier 3: Visual Autonomous QA (Sprint-level)**: Dynamic exploration using visual AI browser subagents to organically navigate the UI, ensuring complex visual states, layout flows, and simulated sensor realities meet human-quality standards without brittle selectors.
 
 ## 2. Repository Layout
 

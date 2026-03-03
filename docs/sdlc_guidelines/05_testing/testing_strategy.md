@@ -234,7 +234,13 @@ func (m *MockSensorIngester) IngestEvent(ctx context.Context, event *pb.SensorEv
 - Use `screen.getByRole()`, `getByLabelText()` over `getByTestId()`
 - Test accessibility: every interactive element must be reachable via keyboard
 - Test classification badge rendering (correct color, correct label)
-- Test offline/degraded mode behavior
+### 7.3 Hybrid Validation Strategy (E2E)
+
+The COP Web Application employs a 3-tier Hybrid Validation strategy for End-to-End testing to balance reliability with realism:
+
+- **Tier 1: Mocked E2E Tests (Pre-Merge):** Built with Playwright and gRPC-Web mocks. These run in milliseconds, are completely deterministic, and are used to validate component rendering, state management, and routing locally and in CI gating.
+- **Tier 2: Live Integration E2E Tests (Nightly/Release):** A separate Playwright suite running against the fully orchestrated Docker backend (via `scripts/cop-dev/start-backend.sh`). These tests assert that the UI correctly consumes and renders live space-seeded telemetry and verified backend states.
+- **Tier 3: Visual Agent QA (Ad-hoc):** Used during active development sprints. An AI visual subagent navigates the live frontend to organically verify that the simulated data "feels" right, validating edge cases, responsiveness, and human-like UX without brittle DOM selector assertions.
 
 ## 8. Continuous Integration Test Execution
 
