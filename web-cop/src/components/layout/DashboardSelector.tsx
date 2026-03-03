@@ -11,7 +11,7 @@ const ROLE_VIEWS: Record<ActiveRole, { value: DashboardView; label: string }[]> 
   ],
   analyst: [
     { value: "forensics", label: "Intelligence Forensics" },
-    { value: "operator", label: "Operator UI" },
+    { value: "intel-search", label: "Intel Search" },
   ],
   security: [
     { value: "audit", label: "Audit & Feedback" },

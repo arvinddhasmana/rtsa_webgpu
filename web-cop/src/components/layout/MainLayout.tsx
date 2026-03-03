@@ -22,7 +22,7 @@ import { OperatorDashboard } from "./OperatorDashboard";
 import { RoleSelector } from "./RoleSelector";
 import { SearchOverlay } from "./SearchOverlay";
 import { SensorHealthDashboard } from "./SensorHealthDashboard";
-import { SensorHealthPanel } from "./SensorHealthPanel";
+import { StatusBar } from "./StatusBar";
 
 const toolbarButtonStyle: React.CSSProperties = {
   padding: "4px 12px",
@@ -260,7 +260,7 @@ export const MainLayout: React.FC = () => {
         )}
       </div>
 
-      <SensorHealthPanel />
+      <StatusBar />
       <ClassificationBanner level={effectiveClassification} position="bottom" />
     </div>
   );

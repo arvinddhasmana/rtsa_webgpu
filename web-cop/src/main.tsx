@@ -35,6 +35,11 @@ import("./stores/alertStore").then(({ useAlertStore }) => {
   (window as unknown as Record<string, unknown>)["__RTSA_ALERT_STORE__"] =
     useAlertStore;
 });
+import("./stores/sensorHealthStore").then(({ useSensorHealthStore }) => {
+  (window as unknown as Record<string, unknown>)[
+    "__RTSA_SENSOR_HEALTH_STORE__"
+  ] = useSensorHealthStore;
+});
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>

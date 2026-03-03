@@ -5,7 +5,7 @@ import { create } from "zustand";
 
 export type Theme = "light" | "dark" | "nvg" | "high-contrast";
 export type ActiveRole = "commander" | "security" | "analyst" | "sensor_operator" | "nato_liaison";
-export type DashboardView = "fusion" | "multi-domain" | "operator" | "forensics" | "audit" | "sensor-health" | "nato-exchange";
+export type DashboardView = "fusion" | "multi-domain" | "operator" | "forensics" | "audit" | "sensor-health" | "nato-exchange" | "intel-search";
 export type LayerKey = "trackLabels" | "trackTrails" | "sensorCoverage" | "geofences" | "mgrsGrid";
 
 interface FilterState {

@@ -199,3 +199,68 @@ export async function mockFeedbackSubmit(page: Page): Promise<void> {
     });
   });
 }
+
+/**
+ * injectTestSensors — injects SensorStatus objects into the Zustand
+ * sensorHealthStore via page.evaluate(), bypassing the gRPC layer.
+ * Requires window.__RTSA_SENSOR_HEALTH_STORE__ to be exposed (set in main.tsx).
+ */
+export async function injectTestSensors(
+  page: Page,
+  sensors: Array<{
+    sensorId: string;
+    sensorType?: string;
+    connected?: boolean;
+    connectionStatus?: string;
+    totalReceived?: number;
+    totalAccepted?: number;
+    totalRejected?: number;
+    eventsPerSecond?: number;
+    acceptanceRate?: number;
+    latencyMs?: number;
+    rateHistory?: number[];
+  }>,
+): Promise<void> {
+  await page.evaluate((sensorList) => {
+    const w = window as unknown as {
+      __RTSA_SENSOR_HEALTH_STORE__?: {
+        getState: () => {
+          upsertSensors: (sensors: unknown[]) => void;
+        };
+        setState: (partial: Record<string, unknown>) => void;
+      };
+    };
+    if (w.__RTSA_SENSOR_HEALTH_STORE__) {
+      const now = new Date();
+      const mapped = sensorList.map((s) => ({
+        sensorId: s.sensorId,
+        sensorType: s.sensorType ?? "RADAR",
+        connected: s.connected ?? true,
+        connectionStatus: s.connectionStatus ?? "connected",
+        totalReceived: s.totalReceived ?? 1000,
+        totalAccepted: s.totalAccepted ?? 950,
+        totalRejected: s.totalRejected ?? 50,
+        lastObservationTime: now,
+        eventsPerSecond: s.eventsPerSecond ?? 5.0,
+        acceptanceRate: s.acceptanceRate ?? 95.0,
+        rateHistory: s.rateHistory ?? [3, 4, 5, 5, 5],
+        latencyMs: s.latencyMs ?? 100,
+      }));
+      w.__RTSA_SENSOR_HEALTH_STORE__.setState({ isLoading: false });
+      w.__RTSA_SENSOR_HEALTH_STORE__.getState().upsertSensors(mapped);
+    }
+  }, sensors);
+}
+
+/**
+ * selectRole — selects a role from the role-selector dropdown.
+ */
+export async function selectRole(
+  page: Page,
+  role: "commander" | "analyst" | "security" | "sensor_operator" | "nato_liaison",
+): Promise<void> {
+  await page.getByTestId("role-selector").selectOption(role);
+  // Allow UI to re-render after role change
+  await page.waitForTimeout(500);
+}
+
