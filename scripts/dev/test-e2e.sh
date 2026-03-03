@@ -2,8 +2,14 @@
 # CLASSIFICATION: UNCLASSIFIED
 # RTSA End-to-End Test Runner
 # Manages the full Docker Compose lifecycle: build → start → init → test → teardown.
-# Usage: ./scripts/dev/test-e2e.sh [--keep]
-#   --keep: don't tear down the stack after tests (useful for debugging)
+#
+# Usage: ./scripts/dev/test-e2e.sh [OPTIONS]
+#
+# Options:
+#   --keep        Don't tear down the stack after tests (useful for debugging).
+#   --skip-build  Skip Docker build; assume containers are already running and
+#                 healthy. Useful for rapid iteration after stack is already up.
+#   --json        Emit go test output in JSON format (for CI integration).
 #
 # Test results written to:  ${RTSA_TEST_RESULTS_DIR}/e2e/   (set by test-all.sh)
 #                     or:  .test-results/<timestamp>/e2e/  (standalone run)
@@ -18,7 +24,22 @@ COMPOSE_SERVICES="${REPO_ROOT}/deploy/docker-compose.services.yml"
 TESTS_DIR="${REPO_ROOT}/tests"
 
 KEEP_STACK=false
-[ "${1:-}" = "--keep" ] && KEEP_STACK=true
+SKIP_BUILD=false
+JSON_OUTPUT=false
+
+while [[ $# -gt 0 ]]; do
+  case "${1}" in
+    --keep)       KEEP_STACK=true  ;;
+    --skip-build) SKIP_BUILD=true  ;;
+    --json)       JSON_OUTPUT=true ;;
+    *)
+      echo "Unknown option: ${1}" >&2
+      echo "Usage: $0 [--keep] [--skip-build] [--json]" >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
 
 # ── Results directory ──────────────────────────────────────────────────────────
 _TS="$(date +%Y-%m-%dT%H-%M-%S)"
@@ -26,6 +47,7 @@ RESULTS_DIR="${RTSA_TEST_RESULTS_DIR:-.test-results/${_TS}}"
 E2E_DIR="${RESULTS_DIR}/e2e"
 mkdir -p "${E2E_DIR}"
 E2E_LOG="${E2E_DIR}/run.log"
+E2E_JSON="${E2E_DIR}/run.json"
 # ──────────────────────────────────────────────────────────────────────────────
 
 GREEN='\033[0;32m'
@@ -75,10 +97,14 @@ main() {
 
   local start_time=$SECONDS
 
-  # 1. Build and start
-  log_info "Building and starting Docker Compose stack ..."
-  docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_SERVICES" up -d --build --wait
-  log_pass "All containers are healthy"
+  # 1. Build and start (skipped with --skip-build)
+  if [ "$SKIP_BUILD" = true ]; then
+    log_info "Skipping Docker build (--skip-build). Assuming stack is already running."
+  else
+    log_info "Building and starting Docker Compose stack ..."
+    docker compose -f "$COMPOSE_FILE" -f "$COMPOSE_SERVICES" up -d --build --wait
+    log_pass "All containers are healthy"
+  fi
 
   # 2. Initialize topics
   log_info "Initializing Redpanda topics ..."
@@ -90,23 +116,44 @@ main() {
   "${SCRIPT_DIR}/init-clickhouse.sh"
   log_pass "ClickHouse schema initialized"
 
-  # 4. Run E2E tests — tee raw -v output to log file
+  # 4. Build go test args
+  local GO_TEST_ARGS=(-v -tags e2e -timeout 15m)
+  if [ "$JSON_OUTPUT" = true ]; then
+    GO_TEST_ARGS=(-json -tags e2e -timeout 15m)
+  fi
+
+  # 5. Run E2E tests — tee raw -v output to log file
   log_info "Running E2E tests ..."
   set +e
-  (cd "$TESTS_DIR" && \
-    RTSA_INTEGRATION_TESTS=true go test -v -tags e2e -timeout 15m ./e2e/... 2>&1) \
-    | tee "${E2E_LOG}"
-  local _pe=("${PIPESTATUS[@]}")
+  if [ "$JSON_OUTPUT" = true ]; then
+    (cd "${TESTS_DIR}" && \
+      RTSA_INTEGRATION_TESTS=true go test "${GO_TEST_ARGS[@]}" ./e2e/... 2>&1) \
+      | tee "${E2E_JSON}"
+    local _pe=("${PIPESTATUS[@]}")
+    # Also write human-readable from JSON via gotestfmt if available.
+    if command -v gotestfmt &>/dev/null; then
+      gotestfmt < "${E2E_JSON}" | tee "${E2E_LOG}" || true
+    else
+      cp "${E2E_JSON}" "${E2E_LOG}"
+    fi
+  else
+    (cd "${TESTS_DIR}" && \
+      RTSA_INTEGRATION_TESTS=true go test "${GO_TEST_ARGS[@]}" ./e2e/... 2>&1) \
+      | tee "${E2E_LOG}"
+    local _pe=("${PIPESTATUS[@]}")
+  fi
   set -e
   local test_exit=${_pe[0]}
 
-  # 5. Teardown
+  # 6. Teardown
   cleanup
 
-  # 6. Parse failures from log
+  # 7. Parse failures from log
   local e2e_passed e2e_failed
-  e2e_passed="$(grep -cE '^[[:space:]]*--- PASS:' "${E2E_LOG}" 2>/dev/null || echo 0)"
-  e2e_failed="$(grep -cE '^[[:space:]]*--- FAIL:' "${E2E_LOG}" 2>/dev/null || echo 0)"
+  e2e_passed="$(grep -cE '^[[:space:]]*--- PASS:' "${E2E_LOG}" 2>/dev/null | tr -d '[:space:]' || echo 0)"
+  e2e_failed="$(grep -cE '^[[:space:]]*--- FAIL:' "${E2E_LOG}" 2>/dev/null | tr -d '[:space:]' || echo 0)"
+  e2e_passed="${e2e_passed:-0}"
+  e2e_failed="${e2e_failed:-0}"
   local e2e_total=$(( e2e_passed + e2e_failed ))
 
   grep -E '^[[:space:]]*--- FAIL:' "${E2E_LOG}" 2>/dev/null \
@@ -118,10 +165,10 @@ main() {
     "${e2e_total}" "${e2e_passed}" "${e2e_failed}" \
     > "${E2E_DIR}/counts.txt"
 
-  # 7. Failure detail
+  # 8. Failure detail
   print_failures "${E2E_DIR}/failures.txt" 10 "E2E"
 
-  # 8. Report
+  # 9. Report
   local elapsed=$(( SECONDS - start_time ))
   echo ""
   echo "─────────────────────────────────────────────────────"
@@ -129,6 +176,9 @@ main() {
   echo "  Tests : ${e2e_total} run | ${e2e_passed} passed | ${e2e_failed} failed"
   echo "  Full log    : ${E2E_LOG}"
   echo "  Failed list : ${E2E_DIR}/failures.txt"
+  if [ "$JSON_OUTPUT" = true ]; then
+    echo "  JSON output : ${E2E_JSON}"
+  fi
   echo "─────────────────────────────────────────────────────"
 
   if [ "$test_exit" -eq 0 ] && [ "${e2e_failed}" -eq 0 ]; then

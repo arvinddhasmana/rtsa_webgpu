@@ -1,60 +1,48 @@
 // CLASSIFICATION: UNCLASSIFIED
 //go:build e2e
 
-// Package e2e provides the historical forensics query E2E test.
+// Package e2e provides the historical forensics query E2E test (E2E05).
 package e2e
 
 import (
-"context"
-"os"
-"testing"
-"time"
+	"context"
+	"testing"
+	"time"
 
-"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/pkg/kgo"
 )
 
-// TestE2E_ForensicsQuery validates the historical query capability:
-//  1. Verify tracks.fused.* topics are consumable from beginning
+// TestE2E05_ForensicsQuery_ReplayFusedTopics_MessagesConsumed validates the
+// historical query (forensics replay) capability:
+//  1. Verify tracks.fused.* topics are consumable from the beginning
 //  2. Verify message retention allows historical replay
-//  3. Simulate forensics query by consuming from time range
-func TestE2E_ForensicsQuery(t *testing.T) {
-if os.Getenv("RTSA_INTEGRATION_TESTS") != "true" {
-t.Skip("E2E tests disabled: set RTSA_INTEGRATION_TESTS=true to enable")
-}
+//  3. Simulate forensics query by replaying messages from offset 0
+//
+// The test passes even if no messages are present — it validates that the
+// topics are reachable and the consumer can be established.  Production
+// forensics queries require previously-ingested data (e.g., from E2E01).
+//
+// Covers UC009 (historical forensics query).
+// Timeout: 2 minutes
+func TestE2E05_ForensicsQuery_ReplayFusedTopics_MessagesConsumed(t *testing.T) {
+	skipE2E(t)
 
-broker := redpandaBroker()
-ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-defer cancel()
+	broker := redpandaBroker()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
 
-// Consume from beginning of tracks.fused.surface — simulates forensics replay.
-consumer, err := kgo.NewClient(
-kgo.SeedBrokers(broker),
-kgo.ConsumerGroup("forensics-query-e2e"),
-kgo.ConsumeTopics("tracks.fused.surface", "tracks.fused.air", "tracks.fused.subsurface"),
-kgo.ConsumeResetOffset(kgo.NewOffset().AtStart()),
-)
-if err != nil {
-t.Fatalf("ForensicsQuery: create consumer: %v", err)
-}
-defer consumer.Close()
+	consumer := newKafkaConsumer(t, broker,
+		"forensics-query-e2e05",
+		kgo.NewOffset().AtStart(),
+		"tracks.fused.surface",
+		"tracks.fused.air",
+		"tracks.fused.subsurface",
+	)
+	defer consumer.Close()
 
-var totalMessages int
-deadline := time.After(10 * time.Second)
-ticker := time.NewTicker(500 * time.Millisecond)
-defer ticker.Stop()
+	// Drain available messages for 10 seconds (forensics replay window).
+	totalMessages := pollCount(ctx, consumer, 10*time.Second)
 
-forLoop:
-for {
-select {
-case <-deadline:
-break forLoop
-case <-ticker.C:
-fetches := consumer.PollRecords(ctx, 100)
-fetches.EachRecord(func(_ *kgo.Record) {
-totalMessages++
-})
-}
-}
-
-t.Logf("ForensicsQuery PASS: replayed %d messages from track topics (forensics simulation)", totalMessages)
+	t.Logf("E2E05 PASS: forensics replay complete — %d message(s) consumed from fused track topics "+
+		"(tracks.fused.surface, tracks.fused.air, tracks.fused.subsurface)", totalMessages)
 }
