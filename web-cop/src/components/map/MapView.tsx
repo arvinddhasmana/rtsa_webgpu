@@ -9,6 +9,7 @@ import { useUIStore } from "../../stores/uiStore";
 import { LayerControls } from "./LayerControls";
 import { MapTooltip } from "./MapTooltip";
 import { SensorCoverageLayer } from "./SensorCoverageLayer";
+import { TrackLabelsOverlay } from "./TrackLabelsOverlay";
 
 /* ─── Domain Classification ─────────────────────────────────────────────────── */
 
@@ -181,7 +182,7 @@ export const MapView: React.FC = () => {
       const map = mapRef.current;
       if (!map) return;
 
-      const currentTracks = useTrackStore.getState().tracks;
+      const { tracks: currentTracks, trackHistory } = useTrackStore.getState();
       const currentSensors = useSensorStore.getState().rawObservations;
 
       // ── Track features with domain for icon selection ─────────────────────
@@ -205,6 +206,33 @@ export const MapView: React.FC = () => {
           },
         };
       });
+
+      // ── C: Track Trail Breadcrumbs ─────────────────────────────────────────
+      // Build LineString features from stored position history per track.
+      // Trails with < 2 points are skipped (can't form a line).
+      const HOSTILE_TRAIL_COLORS: Record<string, string> = {
+        HOSTILE:  "#DC2626",
+        FRIENDLY: "#2563EB",
+        NEUTRAL:  "#16A34A",
+        UNKNOWN:  "#CA8A04",
+      };
+      const trailFeatures: any[] = [];
+      for (const t of currentTracks.values()) {
+        const history = trackHistory.get(t.trackId);
+        if (!history || history.length < 2) continue;
+        trailFeatures.push({
+          type: "Feature" as const,
+          geometry: { type: "LineString" as const, coordinates: history },
+          properties: {
+            trackId: t.trackId,
+            trailColor: HOSTILE_TRAIL_COLORS[t.hostileClass] ?? "#6B7280",
+          },
+        });
+      }
+      const trailSource = map.getSource("track-trails");
+      if (trailSource) {
+        trailSource.setData({ type: "FeatureCollection", features: trailFeatures });
+      }
 
       const tracksSource = map.getSource("tracks");
       if (tracksSource) {
@@ -348,21 +376,20 @@ export const MapView: React.FC = () => {
             },
           });
 
+          // G: Geo-fence — semi-transparent fill + dashed stroke
           map.addLayer({
             id: "geofences-fill",
             type: "fill",
             source: "geofences",
             paint: {
               "fill-color": [
-                "match",
-                ["get", "type"],
-                "exclusion",
-                "#DC2626",
-                "inclusion",
-                "#16A34A",
-                "#6B7280",
+                "match", ["get", "type"],
+                "exclusion", "#DC2626",
+                "inclusion", "#16A34A",
+                /* default */ "#6B7280",
               ],
-              "fill-opacity": 0.1,
+              // G: raised from 0.1 → 0.15 so the zone is clearly visible
+              "fill-opacity": 0.15,
             },
           });
 
@@ -372,15 +399,14 @@ export const MapView: React.FC = () => {
             source: "geofences",
             paint: {
               "line-color": [
-                "match",
-                ["get", "type"],
-                "exclusion",
-                "#DC2626",
-                "inclusion",
-                "#16A34A",
-                "#6B7280",
+                "match", ["get", "type"],
+                "exclusion", "#F87171",   // red-400 — slightly lighter than fill
+                "inclusion", "#4ADE80",   // green-400
+                /* default */ "#94A3B8",  // slate-400
               ],
-              "line-width": 2,
+              "line-width": 2.5,
+              // G: dashed stroke for a proper geo-fence appearance
+              "line-dasharray": [5, 3],
             },
           });
 
@@ -408,6 +434,28 @@ export const MapView: React.FC = () => {
             },
           });
 
+          // ── C: Track trails source (line layer, drawn under symbols) ────────
+          map.addSource("track-trails", {
+            type: "geojson",
+            data: { type: "FeatureCollection", features: [] },
+          });
+
+          // Fading trail line — data-driven color from the trailColor property
+          map.addLayer({
+            id: "track-trails-line",
+            type: "line",
+            source: "track-trails",
+            layout: {
+              "line-join": "round",
+              "line-cap":  "round",
+            },
+            paint: {
+              "line-color": ["get", "trailColor"],
+              "line-width": 1.5,
+              "line-opacity": 0.5,
+            },
+          });
+
           // ── Track symbols (domain-specific geometric icons) ──────────────
           // Register all domain×hostile canvas icons on the map
           registerDomainIcons(map);
@@ -417,14 +465,20 @@ export const MapView: React.FC = () => {
             data: { type: "FeatureCollection", features: [] },
           });
 
-          // Symbol layer using data-driven icon-image keyed by domain+hostileClass
+          // Symbol layer using data-driven icon-image keyed by domain+hostileClass.
+          // D: icon-size is data-driven by confidence score (0→0.65×, 1→1.2×).
           map.addLayer({
             id: "tracks-symbol",
             type: "symbol",
             source: "tracks",
             layout: {
               "icon-image": ["get", "iconKey"],
-              "icon-size": 1.0,
+              // D: scale marker proportionally to confidence: 65% at 0%, 120% at 100%
+              "icon-size": [
+                "interpolate", ["linear"], ["get", "confidence"],
+                0.0, 0.65,
+                1.0, 1.2,
+              ],
               "icon-allow-overlap": true,
               "icon-ignore-placement": true,
             },
@@ -597,11 +651,19 @@ export const MapView: React.FC = () => {
       }
     };
 
-    setVis("geofences-fill", layerVisibility.geofences);
+    // G: geo-fences — fill + outline
+    setVis("geofences-fill",  layerVisibility.geofences);
     setVis("geofences-layer", layerVisibility.geofences);
-    // Track labels layer not yet implemented (requires glyph server)
-    // Note: trackTrails, sensorCoverage, mgrsGrid placeholders
-    // Set up their logic if those layers are added.
+
+    // C: track trails
+    setVis("track-trails-line", layerVisibility.trackTrails);
+
+    // F: sensor coverage (fill + outline)
+    // Note: sensor coverage layers are owned by SensorCoverageLayer.tsx which
+    // also reads layerVisibility.sensorCoverage — no-op here to avoid double-set.
+    // (SensorCoverageLayer syncs visibility on its own useEffect.)
+
+    // B: track labels — TrackLabelsOverlay reads layerVisibility.trackLabels itself.
   }, [layerVisibility]);
 
   return (
@@ -634,6 +696,8 @@ export const MapView: React.FC = () => {
       {hoverInfo && (
         <MapTooltip trackId={hoverInfo.trackId} x={hoverInfo.x} y={hoverInfo.y} />
       )}
+      {/* B: Track Labels HTML overlay (toggled via layerVisibility.trackLabels) */}
+      <TrackLabelsOverlay />
       <SensorCoverageLayer />
       <LayerControls />
     </div>
