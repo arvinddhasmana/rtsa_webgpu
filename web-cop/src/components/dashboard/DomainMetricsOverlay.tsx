@@ -4,15 +4,16 @@
 
 import React, { useMemo, useState } from "react";
 import { useAlertStore } from "../../stores/alertStore";
+import { useSensorHealthStore } from "../../stores/sensorHealthStore";
 import { useTrackStore } from "../../stores/trackStore";
 
 const DOMAINS = [
-  { key: "AIR",        label: "AIR",     color: "#38BDF8", keywords: ["air"] },
-  { key: "SURFACE",    label: "SURFACE", color: "#60A5FA", keywords: ["surface", "ship", "vessel", "boat"] },
-  { key: "SUBSURFACE", label: "SUB",     color: "#0D9488", keywords: ["sub"] },
-  { key: "LAND",       label: "LAND",    color: "#A3844B", keywords: ["land", "vehicle", "person"] },
-  { key: "SPACE",      label: "SPACE",   color: "#A78BFA", keywords: ["space", "sat"] },
-  { key: "CYBER",      label: "CYBER",   color: "#34D399", keywords: ["cyber", "node"] },
+  { key: "AIR",        label: "AIR",     color: "#38BDF8", keywords: ["air"], sensorTypes: ["RADAR", "EW", "ADS-B", "IFF"] },
+  { key: "SURFACE",    label: "SURFACE", color: "#60A5FA", keywords: ["surface", "ship", "vessel", "boat"], sensorTypes: ["AIS", "RADAR", "CAMERA"] },
+  { key: "SUBSURFACE", label: "SUB",     color: "#0D9488", keywords: ["sub"], sensorTypes: ["SONAR"] },
+  { key: "LAND",       label: "LAND",    color: "#A3844B", keywords: ["land", "vehicle", "person"], sensorTypes: ["ISR", "ELINT", "CAMERA"] },
+  { key: "SPACE",      label: "SPACE",   color: "#A78BFA", keywords: ["space", "sat"], sensorTypes: ["TELESCOPE"] },
+  { key: "CYBER",      label: "CYBER",   color: "#34D399", keywords: ["cyber", "node"], sensorTypes: ["CYBER"] },
 ] as const;
 
 function getDomain(entityType: string): string {
@@ -26,12 +27,13 @@ function getDomain(entityType: string): string {
 export const DomainMetricsOverlay: React.FC = () => {
   const currentTracksMap = useTrackStore((s) => s.tracks);
   const alerts = useAlertStore((s) => s.alerts);
+  const sensors = useSensorHealthStore((s) => s.sensors);
   const [collapsed, setCollapsed] = useState(false);
 
   const metrics = useMemo(() => {
-    const map: Record<string, { count: number; hostile: number }> = {};
+    const map: Record<string, { count: number; hostile: number; obsPerSec: number }> = {};
     DOMAINS.forEach((d) => {
-      map[d.key] = { count: 0, hostile: 0 };
+      map[d.key] = { count: 0, hostile: 0, obsPerSec: 0 };
     });
 
     currentTracksMap.forEach((t) => {
@@ -42,8 +44,17 @@ export const DomainMetricsOverlay: React.FC = () => {
       }
     });
 
+    sensors.forEach((s) => {
+      const type = s.sensorType.toUpperCase();
+      DOMAINS.forEach((d) => {
+        if ((d.sensorTypes as readonly string[]).includes(type)) {
+          map[d.key].obsPerSec += s.eventsPerSecond;
+        }
+      });
+    });
+
     return DOMAINS.map((d) => ({ ...d, ...map[d.key] }));
-  }, [currentTracksMap]);
+  }, [currentTracksMap, sensors]);
 
   const criticalAlerts = useMemo(
     () =>
@@ -57,6 +68,11 @@ export const DomainMetricsOverlay: React.FC = () => {
       Array.from(currentTracksMap.values()).filter((t) => t.hostileClass === "HOSTILE")
         .length,
     [currentTracksMap]
+  );
+  const totalObsPerSec = useMemo(
+    () =>
+      Array.from(sensors.values()).reduce((sum, s) => sum + s.eventsPerSecond, 0),
+    [sensors]
   );
 
   return (
@@ -93,7 +109,8 @@ export const DomainMetricsOverlay: React.FC = () => {
           MULTI-DOMAIN
         </span>
         <Pill label="TRACKS" value={totalTracks} color="#60A5FA" />
-        <Pill label="HOSTLE" value={totalHostile} color="#EF4444" />
+        <Pill label="HOSTILE" value={totalHostile} color="#EF4444" />
+        <Pill label="OBS/S" value={Math.round(totalObsPerSec)} color="#34D399" />
         {criticalAlerts > 0 && (
           <Pill label="CRIT" value={criticalAlerts} color="#DC2626" pulse />
         )}
@@ -108,7 +125,7 @@ export const DomainMetricsOverlay: React.FC = () => {
       {/* Domain cards */}
       {!collapsed &&
         metrics
-          .filter((m) => m.count > 0)
+          .filter((m) => m.count > 0 || m.obsPerSec > 0)
           .map((m) => (
             <div
               key={m.key}
@@ -121,37 +138,32 @@ export const DomainMetricsOverlay: React.FC = () => {
                 padding: "8px 12px",
                 display: "flex",
                 alignItems: "center",
-                gap: "12px",
-                minWidth: "180px",
+                gap: "16px",
+                minWidth: "220px",
               }}
             >
-              <span
-                style={{
-                  fontSize: "0.65rem",
-                  fontWeight: "bold",
-                  color: m.color,
-                  width: "52px",
-                }}
-              >
-                {m.label}
-              </span>
-              <span
-                style={{ fontSize: "1.1rem", fontFamily: "monospace", color: "#F1F5F9" }}
-              >
-                {m.count}
-              </span>
-              {m.hostile > 0 && (
-                <span
-                  style={{
-                    fontSize: "0.65rem",
-                    color: "#EF4444",
-                    fontWeight: "bold",
-                    marginLeft: "auto",
-                  }}
-                >
-                  ⬆ {m.hostile} HOSTILE
+              <div style={{ width: "52px", display: "flex", flexDirection: "column" }}>
+                <span style={{ fontSize: "0.65rem", fontWeight: "bold", color: m.color }}>
+                  {m.label}
                 </span>
-              )}
+                {m.hostile > 0 && (
+                  <span style={{ fontSize: "0.6rem", color: "#EF4444", fontWeight: "bold" }}>
+                    {m.hostile} HST
+                  </span>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", minWidth: "40px" }}>
+                <span style={{ fontSize: "0.6rem", color: "#94A3B8" }}>TRACKS</span>
+                <span style={{ fontSize: "1.1rem", fontFamily: "monospace", color: "#F1F5F9" }}>
+                  {m.count}
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", minWidth: "40px", marginLeft: "auto", textAlign: "right" }}>
+                <span style={{ fontSize: "0.6rem", color: "#94A3B8" }}>OBS/S</span>
+                <span style={{ fontSize: "1.1rem", fontFamily: "monospace", color: "#34D399" }}>
+                  {m.obsPerSec >= 1000 ? (m.obsPerSec / 1000).toFixed(1) + 'k' : Math.round(m.obsPerSec)}
+                </span>
+              </div>
             </div>
           ))}
     </div>

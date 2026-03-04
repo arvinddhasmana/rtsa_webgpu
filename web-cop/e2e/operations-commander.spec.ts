@@ -59,7 +59,8 @@ test.describe("Operations Commander Dashboards", () => {
 
     // Check Domain Metrics overlay
     await expect(page.getByTestId("domain-metrics-overlay")).toBeVisible();
-    await expect(page.getByTestId("domain-metrics-overlay").getByText("TRACKS", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("domain-metrics-overlay").getByText("TRACKS", { exact: true }).first()).toBeVisible();
+    await expect(page.getByTestId("domain-metrics-overlay").getByText("OBS/S", { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId("domain-metrics-overlay").getByText("MULTI-DOMAIN", { exact: true })).toBeVisible();
 
     // Check Alert Strip

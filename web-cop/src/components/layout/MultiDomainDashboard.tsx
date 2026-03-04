@@ -3,6 +3,7 @@
 // Operations Commander — Multi-Domain fullscreen map with overlay metrics.
 
 import React, { useMemo, useState } from "react";
+import { useSensorHealth } from "../../hooks/useSensorHealth";
 import { useAlertStore } from "../../stores/alertStore";
 import { useUIStore } from "../../stores/uiStore";
 import { AlertPanel } from "../alerts/AlertPanel";
@@ -12,6 +13,7 @@ import { MapView } from "../map/MapView";
 import { CollapsiblePane } from "./CollapsiblePane";
 
 export const MultiDomainDashboard: React.FC = () => {
+  useSensorHealth();
   const detailPanelOpen = useUIStore((s) => s.detailPanelOpen);
   const toggleLayerVisibility = useUIStore((s) => s.toggleLayerVisibility);
   const layerVisibility = useUIStore((s) => s.layerVisibility);

@@ -38,21 +38,31 @@ const HOSTILE_CLASSES = ["HOSTILE", "FRIENDLY", "NEUTRAL", "UNKNOWN"] as const;
 
 function createDomainIcon(
   domain: string,
-  fillColor: string,
-  size = 32,
+  strokeColor: string,
+  size = 40,
 ): { width: number; height: number; data: Uint8Array } {
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  // Double pixel ratio for crisp render on high-DPI screens
+  const scale = 2;
+  canvas.width = size * scale;
+  canvas.height = size * scale;
   const ctx = canvas.getContext("2d")!;
+  ctx.scale(scale, scale);
   const cx = size / 2;
   const cy = size / 2;
-  const r = size / 2 - 3; // leave room for stroke
+  const r = size / 2 - 4; // leave room for thick stroke
 
   ctx.clearRect(0, 0, size, size);
-  ctx.fillStyle = fillColor;
-  ctx.strokeStyle = "#FFFFFF";
-  ctx.lineWidth = 2;
+
+  // Glass look: very subtle translucent fill + sharp colored outline
+  // Parse hex color to rgba with 12% opacity for fill
+  const hexToRgba = (hex: string, a: number) => {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  };
+
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 0.5;   // Extra thin edge — barely visible, glassmorphism style
   ctx.lineJoin = "round";
 
   switch (domain) {
@@ -60,8 +70,8 @@ function createDomainIcon(
       // Upward triangle ▲
       ctx.beginPath();
       ctx.moveTo(cx, cy - r);
-      ctx.lineTo(cx + r, cy + r * 0.8);
-      ctx.lineTo(cx - r, cy + r * 0.8);
+      ctx.lineTo(cx + r, cy + r * 0.78);
+      ctx.lineTo(cx - r, cy + r * 0.78);
       ctx.closePath();
       break;
     }
@@ -69,9 +79,9 @@ function createDomainIcon(
       // Diamond ◇ (rotated square)
       ctx.beginPath();
       ctx.moveTo(cx, cy - r);
-      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx + r * 0.85, cy);
       ctx.lineTo(cx, cy + r);
-      ctx.lineTo(cx - r, cy);
+      ctx.lineTo(cx - r * 0.85, cy);
       ctx.closePath();
       break;
     }
@@ -79,51 +89,55 @@ function createDomainIcon(
       // Inverted triangle ▽
       ctx.beginPath();
       ctx.moveTo(cx, cy + r);
-      ctx.lineTo(cx + r, cy - r * 0.8);
-      ctx.lineTo(cx - r, cy - r * 0.8);
+      ctx.lineTo(cx + r, cy - r * 0.78);
+      ctx.lineTo(cx - r, cy - r * 0.78);
       ctx.closePath();
       break;
     }
     case "LAND": {
-      // Filled square ■
-      const half = r * 0.8;
+      // Square ■
+      const half = r * 0.78;
       ctx.beginPath();
       ctx.rect(cx - half, cy - half, half * 2, half * 2);
       break;
     }
     default: {
-      // Circle ● (UNKNOWN)
+      // Circle ● (UNKNOWN/CYBER/SPACE)
       ctx.beginPath();
-      ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2);
+      ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
       break;
     }
   }
 
+  // Draw near-invisible translucent fill (1.5% opacity), then extra-thin outline on top.
+  // Net result: icon barely tints the map whilst remaining precisely locatable.
+  ctx.fillStyle = hexToRgba(strokeColor, 0.015);
   ctx.fill();
   ctx.stroke();
 
-  // MapLibre addImage requires {width, height, data: Uint8Array} format.
-  // Using ImageData directly can fail silently in some MapLibre versions.
-  const imgData = ctx.getImageData(0, 0, size, size);
-  return { width: size, height: size, data: new Uint8Array(imgData.data.buffer) };
+  // MapLibre addImage requires {width, height, data: Uint8Array} — use
+  // actual canvas pixel size (scaled), then pass logical size to MapLibre.
+  const imgData = ctx.getImageData(0, 0, size * scale, size * scale);
+  return { width: size * scale, height: size * scale, data: new Uint8Array(imgData.data.buffer) };
 }
 
 /** Register all domain×hostileClass icon images on the map */
 function registerDomainIcons(map: any): void {
-  const size = 32;
+  const size = 40;
   for (const domain of DOMAINS) {
     for (const hostile of HOSTILE_CLASSES) {
       const key = `domain-${domain}-${hostile}`;
       if (map.hasImage(key)) continue;
       const color = HOSTILE_COLORS[hostile] ?? "#6B7280";
       const icon = createDomainIcon(domain, color, size);
-      map.addImage(key, icon, { sdf: false });
+      // pixelRatio:2 matches the 2x canvas scale in createDomainIcon
+      map.addImage(key, icon, { sdf: false, pixelRatio: 2 });
     }
     // Also add a default-colored version
     const defKey = `domain-${domain}-DEFAULT`;
     if (!map.hasImage(defKey)) {
       const icon = createDomainIcon(domain, "#6B7280", size);
-      map.addImage(defKey, icon, { sdf: false });
+      map.addImage(defKey, icon, { sdf: false, pixelRatio: 2 });
     }
   }
 }
@@ -216,10 +230,17 @@ export const MapView: React.FC = () => {
         NEUTRAL:  "#16A34A",
         UNKNOWN:  "#CA8A04",
       };
+      // Max trail points: older positions are discarded to prevent stale
+      // artifacts building up over time (white smear on dense scenes).
+      const MAX_TRAIL_POINTS = 20;
       const trailFeatures: any[] = [];
       for (const t of currentTracks.values()) {
-        const history = trackHistory.get(t.trackId);
-        if (!history || history.length < 2) continue;
+        const rawHistory = trackHistory.get(t.trackId);
+        if (!rawHistory || rawHistory.length < 2) continue;
+        // Trim to last MAX_TRAIL_POINTS so old segments fade off the map
+        const history = rawHistory.length > MAX_TRAIL_POINTS
+          ? rawHistory.slice(-MAX_TRAIL_POINTS)
+          : rawHistory;
         trailFeatures.push({
           type: "Feature" as const,
           geometry: { type: "LineString" as const, coordinates: history },
@@ -242,12 +263,14 @@ export const MapView: React.FC = () => {
         });
       }
 
-      // ── Threat halos (50 km circle polygons for HOSTILE tracks) ───────────
+      // ── Threat halos (small 2 km ring around each HOSTILE track) ───────────
+      // Radius is intentionally small — just a visible ring around the track,
+      // NOT a 50 km coverage circle that dominates the map view.
       const haloFeatures = Array.from(currentTracks.values())
         .filter((t) => t.hostileClass === "HOSTILE")
         .map((t) => {
-          const points = 32;
-          const radiusInDeg = 50 / 111.32;
+          const points = 16; // fewer points = rounder but faster to compute
+          const radiusInDeg = 2 / 111.32; // 2 km ring, not 50 km
           const coords = [];
           for (let i = 0; i <= points; i++) {
             const angle = (i / points) * Math.PI * 2;
@@ -308,41 +331,31 @@ export const MapView: React.FC = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const maplibregl: any = ((await import("maplibre-gl")) as any).default;
 
+        // Use VITE_MAP_TILE_URL if configured; fall back to OpenStreetMap tiles
+        // so the map terrain is always visible even in offline/dev deployments.
         const tileUrl =
           (import.meta as { env?: Record<string, string> }).env?.[
             "VITE_MAP_TILE_URL"
-          ] ?? "";
+          ] ?? "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-        // Note: no glyphs URL — text symbol layers are omitted so that the
-        // map works offline / without a font PBF tile server. Track circles
-        // render entirely on the GPU without glyph lookups.
         const map = new maplibregl.Map({
           container: mapContainerRef.current,
-          style: tileUrl
-            ? {
-                version: 8 as const,
-                sources: {
-                  tiles: {
-                    type: "raster" as const,
-                    tiles: [tileUrl],
-                    tileSize: 256,
-                  },
-                },
-                layers: [
-                  { id: "base", type: "raster" as const, source: "tiles" },
-                ],
-              }
-            : {
-                version: 8 as const,
-                sources: {},
-                layers: [
-                  {
-                    id: "background",
-                    type: "background" as const,
-                    paint: { "background-color": "#1E293B" },
-                  },
-                ],
+          style: {
+            version: 8 as const,
+            sources: {
+              tiles: {
+                type: "raster" as const,
+                tiles: [tileUrl],
+                tileSize: 256,
+                attribution: tileUrl.includes("openstreetmap")
+                  ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  : "",
               },
+            },
+            layers: [
+              { id: "base", type: "raster" as const, source: "tiles", paint: { "raster-opacity": 0.85 } },
+            ],
+          },
           center: mapCenter,
           zoom: mapZoom,
         });
@@ -410,17 +423,13 @@ export const MapView: React.FC = () => {
             },
           });
 
-          // ── Threat halos ─────────────────────────────────────────────────
+          // ── Threat halos (minimal 2 km dashed ring, NO fill) ─────────────
+          // Fill layer intentionally removed — solid red fill at 0.2 opacity
+          // was covering the entire map with 700+ hostile tracks.
+          // We keep only a thin dashed outline so hostiles remain identifiable.
           map.addSource("threat-halos", {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
-          });
-
-          map.addLayer({
-            id: "threat-halos-layer",
-            type: "fill",
-            source: "threat-halos",
-            paint: { "fill-color": "#DC2626", "fill-opacity": 0.2 },
           });
 
           map.addLayer({
@@ -428,19 +437,24 @@ export const MapView: React.FC = () => {
             type: "line",
             source: "threat-halos",
             paint: {
-              "line-color": "#DC2626",
-              "line-width": 2,
-              "line-dasharray": [2, 2],
+              "line-color": "#EF4444",
+              "line-width": 0.8,
+              "line-opacity": 0.6,
+              "line-dasharray": [3, 3],
             },
           });
 
           // ── C: Track trails source (line layer, drawn under symbols) ────────
           map.addSource("track-trails", {
             type: "geojson",
+            lineMetrics: true,
             data: { type: "FeatureCollection", features: [] },
           });
 
-          // Fading trail line — data-driven color from the trailColor property
+          // Fading trail line — gradient from transparent tail to opaque tip.
+          // Uses line-gradient (not line-opacity) which requires lineMetrics:true on the source.
+          // This produces a comet-tail effect and eliminates the white smear
+          // that occurs when old opaque segments accumulate on screen.
           map.addLayer({
             id: "track-trails-line",
             type: "line",
@@ -451,8 +465,14 @@ export const MapView: React.FC = () => {
             },
             paint: {
               "line-color": ["get", "trailColor"],
-              "line-width": 1.5,
-              "line-opacity": 0.5,
+              "line-width": 1.2,
+              // line-gradient fades tail (index 0) fully transparent → tip (index 1) opaque
+              "line-gradient": [
+                "interpolate", ["linear"],
+                ["line-progress"],
+                0.0, "rgba(255,255,255,0)",
+                1.0, ["get", "trailColor"],
+              ],
             },
           });
 
@@ -466,24 +486,34 @@ export const MapView: React.FC = () => {
           });
 
           // Symbol layer using data-driven icon-image keyed by domain+hostileClass.
-          // D: icon-size is data-driven by confidence score (0→0.65×, 1→1.2×).
+          //
+          // icon-size uses ZOOM-LEVEL interpolation so icons scale naturally as the
+          // user zooms in/out — small dots at overview, readable shapes close in.
+          // A secondary confidence factor nudges size ±10% for low/high confidence tracks.
+          // Effective range: ~8-28px, keeping icons subtle and non-blocking at all zooms.
           map.addLayer({
             id: "tracks-symbol",
             type: "symbol",
             source: "tracks",
             layout: {
               "icon-image": ["get", "iconKey"],
-              // D: scale marker proportionally to confidence: 65% at 0%, 120% at 100%
+              // Zoom-adaptive sizing: tiny at overview, grows as you zoom in.
+              // Combined confidence tweak: ±10% based on track confidence score.
               "icon-size": [
-                "interpolate", ["linear"], ["get", "confidence"],
-                0.0, 0.65,
-                1.0, 1.2,
+                "interpolate", ["linear"], ["zoom"],
+                3,  0.08,   // world overview — barely a dot
+                5,  0.12,   // continental scale
+                7,  0.16,   // regional scale
+                9,  0.22,   // area scale
+                11, 0.30,   // city scale
+                13, 0.40,   // neighborhood scale — label-aligned detail
               ],
               "icon-allow-overlap": true,
               "icon-ignore-placement": true,
             },
             paint: {
-              "icon-opacity": 0.9,
+              // Slight opacity fade so icons don't compete with the map tile
+              "icon-opacity": 0.85,
             },
           });
 
