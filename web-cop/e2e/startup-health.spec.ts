@@ -244,7 +244,7 @@ test.describe("MapLibre initialisation — strict (BUG-1 regression)", () => {
     expect(box!.height, "Canvas height is 0").toBeGreaterThan(100);
   });
 
-  test("tracks-circle layer exists on the map [BUG-1]", async ({ page }) => {
+  test("tracks-symbol layer exists on the map [BUG-1]", async ({ page }) => {
     await page.goto("/");
     await page
       .waitForFunction(
@@ -257,12 +257,12 @@ test.describe("MapLibre initialisation — strict (BUG-1 regression)", () => {
       const map = (window as unknown as Record<string, unknown>)[
         "__RTSA_MAP__"
       ] as { getLayer?: (id: string) => unknown } | undefined;
-      return map?.getLayer?.("tracks-circle") != null;
+      return map?.getLayer?.("tracks-symbol") != null;
     });
 
     expect(
       hasTracksLayer,
-      "tracks-circle layer not found — map did not initialize correctly",
+      "tracks-symbol layer not found — map did not initialize correctly",
     ).toBe(true);
   });
 
@@ -351,11 +351,11 @@ test.describe("Component smoke tests", () => {
     await expect(indicator).toBeVisible({ timeout: 10_000 });
   });
 
-  test("Active Tracks counter is present in FusionSidePanel", async ({
+  test("Tracks KPI counter is present in FusionSidePanel", async ({
     page,
   }) => {
-    // FusionSidePanel shows "Active Tracks" metric label
-    await expect(page.getByText("Active Tracks")).toBeVisible({
+    // FusionSidePanel shows "Tracks" KPI tile label
+    await expect(page.getByTestId("kpi-tracks")).toBeVisible({
       timeout: 10_000,
     });
   });

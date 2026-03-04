@@ -64,7 +64,9 @@ SpeedKnots:     &speedKn,
 HeadingDegrees: &heading,
 },
 Metadata: map[string]string{
-"sim_entity_id": entity.ID,
+"sim_entity_id":     entity.ID,
+"sim_entity_type":   entity.EntityType.String(),
+"sim_hostile_class": entity.HostileClass.String(),
 },
 SensorData: &ingestionv1.SensorObservation_ElintComint{
 ElintComint: &ingestionv1.ELINTDetection{

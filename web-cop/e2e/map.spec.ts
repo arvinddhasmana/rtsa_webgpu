@@ -387,13 +387,12 @@ test.describe("Layer Controls & Classification Badges", () => {
     await expect(layerControls).toBeVisible();
   });
 
-  test("tracks-circle layer exists and tracks-label is absent (no glyphs dependency)", async ({
+  test("tracks-symbol layer exists with domain-specific icons and tracks-label is absent", async ({
     page,
   }) => {
-    // tracks-label (symbol layer) was intentionally removed — it required a
-    // glyphs/font PBF tile server which 404s in offline/dev deployments.
-    // Track classification is conveyed via the data-driven circle colour in
-    // tracks-circle instead (HOSTILE=red, FRIENDLY=blue, UNKNOWN=amber).
+    // Track domain is conveyed via geometric icon shapes (▲ surface, ◇ air,
+    // ▽ subsurface, ■ land, ● unknown) using a symbol layer with canvas-
+    // generated icons. tracks-label (text) is omitted — requires glyph server.
     const layers = await page.evaluate(() => {
       const w = window as unknown as Record<string, unknown>;
       const map = w["__RTSA_MAP__"] as
@@ -401,18 +400,18 @@ test.describe("Layer Controls & Classification Badges", () => {
         | undefined;
       if (!map?.getLayer) return null;
       return {
-        hasCircle: !!map.getLayer("tracks-circle"),
+        hasSymbol: !!map.getLayer("tracks-symbol"),
         hasLabel: !!map.getLayer("tracks-label"),
       };
     });
 
     if (layers !== null) {
-      // tracks-circle must exist (primary track rendering layer)
-      expect(layers.hasCircle).toBe(true);
+      // tracks-symbol must exist (primary track rendering layer with domain icons)
+      expect(layers.hasSymbol).toBe(true);
       // tracks-label must NOT exist (requires glyphs — omitted to avoid 404s)
       expect(
         layers.hasLabel,
-        "tracks-label symbol layer must not be added — it requires a glyphs/font PBF server. Remove it or add a valid glyphs URL.",
+        "tracks-label symbol layer must not be added — it requires a glyphs/font PBF server.",
       ).toBe(false);
     }
   });

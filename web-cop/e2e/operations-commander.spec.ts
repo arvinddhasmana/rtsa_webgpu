@@ -12,18 +12,44 @@ test.describe("Operations Commander Dashboards", () => {
     await selectRole(page, "commander");
   });
 
-  test("Fusion Dashboard is default and has side panel", async ({ page }) => {
+  test("Fusion Dashboard has split-pane layout with tabs and KPIs", async ({ page }) => {
     // Should default to fusion
     await expect(page.getByTestId("fusion-dashboard")).toBeVisible();
     await expect(page.getByTestId("fusion-side-panel")).toBeVisible();
 
-    // Check KPI boxes exist
-    await expect(page.getByText("⚡ FUSION ENGINE")).toBeVisible();
-    await expect(page.getByText("Active Tracks")).toBeVisible();
-    await expect(page.getByText("Raw Obs/10s", { exact: false })).toBeVisible();
+    // Check resize handle exists (Variant C split-pane)
+    await expect(page.getByTestId("fusion-resize-handle")).toBeVisible();
 
-    // Check confidence histogram rendering
-    await expect(page.getByTestId("confidence-histogram")).toBeVisible();
+    // Check tabbed navigation
+    await expect(page.getByTestId("tab-track-grid")).toBeVisible();
+    await expect(page.getByTestId("tab-alert-queue")).toBeVisible();
+
+    // Check KPI tiles (design system)
+    await expect(page.getByTestId("kpi-tracks")).toBeVisible();
+    await expect(page.getByTestId("kpi-hostile")).toBeVisible();
+    await expect(page.getByTestId("kpi-confidence")).toBeVisible();
+    await expect(page.getByTestId("kpi-obs")).toBeVisible();
+
+    // Check sortable track table
+    await expect(page.getByTestId("fusion-track-table")).toBeVisible();
+  });
+
+  test("Fusion Dashboard tabs switch and Replay works", async ({ page }) => {
+    await expect(page.getByTestId("fusion-dashboard")).toBeVisible();
+
+    // Switch to Alert Queue tab
+    await page.getByTestId("tab-alert-queue").click();
+    await expect(page.getByTestId("fusion-alert-table")).toBeVisible();
+
+    // Switch back to Track Grid tab
+    await page.getByTestId("tab-track-grid").click();
+    await expect(page.getByTestId("fusion-track-table")).toBeVisible();
+
+    // Open Replay / Scrubber via tab bar button
+    await page.getByRole("button", { name: /Replay/i }).click();
+    await expect(page.getByTestId("timeline-scrubber")).toBeVisible();
+    await expect(page.getByTestId("scrubber-play-pause")).toBeVisible();
+    await expect(page.getByTestId("scrubber-speed")).toBeVisible();
   });
 
   test("Multi-Domain Dashboard has metric overlay and alert strip", async ({ page }) => {

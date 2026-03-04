@@ -10,6 +10,123 @@ import { LayerControls } from "./LayerControls";
 import { MapTooltip } from "./MapTooltip";
 import { SensorCoverageLayer } from "./SensorCoverageLayer";
 
+/* ─── Domain Classification ─────────────────────────────────────────────────── */
+
+function getEntityDomain(entityType: string): string {
+  const t = entityType.toUpperCase();
+  if (t.includes("AIR") || t.includes("AIRCRAFT")) return "AIR";
+  if (t.includes("SUB")) return "SUBSURFACE";
+  if (t.includes("LAND") || t.includes("VEHICLE")) return "LAND";
+  if (t.includes("SURFACE") || t.includes("SHIP") || t.includes("VESSEL")) return "SURFACE";
+  return "UNKNOWN";
+}
+
+/* ─── Programmatic Domain Icon Generation ───────────────────────────────────── */
+// Creates 24×24 canvas icons for each domain+hostileClass combo.
+// Style 2 Option A: filled geometric shapes with white outline.
+
+const HOSTILE_COLORS: Record<string, string> = {
+  HOSTILE: "#DC2626",
+  FRIENDLY: "#2563EB",
+  NEUTRAL: "#16A34A",
+  UNKNOWN: "#CA8A04",
+};
+
+const DOMAINS = ["SURFACE", "AIR", "SUBSURFACE", "LAND", "UNKNOWN"] as const;
+const HOSTILE_CLASSES = ["HOSTILE", "FRIENDLY", "NEUTRAL", "UNKNOWN"] as const;
+
+function createDomainIcon(
+  domain: string,
+  fillColor: string,
+  size = 32,
+): { width: number; height: number; data: Uint8Array } {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = size / 2 - 3; // leave room for stroke
+
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = fillColor;
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+
+  switch (domain) {
+    case "SURFACE": {
+      // Upward triangle ▲
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy + r * 0.8);
+      ctx.lineTo(cx - r, cy + r * 0.8);
+      ctx.closePath();
+      break;
+    }
+    case "AIR": {
+      // Diamond ◇ (rotated square)
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r, cy);
+      ctx.closePath();
+      break;
+    }
+    case "SUBSURFACE": {
+      // Inverted triangle ▽
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + r);
+      ctx.lineTo(cx + r, cy - r * 0.8);
+      ctx.lineTo(cx - r, cy - r * 0.8);
+      ctx.closePath();
+      break;
+    }
+    case "LAND": {
+      // Filled square ■
+      const half = r * 0.8;
+      ctx.beginPath();
+      ctx.rect(cx - half, cy - half, half * 2, half * 2);
+      break;
+    }
+    default: {
+      // Circle ● (UNKNOWN)
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2);
+      break;
+    }
+  }
+
+  ctx.fill();
+  ctx.stroke();
+
+  // MapLibre addImage requires {width, height, data: Uint8Array} format.
+  // Using ImageData directly can fail silently in some MapLibre versions.
+  const imgData = ctx.getImageData(0, 0, size, size);
+  return { width: size, height: size, data: new Uint8Array(imgData.data.buffer) };
+}
+
+/** Register all domain×hostileClass icon images on the map */
+function registerDomainIcons(map: any): void {
+  const size = 32;
+  for (const domain of DOMAINS) {
+    for (const hostile of HOSTILE_CLASSES) {
+      const key = `domain-${domain}-${hostile}`;
+      if (map.hasImage(key)) continue;
+      const color = HOSTILE_COLORS[hostile] ?? "#6B7280";
+      const icon = createDomainIcon(domain, color, size);
+      map.addImage(key, icon, { sdf: false });
+    }
+    // Also add a default-colored version
+    const defKey = `domain-${domain}-DEFAULT`;
+    if (!map.hasImage(defKey)) {
+      const icon = createDomainIcon(domain, "#6B7280", size);
+      map.addImage(defKey, icon, { sdf: false });
+    }
+  }
+}
+
 /**
  * MapView — real-time track display using MapLibre GL JS.
  *
@@ -67,22 +184,27 @@ export const MapView: React.FC = () => {
       const currentTracks = useTrackStore.getState().tracks;
       const currentSensors = useSensorStore.getState().rawObservations;
 
-      // ── Track circles ────────────────────────────────────────────────────────
+      // ── Track features with domain for icon selection ─────────────────────
       // Build GeoJSON features for all current tracks.
-      const trackFeatures = Array.from(currentTracks.values()).map((t) => ({
-        type: "Feature" as const,
-        geometry: {
-          type: "Point" as const,
-          coordinates: [t.position.longitude, t.position.latitude],
-        },
-        properties: {
-          trackId: t.trackId,
-          hostileClass: t.hostileClass,
-          entityType: t.entityType,
-          confidence: t.confidenceScore,
-          classification: t.classification,
-        },
-      }));
+      const trackFeatures = Array.from(currentTracks.values()).map((t) => {
+        const domain = getEntityDomain(t.entityType);
+        return {
+          type: "Feature" as const,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [t.position.longitude, t.position.latitude],
+          },
+          properties: {
+            trackId: t.trackId,
+            hostileClass: t.hostileClass,
+            entityType: t.entityType,
+            domain,
+            iconKey: `domain-${domain}-${t.hostileClass}`,
+            confidence: t.confidenceScore,
+            classification: t.classification,
+          },
+        };
+      });
 
       const tracksSource = map.getSource("tracks");
       if (tracksSource) {
@@ -286,73 +408,54 @@ export const MapView: React.FC = () => {
             },
           });
 
-          // ── Track circles (GPU rendered, zero DOM overhead) ──────────────
+          // ── Track symbols (domain-specific geometric icons) ──────────────
+          // Register all domain×hostile canvas icons on the map
+          registerDomainIcons(map);
+
           map.addSource("tracks", {
             type: "geojson",
             data: { type: "FeatureCollection", features: [] },
           });
 
-          // Data-driven color by hostileClass property — evaluated on the GPU.
+          // Symbol layer using data-driven icon-image keyed by domain+hostileClass
           map.addLayer({
-            id: "tracks-circle",
-            type: "circle",
+            id: "tracks-symbol",
+            type: "symbol",
             source: "tracks",
+            layout: {
+              "icon-image": ["get", "iconKey"],
+              "icon-size": 1.0,
+              "icon-allow-overlap": true,
+              "icon-ignore-placement": true,
+            },
             paint: {
-              "circle-radius": 6,
-              "circle-color": [
-                "match",
-                ["get", "hostileClass"],
-                "HOSTILE",
-                "#DC2626",
-                "FRIENDLY",
-                "#2563EB",
-                "NEUTRAL",
-                "#16A34A",
-                "UNKNOWN",
-                "#CA8A04",
-                /* default */ "#6B7280",
-              ],
-              "circle-stroke-width": 1.5,
-              "circle-stroke-color": "#FFFFFF",
-              "circle-opacity": 0.9,
+              "icon-opacity": 0.9,
             },
           });
 
-          // Hover layer for track markers (20% larger + glow)
+          // Hover highlight layer — slightly larger, glow stroke
+          // We keep a circle layer purely for the hover glow ring.
           map.addLayer({
-            id: "tracks-circle-hover",
+            id: "tracks-hover-ring",
             type: "circle",
             source: "tracks",
-            filter: ["==", "trackId", ""], // Initially empty filter
+            filter: ["==", "trackId", ""],
             paint: {
-              "circle-radius": 8, // Roughly 20% larger than 6
-              "circle-color": [
-                "match",
-                ["get", "hostileClass"],
-                "HOSTILE",
-                "#DC2626",
-                "FRIENDLY",
-                "#2563EB",
-                "NEUTRAL",
-                "#16A34A",
-                "UNKNOWN",
-                "#CA8A04",
-                /* default */ "#6B7280",
-              ],
-              "circle-stroke-width": 2,
-              "circle-stroke-color": "#60A5FA", // Blue glow color
-              "circle-opacity": 1,
+              "circle-radius": 14,
+              "circle-color": "transparent",
+              "circle-stroke-width": 2.5,
+              "circle-stroke-color": "#60A5FA",
+              "circle-opacity": 0,
+              "circle-stroke-opacity": 0.8,
             },
           });
 
           // Note: tracks-label symbol layer is intentionally omitted —
           // symbol layers require a glyphs/font PBF server which is not
-          // available in offline/dev deployments. Track identity is conveyed
-          // via circle colour (hostile=red, friendly=blue, unknown=amber)
-          // and the detail panel on click.
+          // available in offline/dev deployments.
 
           // Click to select track and open detail panel
-          map.on("click", "tracks-circle", (e: any) => {
+          map.on("click", "tracks-symbol", (e: any) => {
             const feature = e.features?.[0];
             if (feature?.properties?.trackId) {
               selectTrack(feature.properties.trackId);
@@ -361,7 +464,7 @@ export const MapView: React.FC = () => {
           });
 
           // Pointer cursor and tooltip on hover
-          map.on("mousemove", "tracks-circle", (e: any) => {
+          map.on("mousemove", "tracks-symbol", (e: any) => {
             map.getCanvas().style.cursor = "pointer";
             const feature = e.features?.[0];
             if (feature?.properties?.trackId) {
@@ -370,21 +473,17 @@ export const MapView: React.FC = () => {
               // Only update state if hover changes
               setHoverInfo(prev => {
                 if (prev?.trackId !== trackId) {
-                  // Update hover layer filter
-                  map.setFilter("tracks-circle-hover", ["==", "trackId", trackId]);
-
-                  // Add optional DOM glow
-                  map.getCanvas().style.boxShadow = "var(--shadow-glow-blue)";
+                  // Update hover ring filter
+                  map.setFilter("tracks-hover-ring", ["==", "trackId", trackId]);
                 }
                 return { trackId, x: e.point.x, y: e.point.y };
               });
             }
           });
 
-          map.on("mouseleave", "tracks-circle", () => {
+          map.on("mouseleave", "tracks-symbol", () => {
             map.getCanvas().style.cursor = "";
-            map.getCanvas().style.boxShadow = "none";
-            map.setFilter("tracks-circle-hover", ["==", "trackId", ""]);
+            map.setFilter("tracks-hover-ring", ["==", "trackId", ""]);
             setHoverInfo(null);
           });
 
@@ -500,7 +599,7 @@ export const MapView: React.FC = () => {
 
     setVis("geofences-fill", layerVisibility.geofences);
     setVis("geofences-layer", layerVisibility.geofences);
-    setVis("tracks-label", layerVisibility.trackLabels);
+    // Track labels layer not yet implemented (requires glyph server)
     // Note: trackTrails, sensorCoverage, mgrsGrid placeholders
     // Set up their logic if those layers are added.
   }, [layerVisibility]);

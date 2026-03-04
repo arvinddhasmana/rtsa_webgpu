@@ -1,24 +1,26 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/layout/FusionDashboard.tsx
-// Operations Commander — Fusion Dashboard (default Level-2 view).
+// Operations Commander — Fusion Dashboard (Variant C split-pane layout).
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSensorStream } from "../../hooks/useSensorStream";
-import { useUIStore } from "../../stores/uiStore";
 import { AlertAssignPopover } from "../alert/AlertAssignPopover";
-import { DetailPanel } from "../detail/DetailPanel";
 import { FusionSidePanel } from "../fusion/FusionSidePanel";
 import { MapView } from "../map/MapView";
 import { TimelineScrubber } from "../timeline/TimelineScrubber";
-import { CollapsiblePane } from "./CollapsiblePane";
+
+const DEFAULT_LEFT_PERCENT = 35;
+const MIN_LEFT_PERCENT = 20;
+const MAX_LEFT_PERCENT = 65;
 
 export const FusionDashboard: React.FC = () => {
-  const detailPanelOpen = useUIStore((s) => s.detailPanelOpen);
-  const toggleLayerVisibility = useUIStore((s) => s.toggleLayerVisibility);
-  const layerVisibility = useUIStore((s) => s.layerVisibility);
-
   // Raw sensor stream active only on this dashboard
   useSensorStream();
+
+  // Resizable pane state
+  const [leftPercent, setLeftPercent] = useState(DEFAULT_LEFT_PERCENT);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
 
   // Timeline scrubber state (local — commander-only)
   const now = Date.now();
@@ -26,7 +28,7 @@ export const FusionDashboard: React.FC = () => {
   const [replayMs, setReplayMs] = useState(now);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const START_MS = useMemo(() => now - 6 * 60 * 60 * 1000, []);  // 6h window
+  const START_MS = useMemo(() => now - 6 * 60 * 60 * 1000, []);
 
   // Alert assignment popover state
   const [assignAlertId, setAssignAlertId] = useState<string | null>(null);
@@ -36,82 +38,98 @@ export const FusionDashboard: React.FC = () => {
     setAssignAlertId(null);
   };
 
+  // Escape to reset layout
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setLeftPercent(DEFAULT_LEFT_PERCENT);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Drag resize handler
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
+      setLeftPercent(Math.max(MIN_LEFT_PERCENT, Math.min(MAX_LEFT_PERCENT, pct)));
+    };
+
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, []);
+
   return (
     <div
+      ref={containerRef}
       data-testid="fusion-dashboard"
-      style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}
+      style={{
+        flex: 1,
+        display: "flex",
+        overflow: "hidden",
+        position: "relative",
+      }}
     >
-      {/* ── Left: Collapsible Fusion Side Panel ─────────── */}
-      <CollapsiblePane
-        title="Multi-Sensor Fusion"
-        width="320px"
-        height="100%"
-        direction="horizontal"
+      {/* ── Left Panel (Fusion Side Panel) ────────────── */}
+      <div
+        style={{
+          width: `${leftPercent}%`,
+          minWidth: "280px",
+          display: "flex",
+          flexDirection: "column",
+          background: "var(--ds-bg-primary, #0F172A)",
+          borderRight: "1px solid var(--ds-border-default, #334155)",
+          overflow: "hidden",
+        }}
       >
-        <FusionSidePanel />
-      </CollapsiblePane>
+        <FusionSidePanel
+          onOpenScrubber={() => setScrubberOpen(true)}
+          scrubberOpen={scrubberOpen}
+        />
+      </div>
 
-      {/* ── Main area: Map + controls + bottom detail panel */}
+      {/* ── Resize Handle ─────────────────────────────── */}
+      <div
+        className="ds-resize-handle"
+        onMouseDown={onMouseDown}
+        role="separator"
+        aria-label="Resize panels"
+        tabIndex={0}
+        data-testid="fusion-resize-handle"
+      />
+
+      {/* ── Right Panel (Map) ─────────────────────────── */}
       <div
         style={{
           flex: 1,
-          display: "flex",
-          flexDirection: "column",
           overflow: "hidden",
           position: "relative",
+          display: "flex",
+          flexDirection: "column",
         }}
+        aria-label="Map View"
+        role="region"
+        tabIndex={0}
       >
-        {/* Map */}
-        <div
-          style={{ flex: 1, overflow: "hidden" }}
-          aria-label="Map View"
-          role="region"
-          tabIndex={0}
-        >
-          <MapView />
-        </div>
+        <MapView />
 
-        {/* Floating top-right controls */}
-        <div
-          style={{
-            position: "absolute",
-            top: "12px",
-            right: "12px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "6px",
-            zIndex: 10,
-          }}
-        >
-          {/* Layer toggles */}
-          <LayerButton
-            label="🛰 Sensors"
-            active={layerVisibility.sensorCoverage}
-            onClick={() => toggleLayerVisibility("sensorCoverage")}
-          />
-          <LayerButton
-            label="🏷 Labels"
-            active={layerVisibility.trackLabels}
-            onClick={() => toggleLayerVisibility("trackLabels")}
-          />
-          <LayerButton
-            label="〰 Trails"
-            active={layerVisibility.trackTrails}
-            onClick={() => toggleLayerVisibility("trackTrails")}
-          />
-          <LayerButton
-            label={scrubberOpen ? "⏹ Live" : "⏮ Replay"}
-            active={scrubberOpen}
-            onClick={() => {
-              setScrubberOpen((v) => !v);
-              setIsPlaying(false);
-              setReplayMs(Date.now());
-            }}
-            accent={scrubberOpen ? "#3B82F6" : undefined}
-          />
-        </div>
-
-        {/* Timeline Scrubber */}
+        {/* Timeline Scrubber at bottom of map */}
         {scrubberOpen && (
           <TimelineScrubber
             startMs={START_MS}
@@ -129,18 +147,6 @@ export const FusionDashboard: React.FC = () => {
             }}
           />
         )}
-
-        {/* Bottom Detail Panel */}
-        {detailPanelOpen && (
-          <CollapsiblePane
-            title="Track Details"
-            width="100%"
-            height="280px"
-            direction="vertical"
-          >
-            <DetailPanel />
-          </CollapsiblePane>
-        )}
       </div>
 
       {/* Alert Assign Popover */}
@@ -154,31 +160,3 @@ export const FusionDashboard: React.FC = () => {
     </div>
   );
 };
-
-const LayerButton: React.FC<{
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  accent?: string;
-}> = ({ label, active, onClick, accent }) => (
-  <button
-    onClick={onClick}
-    style={{
-      padding: "5px 10px",
-      backgroundColor: active
-        ? (accent ? `${accent}33` : "rgba(59, 130, 246, 0.2)")
-        : "rgba(15, 23, 42, 0.75)",
-      color: active ? (accent ?? "#60A5FA") : "#94A3B8",
-      border: `1px solid ${active ? (accent ?? "#3B82F6") : "#334155"}`,
-      borderRadius: "6px",
-      cursor: "pointer",
-      fontSize: "0.65rem",
-      fontWeight: "bold",
-      backdropFilter: "blur(6px)",
-      whiteSpace: "nowrap",
-      transition: "all 0.15s ease",
-    }}
-  >
-    {label}
-  </button>
-);

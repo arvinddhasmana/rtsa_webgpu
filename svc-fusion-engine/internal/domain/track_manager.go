@@ -4,6 +4,7 @@ package domain
 import (
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +14,39 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// hostileClassFromMetadata extracts hostile classification from observation metadata.
+// Returns UNKNOWN if the key is missing or unrecognised.
+func hostileClassFromMetadata(md map[string]string) commonv1.HostileClassification {
+	v, ok := md["sim_hostile_class"]
+	if !ok || v == "" {
+		return commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN
+	}
+	// Accept both full enum name and short suffix (e.g. "HOSTILE" or "HOSTILE_CLASSIFICATION_HOSTILE")
+	norm := strings.ToUpper(v)
+	for num, name := range commonv1.HostileClassification_name {
+		if name == norm || strings.HasSuffix(name, "_"+norm) {
+			return commonv1.HostileClassification(num)
+		}
+	}
+	return commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN
+}
+
+// entityTypeFromMetadata extracts entity type from observation metadata.
+// Returns UNSPECIFIED if the key is missing or unrecognised.
+func entityTypeFromMetadata(md map[string]string) commonv1.EntityType {
+	v, ok := md["sim_entity_type"]
+	if !ok || v == "" {
+		return commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED
+	}
+	norm := strings.ToUpper(v)
+	for num, name := range commonv1.EntityType_name {
+		if name == norm || strings.HasSuffix(name, "_"+norm) {
+			return commonv1.EntityType(num)
+		}
+	}
+	return commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED
+}
 
 // SourceInfo tracks per-sensor contribution metadata.
 type SourceInfo struct {
@@ -61,7 +95,16 @@ func (tm *TrackManager) CreateTrack(obs *ingestionv1.SensorObservation) (*TrackS
 
 	now := time.Now()
 	pos := obs.GetPosition()
-	et := sensorTypeToEntityType(obs.GetSensorType())
+	md := obs.GetMetadata()
+
+	// Prefer entity type from metadata (set by simulator), fall back to sensor type inference.
+	et := entityTypeFromMetadata(md)
+	if et == commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED {
+		et = sensorTypeToEntityType(obs.GetSensorType())
+	}
+
+	// Extract hostile class from metadata if available.
+	hc := hostileClassFromMetadata(md)
 
 	var vN, vE float64
 	if pos.SpeedKnots != nil && pos.HeadingDegrees != nil {
@@ -90,7 +133,7 @@ func (tm *TrackManager) CreateTrack(obs *ingestionv1.SensorObservation) (*TrackS
 	track := &TrackState{
 		TrackID:        uuid.New().String(),
 		EntityType:     et,
-		HostileClass:   commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN,
+		HostileClass:   hc,
 		KalmanState:    ks,
 		Sources:        make(map[string]*SourceInfo),
 		Classification: obs.GetClassification(),
@@ -175,6 +218,21 @@ func (tm *TrackManager) UpdateTrack(trackID string, obs *ingestionv1.SensorObser
 	// Propagate classification: MAX of all contributing sources
 	if obs.GetClassification() > track.Classification {
 		track.Classification = obs.GetClassification()
+	}
+
+	// Propagate hostile class from metadata if more specific than current.
+	md := obs.GetMetadata()
+	obsHC := hostileClassFromMetadata(md)
+	if track.HostileClass == commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN &&
+		obsHC != commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN {
+		track.HostileClass = obsHC
+	}
+
+	// Propagate entity type if track is still UNSPECIFIED.
+	obsET := entityTypeFromMetadata(md)
+	if track.EntityType == commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED &&
+		obsET != commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED {
+		track.EntityType = obsET
 	}
 
 	track.Status = commonv1.TrackStatus_TRACK_STATUS_ACTIVE
