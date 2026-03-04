@@ -176,18 +176,28 @@ export const MapView: React.FC = () => {
     let isMounted = true;
     let unsubscribeStore: (() => void) | null = null;
     let rafId: number | null = null;
-    let updateScheduled = false;
+    let lastUpdateTime = 0;
+    // Hard cap: max 10 map updates/sec regardless of how fast the store fires.
+    // At 15k tracks, a full GeoJSON rebuild is expensive; more than 10Hz adds no
+    // visual benefit since humans can't perceive faster than ~15fps for slow-moving
+    // tactical symbols.
+    const UPDATE_INTERVAL_MS = 100; // 10 Hz
 
-    // RAF-throttled trigger — coalesces burst updates into one GPU upload per frame.
     const scheduleMapUpdate = () => {
-      if (!updateScheduled && mapRef.current && maplibreglRef.current) {
-        updateScheduled = true;
-        rafId = requestAnimationFrame(() => {
-          updateScheduled = false;
-          rafId = null;
-          updateMapData();
-        });
-      }
+      if (rafId !== null || !mapRef.current || !maplibreglRef.current) return;
+      rafId = requestAnimationFrame((now) => {
+        rafId = null;
+        if (!isMounted) return;
+        // Throttle: skip frames that arrive too fast after the last real update
+        if (now - lastUpdateTime < UPDATE_INTERVAL_MS) {
+          // Re-schedule after remaining interval
+          const delay = UPDATE_INTERVAL_MS - (now - lastUpdateTime);
+          setTimeout(scheduleMapUpdate, delay);
+          return;
+        }
+        lastUpdateTime = now;
+        updateMapData();
+      });
     };
 
     // Synchronous map update — reads freshest store state, uploads one GeoJSON blob.
@@ -263,40 +273,16 @@ export const MapView: React.FC = () => {
         });
       }
 
-      // ── Threat halos (small 2 km ring around each HOSTILE track) ───────────
-      // Radius is intentionally small — just a visible ring around the track,
-      // NOT a 50 km coverage circle that dominates the map view.
-      const haloFeatures = Array.from(currentTracks.values())
-        .filter((t) => t.hostileClass === "HOSTILE")
-        .map((t) => {
-          const points = 16; // fewer points = rounder but faster to compute
-          const radiusInDeg = 2 / 111.32; // 2 km ring, not 50 km
-          const coords = [];
-          for (let i = 0; i <= points; i++) {
-            const angle = (i / points) * Math.PI * 2;
-            const dx = Math.cos(angle) * radiusInDeg;
-            const dy = Math.sin(angle) * radiusInDeg;
-            const adjustedDx =
-              dx / Math.cos((t.position.latitude * Math.PI) / 180);
-            coords.push([
-              t.position.longitude + adjustedDx,
-              t.position.latitude + dy,
-            ]);
-          }
-          return {
-            type: "Feature" as const,
-            geometry: { type: "Polygon" as const, coordinates: [coords] },
-            properties: { trackId: t.trackId },
-          };
-        });
-
-      const haloSource = map.getSource("threat-halos");
-      if (haloSource) {
-        haloSource.setData({
-          type: "FeatureCollection",
-          features: haloFeatures as any,
-        });
-      }
+      // ── Threat halos ──────────────────────────────────────────────────────
+      // NOTE: Halo polygon computation is intentionally skipped here.
+      // With 1000+ hostile tracks, computing 16-point ring polygons per track
+      // per frame (1000 × 16 trig ops × 10 Hz) pegs the main thread CPU.
+      // Hostile status is already communicated by the red icon color.
+      // The halo source/layer still exists for future use (e.g., on track click);
+      // we just don't rebuild it every frame.
+      //
+      // To show halos only for selected/focused tracks, set halo data when
+      // a track is selected (handled in click handler below).
 
       // ── Raw Sensor Observations ───────────────────────────────────────────────
       const sensorFeatures = Array.from(currentSensors.values()).map((o) => ({
@@ -371,7 +357,11 @@ export const MapView: React.FC = () => {
               features: [
                 {
                   type: "Feature",
-                  properties: { type: "exclusion" },
+                  properties: {
+                    type: "exclusion",
+                    name: "EXCL-01",
+                    description: "Maritime Exclusion Zone Alpha — No entry without authorization",
+                  },
                   geometry: {
                     type: "Polygon",
                     coordinates: [
@@ -401,8 +391,8 @@ export const MapView: React.FC = () => {
                 "inclusion", "#16A34A",
                 /* default */ "#6B7280",
               ],
-              // G: raised from 0.1 → 0.15 so the zone is clearly visible
-              "fill-opacity": 0.15,
+              // Subtle fill — dashed outline is the primary visual indicator
+              "fill-opacity": 0.05,
             },
           });
 
@@ -423,7 +413,22 @@ export const MapView: React.FC = () => {
             },
           });
 
-          // ── Threat halos (minimal 2 km dashed ring, NO fill) ─────────────
+          // Show geo-fence zone name popup on hover (click handler below)
+          map.on("click", "geofences-fill", (e: any) => {
+            const feature = e.features?.[0];
+            if (!feature) return;
+            const name = feature.properties?.name ?? "Exclusion Zone";
+            const desc = feature.properties?.description ?? "Restricted area";
+            // Show a temporary popup
+            new (maplibregl as any).Popup({ closeOnClick: true, className: "rtsa-fence-popup" })
+              .setLngLat(e.lngLat)
+              .setHTML(`<div style="font:11px/1.4 monospace;color:#F87171;">
+                <strong>${name}</strong><br/><span style="color:#94A3B8;">${desc}</span>
+              </div>`)
+              .addTo(map);
+          });
+          map.on("mouseenter", "geofences-fill", () => { map.getCanvas().style.cursor = "crosshair"; });
+          map.on("mouseleave", "geofences-fill", () => { map.getCanvas().style.cursor = ""; });
           // Fill layer intentionally removed — solid red fill at 0.2 opacity
           // was covering the entire map with 700+ hostile tracks.
           // We keep only a thin dashed outline so hostiles remain identifiable.

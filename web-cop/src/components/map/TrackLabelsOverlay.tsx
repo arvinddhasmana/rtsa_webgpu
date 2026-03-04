@@ -62,7 +62,8 @@ export const TrackLabelsOverlay: React.FC = () => {
     };
   }, []);
 
-  // Re-render labels every frame when visible
+  // Re-render labels at 6 Hz — fast enough for tactical labels, low enough
+  // to keep the main thread clear when thousands of tracks are streaming in.
   useEffect(() => {
     if (!isVisible) {
       if (labelContainerRef.current) {
@@ -71,8 +72,18 @@ export const TrackLabelsOverlay: React.FC = () => {
       return;
     }
 
-    const render = () => {
+    const LABEL_INTERVAL_MS = 167; // ~6 Hz
+    let lastLabelRender = 0;
+
+    const render = (now: number) => {
       if (!mountedRef.current) return;
+
+      // Throttle: skip if we rendered too recently
+      if (now - lastLabelRender < LABEL_INTERVAL_MS) {
+        rafRef.current = requestAnimationFrame(render);
+        return;
+      }
+      lastLabelRender = now;
 
       const map = (window as any).__RTSA_MAP__;
       const container = labelContainerRef.current;
