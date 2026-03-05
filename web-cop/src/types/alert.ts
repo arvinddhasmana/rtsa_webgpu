@@ -20,3 +20,5 @@ export interface AnomalyAlert {
   classification: ClassificationLevel;
   detectedAt: Date;
 }
+
+export type FeedbackStatus = "idle" | "submitting" | "accepted" | "under_review" | "rejected" | "queued";

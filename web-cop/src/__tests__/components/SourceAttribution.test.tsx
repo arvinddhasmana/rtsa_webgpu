@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/SourceAttribution.test.tsx
 
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { SourceAttributionSection } from "../../components/detail/SourceAttribution";
 import { FusedTrack } from "../../types/track";
 
@@ -63,12 +63,12 @@ describe("SourceAttributionSection", () => {
     expect(screen.getByText("70%")).toBeTruthy();
   });
 
-  it("shows 'No sources' when sources array is empty", () => {
+  it("shows 'No source data available' when sources array is empty", () => {
     render(
       <SourceAttributionSection
         track={makeTrack({ sources: [], sourceCount: 0 })}
       />
     );
-    expect(screen.getByText("No sources")).toBeTruthy();
+    expect(screen.getByText("No source data available")).toBeTruthy();
   });
 });

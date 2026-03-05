@@ -2,6 +2,7 @@
 // src/components/detail/DetailPanel.tsx
 
 import React, { useState } from "react";
+import { useAlertStore } from "../../stores/alertStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
@@ -28,6 +29,11 @@ type ActiveTab = "identity" | "position" | "sources" | "timeline" | "feedback";
 export const DetailPanel: React.FC = () => {
   const selectedTrackId = useTrackStore((s) => s.selectedTrackId);
   const getTrackById = useTrackStore((s) => s.getTrackById);
+
+  const getAlertsByTrack = useAlertStore((s) => s.getAlertsByTrack);
+  const acknowledgeAlert = useAlertStore((s) => s.acknowledgeAlert);
+  const acknowledgedIds = useAlertStore((s) => s.acknowledgedIds);
+
   const canAccess = useAuthStore((s) => s.canAccess);
   const closeDetailPanel = useUIStore((s) => s.closeDetailPanel);
   const setMapView = useUIStore((s) => s.setMapView);
@@ -70,6 +76,12 @@ export const DetailPanel: React.FC = () => {
     );
   }
 
+  // Check for unacknowledged critical alerts for this track
+  const trackAlerts = getAlertsByTrack(track.trackId);
+  const unownedCriticalAlerts = trackAlerts.filter(
+    (a) => a.severity === "CRITICAL" && !acknowledgedIds.has(a.alertId)
+  );
+
   const TABS: { key: ActiveTab; label: string }[] = [
     { key: "identity", label: "Identity" },
     { key: "position", label: "Position" },
@@ -98,6 +110,10 @@ export const DetailPanel: React.FC = () => {
       setNoteText("");
       setNoteOpen(false);
     }
+  };
+
+  const handleAcknowledgeAll = () => {
+    unownedCriticalAlerts.forEach((a) => acknowledgeAlert(a.alertId));
   };
 
   return (
@@ -151,6 +167,36 @@ export const DetailPanel: React.FC = () => {
           ✕
         </button>
       </div>
+
+      {unownedCriticalAlerts.length > 0 && (
+         <div style={{
+           padding: "8px 12px",
+           backgroundColor: "rgba(220, 38, 38, 0.15)",
+           borderBottom: "1px solid #DC2626",
+           display: "flex",
+           justifyContent: "space-between",
+           alignItems: "center"
+         }}>
+           <span style={{ color: "#FCA5A5", fontSize: "0.75rem", fontWeight: "bold" }}>
+             ⚠ {unownedCriticalAlerts.length} Unacknowledged CRITICAL Alert(s)
+           </span>
+           <button
+             onClick={handleAcknowledgeAll}
+             style={{
+               backgroundColor: "#DC2626",
+               color: "white",
+               border: "none",
+               padding: "4px 8px",
+               borderRadius: "4px",
+               fontSize: "0.65rem",
+               fontWeight: "bold",
+               cursor: "pointer"
+             }}
+           >
+             ACKNOWLEDGE
+           </button>
+         </div>
+      )}
 
       {/* Action Bar */}
       <div className="glass-panel" style={{ display: "flex", gap: "8px", padding: "8px", borderBottom: "1px solid var(--glass-border)", backgroundColor: "var(--glass-bg)" }}>

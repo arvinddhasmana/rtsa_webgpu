@@ -20,21 +20,25 @@ export function severityRank(s: string): number {
 interface AlertState {
   alerts: Map<string, AnomalyAlert>;
   acknowledgedIds: Set<string>;
+  feedbackStatuses: Map<string, string>;
   minSeverityFilter: string;
 
   addAlert: (alert: AnomalyAlert) => void;
   acknowledgeAlert: (alertId: string) => void;
+  setFeedbackStatus: (alertId: string, status: string) => void;
   setMinSeverityFilter: (severity: string) => void;
   clearAll: () => void;
 
   getUnacknowledgedAlerts: () => AnomalyAlert[];
   getCriticalCount: () => number;
   getFilteredAlerts: () => AnomalyAlert[];
+  getAlertsByTrack: (trackId: string) => AnomalyAlert[];
 }
 
 export const useAlertStore = create<AlertState>((set, get) => ({
   alerts: new Map(),
   acknowledgedIds: new Set(),
+  feedbackStatuses: new Map(),
   minSeverityFilter: "WATCH",
 
   addAlert: (alert) =>
@@ -51,8 +55,15 @@ export const useAlertStore = create<AlertState>((set, get) => ({
       return { acknowledgedIds: newAcked };
     }),
 
+  setFeedbackStatus: (alertId, status) =>
+    set((state) => {
+      const newStatuses = new Map(state.feedbackStatuses);
+      newStatuses.set(alertId, status);
+      return { feedbackStatuses: newStatuses };
+    }),
+
   setMinSeverityFilter: (severity) => set({ minSeverityFilter: severity }),
-  clearAll: () => set({ alerts: new Map(), acknowledgedIds: new Set() }),
+  clearAll: () => set({ alerts: new Map(), acknowledgedIds: new Set(), feedbackStatuses: new Map() }),
 
   getUnacknowledgedAlerts: () =>
     Array.from(get().alerts.values())
@@ -70,4 +81,10 @@ export const useAlertStore = create<AlertState>((set, get) => ({
       .filter((a) => severityRank(a.severity) >= minRank)
       .sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
   },
+
+  getAlertsByTrack: (trackId: string) => {
+    return Array.from(get().alerts.values())
+      .filter((a) => a.trackId === trackId)
+      .sort((a, b) => b.detectedAt.getTime() - a.detectedAt.getTime());
+  }
 }));

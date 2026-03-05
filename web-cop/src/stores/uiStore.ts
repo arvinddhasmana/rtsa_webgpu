@@ -38,6 +38,7 @@ interface UIState {
 
   toggleAlertPanel: () => void;
   toggleDetailPanel: () => void;
+  openDetailPanel: () => void;
   closeDetailPanel: () => void;
   toggleForensicsPanel: () => void;
   toggleFullscreen: () => void;
@@ -86,6 +87,7 @@ export const useUIStore = create<UIState>((set) => ({
   toggleAlertPanel: () => set((s) => ({ alertPanelOpen: !s.alertPanelOpen })),
   toggleDetailPanel: () =>
     set((s) => ({ detailPanelOpen: !s.detailPanelOpen })),
+  openDetailPanel: () => set({ detailPanelOpen: true }),
   closeDetailPanel: () => set({ detailPanelOpen: false }),
   toggleForensicsPanel: () =>
     set((s) => ({ forensicsPanelOpen: !s.forensicsPanelOpen })),

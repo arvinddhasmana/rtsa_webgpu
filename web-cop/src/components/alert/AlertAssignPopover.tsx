@@ -28,32 +28,43 @@ export const AlertAssignPopover: React.FC<AlertAssignPopoverProps> = ({
 }) => {
   const [selectedOp, setSelectedOp] = useState<string>("");
   const [note, setNote] = useState<string>("");
+  const [showToast, setShowToast] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      // Don't close if showing toast
+      if (e.key === "Escape" && !showToast) onClose();
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
+  }, [onClose, showToast]);
 
   // Close on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
+      if (ref.current && !ref.current.contains(e.target as Node) && !showToast) {
         onClose();
       }
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
-  }, [onClose]);
+  }, [onClose, showToast]);
 
   const handleAssign = () => {
     if (!selectedOp) return;
-    onAssign(selectedOp);
+
+    // Show toast, then actually assign and close
+    setShowToast(true);
+
+    setTimeout(() => {
+      onAssign(selectedOp);
+      onClose();
+    }, 1500);
   };
+
+  const opInfo = AVAILABLE_OPERATORS.find(o => o.id === selectedOp);
 
   return (
     <div
@@ -64,141 +75,165 @@ export const AlertAssignPopover: React.FC<AlertAssignPopoverProps> = ({
         right: "16px",
         top: "50%",
         transform: "translateY(-50%)",
-        width: "260px",
-        backgroundColor: "#1E293B",
-        border: "1px solid #334155",
+        width: "280px",
+        backgroundColor: "rgba(30, 41, 59, 0.95)",
+        backdropFilter: "blur(12px)",
+        border: "1px solid rgba(255,255,255,0.1)",
         borderRadius: "8px",
         padding: "16px",
         zIndex: 50,
         boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "12px",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            color: "#F59E0B",
-            letterSpacing: "0.05em",
-          }}
-        >
-          ASSIGN ALERT
-        </span>
-        <button
-          onClick={onClose}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#9CA3AF",
-            cursor: "pointer",
-            fontSize: "1rem",
-          }}
-        >
-          ✕
-        </button>
-      </div>
-
-      <div
-        style={{
-          fontSize: "0.65rem",
-          color: "#64748B",
-          marginBottom: "12px",
-          fontFamily: "monospace",
-        }}
-      >
-        Alert: {alertId}
-      </div>
-
-      {/* Operator list */}
-      <div
-        style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}
-      >
-        {AVAILABLE_OPERATORS.map((op) => (
-          <label
-            key={op.id}
-            data-testid={`assign-op-${op.id}`}
+      {showToast ? (
+         <div style={{
+           display: "flex",
+           flexDirection: "column",
+           alignItems: "center",
+           justifyContent: "center",
+           height: "200px",
+           gap: "12px",
+           animation: "fadeIn 0.3s ease-in"
+         }}>
+           <div style={{ fontSize: "2rem" }}>✅</div>
+           <div style={{ color: "#F1F5F9", fontWeight: "bold", fontSize: "0.85rem" }}>
+             Alert Assigned
+           </div>
+           <div style={{ color: "#94A3B8", fontSize: "0.75rem", textAlign: "center" }}>
+             Alert {alertId.slice(0, 8)}... handed off to {opInfo?.name}
+           </div>
+         </div>
+      ) : (
+        <>
+          <div
             style={{
               display: "flex",
+              justifyContent: "space-between",
               alignItems: "center",
-              gap: "8px",
-              padding: "6px 8px",
-              borderRadius: "4px",
-              cursor: "pointer",
-              backgroundColor:
-                selectedOp === op.id
-                  ? "rgba(59, 130, 246, 0.2)"
-                  : "rgba(255,255,255,0.04)",
-              border:
-                selectedOp === op.id
-                  ? "1px solid #3B82F6"
-                  : "1px solid transparent",
-              transition: "all 0.15s ease",
+              marginBottom: "16px",
             }}
           >
-            <input
-              type="radio"
-              name="operator"
-              value={op.id}
-              checked={selectedOp === op.id}
-              onChange={() => setSelectedOp(op.id)}
-              style={{ accentColor: "#3B82F6" }}
-            />
-            <div>
-              <div style={{ fontSize: "0.75rem", color: "#F1F5F9", fontWeight: "bold" }}>
-                {op.name}
-              </div>
-              <div style={{ fontSize: "0.65rem", color: "#64748B" }}>{op.role}</div>
-            </div>
-          </label>
-        ))}
-      </div>
+            <span
+              style={{
+                fontSize: "0.8rem",
+                fontWeight: "bold",
+                color: "#EAB308",
+                letterSpacing: "0.05em",
+              }}
+            >
+              ASSIGN ALERT
+            </span>
+            <button
+              onClick={onClose}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#94A3B8",
+                cursor: "pointer",
+                fontSize: "1rem",
+              }}
+            >
+              ✕
+            </button>
+          </div>
 
-      {/* Note */}
-      <textarea
-        placeholder="Handoff note (optional)..."
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        style={{
-          width: "100%",
-          height: "52px",
-          backgroundColor: "#0F172A",
-          color: "#CBD5E1",
-          border: "1px solid #334155",
-          borderRadius: "4px",
-          padding: "6px 8px",
-          fontSize: "0.7rem",
-          resize: "none",
-          marginBottom: "12px",
-          boxSizing: "border-box",
-        }}
-      />
+          <div
+            style={{
+              fontSize: "0.65rem",
+              color: "#94A3B8",
+              marginBottom: "12px",
+              fontFamily: "monospace",
+            }}
+          >
+            Alert ID: {alertId}
+          </div>
 
-      <button
-        data-testid="assign-confirm-btn"
-        onClick={handleAssign}
-        disabled={!selectedOp}
-        style={{
-          width: "100%",
-          padding: "8px",
-          backgroundColor: selectedOp ? "#1D4ED8" : "#374151",
-          color: selectedOp ? "#F1F5F9" : "#6B7280",
-          border: "none",
-          borderRadius: "4px",
-          cursor: selectedOp ? "pointer" : "not-allowed",
-          fontSize: "0.75rem",
-          fontWeight: "bold",
-          transition: "background-color 0.15s ease",
-        }}
-      >
-        Assign →
-      </button>
+          {/* Operator list */}
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "16px" }}
+          >
+            {AVAILABLE_OPERATORS.map((op) => (
+              <label
+                key={op.id}
+                data-testid={`assign-op-${op.id}`}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  padding: "8px 10px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  backgroundColor:
+                    selectedOp === op.id
+                      ? "rgba(59, 130, 246, 0.2)"
+                      : "rgba(255,255,255,0.03)",
+                  border:
+                    selectedOp === op.id
+                      ? "1px solid #3B82F6"
+                      : "1px solid transparent",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="operator"
+                  value={op.id}
+                  checked={selectedOp === op.id}
+                  onChange={() => setSelectedOp(op.id)}
+                  style={{ accentColor: "#3B82F6", margin: 0 }}
+                />
+                <div>
+                  <div style={{ fontSize: "0.75rem", color: "#F1F5F9", fontWeight: "bold" }}>
+                    {op.name}
+                  </div>
+                  <div style={{ fontSize: "0.65rem", color: "#64748B" }}>{op.role}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {/* Note */}
+          <textarea
+            placeholder="Handoff note (optional)..."
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            style={{
+              width: "100%",
+              height: "60px",
+              backgroundColor: "rgba(15, 23, 42, 0.6)",
+              color: "#CBD5E1",
+              border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: "4px",
+              padding: "8px",
+              fontSize: "0.7rem",
+              resize: "none",
+              marginBottom: "16px",
+              boxSizing: "border-box",
+              outline: "none",
+            }}
+          />
+
+          <button
+            data-testid="assign-confirm-btn"
+            onClick={handleAssign}
+            disabled={!selectedOp}
+            style={{
+              width: "100%",
+              padding: "10px",
+              backgroundColor: selectedOp ? "#2563EB" : "rgba(255,255,255,0.05)",
+              color: selectedOp ? "#F1F5F9" : "#64748B",
+              border: "none",
+              borderRadius: "4px",
+              cursor: selectedOp ? "pointer" : "not-allowed",
+              fontSize: "0.75rem",
+              fontWeight: "bold",
+              transition: "background-color 0.15s ease",
+            }}
+          >
+            Confirm Assignment →
+          </button>
+        </>
+      )}
     </div>
   );
 };

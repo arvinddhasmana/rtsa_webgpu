@@ -2,10 +2,10 @@
 // src/components/detail/FeedbackForm.tsx
 
 import React, { useState } from "react";
-import { FeedbackType } from "../../types/common";
-import { feedbackClient } from "../../api/feedback-client";
-import { useAuthStore } from "../../stores/authStore";
+import { useFeedback } from "../../hooks/useFeedback";
 import { useOfflineMode } from "../../hooks/useOfflineMode";
+import { useAuthStore } from "../../stores/authStore";
+import { FeedbackType } from "../../types/common";
 
 interface FeedbackFormProps {
   trackId: string;
@@ -24,83 +24,60 @@ const MIN_JUSTIFICATION_LENGTH = 10;
 
 /**
  * FeedbackForm — allows operator to submit feedback on a track or alert.
- *
- * Fields:
- *   - feedback_type: dropdown
- *   - justification: textarea (required, min 10 chars)
- *
- * On submit:
- *   1. Calls FeedbackService.SubmitFeedback via gRPC-Web
- *   2. Shows loading spinner
- *   3. On success: shows trust score returned
- *   4. On error: shows error message
- *   5. If offline: queues feedback for later submission
- *
- * No PII logged in browser console.
+ * Uses useFeedback hook for submission and state.
  */
 export const FeedbackForm: React.FC<FeedbackFormProps> = ({ trackId, alertId }) => {
   const operatorId = useAuthStore((s) => s.operatorId);
   const { isOffline } = useOfflineMode();
+  const { submit, status, trustScore, error } = useFeedback();
 
   const [feedbackType, setFeedbackType] = useState<FeedbackType>("CONFIRM_HOSTILE");
   const [justification, setJustification] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [trustScore, setTrustScore] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
+  const [queued, setQueued] = useState(false);
 
   const isValid = justification.trim().length >= MIN_JUSTIFICATION_LENGTH;
+  const isLoading = status === "submitting";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid || !operatorId) return;
 
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (isOffline) {
-        // Queue for later submission (stored in sessionStorage by useOfflineMode)
-        setSubmitted(true);
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await feedbackClient.submitFeedback({
-        trackId,
-        alertId,
-        feedbackType,
-        justification,
-        operatorId,
-      });
-
-      setTrustScore(response.trustScore);
-      setSubmitted(true);
-    } catch (err) {
-      // Log only non-PII error info
-      setError(err instanceof Error ? err.message : "Submission failed");
-    } finally {
-      setIsLoading(false);
+    if (isOffline) {
+      // Queue for later submission (stored in sessionStorage by useOfflineMode)
+      setQueued(true);
+      return;
     }
+
+    // Determine isHostile implicitly from feedback type for this demo hook signature
+    const isHostile = feedbackType === "CONFIRM_HOSTILE";
+
+    // The hook expects a confidence value (0-1)
+    const confidence = 1.0;
+
+    await submit(trackId, alertId || "", isHostile, confidence, justification);
   };
 
-  if (submitted && trustScore !== null) {
+  if (status === "accepted" || status === "under_review" || status === "queued") {
+    const isAccepted = status === "accepted";
     return (
-      <div data-testid="feedback-success" style={{ padding: "8px" }}>
-        <div style={{ color: "#16A34A", fontSize: "0.75rem", fontWeight: "bold" }}>
-          ✓ Feedback accepted
+      <div data-testid="feedback-success" style={{ padding: "16px", backgroundColor: "rgba(255,255,255,0.02)", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)", marginTop: "8px" }}>
+        <div style={{ color: isAccepted ? "#10B981" : "#F59E0B", fontSize: "0.85rem", fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px" }}>
+          {isAccepted ? "✅ Feedback Accepted" : "⏳ Feedback Under Review"}
         </div>
-        <div style={{ fontSize: "0.7rem", color: "#9CA3AF", marginTop: "4px" }}>
-          Trust Score: {Math.round(trustScore * 100)}%
-        </div>
+        {trustScore !== null && (
+          <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginTop: "8px", display: "flex", justifyContent: "space-between" }}>
+            <span>Impact Score:</span>
+            <span style={{ fontWeight: "bold", color: isAccepted ? "#10B981" : "#F59E0B" }}>{Math.round(trustScore * 100)}%</span>
+          </div>
+        )}
       </div>
     );
   }
 
-  if (submitted && isOffline) {
+  if (queued && isOffline) {
     return (
-      <div data-testid="feedback-queued" style={{ padding: "8px" }}>
-        <div style={{ color: "#CA8A04", fontSize: "0.75rem", fontWeight: "bold" }}>
+      <div data-testid="feedback-queued" style={{ padding: "16px", backgroundColor: "rgba(202, 138, 4, 0.1)", borderRadius: "8px", border: "1px solid #CA8A04", marginTop: "8px" }}>
+        <div style={{ color: "#FBBF24", fontSize: "0.85rem", fontWeight: "bold" }}>
           ⚡ Queued for offline submission
         </div>
       </div>
@@ -111,12 +88,16 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ trackId, alertId }) 
     <form
       data-testid="feedback-form"
       onSubmit={(e) => void handleSubmit(e)}
-      style={{ padding: "8px" }}
+      style={{ padding: "16px" }}
     >
-      <div style={{ marginBottom: "8px" }}>
+      <div style={{ fontSize: "0.75rem", color: "#94A3B8", marginBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.05)", paddingBottom: "4px" }}>
+        Submit Operator Feedback
+      </div>
+
+      <div style={{ marginBottom: "12px" }}>
         <label
           htmlFor="feedback-type"
-          style={{ display: "block", fontSize: "0.7rem", color: "#9CA3AF", marginBottom: "4px" }}
+          style={{ display: "block", fontSize: "0.7rem", color: "#94A3B8", marginBottom: "6px" }}
         >
           Feedback Type
         </label>
@@ -127,12 +108,13 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ trackId, alertId }) 
           onChange={(e) => setFeedbackType(e.target.value as FeedbackType)}
           style={{
             width: "100%",
-            padding: "4px",
-            backgroundColor: "#0F172A",
+            padding: "8px",
+            backgroundColor: "rgba(15, 23, 42, 0.6)",
             color: "#F1F5F9",
-            border: "1px solid #334155",
+            border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: "4px",
             fontSize: "0.75rem",
+            outline: "none",
           }}
         >
           {FEEDBACK_TYPES.map((ft) => (
@@ -143,48 +125,52 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ trackId, alertId }) 
         </select>
       </div>
 
-      <div style={{ marginBottom: "8px" }}>
+      <div style={{ marginBottom: "16px" }}>
         <label
           htmlFor="justification"
-          style={{ display: "block", fontSize: "0.7rem", color: "#9CA3AF", marginBottom: "4px" }}
+          style={{ display: "flex", justifyContent: "space-between", fontSize: "0.7rem", color: "#94A3B8", marginBottom: "6px" }}
         >
-          Justification (min {MIN_JUSTIFICATION_LENGTH} chars)
+          <span>Justification</span>
+          <span style={{ color: isValid ? "#10B981" : "#64748B" }}>
+            {justification.length}/{MIN_JUSTIFICATION_LENGTH} min chars
+          </span>
         </label>
         <textarea
           id="justification"
           data-testid="justification-input"
           value={justification}
           onChange={(e) => setJustification(e.target.value)}
-          rows={3}
+          rows={4}
           style={{
             width: "100%",
-            padding: "4px",
-            backgroundColor: "#0F172A",
+            padding: "8px",
+            backgroundColor: "rgba(15, 23, 42, 0.6)",
             color: "#F1F5F9",
-            border: `1px solid ${!isValid && justification.length > 0 ? "#DC2626" : "#334155"}`,
+            border: `1px solid ${!isValid && justification.length > 0 ? "#DC2626" : "rgba(255,255,255,0.1)"}`,
             borderRadius: "4px",
             fontSize: "0.75rem",
             resize: "vertical",
             boxSizing: "border-box",
+            outline: "none",
           }}
-          placeholder="Enter justification..."
+          placeholder="Enter detailed justification for your evaluation..."
         />
-        {!isValid && justification.length > 0 && (
-          <div
-            data-testid="justification-error"
-            style={{ color: "#DC2626", fontSize: "0.65rem", marginTop: "2px" }}
-          >
-            Minimum {MIN_JUSTIFICATION_LENGTH} characters required
-          </div>
-        )}
       </div>
 
-      {error && (
+      {(error || status === "rejected") && (
         <div
           data-testid="feedback-error"
-          style={{ color: "#DC2626", fontSize: "0.7rem", marginBottom: "8px" }}
+          style={{
+            color: "#FCA5A5",
+            fontSize: "0.75rem",
+            marginBottom: "12px",
+            padding: "8px",
+            backgroundColor: "rgba(220, 38, 38, 0.1)",
+            borderRadius: "4px",
+            border: "1px solid rgba(220, 38, 38, 0.3)"
+          }}
         >
-          {error}
+          {error?.message || "Submission rejected by trust engine. Please provide more detail."}
         </div>
       )}
 
@@ -194,17 +180,18 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ trackId, alertId }) 
         disabled={!isValid || isLoading || !operatorId}
         style={{
           width: "100%",
-          padding: "6px",
-          backgroundColor: isValid && !isLoading ? "#1D4ED8" : "#374151",
-          color: "#F1F5F9",
+          padding: "10px",
+          backgroundColor: isValid && !isLoading ? "#2563EB" : "rgba(255,255,255,0.05)",
+          color: isValid && !isLoading ? "#F1F5F9" : "#64748B",
           border: "none",
           borderRadius: "4px",
           cursor: isValid && !isLoading ? "pointer" : "not-allowed",
-          fontSize: "0.75rem",
+          fontSize: "0.8rem",
           fontWeight: "bold",
+          transition: "all 0.2s",
         }}
       >
-        {isLoading ? "Submitting..." : isOffline ? "Queue Feedback" : "Submit Feedback"}
+        {isLoading ? "Analyzing & Submitting..." : isOffline ? "Queue Offline" : "Submit to Trust Engine →"}
       </button>
     </form>
   );

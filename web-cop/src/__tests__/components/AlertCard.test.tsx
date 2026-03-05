@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/AlertCard.test.tsx
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { AlertCard } from "../../components/alerts/AlertCard";
 import { useAlertStore } from "../../stores/alertStore";
 import { useTrackStore } from "../../stores/trackStore";
@@ -63,6 +63,7 @@ describe("AlertCard", () => {
 
   it("renders confidence percentage", () => {
     render(<AlertCard alert={makeAlert({ confidenceScore: 0.85 })} />);
-    expect(screen.getByText("85% conf")).toBeTruthy();
+    // The component changed rendering from "85% conf" to a visual bar + "85%"
+    expect(screen.getByText("85%")).toBeTruthy();
   });
 });

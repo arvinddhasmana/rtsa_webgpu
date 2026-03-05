@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/EntityTimeline.test.tsx
 
-import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { EntityTimeline } from "../../components/detail/EntityTimeline";
 import { FusedTrack } from "../../types/track";
 
@@ -27,9 +27,9 @@ describe("EntityTimeline", () => {
     expect(screen.getByTestId("entity-timeline")).toBeTruthy();
   });
 
-  it("renders 'Timeline' label", () => {
+  it("renders 'Recent History' label", () => {
     render(<EntityTimeline track={makeTrack()} />);
-    expect(screen.getByText("Timeline")).toBeTruthy();
+    expect(screen.getByText("Recent History")).toBeTruthy();
   });
 
   it("renders Track created event", () => {
