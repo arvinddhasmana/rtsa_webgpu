@@ -1,11 +1,12 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/__tests__/components/DetailPanel.test.tsx
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it } from "vitest";
 import { DetailPanel } from "../../components/detail/DetailPanel";
-import { useTrackStore } from "../../stores/trackStore";
+import { useAlertStore } from "../../stores/alertStore"; // Added import
 import { useAuthStore } from "../../stores/authStore";
+import { useTrackStore } from "../../stores/trackStore";
 import { FusedTrack } from "../../types/track";
 
 const makeTrack = (overrides: Partial<FusedTrack> = {}): FusedTrack => ({
@@ -28,6 +29,7 @@ const makeTrack = (overrides: Partial<FusedTrack> = {}): FusedTrack => ({
 describe("DetailPanel", () => {
   beforeEach(() => {
     useTrackStore.getState().clearAll();
+    useAlertStore.getState().clearAll(); // Added clearAll for alerts
     useAuthStore.getState().setOperator({
       id: "op-001",
       name: "Test Operator",
@@ -94,5 +96,50 @@ describe("DetailPanel", () => {
     render(<DetailPanel />);
     fireEvent.click(screen.getByTestId("tab-feedback"));
     expect(screen.getByTestId("feedback-form")).toBeTruthy();
+  });
+
+  it("shows unacknowledged critical alerts banner", () => {
+    const track = makeTrack({ trackId: "TRK-001" });
+    useTrackStore.getState().upsertTrack(track);
+    useTrackStore.getState().selectTrack("TRK-001");
+
+    // Add unacknowledged critical alert for this track
+    useAlertStore.getState().addAlert({ // Changed from upsertAlert to addAlert and removed async import
+      alertId: "ALT-CRIT",
+      trackId: "TRK-001",
+      severity: "CRITICAL",
+      anomalyType: "SPEED",
+      confidenceScore: 0.9,
+      explanation: "Crit",
+      features: [],
+      classification: "UNCLASSIFIED",
+      detectedAt: new Date()
+    });
+
+    render(<DetailPanel />);
+    expect(screen.getByText(/Unacknowledged CRITICAL Alert/)).toBeTruthy();
+
+    const ackBtn = screen.getByText("ACKNOWLEDGE");
+    fireEvent.click(ackBtn);
+    // Banner should disappear (or at least the button handled the click)
+  });
+
+  it("toggles and saves notes", () => {
+    const track = makeTrack();
+    useTrackStore.getState().upsertTrack(track);
+    useTrackStore.getState().selectTrack("TRK-001");
+    render(<DetailPanel />);
+
+    const noteBtn = screen.getByTestId("detail-add-note");
+    fireEvent.click(noteBtn);
+
+    const input = screen.getByPlaceholderText("Type note...");
+    fireEvent.change(input, { target: { value: "Test note content" } });
+
+    const saveBtn = screen.getByText("Save");
+    fireEvent.click(saveBtn);
+
+    // Note input should close after save
+    expect(screen.queryByPlaceholderText("Type note...")).toBeNull();
   });
 });

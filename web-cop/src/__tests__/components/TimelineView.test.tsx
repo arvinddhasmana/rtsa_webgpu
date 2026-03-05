@@ -13,7 +13,6 @@ vi.mock("../../hooks/useEventTimeline", () => ({
 }));
 
 describe("TimelineView", () => {
-  const mockSetSelectedEventId = vi.fn();
   const mockHook = eventTimelineHook.useEventTimeline as any;
 
   beforeEach(() => {
@@ -22,7 +21,7 @@ describe("TimelineView", () => {
       events: [],
       loading: false,
       error: null,
-      isRefreshing: false,
+      refreshing: false,
     });
   });
 

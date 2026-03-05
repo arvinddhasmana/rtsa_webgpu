@@ -7,7 +7,7 @@ import { useAuthStore } from "../stores/authStore";
 import { FeedbackStatus } from "../types/alert";
 
 interface UseFeedbackResult {
-  submit: (trackId: string, alertId: string, isHostile: boolean, confidence: number, notes?: string) => Promise<void>;
+  submit: (trackId: string, alertId: string, feedbackType: any, justification: string) => Promise<void>;
   status: FeedbackStatus;
   trustScore: number | null;
   error: Error | null;
@@ -20,7 +20,7 @@ export function useFeedback(): UseFeedbackResult {
 
   const operatorId = useAuthStore((s) => s.operatorId || "unknown-operator");
 
-  const submit = async (trackId: string, alertId: string, isHostile: boolean, confidence: number, notes?: string) => {
+  const submit = async (trackId: string, alertId: string, feedbackType: any, justification: string) => {
     setStatus("submitting");
     setError(null);
 
@@ -29,9 +29,8 @@ export function useFeedback(): UseFeedbackResult {
         operatorId,
         trackId,
         alertId,
-        isHostile,
-        confidence,
-        notes: notes || "",
+        feedbackType,
+        justification,
       });
 
       // Map backend trust score to a status

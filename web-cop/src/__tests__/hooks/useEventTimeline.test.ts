@@ -65,7 +65,7 @@ describe("useEventTimeline", () => {
     });
 
     // Rerender with null trackId
-    rerender({ id: null, type: "ALL" });
+    rerender({ id: null as any, type: "ALL" });
 
     expect(result.current.events).toEqual([]);
     expect(result.current.loading).toBe(false);

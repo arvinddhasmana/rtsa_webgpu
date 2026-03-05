@@ -48,13 +48,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ trackId, alertId }) 
       return;
     }
 
-    // Determine isHostile implicitly from feedback type for this demo hook signature
-    const isHostile = feedbackType === "CONFIRM_HOSTILE";
-
-    // The hook expects a confidence value (0-1)
-    const confidence = 1.0;
-
-    await submit(trackId, alertId || "", isHostile, confidence, justification);
+    await submit(trackId, alertId || "", feedbackType, justification);
   };
 
   if (status === "accepted" || status === "under_review" || status === "queued") {
