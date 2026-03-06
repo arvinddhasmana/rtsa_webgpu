@@ -8,6 +8,7 @@ import { useTrackStream } from "../../hooks/useTrackStream";
 import { useAuthStore } from "../../stores/authStore";
 import { useUIStore, type Theme } from "../../stores/uiStore";
 import { AlertPanel } from "../alerts/AlertPanel";
+import { AuditDashboard } from "./AuditDashboard";
 import { DetailPanel } from "../detail/DetailPanel";
 import { ForensicsPanel } from "../forensics/ForensicsPanel";
 import { MapView } from "../map/MapView";
@@ -222,7 +223,7 @@ export const MainLayout: React.FC = () => {
         ) : activeDashboardView === "multi-domain" ? (
           <MultiDomainDashboard />
         ) : activeDashboardView === "audit" ? (
-          <div data-testid="audit-view" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>[Security] Audit & Feedback Queue View</div>
+          <AuditDashboard />
         ) : activeDashboardView === "forensics" ? (
           <div style={{ flex: 1, display: "flex" }}>
             <div style={{ flex: 1 }}><MapView /></div>
