@@ -612,6 +612,50 @@ services:
       - demo
 
   # ──────────────────────────────────────────
+  # WebTransport Server — Hot-path QUIC datagram delivery
+  # Consumes track-fused Redpanda topic, serialises to 128-byte FlatBuffer
+  # records, and streams to browsers via WebTransport datagrams.
+  # Reference: docs/implementation/v4/phase2_backend_integration.md §4.2
+  # ──────────────────────────────────────────
+  svc-webtransport:
+    build:
+      context: ..
+      dockerfile: Dockerfile.service
+      args:
+        SERVICE: svc-webtransport
+    container_name: rtsa-webtransport
+    environment:
+      RTSA_SERVICE_NAME: svc-webtransport
+      WEBTRANSPORT_LISTEN_ADDR: ":4443"
+      WEBTRANSPORT_TLS_CERT: /certs/server.crt
+      WEBTRANSPORT_TLS_KEY: /certs/server.key
+      WEBTRANSPORT_MAX_SESSIONS: "100"
+      WEBTRANSPORT_DATAGRAM_BATCH_SIZE: "9"
+      RTSA_REDPANDA_BROKERS: redpanda:9092
+      RTSA_REDPANDA_TLS_ENABLED: "false"
+      RTSA_OTEL_ENDPOINT: otel-collector:4317
+      RTSA_LOG_LEVEL: info
+      RTSA_LOG_FORMAT: json
+      # JWT secret must be overridden in production via secret management
+      WEBTRANSPORT_JWT_SECRET: ${WEBTRANSPORT_JWT_SECRET:-dev-jwt-secret-change-in-production}
+    ports:
+      - "4443:4443/udp" # QUIC
+      - "4443:4443/tcp" # HTTP/3 fallback
+    volumes:
+      - ../certs/dev:/certs:ro
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -zu localhost 4443 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - rtsa-net
+
+  # ──────────────────────────────────────────
   # Web-COP — React Common Operating Picture
   # ──────────────────────────────────────────
   web-cop:
