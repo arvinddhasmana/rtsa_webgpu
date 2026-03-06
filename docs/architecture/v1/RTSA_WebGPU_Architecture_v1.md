@@ -656,18 +656,18 @@ SolidJS runs on the **main thread** but has near-zero overhead because:
 
 Every user-facing feature that was previously a React component is implemented in SolidJS:
 
-| Feature | SolidJS Component | Backend Integration |
-| --- | --- | --- |
-| **Operator Feedback** (classify track, confirm/reject alert) | `FeedbackForm` | gRPC-Web → Feedback Service → Redpanda → Audit |
-| **Alert Acknowledgment** (inspect, confirm, reject, assign) | `AlertSidebar` + `AlertActions` | gRPC-Web → Alert Service → Redpanda → Audit |
-| **Track Detail Inspection** | `TrackDetailPanel` | GPU pick buffer → Worker → Main → SolidJS signal |
-| **Role & Dashboard Selection** | `RoleSelector` + `DashboardSelector` | Local SolidJS signal (no backend call) |
-| **Search** (track/alert text search) | `SearchOverlay` | gRPC-Web → Query Service → ClickHouse |
-| **Forensic Queries** (time range, spatial, attribute) | `QueryBuilder` + `ResultsView` | gRPC-Web → Query Service → ClickHouse |
-| **Event Timeline** | `EventTimeline` | gRPC-Web → Query Service → ClickHouse |
-| **Classification Banners** | `ClassificationBanner` | Static (deployment config) |
-| **Connection Status** | `ConnectionIndicator` | WebTransport readyState + gRPC health |
-| **FPS / Latency Metrics** | `StatusBar` | Render Worker → postMessage → SolidJS signal |
+| Feature                                                      | SolidJS Component                    | Backend Integration                              |
+| ------------------------------------------------------------ | ------------------------------------ | ------------------------------------------------ |
+| **Operator Feedback** (classify track, confirm/reject alert) | `FeedbackForm`                       | gRPC-Web → Feedback Service → Redpanda → Audit   |
+| **Alert Acknowledgment** (inspect, confirm, reject, assign)  | `AlertSidebar` + `AlertActions`      | gRPC-Web → Alert Service → Redpanda → Audit      |
+| **Track Detail Inspection**                                  | `TrackDetailPanel`                   | GPU pick buffer → Worker → Main → SolidJS signal |
+| **Role & Dashboard Selection**                               | `RoleSelector` + `DashboardSelector` | Local SolidJS signal (no backend call)           |
+| **Search** (track/alert text search)                         | `SearchOverlay`                      | gRPC-Web → Query Service → ClickHouse            |
+| **Forensic Queries** (time range, spatial, attribute)        | `QueryBuilder` + `ResultsView`       | gRPC-Web → Query Service → ClickHouse            |
+| **Event Timeline**                                           | `EventTimeline`                      | gRPC-Web → Query Service → ClickHouse            |
+| **Classification Banners**                                   | `ClassificationBanner`               | Static (deployment config)                       |
+| **Connection Status**                                        | `ConnectionIndicator`                | WebTransport readyState + gRPC health            |
+| **FPS / Latency Metrics**                                    | `StatusBar`                          | Render Worker → postMessage → SolidJS signal     |
 
 ### 7.1 Component Architecture
 
@@ -906,18 +906,19 @@ gantt
 
 ### ADR-V1-006: WebGPU-Only COP — No Legacy Fallback Pipeline
 
-| Attribute               | Value                                      |
-| ----------------------- | ------------------------------------------ |
-| **Status**              | Accepted                                   |
-| **Date**                | 2026-03-05                                 |
-| **Affected Components** | web-cop                                    |
-| **Related Requirements** | Deployment simplification, dev velocity   |
+| Attribute                | Value                                   |
+| ------------------------ | --------------------------------------- |
+| **Status**               | Accepted                                |
+| **Date**                 | 2026-03-05                              |
+| **Affected Components**  | web-cop                                 |
+| **Related Requirements** | Deployment simplification, dev velocity |
 
 **Context:** The original architecture proposed a 4-tier graceful degradation strategy with a Tier 4 legacy fallback retaining the full React + MapLibre + Zustand + gRPC-Web pipeline. This required maintaining two complete frontend stacks (React and SolidJS), two data paths (gRPC-Web streaming and WebTransport), two state management systems (Zustand and SharedArrayBuffer), and a feature flag toggling between them. For a 3–5 person team, this doubles the testing surface and creates ongoing maintenance burden.
 
 **Decision:** Remove all legacy fallback tiers. The COP requires WebGPU + WebTransport + SharedArrayBuffer as hard prerequisites. Non-capable browsers display a blocking requirements message instead of a degraded experience. There is no React, MapLibre, or Zustand code in the new codebase.
 
 **Rationale:**
+
 - RTSA COP runs on **controlled military workstations** — not consumer BYOD. Browser and hardware are provisioned.
 - WebGPU has been stable in Chrome/Edge for ~3 years (since May 2023) and Firefox for ~2 years (mid-2024).
 - Maintaining two frontend stacks for a 3–5 person team is disproportionate effort.
@@ -926,9 +927,10 @@ gantt
 - The legacy pipeline's 5k track ceiling is operationally insufficient regardless — there is no scenario where falling back to it is acceptable for mission use.
 
 **Alternatives Considered:**
-- *Keep Tier 4 React/MapLibre fallback* — Doubles dev/test effort; legacy ceiling (5k tracks) is mission-inadequate.
-- *Keep Tier 2–3 WebGPU with WebSocket/postMessage* — Still requires alternative transport/state code paths; modest benefit.
-- *Progressive enhancement* — Attractive in principle but incompatible with zero-copy SharedArrayBuffer design (the fundamental architecture change).
+
+- _Keep Tier 4 React/MapLibre fallback_ — Doubles dev/test effort; legacy ceiling (5k tracks) is mission-inadequate.
+- _Keep Tier 2–3 WebGPU with WebSocket/postMessage_ — Still requires alternative transport/state code paths; modest benefit.
+- _Progressive enhancement_ — Attractive in principle but incompatible with zero-copy SharedArrayBuffer design (the fundamental architecture change).
 
 **Consequences:** Non-WebGPU browsers cannot run the COP. Operator workstation provisioning must specify Chrome 113+ or Edge 113+ as minimum. Deployment pre-checks must validate WebGPU, WebTransport, and SharedArrayBuffer availability. This eliminates ~2 weeks of fallback implementation effort and removes the React/MapLibre/Zustand dependency tree entirely.
 
@@ -940,21 +942,21 @@ gantt
 
 All three capabilities must be present. The COP **will not load** without them.
 
-| Capability | Minimum Browser | Detection |
-| --- | --- | --- |
-| WebGPU | Chrome 113+, Edge 113+, Firefox 128+ | `navigator.gpu !== undefined` |
-| WebTransport | Chrome 97+, Edge 97+, Firefox 114+ | `typeof WebTransport !== 'undefined'` |
-| SharedArrayBuffer | All modern (with COOP/COEP headers) | `typeof SharedArrayBuffer !== 'undefined'` |
+| Capability        | Minimum Browser                      | Detection                                  |
+| ----------------- | ------------------------------------ | ------------------------------------------ |
+| WebGPU            | Chrome 113+, Edge 113+, Firefox 128+ | `navigator.gpu !== undefined`              |
+| WebTransport      | Chrome 97+, Edge 97+, Firefox 114+   | `typeof WebTransport !== 'undefined'`      |
+| SharedArrayBuffer | All modern (with COOP/COEP headers)  | `typeof SharedArrayBuffer !== 'undefined'` |
 
 ### 10.2 Supported Browsers (as of 2026-03)
 
-| Browser      | WebGPU | WebTransport | SharedArrayBuffer    | Status               |
-| ------------ | ------ | ------------ | -------------------- | -------------------- |
-| Chrome 113+  | Yes    | Yes          | Yes (with COOP/COEP) | **Approved**         |
-| Edge 113+    | Yes    | Yes          | Yes (with COOP/COEP) | **Approved**         |
-| Firefox 128+ | Yes    | Yes          | Yes (with COOP/COEP) | **Approved**         |
-| Safari 18+   | Partial| No WT        | Yes                  | **Not supported**    |
-| Older browsers | No   | No           | Varies               | **Not supported**    |
+| Browser        | WebGPU  | WebTransport | SharedArrayBuffer    | Status            |
+| -------------- | ------- | ------------ | -------------------- | ----------------- |
+| Chrome 113+    | Yes     | Yes          | Yes (with COOP/COEP) | **Approved**      |
+| Edge 113+      | Yes     | Yes          | Yes (with COOP/COEP) | **Approved**      |
+| Firefox 128+   | Yes     | Yes          | Yes (with COOP/COEP) | **Approved**      |
+| Safari 18+     | Partial | No WT        | Yes                  | **Not supported** |
+| Older browsers | No      | No           | Varies               | **Not supported** |
 
 ### 10.2 Browser Requirements Gate (No Legacy Fallback)
 
@@ -980,13 +982,13 @@ flowchart TD
 
 **Rationale for no legacy fallback (see ADR-V1-006):**
 
-| Factor | Justification |
-| --- | --- |
-| Controlled environment | Military COP — operator workstations are provisioned, not BYOD |
-| Browser maturity | WebGPU stable in Chrome/Edge since May 2023 (~3 years), Firefox since mid-2024 |
-| Team size | 3–5 developers — maintaining two UI frameworks doubles testing surface |
-| Development velocity | Single pipeline eliminates feature flag complexity and dual-path bugs |
-| Testing matrix | Cut in half — no React/MapLibre/Zustand code paths to validate |
+| Factor                 | Justification                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------ |
+| Controlled environment | Military COP — operator workstations are provisioned, not BYOD                 |
+| Browser maturity       | WebGPU stable in Chrome/Edge since May 2023 (~3 years), Firefox since mid-2024 |
+| Team size              | 3–5 developers — maintaining two UI frameworks doubles testing surface         |
+| Development velocity   | Single pipeline eliminates feature flag complexity and dual-path bugs          |
+| Testing matrix         | Cut in half — no React/MapLibre/Zustand code paths to validate                 |
 
 ---
 
@@ -1126,11 +1128,11 @@ This avoids feature flag complexity, dual-path bugs, and the overhead of maintai
 
 ### 14.1 Performance Tests
 
-| Test                 | Tool                        | Target              | Pass Criteria              |
-| -------------------- | --------------------------- | ------------------- | -------------------------- |
-| 50k track rendering  | Custom benchmark harness    | 60 FPS sustained    | p99 frame time < 16.67 ms  |
-| 50k msg/s ingestion  | Synthetic WebTransport feed | < 16 ms E2E latency | No frame drops over 60s    |
-| GPU memory stability | 24-hour soak test           | No VRAM growth      | Stable ± 5 MB over 24h     |
+| Test                 | Tool                        | Target              | Pass Criteria                        |
+| -------------------- | --------------------------- | ------------------- | ------------------------------------ |
+| 50k track rendering  | Custom benchmark harness    | 60 FPS sustained    | p99 frame time < 16.67 ms            |
+| 50k msg/s ingestion  | Synthetic WebTransport feed | < 16 ms E2E latency | No frame drops over 60s              |
+| GPU memory stability | 24-hour soak test           | No VRAM growth      | Stable ± 5 MB over 24h               |
 | Browser gate         | Non-WebGPU browser test     | Blocking message    | COP does not load; clear error shown |
 
 ### 14.2 Security Tests
@@ -1144,28 +1146,28 @@ This avoids feature flag complexity, dual-path bugs, and the overhead of maintai
 
 ### 14.3 Compatibility Tests
 
-| Browser                  | Version | Test                 | Expected     |
-| ------------------------ | ------- | -------------------- | ------------ |
-| Chrome                   | 113+    | Full pipeline        | 50k @ 60 FPS                  |
-| Edge                     | 113+    | Full pipeline        | 50k @ 60 FPS                  |
-| Firefox                  | 128+    | Full pipeline        | 50k @ 60 FPS                  |
-| Safari                   | 18+     | Requirements gate    | Blocked (no WebTransport)     |
-| Chrome (WebGPU disabled) | Any     | Requirements gate    | Blocked (clear error message) |
+| Browser                  | Version | Test              | Expected                      |
+| ------------------------ | ------- | ----------------- | ----------------------------- |
+| Chrome                   | 113+    | Full pipeline     | 50k @ 60 FPS                  |
+| Edge                     | 113+    | Full pipeline     | 50k @ 60 FPS                  |
+| Firefox                  | 128+    | Full pipeline     | 50k @ 60 FPS                  |
+| Safari                   | 18+     | Requirements gate | Blocked (no WebTransport)     |
+| Chrome (WebGPU disabled) | Any     | Requirements gate | Blocked (clear error message) |
 
 ---
 
 ## 15. Risk Register
 
-| #    | Risk                                      | Probability             | Impact | Mitigation                                                    |
-| ---- | ----------------------------------------- | ----------------------- | ------ | ------------------------------------------------------------- |
-| R-01 | WebGPU spec instability                   | Low (stable since 2023) | High   | Pin to well-tested browser versions in workstation provisioning |
-| R-02 | WebTransport firewall blocking            | Medium                  | Medium | Network provisioning must permit QUIC (UDP 443); pre-deployment check |
+| #    | Risk                                      | Probability             | Impact | Mitigation                                                                  |
+| ---- | ----------------------------------------- | ----------------------- | ------ | --------------------------------------------------------------------------- |
+| R-01 | WebGPU spec instability                   | Low (stable since 2023) | High   | Pin to well-tested browser versions in workstation provisioning             |
+| R-02 | WebTransport firewall blocking            | Medium                  | Medium | Network provisioning must permit QUIC (UDP 443); pre-deployment check       |
 | R-03 | SAB disabled by enterprise policy         | Low                     | High   | COOP/COEP headers mandatory in deployment config; pre-deployment validation |
-| R-04 | GPU driver bugs on edge hardware          | Medium                  | Medium | Explicit GPU adapter selection; approved hardware list for workstations |
-| R-05 | FlatBuffer schema drift vs Protobuf       | Low                     | Medium | Schema generation from single source (.fbs → .proto sync)     |
-| R-06 | SolidJS ecosystem maturity                | Low                     | Low    | Minimal dependency surface; core lib is stable                |
-| R-07 | COOP/COEP breaks third-party integrations | Medium                  | Medium | Pre-audit all cross-origin resources; CORS proxy where needed |
-| R-08 | Wasm decoder memory leak                  | Low                     | High   | Arena allocator with fixed-size budget; automated soak tests  |
+| R-04 | GPU driver bugs on edge hardware          | Medium                  | Medium | Explicit GPU adapter selection; approved hardware list for workstations     |
+| R-05 | FlatBuffer schema drift vs Protobuf       | Low                     | Medium | Schema generation from single source (.fbs → .proto sync)                   |
+| R-06 | SolidJS ecosystem maturity                | Low                     | Low    | Minimal dependency surface; core lib is stable                              |
+| R-07 | COOP/COEP breaks third-party integrations | Medium                  | Medium | Pre-audit all cross-origin resources; CORS proxy where needed               |
+| R-08 | Wasm decoder memory leak                  | Low                     | High   | Arena allocator with fixed-size budget; automated soak tests                |
 
 ---
 
