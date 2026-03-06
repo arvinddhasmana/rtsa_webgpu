@@ -32,7 +32,7 @@ export interface LodFlags {
   renderHalos: boolean;
   /** Render SDF labels. */
   renderLabels: boolean;
-  /** Maximum number of instances to render (0 = all). */
+  /** Maximum number of instances to render. Always an explicit count ≥ 0. */
   maxInstances: number;
 }
 

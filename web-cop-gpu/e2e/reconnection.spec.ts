@@ -35,6 +35,10 @@ test.describe("WebTransport Reconnection", () => {
   });
 
   test("app does not crash when WebTransport URL is unreachable", async ({ page }) => {
+    // Register the error listener before navigation so no initial-load errors are missed
+    const errors: string[] = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+
     // Route all WebTransport connections to an unreachable host
     await page.route("**/*", (route) => {
       const url = route.request().url();
@@ -47,10 +51,6 @@ test.describe("WebTransport Reconnection", () => {
 
     await gotoApp(page);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
-
-    // No uncaught errors
-    const errors: string[] = [];
-    page.on("pageerror", (err) => errors.push(err.message));
     await page.waitForTimeout(2_000);
 
     expect(errors).toHaveLength(0);

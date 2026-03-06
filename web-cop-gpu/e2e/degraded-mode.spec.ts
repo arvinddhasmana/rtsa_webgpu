@@ -61,17 +61,15 @@ test.describe("Degraded Mode — No-WebGPU Fallback", () => {
     }
   });
 
-  test("classification banner remains visible in degraded mode", async ({ page }) => {
+  test("page does not crash or go blank in degraded mode", async ({ page }) => {
     await gotoApp(page);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    // Even in degraded mode, classification banner must be shown
-    const banner = page.locator('[data-testid="classification-banner-top"]');
-    const isVisible = await banner.isVisible().catch(() => false);
-    // Banner is shown in the AppShell which only renders in full mode.
-    // In degraded mode, the app doesn't render the AppShell.
-    // This test verifies the degraded path doesn't crash and banner is shown
-    // in full mode (if WebGPU is available in the test browser).
-    expect(typeof isVisible).toBe("boolean"); // sanity check
+    // In degraded mode the AppShell (including the classification banner) is not
+    // rendered. The page must still display the degraded notice — not a blank screen.
+    const body = page.locator("body");
+    await expect(body).toBeVisible();
+    const bodyText = await body.innerText().catch(() => "");
+    expect(bodyText.length).toBeGreaterThan(0);
   });
 });

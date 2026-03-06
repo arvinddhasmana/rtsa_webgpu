@@ -2,17 +2,24 @@
 # deploy/envoy/web-cop-gpu-routing.yaml
 # Envoy route patch for production cutover: web-cop → web-cop-gpu (H4-8)
 #
-# Apply during cutover to switch the COP frontend from the React app (web-cop)
-# to the WebGPU COP (web-cop-gpu).
+# Topology note — two distinct entry points:
+#   Port 443 (TCP/TLS HTTP/1.1+HTTP/2): Envoy terminates TLS and serves
+#     the web-cop-gpu static frontend. This is a standard TCP listener.
 #
-# Usage:
+#   Port 4443 (UDP/QUIC HTTP/3): The Go WebTransport service
+#     (pkg/webtransport) binds directly to UDP 4443 and terminates QUIC
+#     end-to-end. Browser WebTransport requires HTTP/3 over QUIC, so Envoy
+#     does NOT proxy this port — firewall rules must open UDP 4443 from
+#     client networks directly to the webtransport pod.
+#
+# Apply during cutover to route the HTTPS frontend to web-cop-gpu:
 #   kubectl apply -f deploy/envoy/web-cop-gpu-routing.yaml
 #
 # Rollback:
 #   kubectl apply -f deploy/envoy/web-cop-routing.yaml
 #
 # Reference: docs/implementation/v4/phase4_hardening_cutover.md §H4-8
-#            docs/deployment/webtransport-runbook.md §9
+#            docs/deployment/webtransport-runbook.md §4
 
 static_resources:
   clusters:
@@ -31,28 +38,10 @@ static_resources:
                       address: web-cop-gpu
                       port_value: 5174
 
-    # WebTransport server (QUIC hot path)
-    - name: webtransport_server
-      connect_timeout: 5s
-      type: LOGICAL_DNS
-      lb_policy: ROUND_ROBIN
-      typed_extension_protocol_options:
-        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
-          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
-          explicit_http_config:
-            http3_protocol_options: {}
-      load_assignment:
-        cluster_name: webtransport_server
-        endpoints:
-          - lb_endpoints:
-              - endpoint:
-                  address:
-                    socket_address:
-                      address: webtransport
-                      port_value: 4443
-
   listeners:
-    # HTTPS listener for the WebGPU COP frontend
+    # HTTPS listener for the WebGPU COP static frontend (TCP/TLS).
+    # mTLS is required on this listener to match the production security baseline
+    # defined in deploy/envoy/envoy.yaml.
     - name: cop_frontend_listener
       address:
         socket_address:
@@ -63,6 +52,9 @@ static_resources:
             name: envoy.transport_sockets.tls
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              # Enforce mTLS — all clients must present a certificate issued by the
+              # site CA, consistent with the existing production gateway config.
+              require_client_certificate: true
               common_tls_context:
                 tls_params:
                   tls_minimum_protocol_version: TLSv1_3
@@ -75,6 +67,9 @@ static_resources:
                       filename: /certs/server.crt
                     private_key:
                       filename: /certs/server.key
+                validation_context:
+                  trusted_ca:
+                    filename: /certs/ca.crt
           filters:
             - name: envoy.filters.network.http_connection_manager
               typed_config:
@@ -114,19 +109,7 @@ static_resources:
                             value: "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https: wss:; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
                           keep_empty_value: false
                       routes:
-                        # WebTransport endpoint (QUIC hot path) — proxy to QUIC upstream
-                        - match:
-                            prefix: "/wt"
-                            headers:
-                              - name: ":method"
-                                string_match:
-                                  exact: "CONNECT"
-                          route:
-                            cluster: webtransport_server
-                            upgrade_configs:
-                              - upgrade_type: "webtransport"
-
-                        # All other requests → web-cop-gpu frontend
+                        # All HTTPS requests → web-cop-gpu static frontend
                         - match:
                             prefix: "/"
                           route:

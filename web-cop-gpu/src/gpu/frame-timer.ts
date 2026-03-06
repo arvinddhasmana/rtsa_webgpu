@@ -51,14 +51,13 @@ const WINDOW = 60;
 /**
  * FrameTimer — wraps GPU timestamp-query resolve + JS perf timing.
  *
- * Usage:
- *   const timer = new FrameTimer(device);
- *   // Each frame:
- *   const { querySet, resolveBuffer } = timer.beginFrame(encoder);
- *   // ... encode passes, writing timestamps via encoder.writeTimestamp()
- *   timer.endFrame(encoder, resolveBuffer);
+ * Usage (per-frame):
+ *   timer.markJsStart();
+ *   // ... encode passes, writing timestamps at each PASS_LABELS point, e.g.:
+ *   // encoder.writeTimestamp(timer.gpuQuerySet!, PASS_LABELS.indexOf("frame_start"));
+ *   timer.resolveTimestamps(encoder);          // must be called before encoder.finish()
  *   device.queue.submit([encoder.finish()]);
- *   await timer.resolveAsync();  // triggers readback on the next idle tick
+ *   void timer.readbackAsync(timer.markJsEnd()); // non-blocking; updates timer.smoothed
  */
 export class FrameTimer {
   private readonly supported: boolean;
@@ -159,8 +158,16 @@ export class FrameTimer {
     }
 
     const buf = this.readbackBuffer;
-    // Only attempt map if buffer is not already mapped.
-    await buf.mapAsync(GPUMapMode.READ).catch(() => { /* device lost */ });
+    // Map the readback buffer for CPU read. On device loss or driver error
+    // mapAsync rejects; return early to avoid calling getMappedRange() on an
+    // unmapped buffer (which would throw and crash the render loop).
+    try {
+      await buf.mapAsync(GPUMapMode.READ);
+    } catch (_error) {
+      // Device lost or map failure — fall back to CPU-only timings.
+      this.addToWindow({ totalFrameMs: mainThreadMs, sabUploadMs: 0, computeMs: 0, renderMs: 0, mainThreadMs });
+      return;
+    }
 
     const timestamps = new BigUint64Array(buf.getMappedRange());
     const ns = (a: PassLabel, b: PassLabel): number => {

@@ -66,11 +66,12 @@ test.describe("Security Audit — ITSG-33 Controls", () => {
     expect(violations).toHaveLength(0);
   });
 
-  test("no inline JavaScript execution detected in DOM", async ({ page }) => {
+  test("no inline event handlers found in the DOM", async ({ page }) => {
     await gotoApp(page);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    // Check that no scripts use innerHTML with dynamic content
+    // SolidJS attaches event listeners via addEventListener(), never via inline
+    // attribute handlers (e.g. onclick="…"). Verify no such attributes are present.
     const inlineHandlers = await page.evaluate(() => {
       const elements = Array.from(document.querySelectorAll("*"));
       return elements.filter((el) => {
@@ -78,7 +79,7 @@ test.describe("Security Audit — ITSG-33 Controls", () => {
         return attrs.some((a) => a.name.startsWith("on") && a.value.length > 0);
       }).length;
     });
-    // SolidJS should produce zero inline event handlers
+    // SolidJS should produce zero inline event handler attributes
     expect(inlineHandlers).toBe(0);
   });
 

@@ -28,13 +28,14 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        // WebGPU requires a real Chromium channel with the flag enabled
+        // WebGPU requires the flag to be enabled in headless Chromium.
+        // --disable-web-security is intentionally NOT included: removing it
+        // ensures security-header and CSP assertions run in a realistic context.
         channel: "chromium",
         launchOptions: {
           args: [
             "--enable-unsafe-webgpu",
             "--enable-features=WebGPU",
-            "--disable-web-security",  // allow COOP/COEP in local test env
           ],
         },
       },
