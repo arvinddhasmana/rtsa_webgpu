@@ -16,6 +16,8 @@ cfg, _ := config.Load()
 cfg.SurfaceEntityCount = 5
 cfg.AirEntityCount = 3
 cfg.SubEntityCount = 2
+cfg.LandEntityCount = 2
+cfg.CyberEntityCount = 1
 cfg.AnomalyRate = 0.20
 cfg.UpdateInterval = time.Second
 return cfg
@@ -55,12 +57,13 @@ rng := rand.New(rand.NewSource(42))
 mgr := generator.NewEntityManager(cfg, rng)
 entities := mgr.Entities()
 
-total := cfg.SurfaceEntityCount + cfg.AirEntityCount + cfg.SubEntityCount
+total := cfg.SurfaceEntityCount + cfg.AirEntityCount + cfg.SubEntityCount +
+cfg.LandEntityCount + cfg.CyberEntityCount
 if len(entities) != total {
 t.Errorf("expected %d entities, got %d", total, len(entities))
 }
 
-var surface, air, sub int
+var surface, air, sub, land, cyber int
 for _, e := range entities {
 switch e.EntityType {
 case commonv1.EntityType_ENTITY_TYPE_SURFACE:
@@ -69,6 +72,10 @@ case commonv1.EntityType_ENTITY_TYPE_AIR:
 air++
 case commonv1.EntityType_ENTITY_TYPE_SUBSURFACE:
 sub++
+case commonv1.EntityType_ENTITY_TYPE_LAND:
+land++
+case commonv1.EntityType_ENTITY_TYPE_CYBER:
+cyber++
 }
 }
 
@@ -80,6 +87,12 @@ t.Errorf("expected %d air entities, got %d", cfg.AirEntityCount, air)
 }
 if sub != cfg.SubEntityCount {
 t.Errorf("expected %d sub entities, got %d", cfg.SubEntityCount, sub)
+}
+if land != cfg.LandEntityCount {
+t.Errorf("expected %d land entities, got %d", cfg.LandEntityCount, land)
+}
+if cyber != cfg.CyberEntityCount {
+t.Errorf("expected %d cyber entities, got %d", cfg.CyberEntityCount, cyber)
 }
 }
 

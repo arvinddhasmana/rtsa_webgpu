@@ -23,6 +23,8 @@ CyberEndpoint string
 SurfaceEntityCount int
 AirEntityCount     int
 SubEntityCount     int
+LandEntityCount    int
+CyberEntityCount   int
 
 // Timing
 UpdateInterval  time.Duration
@@ -55,6 +57,8 @@ CyberEndpoint:      getEnvStr("SIM_CYBER_ENDPOINT", "localhost:50056"),
 SurfaceEntityCount: getEnvInt("SIM_SURFACE_ENTITIES", 20),
 AirEntityCount:     getEnvInt("SIM_AIR_ENTITIES", 10),
 SubEntityCount:     getEnvInt("SIM_SUB_ENTITIES", 5),
+LandEntityCount:    getEnvInt("SIM_LAND_ENTITIES", 5),
+CyberEntityCount:   getEnvInt("SIM_CYBER_ENTITIES", 3),
 UpdateInterval:     getEnvDuration("SIM_UPDATE_INTERVAL_MS", 1000*time.Millisecond),
 DurationMinutes:    getEnvInt("SIM_DURATION_MINUTES", 0),
 AnomalyRate:        getEnvFloat("SIM_ANOMALY_RATE", 0.05),
@@ -83,6 +87,12 @@ return fmt.Errorf("air entity count must be non-negative")
 }
 if c.SubEntityCount < 0 {
 return fmt.Errorf("sub entity count must be non-negative")
+}
+if c.LandEntityCount < 0 {
+return fmt.Errorf("land entity count must be non-negative")
+}
+if c.CyberEntityCount < 0 {
+return fmt.Errorf("cyber entity count must be non-negative")
 }
 if c.AnomalyRate < 0.0 || c.AnomalyRate > 1.0 {
 return fmt.Errorf("anomaly rate must be between 0.0 and 1.0, got %f", c.AnomalyRate)

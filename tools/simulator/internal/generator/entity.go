@@ -97,10 +97,14 @@ injector: NewAnomalyInjector(rng),
 totalSurface := cfg.SurfaceEntityCount
 totalAir := cfg.AirEntityCount
 totalSub := cfg.SubEntityCount
+totalLand := cfg.LandEntityCount
+totalCyber := cfg.CyberEntityCount
 
 anomalousSurface := int(float64(totalSurface) * cfg.AnomalyRate)
 anomalousAir := int(float64(totalAir) * cfg.AnomalyRate)
 anomalousSub := int(float64(totalSub) * cfg.AnomalyRate)
+anomalousLand := int(float64(totalLand) * cfg.AnomalyRate)
+anomalousCyber := int(float64(totalCyber) * cfg.AnomalyRate)
 
 for i := 0; i < totalSurface; i++ {
 e := m.newSurfaceEntity(fmt.Sprintf("SURF-%04d", i+1), i < anomalousSurface)
@@ -112,6 +116,14 @@ m.entities[e.ID] = e
 }
 for i := 0; i < totalSub; i++ {
 e := m.newSubEntity(fmt.Sprintf("SUB-%04d", i+1), i < anomalousSub)
+m.entities[e.ID] = e
+}
+for i := 0; i < totalLand; i++ {
+e := m.newLandEntity(fmt.Sprintf("LAND-%04d", i+1), i < anomalousLand)
+m.entities[e.ID] = e
+}
+for i := 0; i < totalCyber; i++ {
+e := m.newCyberEntity(fmt.Sprintf("CYBER-%04d", i+1), i < anomalousCyber)
 m.entities[e.ID] = e
 }
 
@@ -255,7 +267,66 @@ m.finaliseEntity(e, anomalous)
 return e
 }
 
-// finaliseEntity sets anomaly type and patrol/loiter parameters.
+// newLandEntity creates a LAND entity (ground vehicle/personnel).
+// Observed via ISR and EW sensors; moves slowly along roads.
+func (m *EntityManager) newLandEntity(id string, anomalous bool) *SimEntity {
+e := &SimEntity{
+ID:         id,
+EntityType: commonv1.EntityType_ENTITY_TYPE_LAND,
+HostileClass: randomHostile(m.rng,
+[]commonv1.HostileClassification{
+commonv1.HostileClassification_HOSTILE_CLASSIFICATION_FRIENDLY,
+commonv1.HostileClassification_HOSTILE_CLASSIFICATION_HOSTILE,
+commonv1.HostileClassification_HOSTILE_CLASSIFICATION_NEUTRAL,
+commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN,
+},
+[]float64{0.30, 0.35, 0.20, 0.15},
+),
+Position: Position{
+Lat:     MinLat + m.rng.Float64()*(MaxLat-MinLat),
+Lon:     MinLon + m.rng.Float64()*(MaxLon-MinLon),
+AltM:    0,
+SpeedKn: 0.5 + m.rng.Float64()*25, // 0.5-25 knots (walking to 50 km/h)
+Heading: m.rng.Float64() * 360,
+},
+MovementPattern: randomPattern(m.rng, []MovementPattern{
+PatternStraightLine, PatternPatrol, PatternLoitering, PatternZigzag,
+}, []float64{0.40, 0.30, 0.20, 0.10}),
+IsAnomalous: anomalous,
+CreatedAt:   time.Now(),
+}
+m.finaliseEntity(e, anomalous)
+return e
+}
+
+// newCyberEntity creates a synthetic CYBER entity representing a network node.
+// Stationary (lat/lon = approximate physical location of the threat actor).
+func (m *EntityManager) newCyberEntity(id string, anomalous bool) *SimEntity {
+e := &SimEntity{
+ID:         id,
+EntityType: commonv1.EntityType_ENTITY_TYPE_CYBER,
+HostileClass: randomHostile(m.rng,
+[]commonv1.HostileClassification{
+commonv1.HostileClassification_HOSTILE_CLASSIFICATION_HOSTILE,
+commonv1.HostileClassification_HOSTILE_CLASSIFICATION_NEUTRAL,
+commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN,
+},
+[]float64{0.50, 0.25, 0.25},
+),
+Position: Position{
+Lat:     MinLat + m.rng.Float64()*(MaxLat-MinLat),
+Lon:     MinLon + m.rng.Float64()*(MaxLon-MinLon),
+AltM:    0,
+SpeedKn: 0,
+Heading: 0,
+},
+MovementPattern: PatternLoitering, // stationary / minimal drift
+IsAnomalous:    anomalous,
+CreatedAt:      time.Now(),
+}
+m.finaliseEntity(e, anomalous)
+return e
+}
 func (m *EntityManager) finaliseEntity(e *SimEntity, anomalous bool) {
 if anomalous {
 e.AnomalyType = randomAnomalyType(m.rng)
