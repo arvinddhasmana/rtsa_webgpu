@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # FlatBuffers Guidelines
 
 > **Document**: RTSA FlatBuffers Development Guidelines
@@ -15,13 +16,13 @@ FlatBuffers is the **hot-path wire format** in the RTSA WebGPU architecture. Tra
 
 ### Why FlatBuffers (Not Protobuf)
 
-| Concern | Protobuf | FlatBuffers |
-|---|---|---|
-| **Hot-path decode cost** | Full deserialization + allocation | Zero-copy field access |
-| **GPU alignment** | Varint encoding, not aligned | Fixed-size records, GPU-aligned |
-| **Record size** | Variable (compact) | Fixed 128 bytes (predictable) |
-| **Schema evolution** | Full backward compat | Append-only (fields never removed) |
-| **Use in RTSA** | Cold path (gRPC, commands) | Hot path (track updates) |
+| Concern                  | Protobuf                          | FlatBuffers                        |
+| ------------------------ | --------------------------------- | ---------------------------------- |
+| **Hot-path decode cost** | Full deserialization + allocation | Zero-copy field access             |
+| **GPU alignment**        | Varint encoding, not aligned      | Fixed-size records, GPU-aligned    |
+| **Record size**          | Variable (compact)                | Fixed 128 bytes (predictable)      |
+| **Schema evolution**     | Full backward compat              | Append-only (fields never removed) |
+| **Use in RTSA**          | Cold path (gRPC, commands)        | Hot path (track updates)           |
 
 **Protobuf remains** the schema definition language for gRPC services (cold path). FlatBuffers is used exclusively for the hot-path data pipeline.
 
@@ -43,14 +44,14 @@ proto/
 
 ### 2.2 Naming Rules
 
-| Element | Convention | Example |
-|---|---|---|
-| File name | `snake_case.fbs` | `track_update.fbs` |
-| Namespace | `rtsa.flatbuf.v1` | Matches directory path |
-| Table name | `PascalCase` | `TrackUpdate` |
-| Field name | `snake_case` | `track_id_hash` |
-| Enum name | `PascalCase` | `ThreatLevel` |
-| Enum value | `PascalCase` | `Hostile`, `Friendly` |
+| Element    | Convention        | Example                |
+| ---------- | ----------------- | ---------------------- |
+| File name  | `snake_case.fbs`  | `track_update.fbs`     |
+| Namespace  | `rtsa.flatbuf.v1` | Matches directory path |
+| Table name | `PascalCase`      | `TrackUpdate`          |
+| Field name | `snake_case`      | `track_id_hash`        |
+| Enum name  | `PascalCase`      | `ThreatLevel`          |
+| Enum value | `PascalCase`      | `Hostile`, `Friendly`  |
 
 ### 2.3 Primary Schema — Track Update
 
@@ -272,24 +273,24 @@ The **Protobuf schema** (`proto/rtsa/track/v1/track.proto`) is the canonical def
 
 ### 5.2 Synchronization Rules
 
-| Rule | Rationale |
-|---|---|
-| FlatBuffer schema is a **subset** of Protobuf fields | Only hot-path fields are projected |
-| Field semantics must match exactly | Same units, same encoding (radians, m/s, etc.) |
-| Adding a Protobuf field does NOT require FlatBuffer change | Only add to FlatBuffer if the GPU needs it |
-| Adding a FlatBuffer field requires Protobuf equivalent | Every FlatBuffer field must have a Protobuf source |
-| Hash functions must be identical in Go and Rust | `track_id_hash` uses FNV-1a in both serializer and decoder |
+| Rule                                                       | Rationale                                                  |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| FlatBuffer schema is a **subset** of Protobuf fields       | Only hot-path fields are projected                         |
+| Field semantics must match exactly                         | Same units, same encoding (radians, m/s, etc.)             |
+| Adding a Protobuf field does NOT require FlatBuffer change | Only add to FlatBuffer if the GPU needs it                 |
+| Adding a FlatBuffer field requires Protobuf equivalent     | Every FlatBuffer field must have a Protobuf source         |
+| Hash functions must be identical in Go and Rust            | `track_id_hash` uses FNV-1a in both serializer and decoder |
 
 ### 5.3 Mapping Table
 
-| FlatBuffer Field | Protobuf Source | Transform |
-|---|---|---|
-| `longitude` | `TrackUpdate.longitude` | Cast to float32, convert to radians |
-| `latitude` | `TrackUpdate.latitude` | Cast to float32, convert to radians |
-| `track_id_hash` | `TrackUpdate.track_id` | FNV-1a hash (string → u32) |
-| `source_bitmap` | `TrackUpdate.sources[]` | Bitwise OR of source enum values |
-| `icon_index` | `TrackUpdate.track_type` + `threat_level` | Lookup table → atlas index |
-| `trail_*` | Last 5 `TrackUpdate.position_history[]` | Projected to (lon, lat) pairs |
+| FlatBuffer Field | Protobuf Source                           | Transform                           |
+| ---------------- | ----------------------------------------- | ----------------------------------- |
+| `longitude`      | `TrackUpdate.longitude`                   | Cast to float32, convert to radians |
+| `latitude`       | `TrackUpdate.latitude`                    | Cast to float32, convert to radians |
+| `track_id_hash`  | `TrackUpdate.track_id`                    | FNV-1a hash (string → u32)          |
+| `source_bitmap`  | `TrackUpdate.sources[]`                   | Bitwise OR of source enum values    |
+| `icon_index`     | `TrackUpdate.track_type` + `threat_level` | Lookup table → atlas index          |
+| `trail_*`        | Last 5 `TrackUpdate.position_history[]`   | Projected to (lon, lat) pairs       |
 
 ---
 
@@ -297,14 +298,14 @@ The **Protobuf schema** (`proto/rtsa/track/v1/track.proto`) is the canonical def
 
 ### 6.1 Allowed Changes
 
-| Change | Allowed? | Notes |
-|---|---|---|
-| Add new field at end | ✅ Yes | Default value used by old decoders |
-| Add new enum value | ✅ Yes | Old parsers treat as 0 (Unknown) |
-| Remove a field | ❌ No | Breaks binary layout |
-| Reorder fields | ❌ No | Breaks offset assumptions in Wasm decoder |
-| Change field type | ❌ No | Breaks binary read |
-| Change record size | ⚠️ Careful | Requires updating Go serializer, Wasm decoder, GPU buffer stride, and WGSL struct |
+| Change               | Allowed?   | Notes                                                                             |
+| -------------------- | ---------- | --------------------------------------------------------------------------------- |
+| Add new field at end | ✅ Yes     | Default value used by old decoders                                                |
+| Add new enum value   | ✅ Yes     | Old parsers treat as 0 (Unknown)                                                  |
+| Remove a field       | ❌ No      | Breaks binary layout                                                              |
+| Reorder fields       | ❌ No      | Breaks offset assumptions in Wasm decoder                                         |
+| Change field type    | ❌ No      | Breaks binary read                                                                |
+| Change record size   | ⚠️ Careful | Requires updating Go serializer, Wasm decoder, GPU buffer stride, and WGSL struct |
 
 ### 6.2 Version Bump Process
 
@@ -363,6 +364,7 @@ fn test_decode_track_update_writes_correct_values() {
 ### 7.3 Cross-Language Integration Test
 
 A CI test that:
+
 1. Go serializer produces a FlatBuffer record
 2. Wasm decoder reads it into a mock SharedArrayBuffer
 3. Values match the original Protobuf source
@@ -373,23 +375,23 @@ This lives in `tests/integration/flatbuf_roundtrip_test.go`.
 
 ## 8. Performance Rules
 
-| Rule | Rationale |
-|---|---|
-| Reuse `flatbuffers.Builder` | Avoid per-message heap allocation |
-| Never decode FlatBuffers in JavaScript | Wasm decoder is 10x faster |
-| 128-byte fixed record size | Predictable memory layout, GPU-aligned |
-| No strings in FlatBuffer hot path | Strings require offset resolution; use hashes |
-| Batch serialization | Serialize up to 64 records per Redpanda message |
+| Rule                                   | Rationale                                       |
+| -------------------------------------- | ----------------------------------------------- |
+| Reuse `flatbuffers.Builder`            | Avoid per-message heap allocation               |
+| Never decode FlatBuffers in JavaScript | Wasm decoder is 10x faster                      |
+| 128-byte fixed record size             | Predictable memory layout, GPU-aligned          |
+| No strings in FlatBuffer hot path      | Strings require offset resolution; use hashes   |
+| Batch serialization                    | Serialize up to 64 records per Redpanda message |
 
 ---
 
 ## 9. Cross-References
 
-| Document | Path |
-|---|---|
-| WebTransport Guidelines | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md` |
-| WebGPU Guidelines | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md` |
-| WGSL Shader Standards | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md` |
-| Data Architecture — Hot Path | `docs/architecture/data_architecture.md` §12 |
-| v1 Architecture — Wire Format | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §3 |
-| Go Standards | `docs/sdlc_guidelines/04_coding_standards/go_standards.md` |
+| Document                      | Path                                                               |
+| ----------------------------- | ------------------------------------------------------------------ |
+| WebTransport Guidelines       | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md` |
+| WebGPU Guidelines             | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`       |
+| WGSL Shader Standards         | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md`   |
+| Data Architecture — Hot Path  | `docs/architecture/data_architecture.md` §12                       |
+| v1 Architecture — Wire Format | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §3           |
+| Go Standards                  | `docs/sdlc_guidelines/04_coding_standards/go_standards.md`         |

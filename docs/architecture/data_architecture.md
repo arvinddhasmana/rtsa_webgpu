@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # Data Architecture
 
 > **Document**: RTSA Data Architecture
@@ -244,40 +245,40 @@ message TrustBreakdown {
 
 ### 4.2 Complete Topic Map
 
-| Topic | Key | Partitions (DC) | Partitions (Edge) | Retention | Replication |
-|---|---|---|---|---|---|
-| `sensors.radar.tracks` | sensor_id | 12 | 3 | 72h | 3 (DC) / 1 (Edge) |
-| `sensors.ew.intercepts` | sensor_id | 8 | 2 | 72h | 3 / 1 |
-| `sensors.elint.detections` | sensor_id | 8 | 2 | 72h | 3 / 1 |
-| `sensors.isr.observations` | sensor_id | 6 | 2 | 72h | 3 / 1 |
-| `sensors.ais.positions` | mmsi | 12 | 3 | 72h | 3 / 1 |
-| `sensors.cyber.iocs` | ioc_type | 4 | 1 | 168h | 3 / 1 |
-| `sensors.nato.link16` | track_number | 8 | — | 72h | 3 / — |
-| `sensors.nato.nffi` | track_id | 8 | — | 72h | 3 / — |
-| `tracks.fused.surface` | track_id | 16 | 4 | 168h | 3 / 1 |
-| `tracks.fused.air` | track_id | 16 | 4 | 168h | 3 / 1 |
-| `tracks.fused.subsurface` | track_id | 8 | 2 | 168h | 3 / 1 |
-| `tracks.fused.land` | track_id | 8 | 2 | 168h | 3 / 1 |
-| `tracks.fused.cyber` | track_id | 4 | 1 | 168h | 3 / 1 |
-| `alerts.anomaly.critical` | track_id | 4 | 2 | 720h | 3 / 1 |
-| `alerts.anomaly.elevated` | track_id | 4 | 2 | 720h | 3 / 1 |
-| `alerts.anomaly.watch` | track_id | 4 | 1 | 168h | 3 / 1 |
-| `feedback.operator.submissions` | operator_id | 4 | 1 | 720h | 3 / 1 |
-| `feedback.operator.validated` | operator_id | 4 | 1 | 720h | 3 / 1 |
-| `models.anomaly.published` | model_version | 1 | 1 | ∞ (compacted) | 3 / 1 |
-| `audit.events` | service_id | 8 | 2 | ∞ (tiered) | 3 / 1 |
-| `dlq.sensors.*` | original_topic | 2 | 1 | 720h | 3 / 1 |
+| Topic                           | Key            | Partitions (DC) | Partitions (Edge) | Retention     | Replication       |
+| ------------------------------- | -------------- | --------------- | ----------------- | ------------- | ----------------- |
+| `sensors.radar.tracks`          | sensor_id      | 12              | 3                 | 72h           | 3 (DC) / 1 (Edge) |
+| `sensors.ew.intercepts`         | sensor_id      | 8               | 2                 | 72h           | 3 / 1             |
+| `sensors.elint.detections`      | sensor_id      | 8               | 2                 | 72h           | 3 / 1             |
+| `sensors.isr.observations`      | sensor_id      | 6               | 2                 | 72h           | 3 / 1             |
+| `sensors.ais.positions`         | mmsi           | 12              | 3                 | 72h           | 3 / 1             |
+| `sensors.cyber.iocs`            | ioc_type       | 4               | 1                 | 168h          | 3 / 1             |
+| `sensors.nato.link16`           | track_number   | 8               | —                 | 72h           | 3 / —             |
+| `sensors.nato.nffi`             | track_id       | 8               | —                 | 72h           | 3 / —             |
+| `tracks.fused.surface`          | track_id       | 16              | 4                 | 168h          | 3 / 1             |
+| `tracks.fused.air`              | track_id       | 16              | 4                 | 168h          | 3 / 1             |
+| `tracks.fused.subsurface`       | track_id       | 8               | 2                 | 168h          | 3 / 1             |
+| `tracks.fused.land`             | track_id       | 8               | 2                 | 168h          | 3 / 1             |
+| `tracks.fused.cyber`            | track_id       | 4               | 1                 | 168h          | 3 / 1             |
+| `alerts.anomaly.critical`       | track_id       | 4               | 2                 | 720h          | 3 / 1             |
+| `alerts.anomaly.elevated`       | track_id       | 4               | 2                 | 720h          | 3 / 1             |
+| `alerts.anomaly.watch`          | track_id       | 4               | 1                 | 168h          | 3 / 1             |
+| `feedback.operator.submissions` | operator_id    | 4               | 1                 | 720h          | 3 / 1             |
+| `feedback.operator.validated`   | operator_id    | 4               | 1                 | 720h          | 3 / 1             |
+| `models.anomaly.published`      | model_version  | 1               | 1                 | ∞ (compacted) | 3 / 1             |
+| `audit.events`                  | service_id     | 8               | 2                 | ∞ (tiered)    | 3 / 1             |
+| `dlq.sensors.*`                 | original_topic | 2               | 1                 | 720h          | 3 / 1             |
 
 ### 4.3 Required Message Headers
 
 Every message produced to Redpanda must include:
 
-| Header | Type | Description |
-|---|---|---|
-| `rtsa-classification` | string | Classification level of the data |
-| `rtsa-source-service` | string | Producing service name |
-| `rtsa-trace-id` | string | OpenTelemetry trace ID |
-| `rtsa-timestamp` | string | ISO 8601 UTC timestamp |
+| Header                | Type   | Description                             |
+| --------------------- | ------ | --------------------------------------- |
+| `rtsa-classification` | string | Classification level of the data        |
+| `rtsa-source-service` | string | Producing service name                  |
+| `rtsa-trace-id`       | string | OpenTelemetry trace ID                  |
+| `rtsa-timestamp`      | string | ISO 8601 UTC timestamp                  |
 | `rtsa-schema-version` | string | Protobuf schema version (e.g., "1.2.0") |
 
 ---
@@ -479,7 +480,7 @@ FROM anomaly_detections
 GROUP BY anomaly_type, severity, hour;
 ```
 
-#### Active Tracks by Domain — 10-Second Granularity *(v2.0)*
+#### Active Tracks by Domain — 10-Second Granularity _(v2.0)_
 
 Feeds the Fusion Dashboard and Multi-Domain Dashboard real-time domain split KPIs.
 
@@ -497,7 +498,7 @@ WHERE track_status IN ('ACTIVE', 'NEW')
 GROUP BY entity_type, ten_second_bucket;
 ```
 
-#### Sensor Throughput — 5-Minute Rolling *(v2.0)*
+#### Sensor Throughput — 5-Minute Rolling _(v2.0)_
 
 Feeds the Multi-Domain Dashboard sensor observation rate panel by sensor type.
 
@@ -514,7 +515,7 @@ FROM sensor_observations
 GROUP BY sensor_type, sensor_id, five_min_bucket;
 ```
 
-#### Alert Acknowledgement Latency *(v2.0)*
+#### Alert Acknowledgement Latency _(v2.0)_
 
 Feeds the Operator UI alert latency metrics panel.
 
@@ -541,25 +542,25 @@ GROUP BY severity, hour;
 
 ## 6. Data Retention Policy
 
-| Data Category | Hot Retention (SSD) | Warm Retention (HDD/Tiered) | Cold Archive | Compliance |
-|---|---|---|---|---|
-| Sensor observations | 7 days | 90 days | — | ITSG-33 AU-11 |
-| Fused tracks | 7 days | 90 days | — | ITSG-33 AU-11 |
-| Anomaly detections | 30 days | 365 days | — | NIST 800-53 AU-11 |
-| Operator feedback | 30 days | 730 days | — | NIST 800-53 AU-11 |
-| Audit log | 90 days | Indefinite | — | ITSG-33 AU-11 (never expire) |
-| Redpanda events | 72h–720h (per topic) | Tiered storage | — | Operational |
-| Model artifacts | Current + 5 previous | All versions | — | Model governance |
+| Data Category       | Hot Retention (SSD)  | Warm Retention (HDD/Tiered) | Cold Archive | Compliance                   |
+| ------------------- | -------------------- | --------------------------- | ------------ | ---------------------------- |
+| Sensor observations | 7 days               | 90 days                     | —            | ITSG-33 AU-11                |
+| Fused tracks        | 7 days               | 90 days                     | —            | ITSG-33 AU-11                |
+| Anomaly detections  | 30 days              | 365 days                    | —            | NIST 800-53 AU-11            |
+| Operator feedback   | 30 days              | 730 days                    | —            | NIST 800-53 AU-11            |
+| Audit log           | 90 days              | Indefinite                  | —            | ITSG-33 AU-11 (never expire) |
+| Redpanda events     | 72h–720h (per topic) | Tiered storage              | —            | Operational                  |
+| Model artifacts     | Current + 5 previous | All versions                | —            | Model governance             |
 
 ### Edge Retention (Resource-Constrained)
 
-| Data Category | Edge Retention |
-|---|---|
-| Sensor observations | 24 hours |
-| Fused tracks | 48 hours |
-| Anomaly detections | 7 days |
-| Operator feedback | Until synced |
-| Audit log | Until synced |
+| Data Category       | Edge Retention |
+| ------------------- | -------------- |
+| Sensor observations | 24 hours       |
+| Fused tracks        | 48 hours       |
+| Anomaly detections  | 7 days         |
+| Operator feedback   | Until synced   |
+| Audit log           | Until synced   |
 
 ---
 
@@ -593,24 +594,24 @@ flowchart TD
 
 ### 8.1 Validation Rules (Enforced at Ingestion)
 
-| Field | Validation | Action on Failure |
-|---|---|---|
-| latitude | -90.0 to +90.0 | Reject to DLQ |
-| longitude | -180.0 to +180.0 | Reject to DLQ |
-| speed_knots | 0 to 999 (surface), 0 to 2500 (air) | Flag as suspect |
-| heading_degrees | 0.0 to 360.0 | Reject to DLQ |
-| observation_time | Not > 5 min in future, not > 24h in past | Reject to DLQ |
-| classification | Must be valid enum value | Reject to DLQ |
-| sensor_id | Non-empty, known sensor registry | Reject to DLQ |
+| Field            | Validation                               | Action on Failure |
+| ---------------- | ---------------------------------------- | ----------------- |
+| latitude         | -90.0 to +90.0                           | Reject to DLQ     |
+| longitude        | -180.0 to +180.0                         | Reject to DLQ     |
+| speed_knots      | 0 to 999 (surface), 0 to 2500 (air)      | Flag as suspect   |
+| heading_degrees  | 0.0 to 360.0                             | Reject to DLQ     |
+| observation_time | Not > 5 min in future, not > 24h in past | Reject to DLQ     |
+| classification   | Must be valid enum value                 | Reject to DLQ     |
+| sensor_id        | Non-empty, known sensor registry         | Reject to DLQ     |
 
 ### 8.2 Data Quality Metrics
 
-| Metric | Target | Measurement |
-|---|---|---|
-| Observation acceptance rate | > 99.5% | `accepted / (accepted + rejected)` per sensor |
-| Duplicate rate | < 0.1% | Deduplication counter per topic |
-| Schema compliance | 100% | Wasm transform validation |
-| Latency (ingestion to ClickHouse) | < 5s p99 | Redpanda Connect lag metric |
+| Metric                            | Target   | Measurement                                   |
+| --------------------------------- | -------- | --------------------------------------------- |
+| Observation acceptance rate       | > 99.5%  | `accepted / (accepted + rejected)` per sensor |
+| Duplicate rate                    | < 0.1%   | Deduplication counter per topic               |
+| Schema compliance                 | 100%     | Wasm transform validation                     |
+| Latency (ingestion to ClickHouse) | < 5s p99 | Redpanda Connect lag metric                   |
 
 ---
 
@@ -621,7 +622,14 @@ flowchart TD
 input:
   kafka_franz:
     seed_brokers: ["${REDPANDA_BROKERS}"]
-    topics: ["tracks.fused.surface", "tracks.fused.air", "tracks.fused.subsurface", "tracks.fused.land", "tracks.fused.cyber"]
+    topics:
+      [
+        "tracks.fused.surface",
+        "tracks.fused.air",
+        "tracks.fused.subsurface",
+        "tracks.fused.land",
+        "tracks.fused.cyber",
+      ]
     consumer_group: "rpconnect-clickhouse-tracks"
     tls:
       enabled: true
@@ -683,13 +691,13 @@ output:
 
 ### 12.1 Why FlatBuffers for the Hot Path
 
-| Property | Protobuf (Cold Path) | FlatBuffers (Hot Path) |
-|---|---|---|
-| Deserialization | Full decode required (allocations) | Zero-copy read from buffer |
-| Browser overhead | ~50 μs per message decode | ~0 μs (offset access) |
-| Alignment | Variable-length encoding | 4-byte aligned (GPU-friendly) |
-| GPU upload | Requires JS object → typed array conversion | Direct `memcpy` to GPU buffer |
-| Use case | Commands, queries, feedback | Track position updates, alert state |
+| Property         | Protobuf (Cold Path)                        | FlatBuffers (Hot Path)              |
+| ---------------- | ------------------------------------------- | ----------------------------------- |
+| Deserialization  | Full decode required (allocations)          | Zero-copy read from buffer          |
+| Browser overhead | ~50 μs per message decode                   | ~0 μs (offset access)               |
+| Alignment        | Variable-length encoding                    | 4-byte aligned (GPU-friendly)       |
+| GPU upload       | Requires JS object → typed array conversion | Direct `memcpy` to GPU buffer       |
+| Use case         | Commands, queries, feedback                 | Track position updates, alert state |
 
 ### 12.2 Track Record Layout (128 bytes)
 

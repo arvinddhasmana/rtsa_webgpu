@@ -46,6 +46,7 @@ graph TB
 ```
 
 **Key principles:**
+
 - `main.go` is the composition root — all dependencies are wired here via constructor injection
 - The gRPC server runs the interceptor chain before reaching business logic handlers
 - Health and metrics servers run on separate ports from the application gRPC port
@@ -131,6 +132,7 @@ Every gRPC service must implement graceful shutdown:
 6. Exit with code 0
 
 **Best practices:**
+
 - Use `grpcServer.GracefulStop()` — it waits for in-flight RPCs to complete
 - Set a maximum drain timeout (e.g., 30 seconds) to prevent indefinite hangs
 - Ensure the Kubernetes `terminationGracePeriodSeconds` is longer than the drain timeout
@@ -147,15 +149,15 @@ Request:  Recovery → OTel → Metrics → Logging → Auth → Audit → Valid
 Response: Handler → Validation → Audit → Auth → Logging → Metrics → OTel → Recovery
 ```
 
-| Interceptor | Position | Purpose |
-|---|---|---|
-| **Recovery** | First | Catches panics; converts to `INTERNAL` error |
-| **OpenTelemetry** | Second | Creates/propagates trace spans |
-| **Metrics** | Third | Records request count, latency, status code |
-| **Logging** | Fourth | Logs request/response metadata (not payloads) |
-| **Auth** | Fifth | Extracts and verifies caller identity (mTLS cert) |
-| **Audit** | Sixth | Records state-changing operations to audit log |
-| **Validation** | Seventh | Validates request message fields |
+| Interceptor       | Position | Purpose                                           |
+| ----------------- | -------- | ------------------------------------------------- |
+| **Recovery**      | First    | Catches panics; converts to `INTERNAL` error      |
+| **OpenTelemetry** | Second   | Creates/propagates trace spans                    |
+| **Metrics**       | Third    | Records request count, latency, status code       |
+| **Logging**       | Fourth   | Logs request/response metadata (not payloads)     |
+| **Auth**          | Fifth    | Extracts and verifies caller identity (mTLS cert) |
+| **Audit**         | Sixth    | Records state-changing operations to audit log    |
+| **Validation**    | Seventh  | Validates request message fields                  |
 
 ### 4.2 Recovery Interceptor
 
@@ -233,10 +235,11 @@ func AuditInterceptor(auditLogger AuditLogger) grpc.UnaryServerInterceptor {
 ```
 
 **Best practices:**
+
 - Audit logging should be asynchronous (fire-and-forget) — never block the request on audit persistence
 - Log both successful and failed state-changing operations
 - Include the actor identity, action, outcome, and timestamp
-- Define `isStateChanging()` based on method naming conventions (e.g., Create*, Update*, Delete*)
+- Define `isStateChanging()` based on method naming conventions (e.g., Create*, Update*, Delete\*)
 
 ## 5. Streaming Patterns
 
@@ -277,6 +280,7 @@ func (s *Server) StreamUpdates(
 ```
 
 **Best practices:**
+
 - Always check `ctx.Done()` for clean cancellation
 - Unsubscribe/cleanup resources when the stream ends
 - Use flow control — if the client is slow, consider dropping or buffering messages
@@ -316,6 +320,7 @@ func (s *Server) BulkIngest(
 ```
 
 **Best practices:**
+
 - Validate each message individually — skip invalid messages rather than terminating the stream
 - Count and report accepted/rejected messages in the response
 - Set maximum stream duration to prevent unbounded streams
@@ -326,18 +331,18 @@ func (s *Server) BulkIngest(
 
 Map domain errors to appropriate gRPC status codes consistently:
 
-| Condition | gRPC Code | When to Use |
-|---|---|---|
-| Invalid input | `InvalidArgument` | Request fields fail validation |
-| Entity not found | `NotFound` | Requested resource does not exist |
-| Not authenticated | `Unauthenticated` | Missing or invalid credentials |
-| Not authorized | `PermissionDenied` | Authenticated but not authorized |
-| Conflict / duplicate | `AlreadyExists` | Duplicate key or idempotency violation |
-| Rate limited | `ResourceExhausted` | Request rate exceeded |
-| Downstream failure | `Unavailable` | Database or broker is down |
-| Unexpected error | `Internal` | Never expose internal details in the message |
-| Timeout | `DeadlineExceeded` | Configured deadline expired |
-| Client cancelled | `Cancelled` | Client cancelled the request |
+| Condition            | gRPC Code           | When to Use                                  |
+| -------------------- | ------------------- | -------------------------------------------- |
+| Invalid input        | `InvalidArgument`   | Request fields fail validation               |
+| Entity not found     | `NotFound`          | Requested resource does not exist            |
+| Not authenticated    | `Unauthenticated`   | Missing or invalid credentials               |
+| Not authorized       | `PermissionDenied`  | Authenticated but not authorized             |
+| Conflict / duplicate | `AlreadyExists`     | Duplicate key or idempotency violation       |
+| Rate limited         | `ResourceExhausted` | Request rate exceeded                        |
+| Downstream failure   | `Unavailable`       | Database or broker is down                   |
+| Unexpected error     | `Internal`          | Never expose internal details in the message |
+| Timeout              | `DeadlineExceeded`  | Configured deadline expired                  |
+| Client cancelled     | `Cancelled`         | Client cancelled the request                 |
 
 ### 6.2 Error Handling Rules
 
@@ -372,13 +377,13 @@ if err != nil {
 
 ### 7.2 Recommended Deadlines
 
-| RPC Type | Default | Max |
-|---|---|---|
-| Unary (fast path) | 5s | 30s |
-| Unary (query/analytical) | 10s | 60s |
-| Server streaming | 5 min | 24h |
-| Client streaming (batch) | 30s | 5 min |
-| Cross-system calls | 30s | 120s |
+| RPC Type                 | Default | Max   |
+| ------------------------ | ------- | ----- |
+| Unary (fast path)        | 5s      | 30s   |
+| Unary (query/analytical) | 10s     | 60s   |
+| Server streaming         | 5 min   | 24h   |
+| Client streaming (batch) | 30s     | 5 min |
+| Cross-system calls       | 30s     | 120s  |
 
 ## 8. gRPC Server Options
 
@@ -411,6 +416,7 @@ grpc.NewServer(
 For browser-based clients that need to communicate with gRPC services. In the WebGPU COP architecture, gRPC-Web is used exclusively for the **cold path** (commands, queries, feedback). Real-time track data uses WebTransport (see `webtransport_guidelines.md`).
 
 **Best practices:**
+
 - Use Envoy or grpc-web-proxy as the gRPC-Web proxy
 - Terminate TLS at the proxy layer
 - Configure CORS headers at the proxy

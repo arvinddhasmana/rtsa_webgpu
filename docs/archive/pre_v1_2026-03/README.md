@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # Archived Documents — Pre-v1 React/MapLibre/Zustand Era
 
 > **Archived**: 2026-03-05
@@ -16,16 +17,16 @@ These documents describe the original React 18 + MapLibre GL JS + Zustand + gRPC
 
 ## Archived Files
 
-| Original Location | Description |
-|---|---|
-| `architecture/high_level_architecture.md` | C4 high-level architecture (React UI references) |
-| `architecture/component_design.md` | Component design with Zustand 4-store model |
-| `architecture/dependency_graph.md` | React/Zustand/MapLibre dependency tree |
-| `implementation/15-cop-web-app.md` | Module 15 — React COP Web Application |
-| `implementation/v2/` | React UI v2 implementation phases (design system, dashboards, polish) |
-| `implementation/v3/` | React UI v3 role-based implementation phases |
-| `status/` | React-era implementation status tracking |
-| `sdlc_guidelines/04_coding_standards/react_standards.md` | React 18 coding standards (replaced by `solidjs_standards.md`) |
+| Original Location                                        | Description                                                           |
+| -------------------------------------------------------- | --------------------------------------------------------------------- |
+| `architecture/high_level_architecture.md`                | C4 high-level architecture (React UI references)                      |
+| `architecture/component_design.md`                       | Component design with Zustand 4-store model                           |
+| `architecture/dependency_graph.md`                       | React/Zustand/MapLibre dependency tree                                |
+| `implementation/15-cop-web-app.md`                       | Module 15 — React COP Web Application                                 |
+| `implementation/v2/`                                     | React UI v2 implementation phases (design system, dashboards, polish) |
+| `implementation/v3/`                                     | React UI v3 role-based implementation phases                          |
+| `status/`                                                | React-era implementation status tracking                              |
+| `sdlc_guidelines/04_coding_standards/react_standards.md` | React 18 coding standards (replaced by `solidjs_standards.md`)        |
 
 ## Retention Policy
 

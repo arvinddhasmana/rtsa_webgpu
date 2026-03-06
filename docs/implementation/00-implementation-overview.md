@@ -22,26 +22,26 @@ This document is the master orchestration guide for implementing the RTSA system
 
 ## 2. Module Inventory
 
-| Module | File                            | Description                                              | Phase |
-| ------ | ------------------------------- | -------------------------------------------------------- | ----- |
-| 00     | `00-implementation-overview.md` | This file — orchestration, contracts, traceability       | P0    |
-| 01     | `01-dev-infrastructure.md`      | Docker Compose, Makefiles, project scaffolding           | P0    |
-| 02     | `02-protobuf-schemas.md`        | All `.proto` files, buf config, code generation          | P0    |
-| 03     | `03-shared-go-libraries.md`     | `pkg/*` shared libraries (Redpanda, health, etc.)        | P1    |
-| 04     | `04-sensor-ingestion-radar.md`  | Reference ingestion service (Radar) — full detail        | P2    |
-| 05     | `05-sensor-ingestion-batch.md`  | 5 remaining sensor services (EW, ELINT, ISR, AIS, Cyber) | P2    |
-| 06     | `06-wasm-data-transforms.md`    | Redpanda Wasm validation transforms                      | P2    |
-| 07     | `07-fusion-engine.md`           | Multi-source track fusion with Kalman filter             | P3    |
-| 08     | `08-anomaly-detection.md`       | Rule-based anomaly detection (simulating ML)             | P3    |
-| 09     | `09-feedback-trust-scoring.md`  | Operator feedback, trust scoring, anti-poisoning         | P4    |
-| 10     | `10-track-service.md`           | Real-time track state cache + gRPC streaming             | P4    |
-| 11     | `11-alert-service.md`           | Priority alert queue + gRPC streaming                    | P4    |
-| 12     | `12-query-service-etl.md`       | ClickHouse queries + Redpanda Connect ETL pipelines      | P4    |
-| 13     | `13-audit-service.md`           | Immutable audit trail (Redpanda → ClickHouse)            | P4    |
-| 14     | `14-api-gateway.md`             | Envoy gRPC-Web proxy configuration                       | P4    |
-| 15     | *(archived — see `docs/archive/pre_v1_2026-03/`)* | Legacy React COP — replaced by WebGPU COP (see `implementation/v4/`) | —     |
-| 16     | `16-test-data-simulators.md`    | Sensor simulators + realistic scenario data              | P2    |
-| 17     | `17-integration-e2e-testing.md` | Cross-module integration + E2E test harness              | P6    |
+| Module | File                                              | Description                                                          | Phase |
+| ------ | ------------------------------------------------- | -------------------------------------------------------------------- | ----- |
+| 00     | `00-implementation-overview.md`                   | This file — orchestration, contracts, traceability                   | P0    |
+| 01     | `01-dev-infrastructure.md`                        | Docker Compose, Makefiles, project scaffolding                       | P0    |
+| 02     | `02-protobuf-schemas.md`                          | All `.proto` files, buf config, code generation                      | P0    |
+| 03     | `03-shared-go-libraries.md`                       | `pkg/*` shared libraries (Redpanda, health, etc.)                    | P1    |
+| 04     | `04-sensor-ingestion-radar.md`                    | Reference ingestion service (Radar) — full detail                    | P2    |
+| 05     | `05-sensor-ingestion-batch.md`                    | 5 remaining sensor services (EW, ELINT, ISR, AIS, Cyber)             | P2    |
+| 06     | `06-wasm-data-transforms.md`                      | Redpanda Wasm validation transforms                                  | P2    |
+| 07     | `07-fusion-engine.md`                             | Multi-source track fusion with Kalman filter                         | P3    |
+| 08     | `08-anomaly-detection.md`                         | Rule-based anomaly detection (simulating ML)                         | P3    |
+| 09     | `09-feedback-trust-scoring.md`                    | Operator feedback, trust scoring, anti-poisoning                     | P4    |
+| 10     | `10-track-service.md`                             | Real-time track state cache + gRPC streaming                         | P4    |
+| 11     | `11-alert-service.md`                             | Priority alert queue + gRPC streaming                                | P4    |
+| 12     | `12-query-service-etl.md`                         | ClickHouse queries + Redpanda Connect ETL pipelines                  | P4    |
+| 13     | `13-audit-service.md`                             | Immutable audit trail (Redpanda → ClickHouse)                        | P4    |
+| 14     | `14-api-gateway.md`                               | Envoy gRPC-Web proxy configuration                                   | P4    |
+| 15     | _(archived — see `docs/archive/pre_v1_2026-03/`)_ | Legacy React COP — replaced by WebGPU COP (see `implementation/v4/`) | —     |
+| 16     | `16-test-data-simulators.md`                      | Sensor simulators + realistic scenario data                          | P2    |
+| 17     | `17-integration-e2e-testing.md`                   | Cross-module integration + E2E test harness                          | P6    |
 
 ---
 
@@ -157,14 +157,14 @@ type ClassificationGuard interface {
 
 ### 4.2 gRPC Service Interfaces (defined in Module 02 — `.proto` files)
 
-| Service            | Package             | Key RPCs                                                                 |
-| ------------------ | ------------------- | ------------------------------------------------------------------------ |
-| `IngestionService` | `rtsa.ingestion.v1` | `IngestSensorData` (client-stream), `GetSensorStatus` (unary), `ListSensorStatuses` (unary, v2.0) |
+| Service            | Package             | Key RPCs                                                                                                    |
+| ------------------ | ------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `IngestionService` | `rtsa.ingestion.v1` | `IngestSensorData` (client-stream), `GetSensorStatus` (unary), `ListSensorStatuses` (unary, v2.0)           |
 | `TrackService`     | `rtsa.entity.v1`    | `StreamTracks` (server-stream), `GetTrackDetails` (unary), `StreamSensorObservations` (server-stream, v2.0) |
-| `AlertService`     | `rtsa.inference.v1` | `StreamAlerts` (server-stream), `AcknowledgeAlert` (unary), `AssignAlert` (unary, v2.0) |
-| `FeedbackService`  | `rtsa.feedback.v1`  | `SubmitFeedback` (unary), `GetFeedbackHistory` (unary)                   |
-| `QueryService`     | `rtsa.query.v1`     | `QueryTracks` (unary), `QueryAnomalies` (unary), `QueryAuditLog` (unary), `GetEventTimeline` (unary, v2.0) |
-| `HealthService`    | `rtsa.common.v1`    | `Check` (unary), `Watch` (server-stream)                                 |
+| `AlertService`     | `rtsa.inference.v1` | `StreamAlerts` (server-stream), `AcknowledgeAlert` (unary), `AssignAlert` (unary, v2.0)                     |
+| `FeedbackService`  | `rtsa.feedback.v1`  | `SubmitFeedback` (unary), `GetFeedbackHistory` (unary)                                                      |
+| `QueryService`     | `rtsa.query.v1`     | `QueryTracks` (unary), `QueryAnomalies` (unary), `QueryAuditLog` (unary), `GetEventTimeline` (unary, v2.0)  |
+| `HealthService`    | `rtsa.common.v1`    | `Check` (unary), `Watch` (server-stream)                                                                    |
 
 ### 4.3 Redpanda Topic Contracts
 

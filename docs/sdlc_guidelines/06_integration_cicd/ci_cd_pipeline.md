@@ -59,51 +59,51 @@ graph TB
 
 ### SG-1: Pre-Build
 
-| Check | Tool | Failure Action |
-|---|---|---|
-| Secret detection | `gitleaks` | **Block** |
-| Classification headers | Custom script | **Block** |
-| Go formatting | `gofmt`, `goimports` | **Block** |
-| TypeScript formatting | `prettier` | **Block** |
-| Proto formatting | `buf format` | **Block** |
-| Commit message format | Conventional Commits check | **Block** |
+| Check                  | Tool                       | Failure Action |
+| ---------------------- | -------------------------- | -------------- |
+| Secret detection       | `gitleaks`                 | **Block**      |
+| Classification headers | Custom script              | **Block**      |
+| Go formatting          | `gofmt`, `goimports`       | **Block**      |
+| TypeScript formatting  | `prettier`                 | **Block**      |
+| Proto formatting       | `buf format`               | **Block**      |
+| Commit message format  | Conventional Commits check | **Block**      |
 
 ### SG-2: Build
 
-| Check | Tool | Failure Action |
-|---|---|---|
-| Go compilation | `go build ./...` | **Block** |
-| Proto generation | `buf generate` | **Block** |
-| TypeScript compilation | `tsc --noEmit` | **Block** |
-| SBOM generation | `syft` | **Block** |
-| License compliance | `go-licenses`, `license-checker` | **Block** (unapproved license) |
+| Check                  | Tool                             | Failure Action                 |
+| ---------------------- | -------------------------------- | ------------------------------ |
+| Go compilation         | `go build ./...`                 | **Block**                      |
+| Proto generation       | `buf generate`                   | **Block**                      |
+| TypeScript compilation | `tsc --noEmit`                   | **Block**                      |
+| SBOM generation        | `syft`                           | **Block**                      |
+| License compliance     | `go-licenses`, `license-checker` | **Block** (unapproved license) |
 
 ### SG-3: Test
 
-| Check | Tool | Failure Action |
-|---|---|---|
-| Go unit tests | `go test -race -cover` | **Block** (< 80% coverage) |
+| Check                     | Tool                    | Failure Action             |
+| ------------------------- | ----------------------- | -------------------------- |
+| Go unit tests             | `go test -race -cover`  | **Block** (< 80% coverage) |
 | SolidJS + Wasm unit tests | `vitest run --coverage` | **Block** (< 80% coverage) |
-| Proto contract tests | `buf breaking` | **Block** |
-| Test report generation | CI native | Archive |
+| Proto contract tests      | `buf breaking`          | **Block**                  |
+| Test report generation    | CI native               | Archive                    |
 
 ### SG-4: Security
 
-| Check | Tool | Failure Action |
-|---|---|---|
-| Go SAST | `semgrep`, `gosec` | **Block** (Critical/High) |
-| TypeScript SAST | `semgrep`, `eslint-plugin-security` | **Block** (Critical/High) |
-| Go dependency vulnerabilities | `govulncheck` | **Block** (Critical/High) |
-| NPM dependency vulnerabilities | `npm audit` | **Block** (Critical/High) |
-| Container image scan | `trivy` | **Block** (Critical/High) |
-| SARIF report upload | CI native | Archive for 2 years |
+| Check                          | Tool                                | Failure Action            |
+| ------------------------------ | ----------------------------------- | ------------------------- |
+| Go SAST                        | `semgrep`, `gosec`                  | **Block** (Critical/High) |
+| TypeScript SAST                | `semgrep`, `eslint-plugin-security` | **Block** (Critical/High) |
+| Go dependency vulnerabilities  | `govulncheck`                       | **Block** (Critical/High) |
+| NPM dependency vulnerabilities | `npm audit`                         | **Block** (Critical/High) |
+| Container image scan           | `trivy`                             | **Block** (Critical/High) |
+| SARIF report upload            | CI native                           | Archive for 2 years       |
 
 ### SG-5: Integration
 
-| Check | Tool | Failure Action |
-|---|---|---|
-| Integration tests | `go test -tags=integration` | **Block** |
-| E2E smoke tests | Custom test runner | **Warn** (feature branches) |
+| Check             | Tool                        | Failure Action              |
+| ----------------- | --------------------------- | --------------------------- |
+| Integration tests | `go test -tags=integration` | **Block**                   |
+| E2E smoke tests   | Custom test runner          | **Warn** (feature branches) |
 
 ## 4. GitHub Actions Workflow Reference
 
@@ -144,7 +144,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: "1.22"
       - name: Build
         run: go build ./...
       - name: Generate SBOM
@@ -161,7 +161,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: "1.22"
       - name: Unit tests with coverage
         run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
       - name: Check coverage threshold
@@ -191,15 +191,15 @@ jobs:
 
 ## 5. Pipeline Performance Targets
 
-| Metric | Target | Maximum |
-|---|---|---|
-| SG-1 (Pre-build) | < 1 min | 2 min |
-| SG-2 (Build) | < 3 min | 5 min |
-| SG-3 (Test) | < 5 min | 10 min |
-| SG-4 (Security) | < 5 min | 15 min |
-| SG-5 (Integration) | < 10 min | 20 min |
-| **Total PR pipeline** | **< 15 min** | **30 min** |
-| Release pipeline (to staging) | < 30 min | 45 min |
+| Metric                        | Target       | Maximum    |
+| ----------------------------- | ------------ | ---------- |
+| SG-1 (Pre-build)              | < 1 min      | 2 min      |
+| SG-2 (Build)                  | < 3 min      | 5 min      |
+| SG-3 (Test)                   | < 5 min      | 10 min     |
+| SG-4 (Security)               | < 5 min      | 15 min     |
+| SG-5 (Integration)            | < 10 min     | 20 min     |
+| **Total PR pipeline**         | **< 15 min** | **30 min** |
+| Release pipeline (to staging) | < 30 min     | 45 min     |
 
 ## 6. Artifact Management
 

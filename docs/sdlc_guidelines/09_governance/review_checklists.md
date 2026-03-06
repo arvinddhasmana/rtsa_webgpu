@@ -19,6 +19,7 @@ This document provides structured checklists for code reviews, architecture revi
 ## Code Review Checklist — General
 
 ### Compliance
+
 - [ ] Classification header present on all new files
 - [ ] No hardcoded secrets, passwords, API keys, or tokens
 - [ ] No PII in code, comments, or log statements
@@ -26,6 +27,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Approved dependencies only (checked against supply_chain_security.md)
 
 ### Quality
+
 - [ ] Code compiles without warnings
 - [ ] Linter passes (golangci-lint / eslint)
 - [ ] Unit tests included for new/changed code
@@ -35,6 +37,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Comments are meaningful (explain "why", not "what")
 
 ### Security
+
 - [ ] Input validation on all external data
 - [ ] Error handling: no silenced errors, no panics (Go)
 - [ ] No SQL string concatenation (parameterized queries)
@@ -44,6 +47,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Classification markings enforced in data flow
 
 ### Architecture
+
 - [ ] Follows established patterns (no unnecessary novelty)
 - [ ] Backward-compatible changes (especially Protobuf)
 - [ ] Traceability: requirement IDs referenced in code/tests
@@ -108,6 +112,7 @@ This document provides structured checklists for code reviews, architecture revi
 ## Architecture Review Checklist
 
 ### Design
+
 - [ ] C4 diagrams included (Context, Container, Component as applicable)
 - [ ] ADR created for significant decisions
 - [ ] Follows event-driven architecture patterns
@@ -115,6 +120,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Data flow diagrams accurate
 
 ### Security
+
 - [ ] Threat model updated for new components
 - [ ] Trust boundaries identified
 - [ ] Classification levels assigned to data flows
@@ -124,6 +130,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] ITSG-33 controls referenced
 
 ### Operational
+
 - [ ] Health check endpoints specified
 - [ ] Monitoring metrics defined
 - [ ] Alert conditions specified
@@ -132,6 +139,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Data retention policies defined
 
 ### Compliance
+
 - [ ] ITSG-33 controls mapped
 - [ ] NIST 800-53 controls mapped (where applicable)
 - [ ] NATO interoperability requirements addressed (if applicable)
@@ -144,12 +152,14 @@ This document provides structured checklists for code reviews, architecture revi
 ## Release Review Checklist
 
 ### Build
+
 - [ ] All CI pipeline stages passed (SG-1 through SG-5)
 - [ ] Container images built and signed (cosign)
 - [ ] SBOM generated and attached
 - [ ] Container images scanned (no Critical/High CVEs)
 
 ### Testing
+
 - [ ] Unit test coverage ≥ 80%
 - [ ] Integration tests passed
 - [ ] E2E smoke tests passed
@@ -157,12 +167,14 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Security tests passed (SAST, dependency scan)
 
 ### Documentation
+
 - [ ] Release notes written
 - [ ] API changes documented
 - [ ] Breaking changes documented with migration guide
 - [ ] Updated architecture diagrams (if applicable)
 
 ### Deployment
+
 - [ ] Helm chart updated
 - [ ] Environment-specific values validated
 - [ ] Rollback procedure tested
@@ -170,6 +182,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Air-gap transfer media encrypted
 
 ### Approval
+
 - [ ] At least one PR reviewer approved all included PRs
 - [ ] Security reviewer approved (if security-critical changes)
 - [ ] Release manager approved deployment to production

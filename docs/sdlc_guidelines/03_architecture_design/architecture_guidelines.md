@@ -35,15 +35,15 @@ graph TD
 
 ### Required Diagrams per Architecture Document
 
-| Architecture Document | C4 Levels | Additional Diagrams |
-|---|---|---|
-| `high_level_architecture.md` | L1 (System Context), L2 (Container) | Data flow overview |
-| `component_design.md` | L3 (Component) for each container | Interface definitions |
-| `data_architecture.md` | — | ER diagrams, data flow diagrams, topic maps |
-| `security_architecture.md` | — | Security zone diagram, trust boundary diagram |
-| `deployment_architecture.md` | — | Deployment topology (×3 environments) |
-| `integration_architecture.md` | L1 (external interfaces) | Protocol/format diagrams |
-| `dependency_graph.md` | — | Traceability matrices as diagrams |
+| Architecture Document         | C4 Levels                           | Additional Diagrams                           |
+| ----------------------------- | ----------------------------------- | --------------------------------------------- |
+| `high_level_architecture.md`  | L1 (System Context), L2 (Container) | Data flow overview                            |
+| `component_design.md`         | L3 (Component) for each container   | Interface definitions                         |
+| `data_architecture.md`        | —                                   | ER diagrams, data flow diagrams, topic maps   |
+| `security_architecture.md`    | —                                   | Security zone diagram, trust boundary diagram |
+| `deployment_architecture.md`  | —                                   | Deployment topology (×3 environments)         |
+| `integration_architecture.md` | L1 (external interfaces)            | Protocol/format diagrams                      |
+| `dependency_graph.md`         | —                                   | Traceability matrices as diagrams             |
 
 ### Mermaid Syntax for C4
 
@@ -57,6 +57,7 @@ Since native C4 support in Mermaid is limited, use labeled `graph` diagrams with
 - **Data Store**: Cylinder shape (using subgraph label)
 
 Color conventions:
+
 - Blue (`#1565c0`): Internal RTSA systems/containers
 - Green (`#2e7d32`): Data stores
 - Orange (`#f57c00`): External systems
@@ -68,6 +69,7 @@ Color conventions:
 ### 3.1 When to Create an ADR
 
 Create an ADR for any decision that:
+
 - Affects more than one service or component
 - Introduces or replaces a technology
 - Changes a data model or event schema
@@ -80,13 +82,13 @@ Create an ADR for any decision that:
 ```markdown
 # ADR-[NNN]: [Decision Title]
 
-| Attribute | Value |
-|---|---|
-| **Status** | Proposed / Accepted / Deprecated / Superseded by ADR-NNN |
-| **Date** | YYYY-MM-DD |
-| **Decision Makers** | [Names/Roles] |
-| **Affected Components** | [COMP IDs or service names] |
-| **Related Requirements** | [REQ IDs] |
+| Attribute                | Value                                                    |
+| ------------------------ | -------------------------------------------------------- |
+| **Status**               | Proposed / Accepted / Deprecated / Superseded by ADR-NNN |
+| **Date**                 | YYYY-MM-DD                                               |
+| **Decision Makers**      | [Names/Roles]                                            |
+| **Affected Components**  | [COMP IDs or service names]                              |
+| **Related Requirements** | [REQ IDs]                                                |
 
 ## Context
 
@@ -99,22 +101,27 @@ Create an ADR for any decision that:
 ## Alternatives Considered
 
 ### Alternative 1: [Name]
+
 - **Pros**: ...
 - **Cons**: ...
 
 ### Alternative 2: [Name]
+
 - **Pros**: ...
 - **Cons**: ...
 
 ## Consequences
 
 ### Positive
+
 - [Positive outcomes of this decision]
 
 ### Negative
+
 - [Trade-offs and risks accepted]
 
 ### Risks & Mitigations
+
 - **Risk**: [Description] → **Mitigation**: [How we address it]
 
 ## Security Impact

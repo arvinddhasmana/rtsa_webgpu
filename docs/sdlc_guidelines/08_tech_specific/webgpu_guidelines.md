@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # WebGPU Development Guidelines
 
 > **Document**: RTSA WebGPU Development Guidelines
@@ -15,13 +16,13 @@ The RTSA COP uses WebGPU as its primary rendering API, replacing MapLibre GL JS 
 
 ### Performance Targets
 
-| Metric | Target |
-|---|---|
-| Sustained track count | 50,000 @ 60 FPS |
-| Update-to-pixel latency | < 16 ms |
-| Main thread CPU | < 20% |
-| VRAM budget (GPU buffers) | < 512 MB |
-| Browser ingestion throughput | 50,000+ msg/s |
+| Metric                       | Target          |
+| ---------------------------- | --------------- |
+| Sustained track count        | 50,000 @ 60 FPS |
+| Update-to-pixel latency      | < 16 ms         |
+| Main thread CPU              | < 20%           |
+| VRAM budget (GPU buffers)    | < 512 MB        |
+| Browser ingestion throughput | 50,000+ msg/s   |
 
 ---
 
@@ -159,7 +160,7 @@ function uploadTrackData(
   device: GPUDevice,
   trackBuffer: GPUBuffer,
   sab: SharedArrayBuffer,
-  trackCount: number
+  trackCount: number,
 ) {
   const byteLength = trackCount * 128;
   // Read from SharedArrayBuffer into staging
@@ -170,16 +171,16 @@ function uploadTrackData(
 
 ### 4.3 Buffer Sizing Rules
 
-| Buffer | Size Formula | Typical (50k tracks) |
-|---|---|---|
-| Track storage | `maxTracks × 128` | 6.1 MB |
-| Instance quads | `maxTracks × 64` | 3.1 MB |
-| Pick buffer | `canvasWidth × canvasHeight × 4` | ~8.3 MB (1920×1080) |
-| Icon atlas | 2048 × 2048 × RGBA | 16 MB |
-| SDF font atlas | 2048 × 1024 × R8 | 2 MB |
-| Trail line vertices | `maxTracks × 5 × 16` | 3.8 MB |
-| Uniform buffers | ~1 KB per pipeline | < 16 KB |
-| **Total VRAM** | | **~40 MB** (well within 512 MB budget) |
+| Buffer              | Size Formula                     | Typical (50k tracks)                   |
+| ------------------- | -------------------------------- | -------------------------------------- |
+| Track storage       | `maxTracks × 128`                | 6.1 MB                                 |
+| Instance quads      | `maxTracks × 64`                 | 3.1 MB                                 |
+| Pick buffer         | `canvasWidth × canvasHeight × 4` | ~8.3 MB (1920×1080)                    |
+| Icon atlas          | 2048 × 2048 × RGBA               | 16 MB                                  |
+| SDF font atlas      | 2048 × 1024 × R8                 | 2 MB                                   |
+| Trail line vertices | `maxTracks × 5 × 16`             | 3.8 MB                                 |
+| Uniform buffers     | ~1 KB per pipeline               | < 16 KB                                |
+| **Total VRAM**      |                                  | **~40 MB** (well within 512 MB budget) |
 
 ### 4.4 Buffer Lifecycle Rules
 
@@ -312,7 +313,7 @@ const offscreen = canvas.transferControlToOffscreen();
 
 const renderWorker = new Worker(
   new URL("./workers/render-worker.ts", import.meta.url),
-  { type: "module" }
+  { type: "module" },
 );
 
 renderWorker.postMessage({ type: "init", canvas: offscreen, sab }, [offscreen]);
@@ -368,16 +369,16 @@ device.popErrorScope().then((error) => {
 
 ## 10. Performance Guard Rails
 
-| Rule | Rationale |
-|---|---|
-| Max 1 `writeBuffer` per frame for track data | Minimize CPU→GPU transfers |
-| Max 2 compute passes per frame | Interpolation + culling are sufficient |
-| Max 5 render passes per frame | Trails, icons, halos, labels, pick |
-| No texture creation after init | Runtime texture alloc causes stalls |
-| No `mapAsync` in render loop (except pick on click) | Blocks GPU pipeline |
-| All pipelines created at init | Pipeline compilation is expensive |
-| Uniform buffer updates via `writeBuffer` | Not `mapAsync` for small uniforms |
-| Track capacity pre-allocated to max (65,536) | Avoids buffer reallocation |
+| Rule                                                | Rationale                              |
+| --------------------------------------------------- | -------------------------------------- |
+| Max 1 `writeBuffer` per frame for track data        | Minimize CPU→GPU transfers             |
+| Max 2 compute passes per frame                      | Interpolation + culling are sufficient |
+| Max 5 render passes per frame                       | Trails, icons, halos, labels, pick     |
+| No texture creation after init                      | Runtime texture alloc causes stalls    |
+| No `mapAsync` in render loop (except pick on click) | Blocks GPU pipeline                    |
+| All pipelines created at init                       | Pipeline compilation is expensive      |
+| Uniform buffer updates via `writeBuffer`            | Not `mapAsync` for small uniforms      |
+| Track capacity pre-allocated to max (65,536)        | Avoids buffer reallocation             |
 
 ---
 
@@ -393,11 +394,11 @@ device.popErrorScope().then((error) => {
 
 ## 12. Cross-References
 
-| Document | Path |
-|---|---|
-| WGSL Shader Standards | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md` |
-| FlatBuffers Guidelines | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
-| WebTransport Guidelines | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md` |
-| SolidJS Standards | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md` |
-| v1 Architecture — WebGPU Section | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §4–5 |
-| Component Design | `docs/architecture/component_design.md` |
+| Document                         | Path                                                               |
+| -------------------------------- | ------------------------------------------------------------------ |
+| WGSL Shader Standards            | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md`   |
+| FlatBuffers Guidelines           | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md`  |
+| WebTransport Guidelines          | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md` |
+| SolidJS Standards                | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md`    |
+| v1 Architecture — WebGPU Section | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §4–5         |
+| Component Design                 | `docs/architecture/component_design.md`                            |

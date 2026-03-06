@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # Phase 1 — Core Rendering
 
 > **Document**: v4 Implementation — Phase 1
@@ -19,21 +20,21 @@ Build the complete WebGPU rendering pipeline in the Render Worker — from devic
 
 ## 2. Deliverables
 
-| # | Deliverable | Description |
-|---|---|---|
-| R1-1 | WebGPU device + context | Adapter/device acquisition on OffscreenCanvas |
-| R1-2 | Buffer allocation | Track storage, instance, uniform, pick, atlas buffers |
-| R1-3 | Interpolation compute shader | Dead-reckoning position extrapolation |
-| R1-4 | Culling compute shader | View-frustum culling → indirect draw args |
-| R1-5 | Track icon render pass | Instanced quads with atlas sampling |
-| R1-6 | Trail line render pass | Polylines from trail ring buffer |
-| R1-7 | Alert halo render pass | Animated circles for alerted tracks |
-| R1-8 | SDF label render pass | GPU-rendered text labels (callsign, speed) |
-| R1-9 | Pick buffer render pass | `track_id_hash` output to pick texture |
-| R1-10 | Map tile layer | Raster or vector tile background rendering |
-| R1-11 | Icon + SDF atlas | Baked atlas textures (APP-6 icons, font glyphs) |
-| R1-12 | Per-frame pipeline | Orchestrated compute → render pass sequence |
-| R1-13 | Tests + visual baselines | Compute output tests, Playwright visual regression |
+| #     | Deliverable                  | Description                                           |
+| ----- | ---------------------------- | ----------------------------------------------------- |
+| R1-1  | WebGPU device + context      | Adapter/device acquisition on OffscreenCanvas         |
+| R1-2  | Buffer allocation            | Track storage, instance, uniform, pick, atlas buffers |
+| R1-3  | Interpolation compute shader | Dead-reckoning position extrapolation                 |
+| R1-4  | Culling compute shader       | View-frustum culling → indirect draw args             |
+| R1-5  | Track icon render pass       | Instanced quads with atlas sampling                   |
+| R1-6  | Trail line render pass       | Polylines from trail ring buffer                      |
+| R1-7  | Alert halo render pass       | Animated circles for alerted tracks                   |
+| R1-8  | SDF label render pass        | GPU-rendered text labels (callsign, speed)            |
+| R1-9  | Pick buffer render pass      | `track_id_hash` output to pick texture                |
+| R1-10 | Map tile layer               | Raster or vector tile background rendering            |
+| R1-11 | Icon + SDF atlas             | Baked atlas textures (APP-6 icons, font glyphs)       |
+| R1-12 | Per-frame pipeline           | Orchestrated compute → render pass sequence           |
+| R1-13 | Tests + visual baselines     | Compute output tests, Playwright visual regression    |
 
 ---
 
@@ -50,15 +51,15 @@ Build the complete WebGPU rendering pipeline in the Render Worker — from devic
 
 Allocate all buffers at startup per `webgpu_guidelines.md` §4.3:
 
-| Buffer | Size (50k tracks) | Usage |
-|---|---|---|
-| Track storage | 6.1 MB | `STORAGE \| COPY_DST` |
-| Instance output | 3.1 MB | `STORAGE \| VERTEX` |
-| Uniform | 80 B | `UNIFORM \| COPY_DST` |
-| Pick texture | ~8.3 MB | `RENDER_ATTACHMENT \| COPY_SRC` |
-| Icon atlas | 16 MB | `TEXTURE_BINDING \| COPY_DST` |
-| SDF atlas | 2 MB | `TEXTURE_BINDING \| COPY_DST` |
-| Trail vertices | 3.8 MB | `STORAGE \| VERTEX` |
+| Buffer          | Size (50k tracks) | Usage                           |
+| --------------- | ----------------- | ------------------------------- |
+| Track storage   | 6.1 MB            | `STORAGE \| COPY_DST`           |
+| Instance output | 3.1 MB            | `STORAGE \| VERTEX`             |
+| Uniform         | 80 B              | `UNIFORM \| COPY_DST`           |
+| Pick texture    | ~8.3 MB           | `RENDER_ATTACHMENT \| COPY_SRC` |
+| Icon atlas      | 16 MB             | `TEXTURE_BINDING \| COPY_DST`   |
+| SDF atlas       | 2 MB              | `TEXTURE_BINDING \| COPY_DST`   |
+| Trail vertices  | 3.8 MB            | `STORAGE \| VERTEX`             |
 
 **Rule**: All buffers pre-allocated to max capacity (65,536 tracks). No per-frame allocation.
 
@@ -145,13 +146,13 @@ Orchestrate the full per-frame sequence per `webgpu_guidelines.md` §5.1:
 
 ### R1-13: Tests + Visual Baselines
 
-| Test | Type | Description |
-|---|---|---|
-| Interpolation compute output | Unit | Feed known positions, verify extrapolated results |
-| Culling compute output | Unit | Feed known viewport, verify visible indices |
-| Pick buffer read | Unit | Place known tracks, verify picked `track_id_hash` |
-| Full scene screenshot | Visual regression | Playwright golden image at 100, 1k, 10k, 50k tracks |
-| FPS at 50k tracks | Performance | Must sustain 60 FPS for 30 seconds |
+| Test                         | Type              | Description                                         |
+| ---------------------------- | ----------------- | --------------------------------------------------- |
+| Interpolation compute output | Unit              | Feed known positions, verify extrapolated results   |
+| Culling compute output       | Unit              | Feed known viewport, verify visible indices         |
+| Pick buffer read             | Unit              | Place known tracks, verify picked `track_id_hash`   |
+| Full scene screenshot        | Visual regression | Playwright golden image at 100, 1k, 10k, 50k tracks |
+| FPS at 50k tracks            | Performance       | Must sustain 60 FPS for 30 seconds                  |
 
 ---
 
@@ -159,13 +160,13 @@ Orchestrate the full per-frame sequence per `webgpu_guidelines.md` §5.1:
 
 Per `docs/architecture/component_design.md` §6:
 
-| Phase | Budget |
-|---|---|
-| SAB read + upload | ≤ 2 ms |
-| Compute passes | ≤ 1 ms |
-| Render passes (all layers) | ≤ 4 ms |
-| GPU present | ≤ 1 ms |
-| **Total frame** | **≤ 8 ms (leaves 8 ms headroom at 60 FPS)** |
+| Phase                      | Budget                                      |
+| -------------------------- | ------------------------------------------- |
+| SAB read + upload          | ≤ 2 ms                                      |
+| Compute passes             | ≤ 1 ms                                      |
+| Render passes (all layers) | ≤ 4 ms                                      |
+| GPU present                | ≤ 1 ms                                      |
+| **Total frame**            | **≤ 8 ms (leaves 8 ms headroom at 60 FPS)** |
 
 ---
 
@@ -182,14 +183,14 @@ Until Phase 2 delivers real WebTransport data, the Render Worker uses mock data:
 
 ## 6. Done Gate
 
-| Criteria | Verification |
-|---|---|
-| All 7 shader files compile and run | WebGPU validation passes |
-| 50k tracks render at ≥ 55 FPS (5% tolerance) | Playwright perf test |
-| Pick buffer returns correct track on click | Automated test |
-| SDF labels readable at all zoom levels | Visual inspection |
-| Trail lines connect to track positions | Visual inspection |
-| Alert halos pulse on alerted tracks | Visual inspection |
-| GPU memory usage < 100 MB at 50k tracks | `adapter.requestAdapterInfo()` check |
-| All compute shader tests pass | Vitest + GPU test harness |
-| Visual regression baselines committed | CI golden images |
+| Criteria                                     | Verification                         |
+| -------------------------------------------- | ------------------------------------ |
+| All 7 shader files compile and run           | WebGPU validation passes             |
+| 50k tracks render at ≥ 55 FPS (5% tolerance) | Playwright perf test                 |
+| Pick buffer returns correct track on click   | Automated test                       |
+| SDF labels readable at all zoom levels       | Visual inspection                    |
+| Trail lines connect to track positions       | Visual inspection                    |
+| Alert halos pulse on alerted tracks          | Visual inspection                    |
+| GPU memory usage < 100 MB at 50k tracks      | `adapter.requestAdapterInfo()` check |
+| All compute shader tests pass                | Vitest + GPU test harness            |
+| Visual regression baselines committed        | CI golden images                     |

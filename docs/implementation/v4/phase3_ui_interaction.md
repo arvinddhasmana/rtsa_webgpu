@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # Phase 3 — UI & Interaction
 
 > **Document**: v4 Implementation — Phase 3
@@ -19,19 +20,19 @@ Build the SolidJS overlay UI — shell, toolbar, track detail panel, alert sideb
 
 ## 2. Deliverables
 
-| # | Deliverable | Description |
-|---|---|---|
-| U3-1 | App shell | Classification banner, role selector, layout grid |
-| U3-2 | Toolbar | Dashboard selector, connection indicator, FPS counter |
-| U3-3 | Track detail panel | Selected track info from pick buffer + gRPC query |
-| U3-4 | Alert sidebar | Live alert list from Data Worker + acknowledge flow |
-| U3-5 | Feedback form | Operator feedback submission via gRPC cold path |
-| U3-6 | Search overlay | Track search with QueryBuilder, results via gRPC |
-| U3-7 | Event timeline | Historical event browser via ClickHouse query |
-| U3-8 | Status bar | Track count, FPS, connection state, latency |
-| U3-9 | Dashboard views | Sensor Operator, Operations Commander role views |
-| U3-10 | Component tests | `@solidjs/testing-library` + Vitest for all components |
-| U3-11 | E2E tests | Playwright tests for key user workflows |
+| #     | Deliverable        | Description                                            |
+| ----- | ------------------ | ------------------------------------------------------ |
+| U3-1  | App shell          | Classification banner, role selector, layout grid      |
+| U3-2  | Toolbar            | Dashboard selector, connection indicator, FPS counter  |
+| U3-3  | Track detail panel | Selected track info from pick buffer + gRPC query      |
+| U3-4  | Alert sidebar      | Live alert list from Data Worker + acknowledge flow    |
+| U3-5  | Feedback form      | Operator feedback submission via gRPC cold path        |
+| U3-6  | Search overlay     | Track search with QueryBuilder, results via gRPC       |
+| U3-7  | Event timeline     | Historical event browser via ClickHouse query          |
+| U3-8  | Status bar         | Track count, FPS, connection state, latency            |
+| U3-9  | Dashboard views    | Sensor Operator, Operations Commander role views       |
+| U3-10 | Component tests    | `@solidjs/testing-library` + Vitest for all components |
+| U3-11 | E2E tests          | Playwright tests for key user workflows                |
 
 ---
 
@@ -99,10 +100,10 @@ Build the SolidJS overlay UI — shell, toolbar, track detail panel, alert sideb
 
 ### U3-9: Dashboard Views
 
-| Dashboard | Role | Layout |
-|---|---|---|
-| Sensor Operator | Monitors sensor feeds, raw tracks | Large canvas, minimal overlays, alert sidebar prominent |
-| Operations Commander | Strategic view, fused picture | Canvas + timeline + alert sidebar + search |
+| Dashboard            | Role                              | Layout                                                  |
+| -------------------- | --------------------------------- | ------------------------------------------------------- |
+| Sensor Operator      | Monitors sensor feeds, raw tracks | Large canvas, minimal overlays, alert sidebar prominent |
+| Operations Commander | Strategic view, fused picture     | Canvas + timeline + alert sidebar + search              |
 
 Dashboards control which panels are visible, not the data flow. All data streams are always active.
 
@@ -122,6 +123,7 @@ describe("TrackDetailPanel", () => {
 ### U3-11: E2E Tests
 
 Playwright workflows:
+
 1. **Track selection**: Click track on canvas → panel opens with correct data
 2. **Alert acknowledge**: Alert appears in sidebar → click Ack → disappears
 3. **Feedback submission**: Select track → open feedback → submit → success toast
@@ -170,13 +172,13 @@ flowchart TD
 
 ## 5. gRPC Cold Path Integration
 
-| Service | Method | Used By |
-|---|---|---|
-| `QueryService` | `GetTrack` | TrackDetailPanel |
-| `QueryService` | `SearchTracks` | SearchOverlay |
-| `QueryService` | `GetTimeline` | EventTimeline |
-| `AlertService` | `AcknowledgeAlert` | AlertSidebar |
-| `FeedbackService` | `SubmitOperatorFeedback` | FeedbackForm |
+| Service           | Method                   | Used By          |
+| ----------------- | ------------------------ | ---------------- |
+| `QueryService`    | `GetTrack`               | TrackDetailPanel |
+| `QueryService`    | `SearchTracks`           | SearchOverlay    |
+| `QueryService`    | `GetTimeline`            | EventTimeline    |
+| `AlertService`    | `AcknowledgeAlert`       | AlertSidebar     |
+| `FeedbackService` | `SubmitOperatorFeedback` | FeedbackForm     |
 
 All gRPC calls use ConnectRPC via Envoy proxy (existing infrastructure).
 
@@ -184,15 +186,15 @@ All gRPC calls use ConnectRPC via Envoy proxy (existing infrastructure).
 
 ## 6. Done Gate
 
-| Criteria | Verification |
-|---|---|
-| All SolidJS components render correctly | `@solidjs/testing-library` tests pass |
-| Track click → detail panel shows correct data | Playwright E2E |
-| Alert list updates in real-time | Playwright E2E |
-| Feedback submission succeeds | Playwright E2E |
-| Search returns results and highlights track | Playwright E2E |
-| Role switch changes visible panels | Playwright E2E |
-| Status bar shows live FPS, track count, latency | Visual verification |
-| Classification banner always visible | All E2E tests verify |
-| Component test coverage ≥ 80% | Vitest coverage report |
-| No accessibility regressions | Playwright a11y audit |
+| Criteria                                        | Verification                          |
+| ----------------------------------------------- | ------------------------------------- |
+| All SolidJS components render correctly         | `@solidjs/testing-library` tests pass |
+| Track click → detail panel shows correct data   | Playwright E2E                        |
+| Alert list updates in real-time                 | Playwright E2E                        |
+| Feedback submission succeeds                    | Playwright E2E                        |
+| Search returns results and highlights track     | Playwright E2E                        |
+| Role switch changes visible panels              | Playwright E2E                        |
+| Status bar shows live FPS, track count, latency | Visual verification                   |
+| Classification banner always visible            | All E2E tests verify                  |
+| Component test coverage ≥ 80%                   | Vitest coverage report                |
+| No accessibility regressions                    | Playwright a11y audit                 |

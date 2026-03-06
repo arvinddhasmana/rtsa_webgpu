@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # WGSL Shader Standards
 
 > **Document**: RTSA WGSL Shader Coding Standards
@@ -15,15 +16,15 @@ All GPU shaders in the RTSA COP are written in WGSL (WebGPU Shading Language). T
 
 ### Shader Inventory
 
-| Shader File | Type | Purpose |
-|---|---|---|
-| `interpolation.wgsl` | Compute | Extrapolate track positions between updates |
-| `culling.wgsl` | Compute | View-frustum culling → visible instance list |
-| `track-icons.wgsl` | Vertex + Fragment | Instanced track icon quads |
-| `trail.wgsl` | Vertex + Fragment | Track trail polylines |
-| `halos.wgsl` | Vertex + Fragment | Alert halo circles around tracks |
-| `labels.wgsl` | Vertex + Fragment | SDF text labels |
-| `pick.wgsl` | Fragment | Write `track_id_hash` to pick buffer |
+| Shader File          | Type              | Purpose                                      |
+| -------------------- | ----------------- | -------------------------------------------- |
+| `interpolation.wgsl` | Compute           | Extrapolate track positions between updates  |
+| `culling.wgsl`       | Compute           | View-frustum culling → visible instance list |
+| `track-icons.wgsl`   | Vertex + Fragment | Instanced track icon quads                   |
+| `trail.wgsl`         | Vertex + Fragment | Track trail polylines                        |
+| `halos.wgsl`         | Vertex + Fragment | Alert halo circles around tracks             |
+| `labels.wgsl`        | Vertex + Fragment | SDF text labels                              |
+| `pick.wgsl`          | Fragment          | Write `track_id_hash` to pick buffer         |
 
 ---
 
@@ -36,11 +37,11 @@ All GPU shaders in the RTSA COP are written in WGSL (WebGPU Shading Language). T
 
 ### 2.2 Entry Point Names
 
-| Shader Type | Entry Point | Convention |
-|---|---|---|
-| Compute | `main` | Single entry point per compute shader |
-| Vertex | `vs_main` | Prefix `vs_` |
-| Fragment | `fs_main` | Prefix `fs_` |
+| Shader Type | Entry Point | Convention                            |
+| ----------- | ----------- | ------------------------------------- |
+| Compute     | `main`      | Single entry point per compute shader |
+| Vertex      | `vs_main`   | Prefix `vs_`                          |
+| Fragment    | `fs_main`   | Prefix `fs_`                          |
 
 ### 2.3 Struct Names
 
@@ -70,12 +71,12 @@ struct VertexOutput {
 
 ### 2.4 Variable Names
 
-| Scope | Convention | Example |
-|---|---|---|
-| Struct fields | `snake_case` | `track_id_hash` |
-| Local variables | `snake_case` | `screen_pos` |
-| Constants | `UPPER_SNAKE_CASE` | `MAX_TRACKS` |
-| Binding group labels | `snake_case` | `@group(0) @binding(0) var<storage, read> tracks` |
+| Scope                | Convention         | Example                                           |
+| -------------------- | ------------------ | ------------------------------------------------- |
+| Struct fields        | `snake_case`       | `track_id_hash`                                   |
+| Local variables      | `snake_case`       | `screen_pos`                                      |
+| Constants            | `UPPER_SNAKE_CASE` | `MAX_TRACKS`                                      |
+| Binding group labels | `snake_case`       | `@group(0) @binding(0) var<storage, read> tracks` |
 
 ---
 
@@ -85,11 +86,11 @@ struct VertexOutput {
 
 All shaders use a consistent bind group layout:
 
-| Group | Purpose | Contents |
-|---|---|---|
-| `@group(0)` | Per-frame uniforms | `Uniforms` buffer |
-| `@group(1)` | Storage buffers | Track data, instance output, indirect args |
-| `@group(2)` | Textures + Samplers | Icon atlas, SDF atlas, pick texture |
+| Group       | Purpose             | Contents                                   |
+| ----------- | ------------------- | ------------------------------------------ |
+| `@group(0)` | Per-frame uniforms  | `Uniforms` buffer                          |
+| `@group(1)` | Storage buffers     | Track data, instance output, indirect args |
+| `@group(2)` | Textures + Samplers | Icon atlas, SDF atlas, pick texture        |
 
 ### 3.2 Binding Order Within Groups
 
@@ -129,6 +130,7 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 ```
 
 **Rules**:
+
 - Use `@workgroup_size(256)` for track-parallel shaders (optimal for most GPUs)
 - Always guard with `if (idx >= count) { return; }` to handle non-multiple dispatch sizes
 - Dispatch as: `ceil(trackCount / 256)` workgroups on the x-axis
@@ -295,14 +297,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 WGSL requires specific alignment for struct members:
 
-| Type | Alignment | Size |
-|---|---|---|
-| `f32` | 4 bytes | 4 bytes |
-| `u32` | 4 bytes | 4 bytes |
-| `vec2<f32>` | 8 bytes | 8 bytes |
-| `vec3<f32>` | 16 bytes | 12 bytes |
-| `vec4<f32>` | 16 bytes | 16 bytes |
-| `mat4x4<f32>` | 16 bytes | 64 bytes |
+| Type          | Alignment | Size     |
+| ------------- | --------- | -------- |
+| `f32`         | 4 bytes   | 4 bytes  |
+| `u32`         | 4 bytes   | 4 bytes  |
+| `vec2<f32>`   | 8 bytes   | 8 bytes  |
+| `vec3<f32>`   | 16 bytes  | 12 bytes |
+| `vec4<f32>`   | 16 bytes  | 16 bytes |
+| `mat4x4<f32>` | 16 bytes  | 64 bytes |
 
 ### 6.2 Uniform Struct Layout
 
@@ -347,30 +349,30 @@ device.queue.writeBuffer(uniformBuffer, 0, uniformData);
 
 ### 7.1 Compute Shaders
 
-| Rule | Rationale |
-|---|---|
-| Workgroup size 256 | Matches common GPU warp/wavefront sizes |
-| No barriers unless strictly needed | `workgroupBarrier()` serializes all threads |
-| Avoid divergent branches | GPUs execute in lockstep; divergence wastes lanes |
-| Read storage buffers sequentially | Coalesced reads are faster than random access |
+| Rule                               | Rationale                                         |
+| ---------------------------------- | ------------------------------------------------- |
+| Workgroup size 256                 | Matches common GPU warp/wavefront sizes           |
+| No barriers unless strictly needed | `workgroupBarrier()` serializes all threads       |
+| Avoid divergent branches           | GPUs execute in lockstep; divergence wastes lanes |
+| Read storage buffers sequentially  | Coalesced reads are faster than random access     |
 
 ### 7.2 Render Shaders
 
-| Rule | Rationale |
-|---|---|
-| Use `discard` sparingly | Disables early-Z; only use for alpha cutout |
+| Rule                                      | Rationale                                          |
+| ----------------------------------------- | -------------------------------------------------- |
+| Use `discard` sparingly                   | Disables early-Z; only use for alpha cutout        |
 | `@interpolate(flat)` for integer varyings | Avoids undefined behavior on integer interpolation |
-| Minimize texture samples per fragment | Each sample has latency; max 2 per fragment shader |
-| Use `smoothstep` for SDF, not branching | GPU-friendly smooth alpha |
+| Minimize texture samples per fragment     | Each sample has latency; max 2 per fragment shader |
+| Use `smoothstep` for SDF, not branching   | GPU-friendly smooth alpha                          |
 
 ### 7.3 General
 
-| Rule | Rationale |
-|---|---|
+| Rule                                    | Rationale                                           |
+| --------------------------------------- | --------------------------------------------------- |
 | No dynamic indexing into uniform arrays | Uniform buffer access must be statically resolvable |
-| Avoid `textureLoad` in loops | Use `textureSample` with appropriate LOD |
-| Keep shader modules small | Smaller modules compile faster at init |
-| Use `const` for compile-time constants | Enables compiler optimization |
+| Avoid `textureLoad` in loops            | Use `textureSample` with appropriate LOD            |
+| Keep shader modules small               | Smaller modules compile faster at init              |
+| Use `const` for compile-time constants  | Enables compiler optimization                       |
 
 ---
 
@@ -415,9 +417,9 @@ When reviewing WGSL changes:
 
 ## 10. Cross-References
 
-| Document | Path |
-|---|---|
-| WebGPU Guidelines | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md` |
-| FlatBuffers Guidelines | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
-| v1 Architecture — GPU Section | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §4–5 |
-| Component Design — Render Pipeline | `docs/architecture/component_design.md` §5 |
+| Document                           | Path                                                              |
+| ---------------------------------- | ----------------------------------------------------------------- |
+| WebGPU Guidelines                  | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`      |
+| FlatBuffers Guidelines             | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
+| v1 Architecture — GPU Section      | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §4–5        |
+| Component Design — Render Pipeline | `docs/architecture/component_design.md` §5                        |

@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # UC012 — Situational Awareness UI Display
 
 > **Use Case ID**: UC012
@@ -73,35 +74,35 @@ sequenceDiagram
 
 ### 5.1 Map View (Primary)
 
-| Component | Description |
-|---|---|
-| Entity markers | Icons positioned by lat/lon with heading indicator |
-| Track trails | Last N positions shown as fading trail |
+| Component             | Description                                                            |
+| --------------------- | ---------------------------------------------------------------------- |
+| Entity markers        | Icons positioned by lat/lon with heading indicator                     |
+| Track trails          | Last N positions shown as fading trail                                 |
 | Classification badges | Color-coded: RED=Hostile, BLUE=Friendly, GREEN=Neutral, YELLOW=Unknown |
-| Threat halos | Pulsing radius for elevated/critical threat entities |
-| Geo-fence overlays | Area of interest boundaries |
-| Sensor coverage | Optional overlay showing sensor effective ranges |
+| Threat halos          | Pulsing radius for elevated/critical threat entities                   |
+| Geo-fence overlays    | Area of interest boundaries                                            |
+| Sensor coverage       | Optional overlay showing sensor effective ranges                       |
 
 ### 5.2 Alert Panel
 
-| Element | Description |
-|---|---|
-| Alert queue | Sorted by severity (CRITICAL → ELEVATED → WATCH) |
-| Alert card | Entity ID, anomaly type, severity, confidence, timestamp |
-| Quick actions | Confirm, Reject, Investigate, Assign |
-| Alert filter | By severity, type, time range, entity class |
-| Unacknowledged counter | Badge showing unacknowledged alert count |
+| Element                | Description                                              |
+| ---------------------- | -------------------------------------------------------- |
+| Alert queue            | Sorted by severity (CRITICAL → ELEVATED → WATCH)         |
+| Alert card             | Entity ID, anomaly type, severity, confidence, timestamp |
+| Quick actions          | Confirm, Reject, Investigate, Assign                     |
+| Alert filter           | By severity, type, time range, entity class              |
+| Unacknowledged counter | Badge showing unacknowledged alert count                 |
 
 ### 5.3 Entity Detail Panel
 
-| Section | Content |
-|---|---|
-| Identity | Track ID, entity type, classification, confidence |
-| Position | Lat/lon, speed, heading, altitude (if applicable) |
-| Source attribution | Contributing sensors with individual confidence scores |
-| Anomaly history | Past anomaly detections for this entity |
-| Feedback history | Operator feedback submitted for this entity |
-| Timeline | Track lifecycle events (created, updated, merged, split) |
+| Section            | Content                                                  |
+| ------------------ | -------------------------------------------------------- |
+| Identity           | Track ID, entity type, classification, confidence        |
+| Position           | Lat/lon, speed, heading, altitude (if applicable)        |
+| Source attribution | Contributing sensors with individual confidence scores   |
+| Anomaly history    | Past anomaly detections for this entity                  |
+| Feedback history   | Operator feedback submitted for this entity              |
+| Timeline           | Track lifecycle events (created, updated, merged, split) |
 
 ## 6. Real-Time Data Flow
 
@@ -130,6 +131,7 @@ flowchart LR
 ## 7. Alternative Flows
 
 ### 7a. Edge Deployment (Bandwidth-Constrained)
+
 - UI switches to reduced bandwidth mode
 - Track updates throttled to 1 Hz (vs. 10 Hz normal)
 - Map tiles served from local cache
@@ -137,6 +139,7 @@ flowchart LR
 - Track trails shortened to last 5 positions
 
 ### 7b. Offline Mode
+
 - Last known track state displayed with "STALE" indicator
 - Timestamp shows age of last update
 - Alerts continue from local anomaly detection
@@ -144,6 +147,7 @@ flowchart LR
 - Clear visual indicator: "DISCONNECTED — LOCAL DATA ONLY"
 
 ### 7c. Classification-Based Filtering
+
 - UI filters content based on operator clearance
 - Tracks above operator clearance are invisible
 - Attempting to access restricted content returns sanitized view
@@ -151,15 +155,15 @@ flowchart LR
 
 ## 8. Accessibility & Performance
 
-| Metric | Target |
-|---|---|
-| Track render latency | < 100ms from Redpanda event to map display |
-| Alert display latency | < 500ms from detection to alert panel |
-| Max simultaneous tracks | 5,000 on standard workstation |
-| Max simultaneous tracks (edge) | 500 on edge terminal |
-| Map redraw rate | 30 FPS |
-| Keyboard navigation | Full WCAG 2.1 AA compliance |
-| High contrast mode | Supported for tactical displays |
+| Metric                         | Target                                     |
+| ------------------------------ | ------------------------------------------ |
+| Track render latency           | < 100ms from Redpanda event to map display |
+| Alert display latency          | < 500ms from detection to alert panel      |
+| Max simultaneous tracks        | 5,000 on standard workstation              |
+| Max simultaneous tracks (edge) | 500 on edge terminal                       |
+| Map redraw rate                | 30 FPS                                     |
+| Keyboard navigation            | Full WCAG 2.1 AA compliance                |
+| High contrast mode             | Supported for tactical displays            |
 
 ## 9. Security Considerations
 
@@ -171,22 +175,22 @@ flowchart LR
 
 ## 10. Requirements Traced
 
-| Requirement | Description |
-|---|---|
-| CR-UI-001 | Real-time common operating picture display |
-| CR-UI-002 | Entity filtering by classification and type |
-| CR-UI-003 | Alert management with severity-based queuing |
-| CR-UI-004 | Entity detail views with source attribution |
-| CR-UI-005 | Anomaly alert visualization with severity color-coding |
-| CR-UI-006 | Offline mode with stale data indication |
-| CR-UI-007 | WCAG 2.1 AA compliance for accessibility |
-| CR-UI-008 | Responsive layout for vehicle-mounted and desktop displays |
-| CR-UI-009 | Two-Level RBAC shell with all five operator roles |
-| CR-UI-010 | Each role has dedicated dashboard views appropriate to their function |
-| CR-UI-013 | Operator UI Dashboard with event timeline and alert quick-actions |
-| CR-UI-014 | Alert quick-actions: `[Inspect]`, `[Confirm]`, `[Reject]`, `[Assign]` |
-| CR-UI-015 | Entity Detail Panel: `SourceAttribution`, `EntityTimeline`, `FeedbackForm` |
-| CR-UI-017 | NATO Liaison role has dedicated NATO Exchange Dashboard |
-| CR-UI-018 | All UI panels support collapse/expand |
-| CR-UI-019 | Inter typeface and glassmorphism panel aesthetic |
-| CR-UI-020 | Map Layer Toggle exposes `layerVisibility` state controls |
+| Requirement | Description                                                                |
+| ----------- | -------------------------------------------------------------------------- |
+| CR-UI-001   | Real-time common operating picture display                                 |
+| CR-UI-002   | Entity filtering by classification and type                                |
+| CR-UI-003   | Alert management with severity-based queuing                               |
+| CR-UI-004   | Entity detail views with source attribution                                |
+| CR-UI-005   | Anomaly alert visualization with severity color-coding                     |
+| CR-UI-006   | Offline mode with stale data indication                                    |
+| CR-UI-007   | WCAG 2.1 AA compliance for accessibility                                   |
+| CR-UI-008   | Responsive layout for vehicle-mounted and desktop displays                 |
+| CR-UI-009   | Two-Level RBAC shell with all five operator roles                          |
+| CR-UI-010   | Each role has dedicated dashboard views appropriate to their function      |
+| CR-UI-013   | Operator UI Dashboard with event timeline and alert quick-actions          |
+| CR-UI-014   | Alert quick-actions: `[Inspect]`, `[Confirm]`, `[Reject]`, `[Assign]`      |
+| CR-UI-015   | Entity Detail Panel: `SourceAttribution`, `EntityTimeline`, `FeedbackForm` |
+| CR-UI-017   | NATO Liaison role has dedicated NATO Exchange Dashboard                    |
+| CR-UI-018   | All UI panels support collapse/expand                                      |
+| CR-UI-019   | Inter typeface and glassmorphism panel aesthetic                           |
+| CR-UI-020   | Map Layer Toggle exposes `layerVisibility` state controls                  |

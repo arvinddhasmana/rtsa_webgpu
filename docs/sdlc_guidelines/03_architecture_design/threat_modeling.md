@@ -27,48 +27,48 @@ Threat modeling is **required** when:
 
 ## 3. STRIDE Threat Categories
 
-| Category | Description | RTSA Examples |
-|---|---|---|
-| **S**poofing | Impersonating a user, service, or sensor | Rogue sensor sending false tracks; spoofed operator identity |
-| **T**ampering | Unauthorized modification of data | Altered sensor events in transit; poisoned feedback data |
-| **R**epudiation | Denying an action occurred | Operator denies submitting feedback; service denies publishing event |
-| **I**nformation Disclosure | Unauthorized data access | Classified sensor data leaked to unclassified network; log spillage |
-| **D**enial of Service | Disrupting availability | Flooding ingestion endpoints; exhausting Redpanda partitions |
-| **E**levation of Privilege | Escalating access beyond authorization | Operator gaining admin access; service accessing unauthorized topics |
+| Category                   | Description                              | RTSA Examples                                                        |
+| -------------------------- | ---------------------------------------- | -------------------------------------------------------------------- |
+| **S**poofing               | Impersonating a user, service, or sensor | Rogue sensor sending false tracks; spoofed operator identity         |
+| **T**ampering              | Unauthorized modification of data        | Altered sensor events in transit; poisoned feedback data             |
+| **R**epudiation            | Denying an action occurred               | Operator denies submitting feedback; service denies publishing event |
+| **I**nformation Disclosure | Unauthorized data access                 | Classified sensor data leaked to unclassified network; log spillage  |
+| **D**enial of Service      | Disrupting availability                  | Flooding ingestion endpoints; exhausting Redpanda partitions         |
+| **E**levation of Privilege | Escalating access beyond authorization   | Operator gaining admin access; service accessing unauthorized topics |
 
 ## 4. DREAD Risk Scoring
 
 Each identified threat is scored on five dimensions (1-10 scale):
 
-| Dimension | Question | Scoring Guide |
-|---|---|---|
-| **D**amage | How bad is the impact? | 1=minimal, 5=significant data loss, 10=classified data breach |
-| **R**eproducibility | How easy to reproduce? | 1=nearly impossible, 5=requires specific conditions, 10=trivially repeatable |
-| **E**xploitability | How easy to exploit? | 1=requires physical access, 5=requires insider, 10=remote unauthenticated |
-| **A**ffected Users | How many users/systems impacted? | 1=single user, 5=operational group, 10=entire force/NATO partners |
-| **D**iscoverability | How easy to find the vulnerability? | 1=requires source code, 5=requires network access, 10=publicly visible |
+| Dimension           | Question                            | Scoring Guide                                                                |
+| ------------------- | ----------------------------------- | ---------------------------------------------------------------------------- |
+| **D**amage          | How bad is the impact?              | 1=minimal, 5=significant data loss, 10=classified data breach                |
+| **R**eproducibility | How easy to reproduce?              | 1=nearly impossible, 5=requires specific conditions, 10=trivially repeatable |
+| **E**xploitability  | How easy to exploit?                | 1=requires physical access, 5=requires insider, 10=remote unauthenticated    |
+| **A**ffected Users  | How many users/systems impacted?    | 1=single user, 5=operational group, 10=entire force/NATO partners            |
+| **D**iscoverability | How easy to find the vulnerability? | 1=requires source code, 5=requires network access, 10=publicly visible       |
 
 **Risk Score** = Average of D+R+E+A+D (1-10 scale)
 
-| Score Range | Risk Level | Required Action |
-|---|---|---|
-| 8.0–10.0 | **CRITICAL** | Must mitigate before deployment; Security Authority approval required |
-| 5.0–7.9 | **HIGH** | Must mitigate or document compensating controls; track in ADR |
-| 2.5–4.9 | **MEDIUM** | Should mitigate; may accept risk with documented justification |
-| 1.0–2.4 | **LOW** | Mitigate when practical; monitor |
+| Score Range | Risk Level   | Required Action                                                       |
+| ----------- | ------------ | --------------------------------------------------------------------- |
+| 8.0–10.0    | **CRITICAL** | Must mitigate before deployment; Security Authority approval required |
+| 5.0–7.9     | **HIGH**     | Must mitigate or document compensating controls; track in ADR         |
+| 2.5–4.9     | **MEDIUM**   | Should mitigate; may accept risk with documented justification        |
+| 1.0–2.4     | **LOW**      | Mitigate when practical; monitor                                      |
 
 ## 5. Threat Model Template
 
 ```markdown
 # Threat Model: [Component/Data Flow Name]
 
-| Attribute | Value |
-|---|---|
-| **Component** | [COMP-ID and name] |
-| **Author** | [Name] |
-| **Date** | [YYYY-MM-DD] |
-| **Status** | Draft / Reviewed / Approved |
-| **Related ADRs** | [ADR-NNN] |
+| Attribute        | Value                       |
+| ---------------- | --------------------------- |
+| **Component**    | [COMP-ID and name]          |
+| **Author**       | [Name]                      |
+| **Date**         | [YYYY-MM-DD]                |
+| **Status**       | Draft / Reviewed / Approved |
+| **Related ADRs** | [ADR-NNN]                   |
 
 ## Data Flow Diagram
 
@@ -76,38 +76,38 @@ Each identified threat is scored on five dimensions (1-10 scale):
 
 ## Assets
 
-| Asset | Classification | Value |
-|---|---|---|
+| Asset        | Classification         | Value            |
+| ------------ | ---------------------- | ---------------- |
 | [Asset name] | [Classification level] | [Why it matters] |
 
 ## Trust Boundaries
 
-| Boundary | Between | Security Controls |
-|---|---|---|
+| Boundary        | Between             | Security Controls           |
+| --------------- | ------------------- | --------------------------- |
 | [Boundary name] | [Zone A] ↔ [Zone B] | [Controls at this boundary] |
 
 ## Threats (STRIDE Analysis)
 
 ### T-001: [Threat Title]
 
-| Attribute | Value |
-|---|---|
-| **Category** | Spoofing / Tampering / Repudiation / Info Disclosure / DoS / EoP |
-| **Description** | [Detailed threat description] |
-| **Attack Vector** | [How the attack is carried out] |
-| **Assets at Risk** | [Which assets are threatened] |
-| **DREAD Score** | D=_ R=_ E=_ A=_ D=_ → Average = _ |
-| **Risk Level** | Critical / High / Medium / Low |
-| **Mitigation** | [Controls that address this threat] |
-| **ITSG-33 Controls** | [Relevant control IDs] |
-| **Residual Risk** | [Risk remaining after mitigation] |
-| **Status** | Open / Mitigated / Accepted |
+| Attribute            | Value                                                            |
+| -------------------- | ---------------------------------------------------------------- |
+| **Category**         | Spoofing / Tampering / Repudiation / Info Disclosure / DoS / EoP |
+| **Description**      | [Detailed threat description]                                    |
+| **Attack Vector**    | [How the attack is carried out]                                  |
+| **Assets at Risk**   | [Which assets are threatened]                                    |
+| **DREAD Score**      | D=_ R=_ E=_ A=_ D=_ → Average = _                                |
+| **Risk Level**       | Critical / High / Medium / Low                                   |
+| **Mitigation**       | [Controls that address this threat]                              |
+| **ITSG-33 Controls** | [Relevant control IDs]                                           |
+| **Residual Risk**    | [Risk remaining after mitigation]                                |
+| **Status**           | Open / Mitigated / Accepted                                      |
 
 ## Summary
 
-| Threat ID | Category | Risk Level | Status |
-|---|---|---|---|
-| T-001 | [STRIDE] | [Level] | [Status] |
+| Threat ID | Category | Risk Level | Status   |
+| --------- | -------- | ---------- | -------- |
+| T-001     | [STRIDE] | [Level]    | [Status] |
 ```
 
 ## 6. RTSA System-Level Trust Boundaries
@@ -169,14 +169,14 @@ graph TB
 
 ### Trust Boundary Controls
 
-| Boundary | From → To | Controls |
-|---|---|---|
-| **TB-1 → TB-2** | Sensors → Ingestion | mTLS with sensor certificates; Protobuf schema validation; rate limiting; input range checks |
-| **TB-2 → TB-3** | Ingestion → Processing | Redpanda ACLs; service identity (SPIFFE); message signing |
-| **TB-3 → TB-4** | Processing → Storage | Redpanda Connect authenticated to ClickHouse; encrypted connections; write-only access |
-| **TB-5 → TB-3** | UI → Feedback | MFA + RBAC; input validation; trust scoring; CSRF/XSS protection |
-| **TB-3 → TB-7** | Processing → CDG | Classification filtering; schema validation; rate limiting; audit logging |
-| **TB-7 → TB-6** | CDG → NATO | One-way data diode for outbound; format validation for inbound |
+| Boundary        | From → To              | Controls                                                                                     |
+| --------------- | ---------------------- | -------------------------------------------------------------------------------------------- |
+| **TB-1 → TB-2** | Sensors → Ingestion    | mTLS with sensor certificates; Protobuf schema validation; rate limiting; input range checks |
+| **TB-2 → TB-3** | Ingestion → Processing | Redpanda ACLs; service identity (SPIFFE); message signing                                    |
+| **TB-3 → TB-4** | Processing → Storage   | Redpanda Connect authenticated to ClickHouse; encrypted connections; write-only access       |
+| **TB-5 → TB-3** | UI → Feedback          | MFA + RBAC; input validation; trust scoring; CSRF/XSS protection                             |
+| **TB-3 → TB-7** | Processing → CDG       | Classification filtering; schema validation; rate limiting; audit logging                    |
+| **TB-7 → TB-6** | CDG → NATO             | One-way data diode for outbound; format validation for inbound                               |
 
 ## 7. Key Threat Scenarios for RTSA
 

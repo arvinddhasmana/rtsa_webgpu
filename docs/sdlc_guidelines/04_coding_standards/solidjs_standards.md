@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # SolidJS Frontend Standards
 
 > **Document**: RTSA SolidJS Coding Standards
@@ -12,21 +13,22 @@
 
 ## 1. Technology Stack
 
-| Technology | Version | Purpose |
-|---|---|---|
-| SolidJS | Latest stable | UI framework — fine-grained reactivity, JSX compilation |
-| TypeScript | 5+ | Type safety |
-| Vite | Latest stable | Build tool + dev server |
-| `vite-plugin-solid` | Latest stable | SolidJS JSX transform |
-| `@connectrpc/connect-web` | Latest stable | gRPC-Web client (cold path only) |
-| `@connectrpc/protobuf-es` | Latest stable | Protobuf TypeScript runtime |
-| Vitest | Latest stable | Unit testing |
-| `@solidjs/testing-library` | Latest stable | Component testing |
-| Playwright | Latest stable | E2E browser testing |
+| Technology                 | Version       | Purpose                                                 |
+| -------------------------- | ------------- | ------------------------------------------------------- |
+| SolidJS                    | Latest stable | UI framework — fine-grained reactivity, JSX compilation |
+| TypeScript                 | 5+            | Type safety                                             |
+| Vite                       | Latest stable | Build tool + dev server                                 |
+| `vite-plugin-solid`        | Latest stable | SolidJS JSX transform                                   |
+| `@connectrpc/connect-web`  | Latest stable | gRPC-Web client (cold path only)                        |
+| `@connectrpc/protobuf-es`  | Latest stable | Protobuf TypeScript runtime                             |
+| Vitest                     | Latest stable | Unit testing                                            |
+| `@solidjs/testing-library` | Latest stable | Component testing                                       |
+| Playwright                 | Latest stable | E2E browser testing                                     |
 
 ### Not In This Stack
 
 The following are **not used** in the WebGPU COP codebase:
+
 - React, react-dom, react-query
 - Zustand, Redux, MobX (state management libraries)
 - MapLibre GL, Leaflet, OpenLayers (map libraries)
@@ -130,12 +132,12 @@ function TrackCount({ count }: { count: number }) {
 
 ### 3.2 Signal Naming
 
-| Pattern | Convention | Example |
-|---|---|---|
-| Signal accessor | `camelCase` | `selectedTrack()` |
-| Signal setter | `set` + PascalCase | `setSelectedTrack(track)` |
-| Memo | `camelCase` | `visibleAlerts()` |
-| Resource | `camelCase` | `timelineEvents()` |
+| Pattern         | Convention         | Example                   |
+| --------------- | ------------------ | ------------------------- |
+| Signal accessor | `camelCase`        | `selectedTrack()`         |
+| Signal setter   | `set` + PascalCase | `setSelectedTrack(track)` |
+| Memo            | `camelCase`        | `visibleAlerts()`         |
+| Resource        | `camelCase`        | `timelineEvents()`        |
 
 ### 3.3 State Management
 
@@ -149,7 +151,9 @@ import { createSignal } from "solid-js";
 import type { TrackDetail } from "../types/track";
 
 // Selected track — updated when operator clicks on WebGPU canvas
-const [selectedTrack, setSelectedTrack] = createSignal<TrackDetail | null>(null);
+const [selectedTrack, setSelectedTrack] = createSignal<TrackDetail | null>(
+  null,
+);
 
 export { selectedTrack, setSelectedTrack };
 ```
@@ -209,15 +213,15 @@ export function AlertSidebar(props: AlertSidebarProps) {
 
 Use SolidJS built-in control flow — never ternaries for conditional rendering:
 
-| Pattern | SolidJS | Notes |
-|---|---|---|
+| Pattern            | SolidJS                                    | Notes                                    |
+| ------------------ | ------------------------------------------ | ---------------------------------------- |
 | Conditional render | `<Show when={condition()} fallback={...}>` | Lazy — children not evaluated when false |
-| List render | `<For each={items()}>` | Keyed by index, efficient updates |
-| Index render | `<Index each={items()}>` | Keyed by position, for non-keyed lists |
-| Error boundary | `<ErrorBoundary fallback={...}>` | Catches component errors |
-| Suspense | `<Suspense fallback={...}>` | For async resources |
-| Switch/Match | `<Switch><Match when={...}>` | Multi-branch conditional |
-| Dynamic | `<Dynamic component={...}>` | Dynamic component selection |
+| List render        | `<For each={items()}>`                     | Keyed by index, efficient updates        |
+| Index render       | `<Index each={items()}>`                   | Keyed by position, for non-keyed lists   |
+| Error boundary     | `<ErrorBoundary fallback={...}>`           | Catches component errors                 |
+| Suspense           | `<Suspense fallback={...}>`                | For async resources                      |
+| Switch/Match       | `<Switch><Match when={...}>`               | Multi-branch conditional                 |
+| Dynamic            | `<Dynamic component={...}>`                | Dynamic component selection              |
 
 ---
 
@@ -232,7 +236,12 @@ All Worker ↔ Main Thread messages use typed `postMessage`:
 // src/workers/shared-protocol.ts
 
 export type MainToRenderMessage =
-  | { type: "viewport_change"; zoom: number; centerLat: number; centerLon: number }
+  | {
+      type: "viewport_change";
+      zoom: number;
+      centerLat: number;
+      centerLon: number;
+    }
   | { type: "select_track"; slotIndex: number }
   | { type: "init"; canvas: OffscreenCanvas; sab: SharedArrayBuffer };
 
@@ -300,7 +309,11 @@ import { transport } from "./grpc-client";
 
 const client = createPromiseClient(FeedbackService, transport);
 
-export async function submitFeedback(trackId: string, classification: string, justification: string) {
+export async function submitFeedback(
+  trackId: string,
+  classification: string,
+  justification: string,
+) {
   return client.submitOperatorFeedback({
     trackId,
     classification,
@@ -386,25 +399,25 @@ describe("AlertSidebar", () => {
 
 ## 9. File Naming Conventions
 
-| File Type | Convention | Example |
-|---|---|---|
-| Component | `PascalCase.tsx` | `AlertSidebar.tsx` |
-| Signal module | `camelCase.ts` | `track.ts` |
-| Service | `camelCase.ts` | `feedback.ts` |
-| Worker entry | `kebab-case.ts` | `data-worker.ts` |
-| WGSL shader | `kebab-case.wgsl` | `track-icons.wgsl` |
-| Type definitions | `camelCase.ts` | `track.ts` |
-| Test file | `*.test.ts` or `*.test.tsx` | `AlertSidebar.test.tsx` |
+| File Type        | Convention                  | Example                 |
+| ---------------- | --------------------------- | ----------------------- |
+| Component        | `PascalCase.tsx`            | `AlertSidebar.tsx`      |
+| Signal module    | `camelCase.ts`              | `track.ts`              |
+| Service          | `camelCase.ts`              | `feedback.ts`           |
+| Worker entry     | `kebab-case.ts`             | `data-worker.ts`        |
+| WGSL shader      | `kebab-case.wgsl`           | `track-icons.wgsl`      |
+| Type definitions | `camelCase.ts`              | `track.ts`              |
+| Test file        | `*.test.ts` or `*.test.tsx` | `AlertSidebar.test.tsx` |
 
 ---
 
 ## 10. Cross-References
 
-| Document | Path |
-|---|---|
-| General Coding Standards | `docs/sdlc_guidelines/04_coding_standards/general_coding.md` |
-| Secure Coding | `docs/sdlc_guidelines/04_coding_standards/secure_coding.md` |
-| WebGPU Guidelines | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md` |
-| WGSL Shader Standards | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md` |
-| v1 Architecture — SolidJS Section | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §7 |
-| Component Design | `docs/architecture/component_design.md` |
+| Document                          | Path                                                             |
+| --------------------------------- | ---------------------------------------------------------------- |
+| General Coding Standards          | `docs/sdlc_guidelines/04_coding_standards/general_coding.md`     |
+| Secure Coding                     | `docs/sdlc_guidelines/04_coding_standards/secure_coding.md`      |
+| WebGPU Guidelines                 | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`     |
+| WGSL Shader Standards             | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md` |
+| v1 Architecture — SolidJS Section | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §7         |
+| Component Design                  | `docs/architecture/component_design.md`                          |

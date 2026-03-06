@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # UC010 — Operator Feedback Submission
 
 > **Use Case ID**: UC010
@@ -64,34 +65,36 @@ sequenceDiagram
 
 ## 5. Feedback Types
 
-| Type | Description | Example |
-|---|---|---|
-| CONFIRM_HOSTILE | Operator confirms entity is hostile | "Track TRK-4501 confirmed hostile" |
-| CONFIRM_FRIENDLY | Operator confirms entity is friendly | "Track TRK-1200 is known friendly" |
-| RECLASSIFY | Operator changes hostile status | "Reclassify TRK-3001 from UNKNOWN to NEUTRAL" |
-| REJECT_ANOMALY | Operator rejects anomaly as false positive | "Speed anomaly on TRK-4501 is normal for this vessel" |
-| CONFIRM_ANOMALY | Operator confirms anomaly is valid | "Behavioral anomaly on TRK-2200 is suspicious" |
+| Type             | Description                                | Example                                               |
+| ---------------- | ------------------------------------------ | ----------------------------------------------------- |
+| CONFIRM_HOSTILE  | Operator confirms entity is hostile        | "Track TRK-4501 confirmed hostile"                    |
+| CONFIRM_FRIENDLY | Operator confirms entity is friendly       | "Track TRK-1200 is known friendly"                    |
+| RECLASSIFY       | Operator changes hostile status            | "Reclassify TRK-3001 from UNKNOWN to NEUTRAL"         |
+| REJECT_ANOMALY   | Operator rejects anomaly as false positive | "Speed anomaly on TRK-4501 is normal for this vessel" |
+| CONFIRM_ANOMALY  | Operator confirms anomaly is valid         | "Behavioral anomaly on TRK-2200 is suspicious"        |
 
 ## 6. Trust Score Calculation
 
-| Factor | Weight | Input | Scoring |
-|---|---|---|---|
-| Clearance level | 0.2 | Operator's security clearance | UC=0.2, PA=0.4, PB=0.6, PC=0.8, SECRET=1.0 |
-| Historical accuracy | 0.3 | Past feedback vs. ground truth | Rolling average of correctness |
-| Temporal consistency | 0.2 | Time between observation and feedback | < 5 min = 1.0, < 1h = 0.7, > 1h = 0.3 |
-| Statistical deviation | 0.3 | How far from model consensus | Low deviation = high score |
+| Factor                | Weight | Input                                 | Scoring                                    |
+| --------------------- | ------ | ------------------------------------- | ------------------------------------------ |
+| Clearance level       | 0.2    | Operator's security clearance         | UC=0.2, PA=0.4, PB=0.6, PC=0.8, SECRET=1.0 |
+| Historical accuracy   | 0.3    | Past feedback vs. ground truth        | Rolling average of correctness             |
+| Temporal consistency  | 0.2    | Time between observation and feedback | < 5 min = 1.0, < 1h = 0.7, > 1h = 0.3      |
+| Statistical deviation | 0.3    | How far from model consensus          | Low deviation = high score                 |
 
 **Formula**: $\text{Trust} = 0.2 \cdot C + 0.3 \cdot A + 0.2 \cdot T + 0.3 \cdot (1 - D)$
 
 ## 7. Alternative Flows
 
 ### 7a. Edge Deployment (Queued Feedback)
+
 - Operator submits feedback at tactical edge
 - Feedback stored locally and applied to local model
 - Queued for sync to data centre when connectivity available
 - Data centre reprocesses feedback with full trust scoring
 
 ### 7b. Bulk Anomalous Feedback (Anti-Poisoning)
+
 - If operator submits > 10 feedback items with trust score < 0.5 in 1 hour
 - System flags operator for review
 - All pending feedback from operator held for human review
@@ -107,18 +110,18 @@ sequenceDiagram
 
 ## 9. Requirements Traced
 
-| Requirement | Description |
-|---|---|
-| CR-FB-001 | Operators can confirm or reject anomaly detections |
-| CR-FB-002 | Operators can reclassify entity hostile status |
-| CR-FB-003 | Trust scores assigned to all feedback |
-| CR-FB-004 | Reject feedback that fails anti-poisoning validation |
-| CR-FB-005 | Route validated feedback to model retraining |
-| CR-FB-006 | Complete audit trail for all feedback |
-| CR-FB-007 | Queue feedback at edge; sync when connected |
-| CR-FB-008 | Operators can assign an alert to another operator via `AssignAlert` |
+| Requirement | Description                                                         |
+| ----------- | ------------------------------------------------------------------- |
+| CR-FB-001   | Operators can confirm or reject anomaly detections                  |
+| CR-FB-002   | Operators can reclassify entity hostile status                      |
+| CR-FB-003   | Trust scores assigned to all feedback                               |
+| CR-FB-004   | Reject feedback that fails anti-poisoning validation                |
+| CR-FB-005   | Route validated feedback to model retraining                        |
+| CR-FB-006   | Complete audit trail for all feedback                               |
+| CR-FB-007   | Queue feedback at edge; sync when connected                         |
+| CR-FB-008   | Operators can assign an alert to another operator via `AssignAlert` |
 
-## 10. Alert Assignment Sub-Flow *(v2.0)*
+## 10. Alert Assignment Sub-Flow _(v2.0)_
 
 The `[Assign]` quick-action in the Operator UI Dashboard allows the duty officer to route an alert to a specific operator for follow-up. This sub-flow is implemented by the new `AssignAlert` RPC added to `AlertService` in v2.0.
 

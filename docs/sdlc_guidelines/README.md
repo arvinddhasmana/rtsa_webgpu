@@ -71,26 +71,26 @@ graph TD
 
 ## Loading Order by Agent Task
 
-| Agent Task | Required Files (load in order) |
-|---|---|
-| **Any task** | `00_master_policy.md` → `01_security_compliance/security_classification.md` |
-| **Requirements** | + `02_requirements/requirements_engineering.md` → `traceability.md` |
-| **Architecture** | + `03_architecture_design/architecture_guidelines.md` → `design_guidelines.md` → `threat_modeling.md` |
-| **Go coding** | + `04_coding_standards/general_coding.md` → `go_standards.md` → `secure_coding.md` |
-| **Protobuf/gRPC** | + `04_coding_standards/protobuf_grpc_standards.md` → `secure_coding.md` |
-| **SolidJS coding** | + `04_coding_standards/general_coding.md` → `solidjs_standards.md` → `secure_coding.md` |
-| **Testing** | + `05_testing/testing_strategy.md` → `security_testing.md` → `performance_testing.md` |
-| **CI/CD** | + `06_integration_cicd/ci_cd_pipeline.md` → `branching_strategy.md` → `artifact_management.md` |
-| **Deployment** | + `07_deployment_operations/deployment_guidelines.md` → `edge_tactical_deployment.md` → `monitoring_observability.md` |
-| **Redpanda** | + `08_tech_specific/redpanda_guidelines.md` |
-| **ClickHouse** | + `08_tech_specific/clickhouse_guidelines.md` |
-| **gRPC services** | + `08_tech_specific/grpc_service_guidelines.md` |
-| **Wasm transforms** | + `08_tech_specific/wasm_transforms.md` |
-| **WebGPU rendering** | + `08_tech_specific/webgpu_guidelines.md` → `wgsl_shader_standards.md` |
-| **FlatBuffers** | + `08_tech_specific/flatbuffers_guidelines.md` |
-| **WebTransport** | + `08_tech_specific/webtransport_guidelines.md` |
-| **Docker development** | + `development/docker_development.md` → `08_tech_specific/docker_container_guidelines.md` |
-| **Review/Governance** | + `09_governance/agent_governance.md` → `review_checklists.md` |
+| Agent Task             | Required Files (load in order)                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Any task**           | `00_master_policy.md` → `01_security_compliance/security_classification.md`                                           |
+| **Requirements**       | + `02_requirements/requirements_engineering.md` → `traceability.md`                                                   |
+| **Architecture**       | + `03_architecture_design/architecture_guidelines.md` → `design_guidelines.md` → `threat_modeling.md`                 |
+| **Go coding**          | + `04_coding_standards/general_coding.md` → `go_standards.md` → `secure_coding.md`                                    |
+| **Protobuf/gRPC**      | + `04_coding_standards/protobuf_grpc_standards.md` → `secure_coding.md`                                               |
+| **SolidJS coding**     | + `04_coding_standards/general_coding.md` → `solidjs_standards.md` → `secure_coding.md`                               |
+| **Testing**            | + `05_testing/testing_strategy.md` → `security_testing.md` → `performance_testing.md`                                 |
+| **CI/CD**              | + `06_integration_cicd/ci_cd_pipeline.md` → `branching_strategy.md` → `artifact_management.md`                        |
+| **Deployment**         | + `07_deployment_operations/deployment_guidelines.md` → `edge_tactical_deployment.md` → `monitoring_observability.md` |
+| **Redpanda**           | + `08_tech_specific/redpanda_guidelines.md`                                                                           |
+| **ClickHouse**         | + `08_tech_specific/clickhouse_guidelines.md`                                                                         |
+| **gRPC services**      | + `08_tech_specific/grpc_service_guidelines.md`                                                                       |
+| **Wasm transforms**    | + `08_tech_specific/wasm_transforms.md`                                                                               |
+| **WebGPU rendering**   | + `08_tech_specific/webgpu_guidelines.md` → `wgsl_shader_standards.md`                                                |
+| **FlatBuffers**        | + `08_tech_specific/flatbuffers_guidelines.md`                                                                        |
+| **WebTransport**       | + `08_tech_specific/webtransport_guidelines.md`                                                                       |
+| **Docker development** | + `development/docker_development.md` → `08_tech_specific/docker_container_guidelines.md`                             |
+| **Review/Governance**  | + `09_governance/agent_governance.md` → `review_checklists.md`                                                        |
 
 ## Directory Structure
 

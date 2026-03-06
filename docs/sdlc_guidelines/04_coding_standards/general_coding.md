@@ -16,41 +16,41 @@ This document defines language-agnostic coding rules that apply to ALL source co
 
 Every source file SHALL begin with a classification header as the first comment (after shebang lines):
 
-| Language | Header |
-|---|---|
-| Go, Protobuf, TypeScript, JavaScript | `// CLASSIFICATION: UNCLASSIFIED` |
-| YAML, TOML, Shell, Dockerfile, Makefile | `# CLASSIFICATION: UNCLASSIFIED` |
-| SQL | `-- CLASSIFICATION: UNCLASSIFIED` |
-| HTML, XML | `<!-- CLASSIFICATION: UNCLASSIFIED -->` |
-| CSS | `/* CLASSIFICATION: UNCLASSIFIED */` |
+| Language                                | Header                                  |
+| --------------------------------------- | --------------------------------------- |
+| Go, Protobuf, TypeScript, JavaScript    | `// CLASSIFICATION: UNCLASSIFIED`       |
+| YAML, TOML, Shell, Dockerfile, Makefile | `# CLASSIFICATION: UNCLASSIFIED`        |
+| SQL                                     | `-- CLASSIFICATION: UNCLASSIFIED`       |
+| HTML, XML                               | `<!-- CLASSIFICATION: UNCLASSIFIED -->` |
+| CSS                                     | `/* CLASSIFICATION: UNCLASSIFIED */`    |
 
 ## 3. Naming Conventions
 
 ### 3.1 Files and Directories
 
-| Item | Convention | Example |
-|---|---|---|
-| Go files | `snake_case.go` | `radar_handler.go` |
-| Go test files | `snake_case_test.go` | `radar_handler_test.go` |
-| Protobuf files | `snake_case.proto` | `sensor_event.proto` |
-| TypeScript files | `PascalCase.tsx` (components), `camelCase.ts` (utilities) | `SituationalMap.tsx`, `formatTrack.ts` |
-| Test files (TS) | `*.test.ts`, `*.test.tsx` | `SituationalMap.test.tsx` |
-| Config files | `kebab-case.yaml` | `redpanda-config.yaml` |
-| SQL migrations | `NNN_description.sql` | `001_create_sensor_events.sql` |
-| Documentation | `kebab-case.md` or `snake_case.md` | `high_level_architecture.md` |
-| Directories | `snake_case` (Go), `kebab-case` (other) | `internal/sensor_ingestion/`, `src/components/` |
+| Item             | Convention                                                | Example                                         |
+| ---------------- | --------------------------------------------------------- | ----------------------------------------------- |
+| Go files         | `snake_case.go`                                           | `radar_handler.go`                              |
+| Go test files    | `snake_case_test.go`                                      | `radar_handler_test.go`                         |
+| Protobuf files   | `snake_case.proto`                                        | `sensor_event.proto`                            |
+| TypeScript files | `PascalCase.tsx` (components), `camelCase.ts` (utilities) | `SituationalMap.tsx`, `formatTrack.ts`          |
+| Test files (TS)  | `*.test.ts`, `*.test.tsx`                                 | `SituationalMap.test.tsx`                       |
+| Config files     | `kebab-case.yaml`                                         | `redpanda-config.yaml`                          |
+| SQL migrations   | `NNN_description.sql`                                     | `001_create_sensor_events.sql`                  |
+| Documentation    | `kebab-case.md` or `snake_case.md`                        | `high_level_architecture.md`                    |
+| Directories      | `snake_case` (Go), `kebab-case` (other)                   | `internal/sensor_ingestion/`, `src/components/` |
 
 ### 3.2 Code Symbols
 
-| Symbol | Go Convention | TypeScript Convention | Protobuf Convention |
-|---|---|---|---|
-| Exported types | `PascalCase` | `PascalCase` | `PascalCase` |
-| Unexported types | `camelCase` | `camelCase` | — |
-| Functions/methods | `PascalCase` (exported), `camelCase` (unexported) | `camelCase` | `PascalCase` (service methods) |
-| Constants | `PascalCase` (exported) | `UPPER_SNAKE_CASE` | `UPPER_SNAKE_CASE` |
-| Variables | `camelCase` | `camelCase` | — |
-| Enum values | — | `PascalCase` | `UPPER_SNAKE_CASE` with prefix |
-| Package/module | `lowercase` single word | `camelCase` | `lowercase.dot.separated` |
+| Symbol            | Go Convention                                     | TypeScript Convention | Protobuf Convention            |
+| ----------------- | ------------------------------------------------- | --------------------- | ------------------------------ |
+| Exported types    | `PascalCase`                                      | `PascalCase`          | `PascalCase`                   |
+| Unexported types  | `camelCase`                                       | `camelCase`           | —                              |
+| Functions/methods | `PascalCase` (exported), `camelCase` (unexported) | `camelCase`           | `PascalCase` (service methods) |
+| Constants         | `PascalCase` (exported)                           | `UPPER_SNAKE_CASE`    | `UPPER_SNAKE_CASE`             |
+| Variables         | `camelCase`                                       | `camelCase`           | —                              |
+| Enum values       | —                                                 | `PascalCase`          | `UPPER_SNAKE_CASE` with prefix |
+| Package/module    | `lowercase` single word                           | `camelCase`           | `lowercase.dot.separated`      |
 
 ## 4. Error Handling
 
@@ -66,6 +66,7 @@ Every source file SHALL begin with a classification header as the first comment 
 ```
 [package].[function]([key-params]): [underlying error]
 ```
+
 Example: `ingestion.ProcessRadarEvent(sensorID=SEN-042): redpanda publish: connection refused`
 
 ## 5. Logging Standards
@@ -74,37 +75,38 @@ Example: `ingestion.ProcessRadarEvent(sensorID=SEN-042): redpanda publish: conne
 
 All services must use structured logging (JSON format). No `fmt.Println` or `console.log` in production code.
 
-| Language | Library | Format |
-|---|---|---|
-| Go | `log/slog` (stdlib) | JSON |
-| TypeScript | Structured logger (e.g., `pino`) | JSON |
+| Language   | Library                          | Format |
+| ---------- | -------------------------------- | ------ |
+| Go         | `log/slog` (stdlib)              | JSON   |
+| TypeScript | Structured logger (e.g., `pino`) | JSON   |
 
 ### 5.2 Log Levels
 
-| Level | Usage | Examples |
-|---|---|---|
-| **ERROR** | Unrecoverable failures; service degradation | Connection lost; message publish failed; auth failure |
-| **WARN** | Recoverable issues; approaching limits | Rate limit approached; retry succeeded; deprecated API used |
-| **INFO** | Key operational events (business-level) | Service started; sensor registered; model loaded |
-| **DEBUG** | Diagnostic detail | Event processing steps; intermediate calculation values |
+| Level     | Usage                                       | Examples                                                    |
+| --------- | ------------------------------------------- | ----------------------------------------------------------- |
+| **ERROR** | Unrecoverable failures; service degradation | Connection lost; message publish failed; auth failure       |
+| **WARN**  | Recoverable issues; approaching limits      | Rate limit approached; retry succeeded; deprecated API used |
+| **INFO**  | Key operational events (business-level)     | Service started; sensor registered; model loaded            |
+| **DEBUG** | Diagnostic detail                           | Event processing steps; intermediate calculation values     |
 
 ### 5.3 Log Field Standards
 
 Every log entry must include:
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `timestamp` | ISO 8601 UTC | YES | `2026-02-23T14:30:00.000Z` |
-| `level` | string | YES | `ERROR`, `WARN`, `INFO`, `DEBUG` |
-| `service` | string | YES | Service name: `ingestion`, `inference` |
-| `message` | string | YES | Human-readable description |
-| `correlation_id` | string | YES (if request) | Trace ID for request correlation |
-| `component` | string | SHOULD | Internal component: `radar_handler` |
-| `error` | string | IF ERROR | Error message (not stack trace at INFO) |
+| Field            | Type         | Required         | Notes                                   |
+| ---------------- | ------------ | ---------------- | --------------------------------------- |
+| `timestamp`      | ISO 8601 UTC | YES              | `2026-02-23T14:30:00.000Z`              |
+| `level`          | string       | YES              | `ERROR`, `WARN`, `INFO`, `DEBUG`        |
+| `service`        | string       | YES              | Service name: `ingestion`, `inference`  |
+| `message`        | string       | YES              | Human-readable description              |
+| `correlation_id` | string       | YES (if request) | Trace ID for request correlation        |
+| `component`      | string       | SHOULD           | Internal component: `radar_handler`     |
+| `error`          | string       | IF ERROR         | Error message (not stack trace at INFO) |
 
 ### 5.4 Prohibited Log Content
 
 NEVER log:
+
 - Classified data (sensor payloads, entity positions, intelligence products)
 - PII (operator names, user IDs at INFO or above)
 - Credentials (tokens, passwords, certificates, private keys)
@@ -116,6 +118,7 @@ NEVER log:
 ### 6.1 Package/Module Documentation
 
 Every Go package and TypeScript module must have a doc comment explaining:
+
 - What the package/module does
 - What bounded context it belongs to
 - Traceability references (Feature, Use Case, Requirements)
@@ -123,6 +126,7 @@ Every Go package and TypeScript module must have a doc comment explaining:
 ### 6.2 Function/Method Documentation
 
 Document any function that:
+
 - Is exported/public
 - Has non-obvious behavior
 - Has preconditions or postconditions

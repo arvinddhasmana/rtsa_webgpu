@@ -17,6 +17,7 @@ This document defines secure coding practices for all RTSA code. Given the Prote
 ### 2.1 Core Principle
 
 ALL external data is untrusted. This includes:
+
 - Sensor feeds (any of the 6 sensor types)
 - Operator input (feedback, queries, configuration)
 - NATO data exchange (STANAG 5516, NFFI, MIP messages)
@@ -26,18 +27,18 @@ ALL external data is untrusted. This includes:
 
 ### 2.2 Validation Rules
 
-| Data Type | Validation | Example |
-|---|---|---|
-| Coordinates (latitude) | Range: `[-90.0, 90.0]` | `if lat < -90 || lat > 90 { reject }` |
-| Coordinates (longitude) | Range: `[-180.0, 180.0]` | `if lon < -180 || lon > 180 { reject }` |
-| Altitude (meters MSL) | Range: `[-500.0, 100000.0]` | Reasonable operational range |
-| Speed (m/s) | Range: `[0.0, 10000.0]` | Up to ~Mach 30 for space objects |
-| Heading (degrees) | Range: `[0.0, 360.0)` | Circular range |
-| Timestamp | Range: `[2020-01-01, now + 1 hour]` | Reject far-future or ancient timestamps |
-| String fields | Max length; UTF-8 valid; no control characters | `if len(s) > maxLen { reject }` |
-| Enum fields | Must be a defined value; reject UNSPECIFIED for required fields | `if val == UNSPECIFIED { reject }` |
-| UUIDs | RFC 4122 format validation | `uuid.Validate(id)` |
-| Protobuf messages | Validate against schema; check required fields present | Schema-level validation |
+| Data Type               | Validation                                                      | Example                                 |
+| ----------------------- | --------------------------------------------------------------- | --------------------------------------- | --- | --------------------- |
+| Coordinates (latitude)  | Range: `[-90.0, 90.0]`                                          | `if lat < -90                           |     | lat > 90 { reject }`  |
+| Coordinates (longitude) | Range: `[-180.0, 180.0]`                                        | `if lon < -180                          |     | lon > 180 { reject }` |
+| Altitude (meters MSL)   | Range: `[-500.0, 100000.0]`                                     | Reasonable operational range            |
+| Speed (m/s)             | Range: `[0.0, 10000.0]`                                         | Up to ~Mach 30 for space objects        |
+| Heading (degrees)       | Range: `[0.0, 360.0)`                                           | Circular range                          |
+| Timestamp               | Range: `[2020-01-01, now + 1 hour]`                             | Reject far-future or ancient timestamps |
+| String fields           | Max length; UTF-8 valid; no control characters                  | `if len(s) > maxLen { reject }`         |
+| Enum fields             | Must be a defined value; reject UNSPECIFIED for required fields | `if val == UNSPECIFIED { reject }`      |
+| UUIDs                   | RFC 4122 format validation                                      | `uuid.Validate(id)`                     |
+| Protobuf messages       | Validate against schema; check required fields present          | Schema-level validation                 |
 
 ### 2.3 Go Input Validation Pattern
 
@@ -95,14 +96,14 @@ func ValidateSensorEvent(event *pb.SensorEvent) error {
 
 ### 4.1 CSE-Approved Algorithms Only
 
-| Purpose | Algorithm | Parameters |
-|---|---|---|
-| Symmetric encryption | AES-256-GCM | 256-bit key, 96-bit nonce, authenticated |
-| Hashing | SHA-256, SHA-384, SHA-512 | No SHA-1 or MD5 |
-| Digital signatures | ECDSA with P-384 | Or RSA-3072+ (prefer ECDSA) |
-| Key exchange | ECDH with P-384 or X25519 | Perfect forward secrecy required |
-| Password hashing | N/A | No password-based auth; use certificate-based |
-| MAC | HMAC-SHA-256 | For message authentication |
+| Purpose              | Algorithm                 | Parameters                                    |
+| -------------------- | ------------------------- | --------------------------------------------- |
+| Symmetric encryption | AES-256-GCM               | 256-bit key, 96-bit nonce, authenticated      |
+| Hashing              | SHA-256, SHA-384, SHA-512 | No SHA-1 or MD5                               |
+| Digital signatures   | ECDSA with P-384          | Or RSA-3072+ (prefer ECDSA)                   |
+| Key exchange         | ECDH with P-384 or X25519 | Perfect forward secrecy required              |
+| Password hashing     | N/A                       | No password-based auth; use certificate-based |
+| MAC                  | HMAC-SHA-256              | For message authentication                    |
 
 ### 4.2 Prohibited
 
@@ -147,12 +148,12 @@ nonce := rand.Int()  // PROHIBITED for security
 
 Pre-commit hooks and CI pipeline scan for accidentally committed secrets:
 
-| Pattern | Tool | Action |
-|---|---|---|
-| Hardcoded passwords | `gitleaks` | Block commit / Block merge |
-| API keys / tokens | `gitleaks` | Block commit / Block merge |
-| Private keys | `gitleaks` | Block commit / Block merge |
-| Connection strings | `semgrep` rules | Block merge |
+| Pattern             | Tool            | Action                     |
+| ------------------- | --------------- | -------------------------- |
+| Hardcoded passwords | `gitleaks`      | Block commit / Block merge |
+| API keys / tokens   | `gitleaks`      | Block commit / Block merge |
+| Private keys        | `gitleaks`      | Block commit / Block merge |
+| Connection strings  | `semgrep` rules | Block merge                |
 
 ## 6. gRPC Security — mTLS Configuration
 
@@ -258,6 +259,7 @@ grpc.NewServer(
 All operator feedback that influences model retraining must be trust-scored before acceptance. Trust scoring defends against adversarial or erroneous feedback corrupting model behavior.
 
 **Trust score design best practices:**
+
 - Compute a composite trust score from multiple independent factors
 - Common factors to incorporate:
   - **Operator authority level** — higher access/clearance yields a higher base trust
@@ -271,14 +273,15 @@ All operator feedback that influences model retraining must be trust-scored befo
 
 Define configurable threshold tiers (do not hard-code specific values into business logic):
 
-| Tier | Action |
-|---|---|
-| **High trust** | Auto-accept for training pipeline |
-| **Moderate trust** | Accept with logging; include in training batch |
-| **Low trust** | Flag for human review; exclude from automated training |
+| Tier               | Action                                                         |
+| ------------------ | -------------------------------------------------------------- |
+| **High trust**     | Auto-accept for training pipeline                              |
+| **Moderate trust** | Accept with logging; include in training batch                 |
+| **Low trust**      | Flag for human review; exclude from automated training         |
 | **Very low trust** | Reject; alert Security Operations; trigger audit investigation |
 
 **Best practices:**
+
 - Store threshold values in configuration (environment variables / config files) — not in code
 - Log all trust score computations for auditability
 - Monitor the distribution of trust scores over time — sudden shifts may indicate coordinated poisoning

@@ -29,14 +29,17 @@ Every prompt should follow this structure:
 
 ```markdown
 ## Task
+
 Create a new Go gRPC service for [SERVICE_NAME] that [PURPOSE].
 
 ## Context
+
 - This service is part of the RTSA system (see docs/architecture/component_design.md)
 - It implements use case [UC_ID] (see docs/business/usecases/[UC_ID].md)
 - It consumes from Redpanda topic [INPUT_TOPIC] and produces to [OUTPUT_TOPIC]
 
 ## Requirements
+
 - Follow docs/sdlc_guidelines/04_coding_standards/go_standards.md
 - Follow docs/sdlc_guidelines/08_tech_specific/grpc_service_guidelines.md
 - Follow docs/sdlc_guidelines/04_coding_standards/secure_coding.md
@@ -47,6 +50,7 @@ Create a new Go gRPC service for [SERVICE_NAME] that [PURPOSE].
 - Include Dockerfile (distroless base)
 
 ## Deliverables
+
 1. cmd/[service-name]/main.go — Entry point
 2. internal/service/service.go — Business logic
 3. internal/service/service_test.go — Unit tests (table-driven, 80%+ coverage)
@@ -58,14 +62,17 @@ Create a new Go gRPC service for [SERVICE_NAME] that [PURPOSE].
 
 ```markdown
 ## Task
+
 Define the Protobuf service and message types for [SERVICE_NAME].
 
 ## Context
+
 - Part of bounded context: [CONTEXT_NAME]
 - Implements RPCs: [LIST_RPCS]
 - Ref: docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md
 
 ## Requirements
+
 - Proto3 syntax
 - Package: rtsa.[context].v1
 - Include common types (Classification, Position, Kinematics)
@@ -74,6 +81,7 @@ Define the Protobuf service and message types for [SERVICE_NAME].
 - Backward-compatible design
 
 ## Deliverables
+
 1. proto/rtsa/[context]/v1/[service].proto
 ```
 
@@ -81,15 +89,18 @@ Define the Protobuf service and message types for [SERVICE_NAME].
 
 ```markdown
 ## Task
+
 Create a ClickHouse table for [DATA_TYPE] with appropriate partitioning and TTL.
 
 ## Context
+
 - Stores [DESCRIPTION]
 - Ingested via Redpanda Connect from topic [TOPIC]
 - Queried by [QUERY_SERVICE] for [USE_CASES]
 - Ref: docs/sdlc_guidelines/08_tech_specific/clickhouse_guidelines.md
 
 ## Requirements
+
 - MergeTree engine with ORDER BY optimized for query patterns
 - Daily partitioning by time column
 - TTL: [DC_RETENTION] for data centre, [EDGE_RETENTION] for edge
@@ -99,6 +110,7 @@ Create a ClickHouse table for [DATA_TYPE] with appropriate partitioning and TTL.
 - Include Redpanda Connect pipeline YAML
 
 ## Deliverables
+
 1. SQL schema (CREATE TABLE)
 2. Redpanda Connect pipeline configuration
 3. Example parameterized Go query
@@ -108,14 +120,17 @@ Create a ClickHouse table for [DATA_TYPE] with appropriate partitioning and TTL.
 
 ```markdown
 ## Task
+
 Create a SolidJS component for [COMPONENT_NAME] that [PURPOSE].
 
 ## Context
+
 - Part of the RTSA WebGPU COP overlay UI
 - Implements [UC_ID] requirement [REQ_ID]
 - Ref: docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md
 
 ## Requirements
+
 - TypeScript, named export function component
 - Include traceability comment (// Implements: [REQ_ID])
 - Props as signal accessors where applicable (never destructure)
@@ -126,6 +141,7 @@ Create a SolidJS component for [COMPONENT_NAME] that [PURPOSE].
 - Dark mode compatible (NVG mode)
 
 ## Deliverables
+
 1. Component file (.tsx) in src/components/
 2. Test file (.test.tsx) — behavior tests with @solidjs/testing-library
 ```
@@ -134,15 +150,18 @@ Create a SolidJS component for [COMPONENT_NAME] that [PURPOSE].
 
 ```markdown
 ## Task
+
 Create a Wasm data transform for [TRANSFORM_NAME] that [PURPOSE].
 
 ## Context
+
 - Runs on Redpanda broker
 - Input topic: [INPUT_TOPIC]
 - Output topics: [OUTPUT_TOPIC], [DLQ_TOPIC]
 - Ref: docs/sdlc_guidelines/08_tech_specific/wasm_transforms.md
 
 ## Requirements
+
 - Go compiled to WASI (GOOS=wasip1 GOARCH=wasm)
 - Validate [VALIDATION_RULES]
 - Route invalid messages to DLQ with reason header
@@ -152,6 +171,7 @@ Create a Wasm data transform for [TRANSFORM_NAME] that [PURPOSE].
 - Stateless (no state between messages)
 
 ## Deliverables
+
 1. Transform source (transform.go)
 2. Unit tests (transform_test.go)
 3. Build script
@@ -162,14 +182,17 @@ Create a Wasm data transform for [TRANSFORM_NAME] that [PURPOSE].
 
 ```markdown
 ## Task
+
 Fix [BUG_DESCRIPTION] in [FILE/SERVICE].
 
 ## Context
+
 - Current behavior: [WHAT_HAPPENS]
 - Expected behavior: [WHAT_SHOULD_HAPPEN]
 - Ref: [ISSUE_ID], [RELATED_UC]
 
 ## Requirements
+
 - Root cause analysis (explain why the bug exists)
 - Minimal change to fix the issue
 - Regression test that would have caught the bug
@@ -177,6 +200,7 @@ Fix [BUG_DESCRIPTION] in [FILE/SERVICE].
 - Follow docs/sdlc_guidelines/04_coding_standards/[relevant_standard].md
 
 ## Deliverables
+
 1. Code fix with explanation
 2. Regression test
 3. Updated documentation (if behavior changes)
@@ -186,15 +210,18 @@ Fix [BUG_DESCRIPTION] in [FILE/SERVICE].
 
 ```markdown
 ## Task
+
 Review [FILE/SERVICE/PR] for security issues.
 
 ## Context
+
 - Component: [COMPONENT_NAME]
 - Classification: [DATA_CLASSIFICATION_LEVEL]
 - Ref: docs/sdlc_guidelines/04_coding_standards/secure_coding.md
 - Ref: docs/sdlc_guidelines/03_architecture_design/threat_modeling.md
 
 ## Check
+
 1. Input validation on all external data
 2. No hardcoded secrets
 3. Parameterized queries (no SQL injection)
@@ -207,6 +234,7 @@ Review [FILE/SERVICE/PR] for security issues.
 10. Dependency versions (no known CVEs)
 
 ## Deliverables
+
 1. Finding list with severity (Critical/High/Medium/Low)
 2. Recommended fixes for each finding
 3. ITSG-33/NIST control references

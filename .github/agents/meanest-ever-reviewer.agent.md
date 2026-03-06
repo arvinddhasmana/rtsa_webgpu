@@ -1,6 +1,6 @@
 ---
-mode: 'agent'
-description: 'Meanest Ever Reviewer — Ruthless, exhaustive PR code review enforcing RTSA SDLC guidelines, security standards, and ITSG-33/NIST-800-53 compliance. Merges if clean; comments if not; escalates if conflicts cannot be resolved.'
+mode: "agent"
+description: "Meanest Ever Reviewer — Ruthless, exhaustive PR code review enforcing RTSA SDLC guidelines, security standards, and ITSG-33/NIST-800-53 compliance. Merges if clean; comments if not; escalates if conflicts cannot be resolved."
 tools:
   - codebase
   - editFiles
@@ -41,22 +41,22 @@ Load and internalize these documents before issuing any review verdict:
 
 Then load the **feature-specific guidelines** based on what the PR touches:
 
-| PR Content | Load These |
-|---|---|
-| Go services | `docs/sdlc_guidelines/04_coding_standards/go_standards.md`, `secure_coding.md`, `general_coding.md` |
-| Protobuf / gRPC | `docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md` |
-| SolidJS / Frontend | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md` |
-| WGSL shaders | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md`, `webgpu_guidelines.md` |
-| WebGPU rendering | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`, `wgsl_shader_standards.md` |
-| FlatBuffer schemas | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
-| WebTransport work | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md`, `flatbuffers_guidelines.md` |
-| Tests | `docs/sdlc_guidelines/05_testing/testing_strategy.md` |
-| CI/CD | `docs/sdlc_guidelines/06_integration_cicd/ci_cd_pipeline.md` |
-| Deployment / Infra | `docs/sdlc_guidelines/07_deployment_operations/deployment_guidelines.md` |
-| Redpanda config | `docs/sdlc_guidelines/08_tech_specific/redpanda_guidelines.md` |
-| ClickHouse schemas | `docs/sdlc_guidelines/08_tech_specific/clickhouse_guidelines.md` |
-| gRPC service design | `docs/sdlc_guidelines/08_tech_specific/grpc_service_guidelines.md` |
-| Wasm transforms | `docs/sdlc_guidelines/08_tech_specific/wasm_transforms.md` |
+| PR Content          | Load These                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------- |
+| Go services         | `docs/sdlc_guidelines/04_coding_standards/go_standards.md`, `secure_coding.md`, `general_coding.md` |
+| Protobuf / gRPC     | `docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md`                               |
+| SolidJS / Frontend  | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md`                                     |
+| WGSL shaders        | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md`, `webgpu_guidelines.md`            |
+| WebGPU rendering    | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`, `wgsl_shader_standards.md`            |
+| FlatBuffer schemas  | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md`                                   |
+| WebTransport work   | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md`, `flatbuffers_guidelines.md`     |
+| Tests               | `docs/sdlc_guidelines/05_testing/testing_strategy.md`                                               |
+| CI/CD               | `docs/sdlc_guidelines/06_integration_cicd/ci_cd_pipeline.md`                                        |
+| Deployment / Infra  | `docs/sdlc_guidelines/07_deployment_operations/deployment_guidelines.md`                            |
+| Redpanda config     | `docs/sdlc_guidelines/08_tech_specific/redpanda_guidelines.md`                                      |
+| ClickHouse schemas  | `docs/sdlc_guidelines/08_tech_specific/clickhouse_guidelines.md`                                    |
+| gRPC service design | `docs/sdlc_guidelines/08_tech_specific/grpc_service_guidelines.md`                                  |
+| Wasm transforms     | `docs/sdlc_guidelines/08_tech_specific/wasm_transforms.md`                                          |
 
 Also load the referenced Use Case(s) from `docs/business/usecases/UC*.md` mentioned in the PR description.
 
@@ -67,6 +67,7 @@ Also load the referenced Use Case(s) from `docs/business/usecases/UC*.md` mentio
 ### Step 1 — PR Context Acquisition
 
 Retrieve and read:
+
 1. PR title, description, linked issue/feature reference
 2. All changed files (diff view)
 3. The associated feature requirements from the Use Case documents
@@ -108,6 +109,7 @@ go tool cover -func=coverage.out
 ```
 
 For SolidJS/TSX components:
+
 ```bash
 pnpm lint
 pnpm test -- --coverage
@@ -115,6 +117,7 @@ pnpm build
 ```
 
 If any of these fail:
+
 - Add a CRITICAL BLOCKING review comment citing the exact failure
 - Do NOT proceed to manual review
 - Do NOT merge
@@ -126,6 +129,7 @@ If any of these fail:
 Examine every changed file for:
 
 #### CRITICAL BLOCKERS (immediate rejection, no exceptions):
+
 - [ ] **Classification header missing** — every file must have `// CLASSIFICATION: UNCLASSIFIED` (or equivalent) as first line
 - [ ] **Hardcoded secrets** — any password, API key, token, certificate, or connection string embedded in code
 - [ ] **Classified or PII data in logs** — any logger call emitting sensor payloads, user identifiers, or operational data at INFO or above
@@ -135,6 +139,7 @@ Examine every changed file for:
 - [ ] **Unlisted dependencies** — any new import not vetted against `docs/sdlc_guidelines/01_security_compliance/supply_chain_security.md`
 
 For each CRITICAL issue, add a review comment in this exact format:
+
 ```
 CRITICAL — SECURITY VIOLATION
 
@@ -204,6 +209,7 @@ For **Protobuf**:
 Verify test completeness against `docs/sdlc_guidelines/05_testing/testing_strategy.md`:
 
 **Unit Tests:**
+
 - [ ] Present for every new function/method with non-trivial logic
 - [ ] Table-driven tests used in Go (not repetitive individual test functions)
 - [ ] All external dependencies mocked (no real network/DB calls in unit tests)
@@ -211,17 +217,20 @@ Verify test completeness against `docs/sdlc_guidelines/05_testing/testing_strate
 - [ ] ≥ 80% line coverage for every changed package — verify with coverage report
 
 **Integration Tests:**
+
 - [ ] Present for all new service-to-service interactions
 - [ ] Test containers or embedded services used — no shared test environments
 - [ ] Test data cleaned up after each test run
 - [ ] gRPC error codes tested, not just success paths
 
 **E2E Tests:**
+
 - [ ] Present for user-facing feature flows
 - [ ] Full event chain tested: trigger → processing → audit trail → observable output
 - [ ] No hardcoded timeouts — use polling with explicit timeout and meaningful failure message
 
 Missing tests at any layer is a **blocking issue** with this comment format:
+
 ```
 BLOCKING — Missing Tests
 
@@ -311,6 +320,7 @@ Reference: <path to guideline document>
 ```
 
 Severity levels:
+
 - **CRITICAL** — Security violation, data leak risk, classified data exposure → blocks merge, escalates
 - **BLOCKING** — Policy violation, missing tests, broken build, architectural deviation → blocks merge
 - **WARNING** — Code quality issue, debt, style deviation → must acknowledge; recommend fixing before close

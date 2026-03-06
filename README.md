@@ -46,18 +46,18 @@ Cyber Feeds              ClickHouse OLAP   ◄── FlatBuffers (hot) ──►
 
 ## Technology Stack
 
-| Layer             | Technology                                          | Purpose                                             |
-| ----------------- | --------------------------------------------------- | --------------------------------------------------- |
-| Event Streaming   | [Redpanda](https://redpanda.com/)                   | Real-time event log, audit trail, inter-service bus |
-| Microservices     | Go 1.22+ with gRPC / Protobuf                       | High-performance, type-safe service communication   |
-| OLAP Storage      | ClickHouse                                          | Historical storage, forensics, analytical queries   |
-| Frontend (Hot Path) | SolidJS + WebGPU + WebTransport               | Real-time COP — 50k tracks @ 60 FPS, QUIC, FlatBuffers |
-| Frontend (Cold Path) | SolidJS + gRPC-Web (ConnectRPC)              | Commands, queries, feedback — Protobuf over HTTP/2     |
-| Data Pipeline     | Redpanda Connect                                    | Batch ETL: stream → ClickHouse / S3                 |
-| Anti-Poisoning    | Wasm Data Transforms                                | In-broker feedback trust validation                 |
-| Interoperability  | STANAG 5516 / NFFI / MIP adapters                   | NATO data exchange                                  |
-| Observability     | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | Structured telemetry across all services            |
-| Container Runtime | Docker / Kubernetes / K3s (edge)                    | Dev via Docker Compose, staging/prod via Helm       |
+| Layer                | Technology                                          | Purpose                                                |
+| -------------------- | --------------------------------------------------- | ------------------------------------------------------ |
+| Event Streaming      | [Redpanda](https://redpanda.com/)                   | Real-time event log, audit trail, inter-service bus    |
+| Microservices        | Go 1.22+ with gRPC / Protobuf                       | High-performance, type-safe service communication      |
+| OLAP Storage         | ClickHouse                                          | Historical storage, forensics, analytical queries      |
+| Frontend (Hot Path)  | SolidJS + WebGPU + WebTransport                     | Real-time COP — 50k tracks @ 60 FPS, QUIC, FlatBuffers |
+| Frontend (Cold Path) | SolidJS + gRPC-Web (ConnectRPC)                     | Commands, queries, feedback — Protobuf over HTTP/2     |
+| Data Pipeline        | Redpanda Connect                                    | Batch ETL: stream → ClickHouse / S3                    |
+| Anti-Poisoning       | Wasm Data Transforms                                | In-broker feedback trust validation                    |
+| Interoperability     | STANAG 5516 / NFFI / MIP adapters                   | NATO data exchange                                     |
+| Observability        | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | Structured telemetry across all services               |
+| Container Runtime    | Docker / Kubernetes / K3s (edge)                    | Dev via Docker Compose, staging/prod via Helm          |
 
 ---
 
@@ -133,11 +133,11 @@ Zone 7 — Management (Administrative): Audit service, Observability stack
 
 ## Getting Started
 
-| Platform / Workflow     | Guide                                                                 |
-| ----------------------- | --------------------------------------------------------------------- |
-| **Linux / macOS**       | **[GETTING_STARTED.md](GETTING_STARTED.md)**                          |
-| **Windows (WSL2)**      | **[GETTING_STARTED_WINDOWS.md](GETTING_STARTED_WINDOWS.md)**          |
-| **Demo (Setup + Run)**  | **[docs/demo/demo_setup_run_showcase.md](docs/demo/demo_setup_run_showcase.md)** |
+| Platform / Workflow    | Guide                                                                            |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| **Linux / macOS**      | **[GETTING_STARTED.md](GETTING_STARTED.md)**                                     |
+| **Windows (WSL2)**     | **[GETTING_STARTED_WINDOWS.md](GETTING_STARTED_WINDOWS.md)**                     |
+| **Demo (Setup + Run)** | **[docs/demo/demo_setup_run_showcase.md](docs/demo/demo_setup_run_showcase.md)** |
 
 Quick start (Linux / macOS):
 

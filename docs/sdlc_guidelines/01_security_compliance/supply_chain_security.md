@@ -54,36 +54,36 @@ graph TD
 
 ### 3.1 Go Modules
 
-| Source | Status | Notes |
-|---|---|---|
-| `proxy.golang.org` | APPROVED | Primary Go module proxy; use `GONOSUMCHECK` for private modules only |
-| `sum.golang.org` | APPROVED | Checksum database; must be verified for all public modules |
-| GitHub (direct) | CONDITIONAL | Only for modules not available via proxy; requires manual security review |
-| Private module registry | APPROVED | Internal Go modules hosted on approved registry |
+| Source                  | Status      | Notes                                                                     |
+| ----------------------- | ----------- | ------------------------------------------------------------------------- |
+| `proxy.golang.org`      | APPROVED    | Primary Go module proxy; use `GONOSUMCHECK` for private modules only      |
+| `sum.golang.org`        | APPROVED    | Checksum database; must be verified for all public modules                |
+| GitHub (direct)         | CONDITIONAL | Only for modules not available via proxy; requires manual security review |
+| Private module registry | APPROVED    | Internal Go modules hosted on approved registry                           |
 
 ### 3.2 Container Base Images
 
-| Image | Status | Notes |
-|---|---|---|
-| `gcr.io/distroless/static-debian12` | APPROVED | Preferred for Go binaries (no shell, minimal attack surface) |
-| `gcr.io/distroless/base-debian12` | APPROVED | For services requiring glibc |
-| `node:22-alpine` | APPROVED | SolidJS build stage only; not used in production images |
-| `scratch` | APPROVED | Minimal base for statically-linked Go binaries |
-| Custom base images | CONDITIONAL | Must be built from approved bases; Dockerfile reviewed |
+| Image                               | Status      | Notes                                                        |
+| ----------------------------------- | ----------- | ------------------------------------------------------------ |
+| `gcr.io/distroless/static-debian12` | APPROVED    | Preferred for Go binaries (no shell, minimal attack surface) |
+| `gcr.io/distroless/base-debian12`   | APPROVED    | For services requiring glibc                                 |
+| `node:22-alpine`                    | APPROVED    | SolidJS build stage only; not used in production images      |
+| `scratch`                           | APPROVED    | Minimal base for statically-linked Go binaries               |
+| Custom base images                  | CONDITIONAL | Must be built from approved bases; Dockerfile reviewed       |
 
 ### 3.3 NPM Packages (SolidJS Frontend)
 
-| Source | Status | Notes |
-|---|---|---|
+| Source               | Status   | Notes                                               |
+| -------------------- | -------- | --------------------------------------------------- |
 | `registry.npmjs.org` | APPROVED | With lockfile integrity enforcement (`npm ci` only) |
-| Private NPM registry | APPROVED | Internal packages; scoped under `@rtsa/` |
+| Private NPM registry | APPROVED | Internal packages; scoped under `@rtsa/`            |
 
 ### 3.4 Wasm Modules
 
-| Source | Status | Notes |
-|---|---|---|
-| Project-built Wasm | APPROVED | Built from reviewed source in project repo; signed |
-| Third-party Wasm | PROHIBITED | No third-party Wasm modules without explicit security review and signing |
+| Source             | Status     | Notes                                                                    |
+| ------------------ | ---------- | ------------------------------------------------------------------------ |
+| Project-built Wasm | APPROVED   | Built from reviewed source in project repo; signed                       |
+| Third-party Wasm   | PROHIBITED | No third-party Wasm modules without explicit security review and signing |
 
 ## 4. Dependency Management Rules
 
@@ -108,13 +108,13 @@ Before adding any new dependency:
 
 ### 4.3 Prohibited Dependencies
 
-| Category | Reason |
-|---|---|
-| Dependencies with known unpatched critical CVEs | Active security risk |
-| Dependencies from sanctioned countries/entities | Export control compliance |
-| Dependencies with obfuscated source code | Cannot be audited |
-| Dependencies that phone home / send telemetry | Data leakage risk in classified environments |
-| Dependencies with GPL/LGPL/AGPL licenses | License contamination risk for defence project |
+| Category                                        | Reason                                         |
+| ----------------------------------------------- | ---------------------------------------------- |
+| Dependencies with known unpatched critical CVEs | Active security risk                           |
+| Dependencies from sanctioned countries/entities | Export control compliance                      |
+| Dependencies with obfuscated source code        | Cannot be audited                              |
+| Dependencies that phone home / send telemetry   | Data leakage risk in classified environments   |
+| Dependencies with GPL/LGPL/AGPL licenses        | License contamination risk for defence project |
 
 ## 5. SBOM Requirements
 
@@ -128,46 +128,46 @@ Before adding any new dependency:
 
 Each SBOM must include:
 
-| Field | Required | Description |
-|---|---|---|
-| Component name | YES | Full package name including scope/organization |
-| Version | YES | Exact version (no ranges) |
-| Package URL (purl) | YES | Standard purl format for unambiguous identification |
-| License | YES | SPDX license identifier |
-| Hash (SHA-256) | YES | Content hash of the dependency |
-| Supplier | YES | Publisher/maintainer identity |
-| Dependency relationship | YES | Direct vs. transitive; parent component |
+| Field                   | Required | Description                                         |
+| ----------------------- | -------- | --------------------------------------------------- |
+| Component name          | YES      | Full package name including scope/organization      |
+| Version                 | YES      | Exact version (no ranges)                           |
+| Package URL (purl)      | YES      | Standard purl format for unambiguous identification |
+| License                 | YES      | SPDX license identifier                             |
+| Hash (SHA-256)          | YES      | Content hash of the dependency                      |
+| Supplier                | YES      | Publisher/maintainer identity                       |
+| Dependency relationship | YES      | Direct vs. transitive; parent component             |
 
 ### 5.3 SBOM Tooling
 
-| Language | Tool | Notes |
-|---|---|---|
-| Go | `cyclonedx-gomod` | Generates from `go.mod` and `go.sum` |
-| Node/SolidJS | `@cyclonedx/cdxgen` | Generates from `package-lock.json` |
-| Container | `syft` | Generates SBOM from container image layers |
-| Aggregation | `cyclonedx-cli merge` | Merges per-component SBOMs into release SBOM |
+| Language     | Tool                  | Notes                                        |
+| ------------ | --------------------- | -------------------------------------------- |
+| Go           | `cyclonedx-gomod`     | Generates from `go.mod` and `go.sum`         |
+| Node/SolidJS | `@cyclonedx/cdxgen`   | Generates from `package-lock.json`           |
+| Container    | `syft`                | Generates SBOM from container image layers   |
+| Aggregation  | `cyclonedx-cli merge` | Merges per-component SBOMs into release SBOM |
 
 ## 6. Vulnerability Scanning
 
 ### 6.1 Scanning Tools
 
-| Tool | Scope | CI Stage | Blocking? |
-|---|---|---|---|
-| `govulncheck` | Go vulnerabilities (stdlib + deps) | Build | YES — Critical/High block merge |
-| `gosec` | Go static analysis (security rules) | Build | YES — all findings block merge |
-| `trivy` | Container image vulnerabilities | Build | YES — Critical/High block merge |
-| `npm audit` | NPM dependency vulnerabilities | Build | YES — Critical/High block merge |
-| `trivy fs` | Filesystem-level vulnerability scan | Build | YES — Critical block merge |
-| `semgrep` | Multi-language SAST | Build | YES — security rules block merge |
+| Tool          | Scope                               | CI Stage | Blocking?                        |
+| ------------- | ----------------------------------- | -------- | -------------------------------- |
+| `govulncheck` | Go vulnerabilities (stdlib + deps)  | Build    | YES — Critical/High block merge  |
+| `gosec`       | Go static analysis (security rules) | Build    | YES — all findings block merge   |
+| `trivy`       | Container image vulnerabilities     | Build    | YES — Critical/High block merge  |
+| `npm audit`   | NPM dependency vulnerabilities      | Build    | YES — Critical/High block merge  |
+| `trivy fs`    | Filesystem-level vulnerability scan | Build    | YES — Critical block merge       |
+| `semgrep`     | Multi-language SAST                 | Build    | YES — security rules block merge |
 
 ### 6.2 CVE Response SLA
 
-| Severity | Response Time | Action |
-|---|---|---|
-| **Critical (CVSS 9.0+)** | 24 hours | Immediate patch or mitigation; block deployment |
-| **High (CVSS 7.0-8.9)** | 72 hours | Patch in next release; risk acceptance requires Security Authority approval |
-| **Medium (CVSS 4.0-6.9)** | 7 days | Schedule patch; document compensating controls |
-| **Low (CVSS 0.1-3.9)** | 30 days | Track and remediate in normal development cycle |
+| Severity                  | Response Time | Action                                                                      |
+| ------------------------- | ------------- | --------------------------------------------------------------------------- |
+| **Critical (CVSS 9.0+)**  | 24 hours      | Immediate patch or mitigation; block deployment                             |
+| **High (CVSS 7.0-8.9)**   | 72 hours      | Patch in next release; risk acceptance requires Security Authority approval |
+| **Medium (CVSS 4.0-6.9)** | 7 days        | Schedule patch; document compensating controls                              |
+| **Low (CVSS 0.1-3.9)**    | 30 days       | Track and remediate in normal development cycle                             |
 
 ## 7. Container Image Security
 

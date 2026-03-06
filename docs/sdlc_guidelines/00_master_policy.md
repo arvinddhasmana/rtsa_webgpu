@@ -11,16 +11,16 @@
 
 ## 1. Project Identity
 
-| Attribute | Value |
-|---|---|
-| **Project Name** | Real-Time Situational Awareness & Risk Assessment (RTSA) |
-| **Domain** | Canadian Defence — Situational Awareness & AI-driven Anomaly Detection |
-| **Classification Ceiling** | Protected C / Secret |
-| **Compliance Frameworks** | ITSG-33 (CCCS), NIST 800-53 Rev 5, NATO STANAG 5516 |
-| **Deployment Targets** | Tactical Edge, On-premise Data Centre, Hybrid |
-| **Team Size** | 3–5 developers |
-| **Development Model** | Trunk-based development with short-lived feature branches |
-| **Primary AI Agent** | GitHub Copilot (Workspace/Chat mode) |
+| Attribute                  | Value                                                                  |
+| -------------------------- | ---------------------------------------------------------------------- |
+| **Project Name**           | Real-Time Situational Awareness & Risk Assessment (RTSA)               |
+| **Domain**                 | Canadian Defence — Situational Awareness & AI-driven Anomaly Detection |
+| **Classification Ceiling** | Protected C / Secret                                                   |
+| **Compliance Frameworks**  | ITSG-33 (CCCS), NIST 800-53 Rev 5, NATO STANAG 5516                    |
+| **Deployment Targets**     | Tactical Edge, On-premise Data Centre, Hybrid                          |
+| **Team Size**              | 3–5 developers                                                         |
+| **Development Model**      | Trunk-based development with short-lived feature branches              |
+| **Primary AI Agent**       | GitHub Copilot (Workspace/Chat mode)                                   |
 
 ## 2. Mission Statement
 
@@ -77,17 +77,17 @@ graph LR
     style UI fill:#6a1b9a,color:#fff
 ```
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Event Streaming | Redpanda | Real-time event log, audit trail, feedback routing, tiered storage |
-| Microservices | Go + gRPC (Protobuf) | Strict type-safety, high performance, small binary footprint |
-| Analytics / OLAP | ClickHouse | Historical storage, forensics, complex analytical queries |
-| Frontend (Hot Path) | SolidJS + WebGPU + WebTransport | Real-time COP — 50k tracks @ 60 FPS, QUIC datagrams, FlatBuffers |
-| Frontend (Cold Path) | SolidJS + gRPC-Web (ConnectRPC) | Commands, queries, feedback — Protobuf over HTTP/2 |
-| Data Pipeline | Redpanda Connect | Batch ETL: stream → ClickHouse / S3 |
-| Containerization | Docker + Docker Compose / Kubernetes | Container-based development, deployment, and orchestration |
-| Anti-Poisoning | Wasm Data Transforms / Go middleware | Feedback trust validation before model retraining |
-| Interoperability | STANAG 5516 / NFFI / MIP adapters | NATO data exchange with allied systems |
+| Layer                | Technology                           | Purpose                                                            |
+| -------------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| Event Streaming      | Redpanda                             | Real-time event log, audit trail, feedback routing, tiered storage |
+| Microservices        | Go + gRPC (Protobuf)                 | Strict type-safety, high performance, small binary footprint       |
+| Analytics / OLAP     | ClickHouse                           | Historical storage, forensics, complex analytical queries          |
+| Frontend (Hot Path)  | SolidJS + WebGPU + WebTransport      | Real-time COP — 50k tracks @ 60 FPS, QUIC datagrams, FlatBuffers   |
+| Frontend (Cold Path) | SolidJS + gRPC-Web (ConnectRPC)      | Commands, queries, feedback — Protobuf over HTTP/2                 |
+| Data Pipeline        | Redpanda Connect                     | Batch ETL: stream → ClickHouse / S3                                |
+| Containerization     | Docker + Docker Compose / Kubernetes | Container-based development, deployment, and orchestration         |
+| Anti-Poisoning       | Wasm Data Transforms / Go middleware | Feedback trust validation before model retraining                  |
+| Interoperability     | STANAG 5516 / NFFI / MIP adapters    | NATO data exchange with allied systems                             |
 
 ## 4. SDLC Lifecycle with Security Gates
 
@@ -131,13 +131,13 @@ graph TD
 
 ### Security Gate Definitions
 
-| Gate | Phase Transition | Mandatory Checks |
-|---|---|---|
-| **SG1** | Requirements → Architecture | Threat model initiated; data classification assigned to all data flows; ITSG-33 controls mapped to requirements |
-| **SG2** | Architecture → Coding | Design review completed; security architecture reviewed; trust boundaries documented; ADR for security decisions |
-| **SG3** | Coding → Testing | SAST scan passes (zero critical/high); code review by peer; no hardcoded secrets; classification headers present; unit tests included |
-| **SG4** | Testing → Integration | DAST scan passes; fuzz testing on sensor parsers; penetration test for new attack surfaces; security test coverage meets threshold |
-| **SG5** | Integration → Deployment | Deployment approval from lead; environment hardening checklist complete; rollback procedure verified; SBOM generated and signed |
+| Gate    | Phase Transition            | Mandatory Checks                                                                                                                      |
+| ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **SG1** | Requirements → Architecture | Threat model initiated; data classification assigned to all data flows; ITSG-33 controls mapped to requirements                       |
+| **SG2** | Architecture → Coding       | Design review completed; security architecture reviewed; trust boundaries documented; ADR for security decisions                      |
+| **SG3** | Coding → Testing            | SAST scan passes (zero critical/high); code review by peer; no hardcoded secrets; classification headers present; unit tests included |
+| **SG4** | Testing → Integration       | DAST scan passes; fuzz testing on sensor parsers; penetration test for new attack surfaces; security test coverage meets threshold    |
+| **SG5** | Integration → Deployment    | Deployment approval from lead; environment hardening checklist complete; rollback procedure verified; SBOM generated and signed       |
 
 ## 5. Universal Rules — Always Enforce
 
@@ -195,29 +195,29 @@ These rules apply to ALL code, documentation, and configuration generated for th
 
 ## 7. Sensor Types — Quick Reference
 
-| Sensor Type | Data Characteristics | Typical Volume | Partition Key |
-|---|---|---|---|
-| **Radar** | Track plots: azimuth, range, elevation, velocity | 1K–10K events/sec | `radar_id:track_id` |
-| **EW/SIGINT** | Signal detections: frequency, bearing, modulation | 500–5K events/sec | `sensor_id:emitter_id` |
-| **ELINT/COMINT** | Electronic/communications intelligence parameters | 200–2K events/sec | `collector_id:signal_id` |
-| **ISR** | Imagery metadata, video frame references, detections | 100–1K events/sec | `platform_id:mission_id` |
-| **AIS/BFT** | Position reports: lat/lon, course, speed, callsign | 50–500 events/sec | `unit_id` |
-| **Cyber** | Network events: flows, alerts, indicators of compromise | 1K–50K events/sec | `sensor_id:source_ip` |
+| Sensor Type      | Data Characteristics                                    | Typical Volume    | Partition Key            |
+| ---------------- | ------------------------------------------------------- | ----------------- | ------------------------ |
+| **Radar**        | Track plots: azimuth, range, elevation, velocity        | 1K–10K events/sec | `radar_id:track_id`      |
+| **EW/SIGINT**    | Signal detections: frequency, bearing, modulation       | 500–5K events/sec | `sensor_id:emitter_id`   |
+| **ELINT/COMINT** | Electronic/communications intelligence parameters       | 200–2K events/sec | `collector_id:signal_id` |
+| **ISR**          | Imagery metadata, video frame references, detections    | 100–1K events/sec | `platform_id:mission_id` |
+| **AIS/BFT**      | Position reports: lat/lon, course, speed, callsign      | 50–500 events/sec | `unit_id`                |
+| **Cyber**        | Network events: flows, alerts, indicators of compromise | 1K–50K events/sec | `sensor_id:source_ip`    |
 
 ## 8. Document Cross-References
 
-| Document Category | Location | Purpose |
-|---|---|---|
-| SDLC Guidelines | `docs/sdlc_guidelines/` | Development lifecycle policies |
-| Business Requirements | `docs/business/requirements.md` | Functional and non-functional requirements |
-| Feature List | `docs/business/feature_list.md` | Prioritized feature registry |
-| Use Cases | `docs/business/usecases/` | Detailed use case specifications |
-| Architecture | `docs/architecture/` | Technical architecture and design |
-| Copilot Loader | `.github/copilot-instructions.md` | Root AI agent instruction file |
+| Document Category     | Location                          | Purpose                                    |
+| --------------------- | --------------------------------- | ------------------------------------------ |
+| SDLC Guidelines       | `docs/sdlc_guidelines/`           | Development lifecycle policies             |
+| Business Requirements | `docs/business/requirements.md`   | Functional and non-functional requirements |
+| Feature List          | `docs/business/feature_list.md`   | Prioritized feature registry               |
+| Use Cases             | `docs/business/usecases/`         | Detailed use case specifications           |
+| Architecture          | `docs/architecture/`              | Technical architecture and design          |
+| Copilot Loader        | `.github/copilot-instructions.md` | Root AI agent instruction file             |
 
 ## 9. Change Log
 
-| Date | Version | Change | Author |
-|---|---|---|---|
-| 2026-02-23 | 1.0 | Initial master policy creation | RTSA Project Lead |
-| 2026-03-05 | 2.0 | Updated tech stack for WebGPU COP (React → SolidJS + WebGPU + WebTransport) | RTSA Lead Architect |
+| Date       | Version | Change                                                                      | Author              |
+| ---------- | ------- | --------------------------------------------------------------------------- | ------------------- |
+| 2026-02-23 | 1.0     | Initial master policy creation                                              | RTSA Project Lead   |
+| 2026-03-05 | 2.0     | Updated tech stack for WebGPU COP (React → SolidJS + WebGPU + WebTransport) | RTSA Lead Architect |

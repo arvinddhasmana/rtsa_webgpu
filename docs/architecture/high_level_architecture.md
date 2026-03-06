@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # High-Level Architecture
 
 > **Document**: RTSA High-Level Architecture — WebGPU Performance-First Pipeline
@@ -18,14 +19,14 @@ The **performance-first v1 architecture** re-architects the frontend data pipeli
 
 ### Performance Targets
 
-| Metric | Previous (React/MapLibre) | Target (WebGPU) |
-|---|---|---|
-| Concurrent rendered tracks | ~5,000 (degraded) | 50,000+ (sustained) |
-| Track update ingestion rate | ~2,000 msg/s (browser) | 50,000+ msg/s (browser) |
-| Frame rate under load | 15–30 FPS at 5k tracks | 60 FPS sustained at 50k tracks |
-| Update-to-pixel latency | 100–200 ms | < 16 ms (single frame) |
-| Main thread CPU utilization | 70–95% under load | < 20% (UI controls only) |
-| Memory per track | ~2 KB (JS objects + GeoJSON) | ~128 bytes (GPU buffer slot) |
+| Metric                      | Previous (React/MapLibre)    | Target (WebGPU)                |
+| --------------------------- | ---------------------------- | ------------------------------ |
+| Concurrent rendered tracks  | ~5,000 (degraded)            | 50,000+ (sustained)            |
+| Track update ingestion rate | ~2,000 msg/s (browser)       | 50,000+ msg/s (browser)        |
+| Frame rate under load       | 15–30 FPS at 5k tracks       | 60 FPS sustained at 50k tracks |
+| Update-to-pixel latency     | 100–200 ms                   | < 16 ms (single frame)         |
+| Main thread CPU utilization | 70–95% under load            | < 20% (UI controls only)       |
+| Memory per track            | ~2 KB (JS objects + GeoJSON) | ~128 bytes (GPU buffer slot)   |
 
 ---
 
@@ -165,11 +166,11 @@ flowchart TD
     style Historical fill:#e8f5e9
 ```
 
-| Path | Protocol | Format | Reliability | Use Case |
-|---|---|---|---|---|
-| **Hot** | WebTransport (QUIC) | FlatBuffers | Unreliable datagrams | Track position updates, sensor observations, alert state |
-| **Cold** | gRPC-Web (HTTP/2) | Protobuf | Reliable, ordered | Operator feedback, alert acknowledgment, role selection |
-| **Historical** | gRPC-Web (HTTP/2) | Protobuf | Reliable, ordered | Forensic queries, event timeline, map replay |
+| Path           | Protocol            | Format      | Reliability          | Use Case                                                 |
+| -------------- | ------------------- | ----------- | -------------------- | -------------------------------------------------------- |
+| **Hot**        | WebTransport (QUIC) | FlatBuffers | Unreliable datagrams | Track position updates, sensor observations, alert state |
+| **Cold**       | gRPC-Web (HTTP/2)   | Protobuf    | Reliable, ordered    | Operator feedback, alert acknowledgment, role selection  |
+| **Historical** | gRPC-Web (HTTP/2)   | Protobuf    | Reliable, ordered    | Forensic queries, event timeline, map replay             |
 
 ---
 
@@ -269,57 +270,57 @@ Zone 7 — Management (Admin)     : Audit service, Observability stack (OTel, Pr
 
 ## 7. Technology Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| Event Streaming | Redpanda (C++, no JVM) | Real-time event log, audit trail, feedback routing |
-| Microservices | Go + gRPC (Protobuf) | Strict type-safety, high performance, small binary footprint |
-| Analytics / OLAP | ClickHouse | Historical storage, forensics, complex analytical queries |
-| Real-time Serialization | FlatBuffers | GPU-optimized zero-copy binary wire format for hot path |
-| Hot Path Transport | WebTransport (HTTP/3 / QUIC) | Unreliable datagrams for track updates — no HOL blocking |
-| Cold Path Transport | gRPC-Web (HTTP/2) | Reliable ordered RPCs for commands, queries, feedback |
-| Browser Decode | Rust → Wasm | Zero-allocation FlatBuffer decoder, off-main-thread |
-| State Management | SharedArrayBuffer | Zero-copy ring buffer shared between Worker threads |
-| Tactical Rendering | WebGPU + WGSL Compute Shaders | 50k instanced tracks at 60 FPS, GPU-side interpolation and culling |
-| UI Framework | SolidJS | Fine-grained reactivity, no Virtual DOM, ~7 KB runtime |
-| Text Rendering | SDF Font Atlases (GPU) | GPU-rendered labels replacing DOM `<div>` overlays |
-| Track Selection | GPU Pick Buffer | O(1) pixel-perfect selection, no DOM event listeners |
-| Data Pipeline | Redpanda Connect | Batch ETL: stream → ClickHouse / S3 |
-| Anti-Poisoning | Wasm Data Transforms / Go middleware | In-broker feedback trust validation |
-| Interoperability | STANAG 5516 / NFFI / MIP adapters | NATO data exchange with allied systems |
-| Observability | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | Distributed tracing, metrics, structured logging |
-| Container Runtime | Docker / Kubernetes / K3s (edge) | Dev via Docker Compose, staging/prod via Helm |
+| Layer                   | Technology                                          | Purpose                                                            |
+| ----------------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| Event Streaming         | Redpanda (C++, no JVM)                              | Real-time event log, audit trail, feedback routing                 |
+| Microservices           | Go + gRPC (Protobuf)                                | Strict type-safety, high performance, small binary footprint       |
+| Analytics / OLAP        | ClickHouse                                          | Historical storage, forensics, complex analytical queries          |
+| Real-time Serialization | FlatBuffers                                         | GPU-optimized zero-copy binary wire format for hot path            |
+| Hot Path Transport      | WebTransport (HTTP/3 / QUIC)                        | Unreliable datagrams for track updates — no HOL blocking           |
+| Cold Path Transport     | gRPC-Web (HTTP/2)                                   | Reliable ordered RPCs for commands, queries, feedback              |
+| Browser Decode          | Rust → Wasm                                         | Zero-allocation FlatBuffer decoder, off-main-thread                |
+| State Management        | SharedArrayBuffer                                   | Zero-copy ring buffer shared between Worker threads                |
+| Tactical Rendering      | WebGPU + WGSL Compute Shaders                       | 50k instanced tracks at 60 FPS, GPU-side interpolation and culling |
+| UI Framework            | SolidJS                                             | Fine-grained reactivity, no Virtual DOM, ~7 KB runtime             |
+| Text Rendering          | SDF Font Atlases (GPU)                              | GPU-rendered labels replacing DOM `<div>` overlays                 |
+| Track Selection         | GPU Pick Buffer                                     | O(1) pixel-perfect selection, no DOM event listeners               |
+| Data Pipeline           | Redpanda Connect                                    | Batch ETL: stream → ClickHouse / S3                                |
+| Anti-Poisoning          | Wasm Data Transforms / Go middleware                | In-broker feedback trust validation                                |
+| Interoperability        | STANAG 5516 / NFFI / MIP adapters                   | NATO data exchange with allied systems                             |
+| Observability           | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | Distributed tracing, metrics, structured logging                   |
+| Container Runtime       | Docker / Kubernetes / K3s (edge)                    | Dev via Docker Compose, staging/prod via Helm                      |
 
 ---
 
 ## 8. Key Design Decisions
 
-| # | Decision | Rationale |
-|---|---|---|
-| D-01 | Replace React with SolidJS for command UI | Fine-grained reactivity, no Virtual DOM diffing, ~7 KB runtime |
-| D-02 | Replace MapLibre GL with custom WebGPU renderer | Direct GPU control, compute shaders for interpolation, instanced rendering |
-| D-03 | FlatBuffers over Protobuf for real-time stream | Zero-copy read, no deserialization step, direct memory-map to GPU |
-| D-04 | WebTransport over gRPC-Web for real-time stream | Unreliable datagrams (no HOL blocking), QUIC-native, lower latency |
-| D-05 | Web Worker + Wasm decoder pipeline | Off-main-thread binary processing, near-native throughput |
-| D-06 | SharedArrayBuffer + GPU buffer upload | Zero-copy path from network to GPU, eliminates GC pressure |
-| D-07 | Retain Protobuf/gRPC for command & query paths | Type-safe, existing backend contract, low-frequency operations |
-| D-08 | Retain Redpanda as event backbone | Proven, low-latency, Kafka-compatible, edge-deployable |
-| D-09 | Retain ClickHouse for historical analytics | Columnar OLAP optimized for time-series, existing materialized views |
-| D-10 | GPU-resident ring buffer for track state | Eliminates per-frame CPU→GPU transfer, compute shaders update in-place |
-| D-11 | WebGPU-only COP — no legacy fallback | Military controlled workstations, team size prevents dual-stack maintenance |
+| #    | Decision                                        | Rationale                                                                   |
+| ---- | ----------------------------------------------- | --------------------------------------------------------------------------- |
+| D-01 | Replace React with SolidJS for command UI       | Fine-grained reactivity, no Virtual DOM diffing, ~7 KB runtime              |
+| D-02 | Replace MapLibre GL with custom WebGPU renderer | Direct GPU control, compute shaders for interpolation, instanced rendering  |
+| D-03 | FlatBuffers over Protobuf for real-time stream  | Zero-copy read, no deserialization step, direct memory-map to GPU           |
+| D-04 | WebTransport over gRPC-Web for real-time stream | Unreliable datagrams (no HOL blocking), QUIC-native, lower latency          |
+| D-05 | Web Worker + Wasm decoder pipeline              | Off-main-thread binary processing, near-native throughput                   |
+| D-06 | SharedArrayBuffer + GPU buffer upload           | Zero-copy path from network to GPU, eliminates GC pressure                  |
+| D-07 | Retain Protobuf/gRPC for command & query paths  | Type-safe, existing backend contract, low-frequency operations              |
+| D-08 | Retain Redpanda as event backbone               | Proven, low-latency, Kafka-compatible, edge-deployable                      |
+| D-09 | Retain ClickHouse for historical analytics      | Columnar OLAP optimized for time-series, existing materialized views        |
+| D-10 | GPU-resident ring buffer for track state        | Eliminates per-frame CPU→GPU transfer, compute shaders update in-place      |
+| D-11 | WebGPU-only COP — no legacy fallback            | Military controlled workstations, team size prevents dual-stack maintenance |
 
 ---
 
 ## 9. Cross-References
 
-| Document | Path |
-|---|---|
+| Document                               | Path                                                  |
+| -------------------------------------- | ----------------------------------------------------- |
 | **Full v1 Architecture Specification** | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` |
-| Component Design | `docs/architecture/component_design.md` |
-| Data Architecture | `docs/architecture/data_architecture.md` |
-| Security Architecture | `docs/architecture/security_architecture.md` |
-| Deployment Architecture | `docs/architecture/deployment_architecture.md` |
-| Integration Architecture | `docs/architecture/integration_architecture.md` |
-| Dependency Graph | `docs/architecture/dependency_graph.md` |
-| Business Requirements | `docs/business/requirements.md` |
-| Feature List | `docs/business/feature_list.md` |
-| Use Cases | `docs/business/usecases/UC*.md` |
+| Component Design                       | `docs/architecture/component_design.md`               |
+| Data Architecture                      | `docs/architecture/data_architecture.md`              |
+| Security Architecture                  | `docs/architecture/security_architecture.md`          |
+| Deployment Architecture                | `docs/architecture/deployment_architecture.md`        |
+| Integration Architecture               | `docs/architecture/integration_architecture.md`       |
+| Dependency Graph                       | `docs/architecture/dependency_graph.md`               |
+| Business Requirements                  | `docs/business/requirements.md`                       |
+| Feature List                           | `docs/business/feature_list.md`                       |
+| Use Cases                              | `docs/business/usecases/UC*.md`                       |

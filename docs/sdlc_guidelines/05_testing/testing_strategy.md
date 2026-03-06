@@ -31,17 +31,17 @@ graph TB
 
 ## 3. Coverage Requirements
 
-| Component Type | Line Coverage | Branch Coverage | Test Required For |
-|---|---|---|---|
-| Core domain logic (fusion, inference) | 90%+ | 85%+ | Every function |
-| gRPC service handlers | 85%+ | 80%+ | Every RPC method |
-| Sensor adapters / parsers | 90%+ | 85%+ | Every sensor type |
-| Feedback trust scoring | 95%+ | 90%+ | Every scoring path |
-| ClickHouse query builders | 85%+ | 80%+ | Every query template |
-| SolidJS components | 80%+ | 75%+ | Every component |
-| Wasm transforms | 90%+ | 85%+ | Every transform |
-| Configuration / startup | 80%+ | 75%+ | Validation paths |
-| Anti-poisoning logic | 95%+ | 90%+ | Every validation rule |
+| Component Type                        | Line Coverage | Branch Coverage | Test Required For     |
+| ------------------------------------- | ------------- | --------------- | --------------------- |
+| Core domain logic (fusion, inference) | 90%+          | 85%+            | Every function        |
+| gRPC service handlers                 | 85%+          | 80%+            | Every RPC method      |
+| Sensor adapters / parsers             | 90%+          | 85%+            | Every sensor type     |
+| Feedback trust scoring                | 95%+          | 90%+            | Every scoring path    |
+| ClickHouse query builders             | 85%+          | 80%+            | Every query template  |
+| SolidJS components                    | 80%+          | 75%+            | Every component       |
+| Wasm transforms                       | 90%+          | 85%+            | Every transform       |
+| Configuration / startup               | 80%+          | 75%+            | Validation paths      |
+| Anti-poisoning logic                  | 95%+          | 90%+            | Every validation rule |
 
 **Global minimum**: 80% line coverage. CI pipeline fails if coverage drops below threshold.
 
@@ -52,6 +52,7 @@ graph TB
 **Scope**: Single function or method in isolation. All dependencies are mocked or stubbed.
 
 **Rules**:
+
 - One test file per source file (`foo.go` → `foo_test.go`)
 - Use table-driven tests in Go
 - Mock all external dependencies (gRPC clients, Redpanda, ClickHouse)
@@ -108,6 +109,7 @@ func TestCalculateTrustScore_HighClearanceAccurateOperator_ReturnsHighScore(t *t
 **Scope**: Two or more components interacting. May use real infrastructure (Redpanda, ClickHouse in containers).
 
 **Rules**:
+
 - Use `testcontainers-go` for infrastructure dependencies
 - Place in `*_integration_test.go` files with build tag `//go:build integration`
 - Separate CI stage from unit tests (may run longer)
@@ -129,6 +131,7 @@ package integration_test
 **Scope**: Full system scenarios from sensor ingestion to UI display.
 
 **Rules**:
+
 - Run against a deployed test environment (Docker Compose or K8s namespace)
 - Test critical user flows (sensor data in → fused track out → operator feedback → model update)
 - Maximum 20 E2E tests (focus on high-value scenarios)
@@ -140,6 +143,7 @@ package integration_test
 **Scope**: Protobuf schema compatibility between producer and consumer.
 
 **Rules**:
+
 - Verify backward compatibility of `.proto` files
 - Use `buf breaking` in CI
 - Test that serialized messages from version N can be deserialized by version N+1
@@ -180,6 +184,7 @@ func SyntheticRadarEvent() *pb.SensorEvent {
 ### 5.3 Golden Files
 
 For complex output validation (NATO message formatting, ClickHouse query generation):
+
 - Store expected output in `testdata/golden/` directory
 - Use `-update` flag to regenerate golden files
 - Golden files are committed to version control
@@ -222,11 +227,11 @@ func (m *MockSensorIngester) IngestEvent(ctx context.Context, event *pb.SensorEv
 
 ### 7.1 Tools
 
-| Tool | Purpose |
-|---|---|
-| Vitest | Test runner and assertion library |
+| Tool                       | Purpose                             |
+| -------------------------- | ----------------------------------- |
+| Vitest                     | Test runner and assertion library   |
 | `@solidjs/testing-library` | Component rendering and interaction |
-| MSW (Mock Service Worker) | gRPC-Web API mocking (cold path) |
+| MSW (Mock Service Worker)  | gRPC-Web API mocking (cold path)    |
 
 ### 7.2 Rules
 
@@ -242,6 +247,7 @@ func (m *MockSensorIngester) IngestEvent(ctx context.Context, event *pb.SensorEv
 - Pick buffer is tested by rendering known track positions and reading the pick texture
 - Visual regression uses Playwright `toHaveScreenshot()` against golden images
 - WebGPU tests require a real browser (no jsdom) — use Playwright for CI
+
 ### 7.3 Hybrid Validation Strategy (E2E)
 
 The COP Web Application employs a 3-tier Hybrid Validation strategy for End-to-End testing to balance reliability with realism:
@@ -272,14 +278,14 @@ graph LR
 
 ### 8.1 Stage Gates
 
-| Stage | Failure Action | Time Budget |
-|---|---|---|
-| Lint | Block merge | < 2 min |
-| Unit tests | Block merge | < 5 min |
-| Contract tests | Block merge | < 1 min |
-| Integration tests | Block merge | < 10 min |
-| Security tests | Block merge (Critical/High); Warn (Medium) | < 15 min |
-| E2E tests | Warn (non-blocking for feature branches) | < 30 min |
+| Stage             | Failure Action                             | Time Budget |
+| ----------------- | ------------------------------------------ | ----------- |
+| Lint              | Block merge                                | < 2 min     |
+| Unit tests        | Block merge                                | < 5 min     |
+| Contract tests    | Block merge                                | < 1 min     |
+| Integration tests | Block merge                                | < 10 min    |
+| Security tests    | Block merge (Critical/High); Warn (Medium) | < 15 min    |
+| E2E tests         | Warn (non-blocking for feature branches)   | < 30 min    |
 
 ## 9. AI Agent Instructions
 

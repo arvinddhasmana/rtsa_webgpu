@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # Phase 2 — Backend Integration
 
 > **Document**: v4 Implementation — Phase 2
@@ -19,18 +20,18 @@ Build the backend hot-path pipeline — Go FlatBuffer serializer, Go WebTranspor
 
 ## 2. Deliverables
 
-| # | Deliverable | Description |
-|---|---|---|
-| B2-1 | FlatBuffer schema | `.fbs` files in `proto/rtsa/flatbuf/v1/` |
-| B2-2 | Go FlatBuffer serializer | `pkg/flatbuf/` — Protobuf → FlatBuffer conversion |
-| B2-3 | Go WebTransport server | `pkg/webtransport/` — session management + datagram sending |
-| B2-4 | Session authentication | JWT validation for WebTransport sessions |
-| B2-5 | Classification filtering | Server-side track filtering by operator clearance |
-| B2-6 | Priority shedding | Load-based track priority dropping |
-| B2-7 | Data Worker integration | Browser WebTransport client + Wasm decoder pipeline |
-| B2-8 | Connection lifecycle | Connect, reconnect with exponential backoff, health reporting |
-| B2-9 | Monitoring | OpenTelemetry metrics for WebTransport server |
-| B2-10 | Tests | Go unit tests, integration tests, cross-language round-trip |
+| #     | Deliverable              | Description                                                   |
+| ----- | ------------------------ | ------------------------------------------------------------- |
+| B2-1  | FlatBuffer schema        | `.fbs` files in `proto/rtsa/flatbuf/v1/`                      |
+| B2-2  | Go FlatBuffer serializer | `pkg/flatbuf/` — Protobuf → FlatBuffer conversion             |
+| B2-3  | Go WebTransport server   | `pkg/webtransport/` — session management + datagram sending   |
+| B2-4  | Session authentication   | JWT validation for WebTransport sessions                      |
+| B2-5  | Classification filtering | Server-side track filtering by operator clearance             |
+| B2-6  | Priority shedding        | Load-based track priority dropping                            |
+| B2-7  | Data Worker integration  | Browser WebTransport client + Wasm decoder pipeline           |
+| B2-8  | Connection lifecycle     | Connect, reconnect with exponential backoff, health reporting |
+| B2-9  | Monitoring               | OpenTelemetry metrics for WebTransport server                 |
+| B2-10 | Tests                    | Go unit tests, integration tests, cross-language round-trip   |
 
 ---
 
@@ -103,15 +104,15 @@ Build the backend hot-path pipeline — Go FlatBuffer serializer, Go WebTranspor
 
 ### B2-10: Tests
 
-| Test | Type | Framework |
-|---|---|---|
-| FlatBuffer serializer round-trip | Unit | Go `testing` |
-| FlatBuffer field offset verification | Unit | Go `testing` |
-| WebTransport session management | Unit | Go `testing` + mock |
-| Classification filtering | Unit | Go `testing` |
-| Priority shedding | Unit | Go `testing` |
-| Cross-language round-trip (Go → Wasm) | Integration | CI pipeline |
-| Full WebTransport E2E | Integration | Go test server + browser |
+| Test                                  | Type        | Framework                |
+| ------------------------------------- | ----------- | ------------------------ |
+| FlatBuffer serializer round-trip      | Unit        | Go `testing`             |
+| FlatBuffer field offset verification  | Unit        | Go `testing`             |
+| WebTransport session management       | Unit        | Go `testing` + mock      |
+| Classification filtering              | Unit        | Go `testing`             |
+| Priority shedding                     | Unit        | Go `testing`             |
+| Cross-language round-trip (Go → Wasm) | Integration | CI pipeline              |
+| Full WebTransport E2E                 | Integration | Go test server + browser |
 
 ---
 
@@ -132,8 +133,8 @@ svc-webtransport:
     args:
       SERVICE: svc-webtransport
   ports:
-    - "4443:4443/udp"   # QUIC
-    - "4443:4443/tcp"   # HTTP/3 fallback
+    - "4443:4443/udp" # QUIC
+    - "4443:4443/tcp" # HTTP/3 fallback
   environment:
     - WEBTRANSPORT_LISTEN_ADDR=:4443
     - REDPANDA_BROKERS=redpanda:9092
@@ -151,16 +152,16 @@ svc-webtransport:
 
 ## 5. Done Gate
 
-| Criteria | Verification |
-|---|---|
-| FlatBuffer `.fbs` schema compiles (Go + Rust) | `flatc` generation in CI |
-| Go serializer produces valid 128-byte records | Round-trip unit test |
-| WebTransport server accepts connections with valid JWT | Integration test |
-| WebTransport server rejects invalid JWT | Integration test |
-| Classification filtering drops high-classification tracks | Unit test |
-| Priority shedding drops low-priority under congestion | Unit test |
-| Data Worker receives datagrams and writes to SAB | E2E test |
-| Reconnection recovers after server restart | E2E test |
-| OpenTelemetry metrics visible in Grafana | Manual verification |
-| Audit events appear in Redpanda audit topic | Integration test |
-| Go test coverage ≥ 80% on new code | `go test -cover` |
+| Criteria                                                  | Verification             |
+| --------------------------------------------------------- | ------------------------ |
+| FlatBuffer `.fbs` schema compiles (Go + Rust)             | `flatc` generation in CI |
+| Go serializer produces valid 128-byte records             | Round-trip unit test     |
+| WebTransport server accepts connections with valid JWT    | Integration test         |
+| WebTransport server rejects invalid JWT                   | Integration test         |
+| Classification filtering drops high-classification tracks | Unit test                |
+| Priority shedding drops low-priority under congestion     | Unit test                |
+| Data Worker receives datagrams and writes to SAB          | E2E test                 |
+| Reconnection recovers after server restart                | E2E test                 |
+| OpenTelemetry metrics visible in Grafana                  | Manual verification      |
+| Audit events appear in Redpanda audit topic               | Integration test         |
+| Go test coverage ≥ 80% on new code                        | `go test -cover`         |

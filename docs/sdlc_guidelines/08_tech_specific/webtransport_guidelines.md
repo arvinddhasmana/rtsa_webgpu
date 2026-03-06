@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # WebTransport Development Guidelines
 
 > **Document**: RTSA WebTransport Development Guidelines
@@ -15,10 +16,10 @@ WebTransport is the **hot-path delivery mechanism** in the RTSA WebGPU architect
 
 ### Dual-Protocol Summary
 
-| Path | Protocol | Format | Transport | Use Case |
-|---|---|---|---|---|
-| **Hot** | WebTransport | FlatBuffers | QUIC unreliable datagrams | Track positions, alert push |
-| **Cold** | gRPC-Web | Protobuf | HTTP/2 (via Envoy) | Commands, queries, feedback |
+| Path     | Protocol     | Format      | Transport                 | Use Case                    |
+| -------- | ------------ | ----------- | ------------------------- | --------------------------- |
+| **Hot**  | WebTransport | FlatBuffers | QUIC unreliable datagrams | Track positions, alert push |
+| **Cold** | gRPC-Web     | Protobuf    | HTTP/2 (via Envoy)        | Commands, queries, feedback |
 
 ---
 
@@ -169,12 +170,12 @@ func (s *Server) streamTrackUpdates(
 
 ### 4.1 When to Use Datagrams
 
-| Data Type | Mode | Rationale |
-|---|---|---|
+| Data Type              | Mode                      | Rationale                                          |
+| ---------------------- | ------------------------- | -------------------------------------------------- |
 | Track position updates | **Datagram** (unreliable) | Stale positions are worthless; skip and get latest |
-| Alert notifications | **Stream** (reliable) | Alerts must be delivered exactly once |
-| Session metadata | **Stream** (reliable) | Initial handshake data |
-| Heartbeat / keepalive | **Datagram** (unreliable) | Loss is acceptable |
+| Alert notifications    | **Stream** (reliable)     | Alerts must be delivered exactly once              |
+| Session metadata       | **Stream** (reliable)     | Initial handshake data                             |
+| Heartbeat / keepalive  | **Datagram** (unreliable) | Loss is acceptable                                 |
 
 ### 4.2 Datagram Rules
 
@@ -221,12 +222,12 @@ flowchart TD
 
 ### 5.2 Priority Rules
 
-| Priority | Threat Level | Behavior Under Load |
-|---|---|---|
-| P0 (Critical) | Hostile | Always delivered |
-| P1 (High) | Suspect | Delivered unless severe congestion |
-| P2 (Normal) | Neutral, Pending | Dropped first under load |
-| P3 (Low) | Friendly, Unknown | Dropped aggressively under load |
+| Priority      | Threat Level      | Behavior Under Load                |
+| ------------- | ----------------- | ---------------------------------- |
+| P0 (Critical) | Hostile           | Always delivered                   |
+| P1 (High)     | Suspect           | Delivered unless severe congestion |
+| P2 (Normal)   | Neutral, Pending  | Dropped first under load           |
+| P3 (Low)      | Friendly, Unknown | Dropped aggressively under load    |
 
 ### 5.3 Implementation
 
@@ -275,7 +276,7 @@ async function connectWebTransport(url: string, sab: SharedArrayBuffer) {
       datagram,
       sabPtr,
       slotIndex % maxSlots,
-      maxSlots
+      maxSlots,
     );
 
     if (ok) {
@@ -338,6 +339,7 @@ https://rtsa.mil.ca/wt?token=<JWT>
 The Go server validates the JWT before accepting the session upgrade (see §3.2).
 
 **Rules**:
+
 - JWT tokens are short-lived (5 min TTL) and refreshed via gRPC cold path
 - Tokens include operator clearance level (used for classification filtering)
 - Token refresh happens on the gRPC cold path, not through WebTransport
@@ -368,11 +370,11 @@ The WebTransport server **must** filter track records based on operator clearanc
 
 All WebTransport session events are logged to the audit topic:
 
-| Event | Logged Fields |
-|---|---|
+| Event          | Logged Fields                                                  |
+| -------------- | -------------------------------------------------------------- |
 | Session opened | session_id, operator_id, clearance_level, client_ip, timestamp |
 | Session closed | session_id, duration, bytes_sent, datagrams_sent, close_reason |
-| Auth failure | client_ip, token_hash (not raw token), reason, timestamp |
+| Auth failure   | client_ip, token_hash (not raw token), reason, timestamp       |
 
 ---
 
@@ -380,22 +382,22 @@ All WebTransport session events are logged to the audit topic:
 
 ### 8.1 Server-Side Metrics (OpenTelemetry)
 
-| Metric | Type | Labels |
-|---|---|---|
-| `webtransport_sessions_active` | Gauge | — |
-| `webtransport_datagrams_sent_total` | Counter | `priority` |
-| `webtransport_datagrams_dropped_total` | Counter | `reason` (congestion, classification) |
-| `webtransport_session_duration_seconds` | Histogram | — |
-| `webtransport_bytes_sent_total` | Counter | — |
+| Metric                                  | Type      | Labels                                |
+| --------------------------------------- | --------- | ------------------------------------- |
+| `webtransport_sessions_active`          | Gauge     | —                                     |
+| `webtransport_datagrams_sent_total`     | Counter   | `priority`                            |
+| `webtransport_datagrams_dropped_total`  | Counter   | `reason` (congestion, classification) |
+| `webtransport_session_duration_seconds` | Histogram | —                                     |
+| `webtransport_bytes_sent_total`         | Counter   | —                                     |
 
 ### 8.2 Client-Side Metrics (Data Worker → Main Thread)
 
-| Metric | Frequency | Delivery |
-|---|---|---|
-| Connection state | On change | `postMessage` to main thread |
-| Datagrams received/sec | Every 1s | `postMessage` stats |
-| Decode failures | On occurrence | `postMessage` error |
-| Round-trip latency estimate | Every 5s | Derived from `update_epoch_ms` delta |
+| Metric                      | Frequency     | Delivery                             |
+| --------------------------- | ------------- | ------------------------------------ |
+| Connection state            | On change     | `postMessage` to main thread         |
+| Datagrams received/sec      | Every 1s      | `postMessage` stats                  |
+| Decode failures             | On occurrence | `postMessage` error                  |
+| Round-trip latency estimate | Every 5s      | Derived from `update_epoch_ms` delta |
 
 ---
 
@@ -441,6 +443,7 @@ func TestWebTransport_EndToEnd(t *testing.T) {
 ### 9.3 Browser E2E Tests
 
 Playwright tests verify:
+
 1. WebTransport connection established (check connection indicator in SolidJS UI)
 2. Tracks appear on WebGPU canvas after connection
 3. Reconnection works after server restart
@@ -452,33 +455,33 @@ Playwright tests verify:
 
 ### 10.1 Server Configuration
 
-| Variable | Default | Description |
-|---|---|---|
-| `WEBTRANSPORT_LISTEN_ADDR` | `:4443` | QUIC listener address |
-| `WEBTRANSPORT_TLS_CERT` | — | TLS certificate path |
-| `WEBTRANSPORT_TLS_KEY` | — | TLS private key path |
-| `WEBTRANSPORT_MAX_SESSIONS` | `100` | Maximum concurrent sessions |
-| `WEBTRANSPORT_ALLOWED_ORIGINS` | — | Comma-separated allowed origins |
-| `WEBTRANSPORT_DATAGRAM_BATCH_SIZE` | `9` | Records per datagram (max 9 × 128 = 1152 < MTU) |
+| Variable                           | Default | Description                                     |
+| ---------------------------------- | ------- | ----------------------------------------------- |
+| `WEBTRANSPORT_LISTEN_ADDR`         | `:4443` | QUIC listener address                           |
+| `WEBTRANSPORT_TLS_CERT`            | —       | TLS certificate path                            |
+| `WEBTRANSPORT_TLS_KEY`             | —       | TLS private key path                            |
+| `WEBTRANSPORT_MAX_SESSIONS`        | `100`   | Maximum concurrent sessions                     |
+| `WEBTRANSPORT_ALLOWED_ORIGINS`     | —       | Comma-separated allowed origins                 |
+| `WEBTRANSPORT_DATAGRAM_BATCH_SIZE` | `9`     | Records per datagram (max 9 × 128 = 1152 < MTU) |
 
 ### 10.2 Client Configuration
 
-| Variable | Default | Description |
-|---|---|---|
-| `VITE_WEBTRANSPORT_URL` | — | WebTransport server URL |
-| `VITE_WEBTRANSPORT_RECONNECT_BASE_MS` | `1000` | Base reconnection delay |
-| `VITE_WEBTRANSPORT_RECONNECT_MAX_MS` | `30000` | Maximum reconnection delay |
+| Variable                              | Default | Description                |
+| ------------------------------------- | ------- | -------------------------- |
+| `VITE_WEBTRANSPORT_URL`               | —       | WebTransport server URL    |
+| `VITE_WEBTRANSPORT_RECONNECT_BASE_MS` | `1000`  | Base reconnection delay    |
+| `VITE_WEBTRANSPORT_RECONNECT_MAX_MS`  | `30000` | Maximum reconnection delay |
 
 ---
 
 ## 11. Cross-References
 
-| Document | Path |
-|---|---|
-| FlatBuffers Guidelines | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
-| WebGPU Guidelines | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md` |
-| SolidJS Standards | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md` |
-| Security Architecture — WebTransport | `docs/architecture/security_architecture.md` §13 |
-| Integration Architecture — WebTransport | `docs/architecture/integration_architecture.md` §9 |
-| v1 Architecture — Hot Path | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §3, §9 |
-| gRPC Service Guidelines | `docs/sdlc_guidelines/08_tech_specific/grpc_service_guidelines.md` |
+| Document                                | Path                                                               |
+| --------------------------------------- | ------------------------------------------------------------------ |
+| FlatBuffers Guidelines                  | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md`  |
+| WebGPU Guidelines                       | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`       |
+| SolidJS Standards                       | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md`    |
+| Security Architecture — WebTransport    | `docs/architecture/security_architecture.md` §13                   |
+| Integration Architecture — WebTransport | `docs/architecture/integration_architecture.md` §9                 |
+| v1 Architecture — Hot Path              | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §3, §9       |
+| gRPC Service Guidelines                 | `docs/sdlc_guidelines/08_tech_specific/grpc_service_guidelines.md` |

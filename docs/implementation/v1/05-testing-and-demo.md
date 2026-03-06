@@ -128,11 +128,11 @@ Create one test file per feature area under `web-cop/e2e/`:
 
 #### `web-cop/e2e/map.spec.ts` — Map Rendering (CR-UI-001, CR-UI-002)
 
-| Test Name                              | Assertion                                            |
-| -------------------------------------- | ---------------------------------------------------- |
-| `map renders and shows canvas`         | WebGPU canvas element visible, non-zero dimensions   |
-| `track appears on map after injection` | Inject 1 track → marker/icon appears at coordinates  |
-| `track moves on update`                | Inject track, update position → marker moves         |
+| Test Name                              | Assertion                                           |
+| -------------------------------------- | --------------------------------------------------- |
+| `map renders and shows canvas`         | WebGPU canvas element visible, non-zero dimensions  |
+| `track appears on map after injection` | Inject 1 track → marker/icon appears at coordinates |
+| `track moves on update`                | Inject track, update position → marker moves        |
 
 #### `web-cop/e2e/alerts.spec.ts` — Alert Display (CR-UI-003, CR-INF-001)
 
