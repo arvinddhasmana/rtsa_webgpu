@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # RTSA High-Performance Architecture v1 — WebGPU Tactical Display
 
 > **Document**: RTSA High-Performance Architecture — WebGPU Rendering Pipeline
@@ -17,30 +18,30 @@ The current RTSA COP Web Application uses React 18 with MapLibre GL JS and gRPC-
 
 ### Performance Targets
 
-| Metric | Current (React/MapLibre) | Target (WebGPU) |
-|---|---|---|
-| Concurrent rendered tracks | ~5,000 (degraded) | 50,000+ (sustained) |
-| Track update ingestion rate | ~2,000 msg/s (browser) | 50,000+ msg/s (browser) |
-| Frame rate under load | 15–30 FPS at 5k tracks | 60 FPS sustained at 50k tracks |
-| Update-to-pixel latency | 100–200 ms | < 16 ms (single frame) |
-| Main thread CPU utilization | 70–95% under load | < 20% (UI controls only) |
-| GC pause impact | Visible frame drops | Near-zero (GPU-resident data) |
-| Memory per track | ~2 KB (JS objects + GeoJSON) | ~128 bytes (GPU buffer slot) |
+| Metric                      | Current (React/MapLibre)     | Target (WebGPU)                |
+| --------------------------- | ---------------------------- | ------------------------------ |
+| Concurrent rendered tracks  | ~5,000 (degraded)            | 50,000+ (sustained)            |
+| Track update ingestion rate | ~2,000 msg/s (browser)       | 50,000+ msg/s (browser)        |
+| Frame rate under load       | 15–30 FPS at 5k tracks       | 60 FPS sustained at 50k tracks |
+| Update-to-pixel latency     | 100–200 ms                   | < 16 ms (single frame)         |
+| Main thread CPU utilization | 70–95% under load            | < 20% (UI controls only)       |
+| GC pause impact             | Visible frame drops          | Near-zero (GPU-resident data)  |
+| Memory per track            | ~2 KB (JS objects + GeoJSON) | ~128 bytes (GPU buffer slot)   |
 
 ### Key Design Decisions Summary
 
-| # | Decision | Rationale |
-|---|---|---|
-| D-01 | Replace React with SolidJS for command UI | Fine-grained reactivity, no Virtual DOM diffing, ~7 KB runtime |
+| #    | Decision                                        | Rationale                                                                  |
+| ---- | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| D-01 | Replace React with SolidJS for command UI       | Fine-grained reactivity, no Virtual DOM diffing, ~7 KB runtime             |
 | D-02 | Replace MapLibre GL with custom WebGPU renderer | Direct GPU control, compute shaders for interpolation, instanced rendering |
-| D-03 | FlatBuffers over Protobuf for real-time stream | Zero-copy read, no deserialization step, direct memory-map to GPU |
-| D-04 | WebTransport over gRPC-Web for real-time stream | Unreliable datagrams (no HOL blocking), QUIC-native, lower latency |
-| D-05 | Web Worker + Wasm decoder pipeline | Off-main-thread binary processing, near-native throughput |
-| D-06 | SharedArrayBuffer + GPU buffer upload | Zero-copy path from network to GPU, eliminates GC pressure |
-| D-07 | Retain Protobuf/gRPC for command & query paths | Type-safe, existing backend contract, low-frequency operations |
-| D-08 | Retain Redpanda as event backbone | Proven, low-latency, Kafka-compatible, edge-deployable |
-| D-09 | Retain ClickHouse for historical analytics | Columnar OLAP optimized for time-series, existing materialized views |
-| D-10 | GPU-resident ring buffer for track state | Eliminates per-frame CPU→GPU transfer, compute shaders update in-place |
+| D-03 | FlatBuffers over Protobuf for real-time stream  | Zero-copy read, no deserialization step, direct memory-map to GPU          |
+| D-04 | WebTransport over gRPC-Web for real-time stream | Unreliable datagrams (no HOL blocking), QUIC-native, lower latency         |
+| D-05 | Web Worker + Wasm decoder pipeline              | Off-main-thread binary processing, near-native throughput                  |
+| D-06 | SharedArrayBuffer + GPU buffer upload           | Zero-copy path from network to GPU, eliminates GC pressure                 |
+| D-07 | Retain Protobuf/gRPC for command & query paths  | Type-safe, existing backend contract, low-frequency operations             |
+| D-08 | Retain Redpanda as event backbone               | Proven, low-latency, Kafka-compatible, edge-deployable                     |
+| D-09 | Retain ClickHouse for historical analytics      | Columnar OLAP optimized for time-series, existing materialized views       |
+| D-10 | GPU-resident ring buffer for track state        | Eliminates per-frame CPU→GPU transfer, compute shaders update in-place     |
 
 ---
 
@@ -139,11 +140,11 @@ flowchart TD
     style Historical fill:#e8f5e9
 ```
 
-| Path | Protocol | Format | Reliability | Use Case |
-|---|---|---|---|---|
-| **Hot** | WebTransport (QUIC) | FlatBuffers | Unreliable datagrams | Track position updates, sensor observations, alert state |
-| **Cold** | gRPC-Web (HTTP/2) | Protobuf | Reliable, ordered | Operator feedback, alert acknowledgment, role selection |
-| **Historical** | gRPC-Web (HTTP/2) | Protobuf | Reliable, ordered | Forensic queries, event timeline, map replay |
+| Path           | Protocol            | Format      | Reliability          | Use Case                                                 |
+| -------------- | ------------------- | ----------- | -------------------- | -------------------------------------------------------- |
+| **Hot**        | WebTransport (QUIC) | FlatBuffers | Unreliable datagrams | Track position updates, sensor observations, alert state |
+| **Cold**       | gRPC-Web (HTTP/2)   | Protobuf    | Reliable, ordered    | Operator feedback, alert acknowledgment, role selection  |
+| **Historical** | gRPC-Web (HTTP/2)   | Protobuf    | Reliable, ordered    | Forensic queries, event timeline, map replay             |
 
 ---
 
@@ -153,25 +154,25 @@ Edge ingestion is **unchanged** from the existing architecture. Sensors produce 
 
 ### 3.1 Edge Components
 
-| Component | Function | Technology |
-|---|---|---|
-| Physical Sensors | Raw signal capture | Radar, LiDAR, EO/IR, SIGINT, AIS receivers |
-| Edge Compute | Signal processing, plot extraction | FPGA/ASIC hardware, local DSP algorithms |
-| Edge Gateway | Fail-safe queuing, tactical backhaul | Go agent, persistent gRPC streams, store-and-forward |
+| Component        | Function                             | Technology                                           |
+| ---------------- | ------------------------------------ | ---------------------------------------------------- |
+| Physical Sensors | Raw signal capture                   | Radar, LiDAR, EO/IR, SIGINT, AIS receivers           |
+| Edge Compute     | Signal processing, plot extraction   | FPGA/ASIC hardware, local DSP algorithms             |
+| Edge Gateway     | Fail-safe queuing, tactical backhaul | Go agent, persistent gRPC streams, store-and-forward |
 
 ### 3.2 Plot Data Structure
 
 Each extracted plot contains:
 
-| Field | Type | Description |
-|---|---|---|
-| `observation_id` | UUID v7 | Time-ordered unique identifier |
-| `sensor_id` | string | Source sensor identifier |
-| `sensor_type` | enum | RADAR, EW_SIGINT, ELINT_COMINT, ISR, AIS_BFT, CYBER |
-| `observation_time` | timestamp | PTP-synchronized GPS timestamp |
-| `position` | Position | WGS-84 lat/lon/alt + speed/heading |
-| `classification` | enum | UNCLASSIFIED through SECRET |
-| `raw_attributes` | map | Sensor-specific (RCS, thermal sig, frequency, etc.) |
+| Field              | Type      | Description                                         |
+| ------------------ | --------- | --------------------------------------------------- |
+| `observation_id`   | UUID v7   | Time-ordered unique identifier                      |
+| `sensor_id`        | string    | Source sensor identifier                            |
+| `sensor_type`      | enum      | RADAR, EW_SIGINT, ELINT_COMINT, ISR, AIS_BFT, CYBER |
+| `observation_time` | timestamp | PTP-synchronized GPS timestamp                      |
+| `position`         | Position  | WGS-84 lat/lon/alt + speed/heading                  |
+| `classification`   | enum      | UNCLASSIFIED through SECRET                         |
+| `raw_attributes`   | map       | Sensor-specific (RCS, thermal sig, frequency, etc.) |
 
 ### 3.3 Tactical Backhaul
 
@@ -225,25 +226,25 @@ flowchart TD
 
 ### 4.2 New Component — FlatBuffer Serializer Service
 
-| Property | Specification |
-|---|---|
-| Language | Go |
-| Input | Consumes `tracks.fused.*` and `alerts.anomaly.*` from Redpanda |
-| Output | FlatBuffer-encoded binary datagrams via WebTransport |
-| Format | See §4.3 GPU-Optimized Wire Format |
-| Throughput target | 100,000+ messages/second serialized |
-| Deployment | Co-located with WebTransport server |
+| Property          | Specification                                                  |
+| ----------------- | -------------------------------------------------------------- |
+| Language          | Go                                                             |
+| Input             | Consumes `tracks.fused.*` and `alerts.anomaly.*` from Redpanda |
+| Output            | FlatBuffer-encoded binary datagrams via WebTransport           |
+| Format            | See §4.3 GPU-Optimized Wire Format                             |
+| Throughput target | 100,000+ messages/second serialized                            |
+| Deployment        | Co-located with WebTransport server                            |
 
 **Why FlatBuffers over Protobuf for the hot path:**
 
-| Property | Protobuf | FlatBuffers |
-|---|---|---|
-| Deserialization | Full decode required (allocations) | Zero-copy read from buffer |
-| Browser overhead | ~50 μs per message decode | ~0 μs (offset access) |
-| Alignment | Variable-length encoding | 4-byte aligned (GPU-friendly) |
-| Schema evolution | Full backward compatible | Forward/backward compatible |
-| Size overhead | Slightly smaller wire size | ~10–20% larger, but no decode cost |
-| GPU upload | Requires JS object → typed array conversion | Direct `memcpy` to GPU buffer |
+| Property         | Protobuf                                    | FlatBuffers                        |
+| ---------------- | ------------------------------------------- | ---------------------------------- |
+| Deserialization  | Full decode required (allocations)          | Zero-copy read from buffer         |
+| Browser overhead | ~50 μs per message decode                   | ~0 μs (offset access)              |
+| Alignment        | Variable-length encoding                    | 4-byte aligned (GPU-friendly)      |
+| Schema evolution | Full backward compatible                    | Forward/backward compatible        |
+| Size overhead    | Slightly smaller wire size                  | ~10–20% larger, but no decode cost |
+| GPU upload       | Requires JS object → typed array conversion | Direct `memcpy` to GPU buffer      |
 
 ### 4.3 GPU-Optimized Wire Format
 
@@ -279,43 +280,43 @@ Offset  Size   Type        Field
 
 ### 4.4 WebTransport Server
 
-| Property | Specification |
-|---|---|
-| Protocol | WebTransport over HTTP/3 (QUIC) |
-| Datagram mode | Unreliable datagrams for position updates |
-| Stream mode | Reliable unidirectional stream for initial state snapshot |
-| Authentication | Session token validated against mTLS certificate |
-| Encryption | TLS 1.3 (QUIC-native) with CSE-approved cipher suites |
-| Backpressure | Server-side rate adaptation: drops lowest-priority updates first |
+| Property       | Specification                                                    |
+| -------------- | ---------------------------------------------------------------- |
+| Protocol       | WebTransport over HTTP/3 (QUIC)                                  |
+| Datagram mode  | Unreliable datagrams for position updates                        |
+| Stream mode    | Reliable unidirectional stream for initial state snapshot        |
+| Authentication | Session token validated against mTLS certificate                 |
+| Encryption     | TLS 1.3 (QUIC-native) with CSE-approved cipher suites            |
+| Backpressure   | Server-side rate adaptation: drops lowest-priority updates first |
 
 **Priority-based shedding under backpressure:**
 
-| Priority | Data | Shedding behavior |
-|---|---|---|
-| P0 (never shed) | CRITICAL alerts | Always delivered via reliable stream |
-| P1 | ELEVATED alerts, friendly force tracks | Shed only under extreme pressure |
-| P2 | Active hostile/unknown tracks | Reduce update rate to 5 Hz |
-| P3 | Active neutral tracks | Reduce update rate to 2 Hz |
-| P4 | Stale tracks, sensor observations | Shed first |
+| Priority        | Data                                   | Shedding behavior                    |
+| --------------- | -------------------------------------- | ------------------------------------ |
+| P0 (never shed) | CRITICAL alerts                        | Always delivered via reliable stream |
+| P1              | ELEVATED alerts, friendly force tracks | Shed only under extreme pressure     |
+| P2              | Active hostile/unknown tracks          | Reduce update rate to 5 Hz           |
+| P3              | Active neutral tracks                  | Reduce update rate to 2 Hz           |
+| P4              | Stale tracks, sensor observations      | Shed first                           |
 
 ### 4.5 Retained Backend Components (Unchanged)
 
-| Component | Technology | Status |
-|---|---|---|
-| Redpanda Cluster | Redpanda (C++, no JVM) | **Retained** — event backbone |
-| ClickHouse Cluster | ClickHouse | **Retained** — OLAP analytics |
-| Redpanda Connect | Redpanda Connect | **Retained** — stream-to-OLAP ETL |
-| Ingestion Services (×6) | Go gRPC | **Retained** — sensor ingestion |
-| Fusion Engine | Go, Kalman Filter | **Retained** — track correlation |
-| Anomaly Detection | Go, GPU inference | **Retained** — AI risk scoring |
-| Feedback Service | Go, trust scoring | **Retained** — anti-poisoning |
-| Training Pipeline | Go + Python | **Retained** — model retraining |
-| Track Service | Go gRPC | **Retained** — gRPC-Web streaming for cold path |
-| Alert Service | Go gRPC | **Retained** — alert management |
-| Query Service | Go gRPC | **Retained** — ClickHouse queries |
-| Audit Service | Go gRPC | **Retained** — immutable audit trail |
-| NATO Adapter | Go gRPC | **Retained** — STANAG 5516 interop |
-| Wasm Transforms | Wasm (Go-compiled) | **Retained** — in-broker validation |
+| Component               | Technology             | Status                                          |
+| ----------------------- | ---------------------- | ----------------------------------------------- |
+| Redpanda Cluster        | Redpanda (C++, no JVM) | **Retained** — event backbone                   |
+| ClickHouse Cluster      | ClickHouse             | **Retained** — OLAP analytics                   |
+| Redpanda Connect        | Redpanda Connect       | **Retained** — stream-to-OLAP ETL               |
+| Ingestion Services (×6) | Go gRPC                | **Retained** — sensor ingestion                 |
+| Fusion Engine           | Go, Kalman Filter      | **Retained** — track correlation                |
+| Anomaly Detection       | Go, GPU inference      | **Retained** — AI risk scoring                  |
+| Feedback Service        | Go, trust scoring      | **Retained** — anti-poisoning                   |
+| Training Pipeline       | Go + Python            | **Retained** — model retraining                 |
+| Track Service           | Go gRPC                | **Retained** — gRPC-Web streaming for cold path |
+| Alert Service           | Go gRPC                | **Retained** — alert management                 |
+| Query Service           | Go gRPC                | **Retained** — ClickHouse queries               |
+| Audit Service           | Go gRPC                | **Retained** — immutable audit trail            |
+| NATO Adapter            | Go gRPC                | **Retained** — STANAG 5516 interop              |
+| Wasm Transforms         | Wasm (Go-compiled)     | **Retained** — in-broker validation             |
 
 ---
 
@@ -410,14 +411,14 @@ sequenceDiagram
 
 **Wasm Decoder Specifications:**
 
-| Property | Specification |
-|---|---|
-| Language | Rust (compiled to wasm32-unknown-unknown) |
-| Size | < 100 KB (.wasm) |
-| Allocation | Zero heap allocation in hot path (arena pre-allocated) |
-| Throughput | 500,000+ records/second decoded |
-| Output | Writes directly to SharedArrayBuffer via `wasm-bindgen` |
-| Track index | In-Wasm HashMap: UUID → slot index (O(1) lookup) |
+| Property    | Specification                                           |
+| ----------- | ------------------------------------------------------- |
+| Language    | Rust (compiled to wasm32-unknown-unknown)               |
+| Size        | < 100 KB (.wasm)                                        |
+| Allocation  | Zero heap allocation in hot path (arena pre-allocated)  |
+| Throughput  | 500,000+ records/second decoded                         |
+| Output      | Writes directly to SharedArrayBuffer via `wasm-bindgen` |
+| Track index | In-Wasm HashMap: UUID → slot index (O(1) lookup)        |
 
 **SharedArrayBuffer Layout:**
 
@@ -444,15 +445,15 @@ Total: ~6.1 MB SharedArrayBuffer
 
 ### 5.3 Why This Eliminates Current Bottlenecks
 
-| Current Bottleneck | Root Cause | New Architecture Solution |
-|---|---|---|
-| GeoJSON rebuild (15k allocs/frame) | `Array.from(tracks).map(toGeoJSON)` on main thread | Eliminated: GPU reads directly from typed buffer |
-| Zustand Map clone per batch | `new Map(state.tracks)` copies 15k entries | Eliminated: no JS track objects exist |
-| Protobuf decode overhead | ~50 μs per message × 1000 msg/frame | Replaced: FlatBuffer zero-copy, Wasm decoder |
-| MapLibre `setData()` serialization | GeoJSON → GL buffer conversion per frame | Eliminated: data is already in GPU-compatible layout |
-| HTML label DOM thrashing | 200 `<div>` elements repositioned per RAF | Replaced: GPU-rendered text via SDF atlas |
-| GC pauses causing frame drops | Millions of short-lived JS objects | Eliminated: hot path allocates zero JS objects |
-| Main thread saturation | All processing on single thread | Off-loaded: Data Worker + Render Worker + GPU |
+| Current Bottleneck                 | Root Cause                                         | New Architecture Solution                            |
+| ---------------------------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| GeoJSON rebuild (15k allocs/frame) | `Array.from(tracks).map(toGeoJSON)` on main thread | Eliminated: GPU reads directly from typed buffer     |
+| Zustand Map clone per batch        | `new Map(state.tracks)` copies 15k entries         | Eliminated: no JS track objects exist                |
+| Protobuf decode overhead           | ~50 μs per message × 1000 msg/frame                | Replaced: FlatBuffer zero-copy, Wasm decoder         |
+| MapLibre `setData()` serialization | GeoJSON → GL buffer conversion per frame           | Eliminated: data is already in GPU-compatible layout |
+| HTML label DOM thrashing           | 200 `<div>` elements repositioned per RAF          | Replaced: GPU-rendered text via SDF atlas            |
+| GC pauses causing frame drops      | Millions of short-lived JS objects                 | Eliminated: hot path allocates zero JS objects       |
+| Main thread saturation             | All processing on single thread                    | Off-loaded: Data Worker + Render Worker + GPU        |
 
 ---
 
@@ -559,16 +560,16 @@ fn cull_and_compact(@builtin(global_invocation_id) id: vec3u) {
 
 ### 6.3 Render Layers (Bottom to Top)
 
-| Layer | Technique | Vertex Count | Notes |
-|---|---|---|---|
-| **Base map** | Tiled raster or MVT vector tiles | Variable | Standard tile pyramid, cached to GPU textures |
-| **Geofences** | Polygon triangulation (Earcut) | Static | Pre-uploaded, rarely changes |
-| **Sensor coverage** | Arc geometry, semi-transparent | Per sensor | Updated on sensor health change only |
-| **Track trails** | Line strip per track, ring buffer | 20 pts × 50k | Alpha-decayed; oldest points fade to 0 |
-| **Track icons** | **Instanced quads** + icon atlas | 6 verts × visible | Single draw call for all tracks |
-| **Alert halos** | Instanced circles, animated radius | 32 verts × alerted | Pulsating animation via uniform time |
-| **Labels** | SDF text rendering | Per visible label | GPU-computed collision avoidance |
-| **Pick buffer** | Color-coded track ID, off-screen | Same as icons | Read back on click for selection |
+| Layer               | Technique                          | Vertex Count       | Notes                                         |
+| ------------------- | ---------------------------------- | ------------------ | --------------------------------------------- |
+| **Base map**        | Tiled raster or MVT vector tiles   | Variable           | Standard tile pyramid, cached to GPU textures |
+| **Geofences**       | Polygon triangulation (Earcut)     | Static             | Pre-uploaded, rarely changes                  |
+| **Sensor coverage** | Arc geometry, semi-transparent     | Per sensor         | Updated on sensor health change only          |
+| **Track trails**    | Line strip per track, ring buffer  | 20 pts × 50k       | Alpha-decayed; oldest points fade to 0        |
+| **Track icons**     | **Instanced quads** + icon atlas   | 6 verts × visible  | Single draw call for all tracks               |
+| **Alert halos**     | Instanced circles, animated radius | 32 verts × alerted | Pulsating animation via uniform time          |
+| **Labels**          | SDF text rendering                 | Per visible label  | GPU-computed collision avoidance              |
+| **Pick buffer**     | Color-coded track ID, off-screen   | Same as icons      | Read back on click for selection              |
 
 ### 6.4 Instanced Track Rendering
 
@@ -630,13 +631,13 @@ This provides **O(1) pixel-perfect selection** regardless of track count — no 
 
 Instead of HTML `<div>` overlays (current: 200 DOM elements causing layout thrashing), labels are rendered entirely on the GPU using **Signed Distance Field** font atlases:
 
-| Property | HTML Labels (Current) | SDF Labels (New) |
-|---|---|---|
-| Max labels | ~200 (DOM thrashing) | 5,000+ (GPU-rendered) |
-| Layout cost | Browser layout engine per frame | GPU compute shader per frame |
-| Collision avoidance | None (manual viewport cull) | GPU-computed spatial hash |
-| Anti-aliasing | Browser text rendering | SDF provides resolution-independent AA |
-| Customization | CSS (limited) | Shader-based (halos, outlines, animation) |
+| Property            | HTML Labels (Current)           | SDF Labels (New)                          |
+| ------------------- | ------------------------------- | ----------------------------------------- |
+| Max labels          | ~200 (DOM thrashing)            | 5,000+ (GPU-rendered)                     |
+| Layout cost         | Browser layout engine per frame | GPU compute shader per frame              |
+| Collision avoidance | None (manual viewport cull)     | GPU-computed spatial hash                 |
+| Anti-aliasing       | Browser text rendering          | SDF provides resolution-independent AA    |
+| Customization       | CSS (limited)                   | Shader-based (halos, outlines, animation) |
 
 ---
 
@@ -656,7 +657,7 @@ flowchart TD
     subgraph SolidApp["SolidJS Application (Main Thread)"]
         Shell["App Shell<br/>(Classification Banners)"]
         Toolbar["Toolbar<br/>(Role Selector, Dashboard Selector,<br/>Connection Status, Theme)"]
-        
+
         subgraph Panels["Overlay Panels"]
             Detail["Track Detail Panel<br/>(selected track info)"]
             Alerts["Alert Sidebar<br/>(priority-sorted list)"]
@@ -687,7 +688,7 @@ flowchart TD
     Bridge --> Alerts
     Bridge --> Counts
     Canvas -- "Transparent overlay" --> Shell
-    
+
     style SolidApp fill:#e8eaf6
     style Canvas fill:#e0f2f1
     style Bridge fill:#fff3e0
@@ -695,15 +696,15 @@ flowchart TD
 
 ### 7.2 Worker ↔ Main Thread Communication
 
-| Direction | Channel | Data | Frequency |
-|---|---|---|---|
-| Render → Main | `postMessage` | FPS, track count, visible count | 1 Hz |
-| Render → Main | `postMessage` | Picked track details (on click) | On demand |
-| Data Worker → Main | `postMessage` | Alert list (new/changed only) | On change |
-| Main → Render | `postMessage` | Viewport change (pan/zoom) | On user input |
-| Main → Render | `postMessage` | Selected track ID (highlight) | On click |
-| Main → Data Worker | `postMessage` | Filter criteria change | On user input |
-| Main → Backend | gRPC-Web (Protobuf) | Feedback, commands, queries | On user action |
+| Direction          | Channel             | Data                            | Frequency      |
+| ------------------ | ------------------- | ------------------------------- | -------------- |
+| Render → Main      | `postMessage`       | FPS, track count, visible count | 1 Hz           |
+| Render → Main      | `postMessage`       | Picked track details (on click) | On demand      |
+| Data Worker → Main | `postMessage`       | Alert list (new/changed only)   | On change      |
+| Main → Render      | `postMessage`       | Viewport change (pan/zoom)      | On user input  |
+| Main → Render      | `postMessage`       | Selected track ID (highlight)   | On click       |
+| Main → Data Worker | `postMessage`       | Filter criteria change          | On user input  |
+| Main → Backend     | gRPC-Web (Protobuf) | Feedback, commands, queries     | On user action |
 
 ### 7.3 Optimistic UI Pattern
 
@@ -751,31 +752,31 @@ gantt
 
 ### 8.2 Memory Budget
 
-| Component | Size | Location |
-|---|---|---|
-| SharedArrayBuffer (track data) | 6.1 MB | System RAM (shared) |
-| GPU track buffer | 6.1 MB | VRAM |
-| GPU interpolated buffer | 3.2 MB | VRAM |
-| GPU trail ring buffer | 12.8 MB | VRAM (20 pts × 50k × 12B) |
-| Icon atlas texture | 512 KB | VRAM |
-| SDF font atlas | 2 MB | VRAM |
-| Tile cache (256 tiles) | 64 MB | VRAM |
-| Pick buffer (1920×1080) | 8 MB | VRAM |
-| Wasm module heap | 4 MB | System RAM |
-| SolidJS DOM | ~2 MB | System RAM |
-| **Total VRAM** | **~97 MB** | — |
-| **Total System RAM** | **~12 MB** | — |
+| Component                      | Size       | Location                  |
+| ------------------------------ | ---------- | ------------------------- |
+| SharedArrayBuffer (track data) | 6.1 MB     | System RAM (shared)       |
+| GPU track buffer               | 6.1 MB     | VRAM                      |
+| GPU interpolated buffer        | 3.2 MB     | VRAM                      |
+| GPU trail ring buffer          | 12.8 MB    | VRAM (20 pts × 50k × 12B) |
+| Icon atlas texture             | 512 KB     | VRAM                      |
+| SDF font atlas                 | 2 MB       | VRAM                      |
+| Tile cache (256 tiles)         | 64 MB      | VRAM                      |
+| Pick buffer (1920×1080)        | 8 MB       | VRAM                      |
+| Wasm module heap               | 4 MB       | System RAM                |
+| SolidJS DOM                    | ~2 MB      | System RAM                |
+| **Total VRAM**                 | **~97 MB** | —                         |
+| **Total System RAM**           | **~12 MB** | —                         |
 
 ### 8.3 Network Bandwidth Budget
 
-| Stream | Rate | Record Size | Bandwidth |
-|---|---|---|---|
-| Track updates (hot) | 50,000 msg/s peak | 128 bytes | 6.1 MB/s |
-| Alert updates | 100 msg/s peak | 128 bytes | 12.5 KB/s |
-| Initial snapshot (50k tracks) | One-time | 128 bytes × 50k | 6.1 MB |
-| gRPC-Web commands | < 10 req/s | ~200 bytes avg | < 2 KB/s |
-| Map tiles | On pan/zoom | 256 KB avg | Bursty, cached |
-| **Total sustained** | — | — | **~6.5 MB/s** |
+| Stream                        | Rate              | Record Size     | Bandwidth      |
+| ----------------------------- | ----------------- | --------------- | -------------- |
+| Track updates (hot)           | 50,000 msg/s peak | 128 bytes       | 6.1 MB/s       |
+| Alert updates                 | 100 msg/s peak    | 128 bytes       | 12.5 KB/s      |
+| Initial snapshot (50k tracks) | One-time          | 128 bytes × 50k | 6.1 MB         |
+| gRPC-Web commands             | < 10 req/s        | ~200 bytes avg  | < 2 KB/s       |
+| Map tiles                     | On pan/zoom       | 256 KB avg      | Bursty, cached |
+| **Total sustained**           | —                 | —               | **~6.5 MB/s**  |
 
 ---
 
@@ -783,11 +784,11 @@ gantt
 
 ### ADR-V1-001: WebGPU for Tactical Display Rendering
 
-| Attribute | Value |
-|---|---|
-| **Status** | Proposed |
-| **Date** | 2026-03-05 |
-| **Affected Components** | web-cop (full rewrite) |
+| Attribute                | Value                         |
+| ------------------------ | ----------------------------- |
+| **Status**               | Proposed                      |
+| **Date**                 | 2026-03-05                    |
+| **Affected Components**  | web-cop (full rewrite)        |
 | **Related Requirements** | 50k track rendering at 60 FPS |
 
 **Context:** The current React + MapLibre GL architecture processes all track data on the main JS thread. GeoJSON serialization, Zustand Map cloning, and `setData()` calls consume 70–95% CPU at 5k tracks, leaving no headroom for growth. MapLibre GL uses WebGL 1/2 under the hood but exposes no compute shader capability.
@@ -795,19 +796,20 @@ gantt
 **Decision:** Replace the MapLibre GL rendering pipeline with a custom WebGPU renderer. Use compute shaders for interpolation, view-frustum culling, and label layout. Use instanced rendering for tracks, trails, halos, and labels.
 
 **Alternatives Considered:**
-- *deck.gl with WebGPU backend* — Not production-ready for compute shaders; adds 200 KB+ bundle; limited control over buffer layout.
-- *MapLibre + custom WebGL layers* — WebGL 2 lacks compute shaders; would still require CPU-side interpolation and culling.
-- *CesiumJS* — Overkill for 2D tactical display; heavy runtime; license constraints.
-- *Three.js + instanced mesh* — Possible, but no compute shaders in WebGL mode; WebGPU backend experimental.
+
+- _deck.gl with WebGPU backend_ — Not production-ready for compute shaders; adds 200 KB+ bundle; limited control over buffer layout.
+- _MapLibre + custom WebGL layers_ — WebGL 2 lacks compute shaders; would still require CPU-side interpolation and culling.
+- _CesiumJS_ — Overkill for 2D tactical display; heavy runtime; license constraints.
+- _Three.js + instanced mesh_ — Possible, but no compute shaders in WebGL mode; WebGPU backend experimental.
 
 **Consequences:** Requires custom tile rendering (or hybrid: raster tiles as texture, tracks via WebGPU). Higher development effort. Requires WebGPU-capable browsers (Chrome 113+, Edge 113+, Firefox Nightly).
 
 ### ADR-V1-002: SolidJS for Command UI Layer
 
-| Attribute | Value |
-|---|---|
-| **Status** | Proposed |
-| **Date** | 2026-03-05 |
+| Attribute               | Value            |
+| ----------------------- | ---------------- |
+| **Status**              | Proposed         |
+| **Date**                | 2026-03-05       |
 | **Affected Components** | web-cop UI shell |
 
 **Context:** The command layer (menus, panels, forms) is low-frequency and DOM-appropriate. React's Virtual DOM diffing adds unnecessary overhead when the main thread must stay under 20% CPU to preserve GPU pipeline headroom.
@@ -815,19 +817,20 @@ gantt
 **Decision:** Use SolidJS for the command UI layer. SolidJS compiles JSX to direct DOM operations with fine-grained reactive signals, eliminating Virtual DOM overhead.
 
 **Alternatives Considered:**
-- *Keep React* — Virtual DOM overhead tolerable at low frequency, but adds 45 KB runtime and risk of accidental re-renders.
-- *Svelte 5* — Comparable performance; less TypeScript ecosystem maturity.
-- *Vanilla DOM* — Maximum control but unmaintainable at scale.
-- *Lit (Web Components)* — Good perf, but weaker TSX/JSX DX for complex forms.
+
+- _Keep React_ — Virtual DOM overhead tolerable at low frequency, but adds 45 KB runtime and risk of accidental re-renders.
+- _Svelte 5_ — Comparable performance; less TypeScript ecosystem maturity.
+- _Vanilla DOM_ — Maximum control but unmaintainable at scale.
+- _Lit (Web Components)_ — Good perf, but weaker TSX/JSX DX for complex forms.
 
 **Consequences:** Team must learn SolidJS reactive primitives (signals, effects, memos). Zustand stores replaced with SolidJS signals. Connect-RPC gRPC-Web integration works identically (transport-level).
 
 ### ADR-V1-003: WebTransport with FlatBuffers for Hot Path
 
-| Attribute | Value |
-|---|---|
-| **Status** | Proposed |
-| **Date** | 2026-03-05 |
+| Attribute               | Value                                                        |
+| ----------------------- | ------------------------------------------------------------ |
+| **Status**              | Proposed                                                     |
+| **Date**                | 2026-03-05                                                   |
 | **Affected Components** | Backend serializer, WebTransport server, browser Data Worker |
 
 **Context:** gRPC-Web over HTTP/2 suffers from head-of-line blocking at the TCP level. For positional updates that are immediately superseded, retransmission wastes bandwidth and increases latency. Protobuf decoding allocates JS objects that create GC pressure.
@@ -835,18 +838,19 @@ gantt
 **Decision:** Use WebTransport (HTTP/3 / QUIC) with unreliable datagrams for real-time track updates. Serialize using FlatBuffers with a fixed 128-byte record stride for zero-copy GPU buffer mapping. Retain gRPC-Web for commands/queries.
 
 **Alternatives Considered:**
-- *WebSockets + custom binary* — No unreliable mode; TCP HOL blocking persists.
-- *gRPC-Web with Protobuf* — Current approach; decode overhead is the bottleneck.
-- *WebRTC DataChannel* — Unreliable mode exists but adds SRTP/DTLS complexity; designed for peer-to-peer, not server push.
+
+- _WebSockets + custom binary_ — No unreliable mode; TCP HOL blocking persists.
+- _gRPC-Web with Protobuf_ — Current approach; decode overhead is the bottleneck.
+- _WebRTC DataChannel_ — Unreliable mode exists but adds SRTP/DTLS complexity; designed for peer-to-peer, not server push.
 
 **Consequences:** Requires HTTP/3 capable proxy (Envoy with QUIC listener or Caddy). FlatBuffer schema maintained alongside Protobuf schema. Backend serializer is a new Go service consuming from Redpanda.
 
 ### ADR-V1-004: SharedArrayBuffer + Web Workers for Off-Main-Thread Processing
 
-| Attribute | Value |
-|---|---|
-| **Status** | Proposed |
-| **Date** | 2026-03-05 |
+| Attribute               | Value                 |
+| ----------------------- | --------------------- |
+| **Status**              | Proposed              |
+| **Date**                | 2026-03-05            |
 | **Affected Components** | Browser data pipeline |
 
 **Context:** Processing 50,000 updates/second on the main thread is impossible without frame drops. Even with requestAnimationFrame batching, the current architecture's per-batch Map cloning and GeoJSON construction blocks the main thread for 8–15 ms at scale.
@@ -854,18 +858,19 @@ gantt
 **Decision:** Use a dedicated Data Worker for WebTransport + Wasm decoding, writing to a SharedArrayBuffer. Use a Render Worker (OffscreenCanvas) for the WebGPU pipeline. Main thread handles only SolidJS UI controls.
 
 **Alternatives Considered:**
-- *Single worker with postMessage for render data* — Structured clone of 50k records per frame defeats the purpose.
-- *Main thread with careful batching* — Already proven insufficient at scale in current architecture.
-- *Comlink-based worker abstraction* — Adds async overhead per call; SAB is synchronous and zero-copy.
+
+- _Single worker with postMessage for render data_ — Structured clone of 50k records per frame defeats the purpose.
+- _Main thread with careful batching_ — Already proven insufficient at scale in current architecture.
+- _Comlink-based worker abstraction_ — Adds async overhead per call; SAB is synchronous and zero-copy.
 
 **Consequences:** Requires `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` headers for SharedArrayBuffer. All cross-origin resources (tiles, fonts) must support CORS.
 
 ### ADR-V1-005: Retain Redpanda and ClickHouse
 
-| Attribute | Value |
-|---|---|
-| **Status** | Accepted |
-| **Date** | 2026-03-05 |
+| Attribute               | Value            |
+| ----------------------- | ---------------- |
+| **Status**              | Accepted         |
+| **Date**                | 2026-03-05       |
 | **Affected Components** | None (no change) |
 
 **Context:** The Redpanda + ClickHouse backend has proven performant, edge-deployable, and operationally reliable.
@@ -873,6 +878,7 @@ gantt
 **Decision:** Retain Redpanda as the event streaming backbone and ClickHouse as the OLAP analytics engine without modification.
 
 **Rationale:**
+
 - Redpanda: C++ implementation, no JVM, microsecond latencies, Kafka-compatible, Wasm transforms, edge-deployable on single node
 - ClickHouse: Columnar compression, MergeTree partitioning, SQL familiarity, lightweight enough for edge
 - Both are mature with existing topic schemas, materialized views, and ETL pipelines
@@ -885,12 +891,12 @@ gantt
 
 ### 10.1 WebGPU Support Matrix (as of 2026-03)
 
-| Browser | WebGPU | WebTransport | SharedArrayBuffer | Status |
-|---|---|---|---|---|
-| Chrome 113+ | Yes | Yes | Yes (with COOP/COEP) | **Primary target** |
-| Edge 113+ | Yes | Yes | Yes (with COOP/COEP) | **Primary target** |
-| Firefox 128+ | Yes | Yes | Yes (with COOP/COEP) | **Supported** |
-| Safari 18+ | Partial | No | Yes | **Degraded** (WebSocket fallback) |
+| Browser      | WebGPU  | WebTransport | SharedArrayBuffer    | Status                            |
+| ------------ | ------- | ------------ | -------------------- | --------------------------------- |
+| Chrome 113+  | Yes     | Yes          | Yes (with COOP/COEP) | **Primary target**                |
+| Edge 113+    | Yes     | Yes          | Yes (with COOP/COEP) | **Primary target**                |
+| Firefox 128+ | Yes     | Yes          | Yes (with COOP/COEP) | **Supported**                     |
+| Safari 18+   | Partial | No           | Yes                  | **Degraded** (WebSocket fallback) |
 
 ### 10.2 Graceful Degradation Strategy
 
@@ -912,12 +918,12 @@ flowchart TD
     style FALLBACK_FULL fill:#d32f2f,color:#fff
 ```
 
-| Tier | Pipeline | Expected Track Capacity |
-|---|---|---|
-| **Tier 1** (full) | WebGPU + WebTransport + SAB + Wasm | 50,000+ tracks @ 60 FPS |
-| **Tier 2** (WS) | WebGPU + WebSocket + SAB + Wasm | 30,000+ tracks @ 60 FPS |
-| **Tier 3** (copy) | WebGPU + WebTransport + postMessage | 20,000+ tracks @ 60 FPS |
-| **Tier 4** (legacy) | MapLibre GL + gRPC-Web (current) | 5,000 tracks @ 30 FPS |
+| Tier                | Pipeline                            | Expected Track Capacity |
+| ------------------- | ----------------------------------- | ----------------------- |
+| **Tier 1** (full)   | WebGPU + WebTransport + SAB + Wasm  | 50,000+ tracks @ 60 FPS |
+| **Tier 2** (WS)     | WebGPU + WebSocket + SAB + Wasm     | 30,000+ tracks @ 60 FPS |
+| **Tier 3** (copy)   | WebGPU + WebTransport + postMessage | 20,000+ tracks @ 60 FPS |
+| **Tier 4** (legacy) | MapLibre GL + gRPC-Web (current)    | 5,000 tracks @ 30 FPS   |
 
 ---
 
@@ -927,30 +933,30 @@ All security requirements from the existing RTSA Security Architecture remain en
 
 ### 11.1 WebTransport Security
 
-| Concern | Mitigation |
-|---|---|
-| Authentication | Session token in WebTransport connection URL, validated against mTLS operator certificate |
-| Encryption | QUIC mandates TLS 1.3; CSE-approved cipher suites enforced at server |
+| Concern             | Mitigation                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| Authentication      | Session token in WebTransport connection URL, validated against mTLS operator certificate               |
+| Encryption          | QUIC mandates TLS 1.3; CSE-approved cipher suites enforced at server                                    |
 | Data classification | Classification field in each 128-byte record; client-side filter drops records above operator clearance |
-| Session management | Server-side session timeout (30 min); reconnect requires re-authentication |
-| Rate limiting | Server-side per-session datagram rate limit |
+| Session management  | Server-side session timeout (30 min); reconnect requires re-authentication                              |
+| Rate limiting       | Server-side per-session datagram rate limit                                                             |
 
 ### 11.2 SharedArrayBuffer Security
 
-| Concern | Mitigation |
-|---|---|
-| Spectre mitigation | COOP/COEP headers required; same-origin isolation enforced |
-| Memory corruption | Wasm sandboxing limits write to SAB bounds only; no raw pointer access from JS |
-| Cross-worker access | Only Data Worker writes; Render Worker reads; Main Thread reads metadata only |
+| Concern             | Mitigation                                                                     |
+| ------------------- | ------------------------------------------------------------------------------ |
+| Spectre mitigation  | COOP/COEP headers required; same-origin isolation enforced                     |
+| Memory corruption   | Wasm sandboxing limits write to SAB bounds only; no raw pointer access from JS |
+| Cross-worker access | Only Data Worker writes; Render Worker reads; Main Thread reads metadata only  |
 
 ### 11.3 WebGPU Security
 
-| Concern | Mitigation |
-|---|---|
+| Concern              | Mitigation                                                       |
+| -------------------- | ---------------------------------------------------------------- |
 | GPU memory isolation | WebGPU enforces per-context GPU memory isolation (browser-level) |
-| Shader execution | WGSL shaders validated by browser before GPU dispatch |
-| Pick buffer data | Contains only slot indices (integers), no sensitive data |
-| Denial of service | GPU workload bounded: max 50k instances, max 256 workgroup size |
+| Shader execution     | WGSL shaders validated by browser before GPU dispatch            |
+| Pick buffer data     | Contains only slot indices (integers), no sensitive data         |
+| Denial of service    | GPU workload bounded: max 50k instances, max 256 workgroup size  |
 
 ### 11.4 Audit Trail
 
@@ -962,37 +968,37 @@ All operator actions (feedback, alert acknowledgment, track selection) continue 
 
 ### 12.1 New Backend Components
 
-| Component | Replicas (DC) | Replicas (Edge) | CPU | Memory |
-|---|---|---|---|---|
-| FlatBuffer Serializer | 2 | 1 | 500m / 1000m | 128Mi / 256Mi |
-| WebTransport Server | 2 | 1 | 500m / 1000m | 256Mi / 512Mi |
+| Component             | Replicas (DC) | Replicas (Edge) | CPU          | Memory        |
+| --------------------- | ------------- | --------------- | ------------ | ------------- |
+| FlatBuffer Serializer | 2             | 1               | 500m / 1000m | 128Mi / 256Mi |
+| WebTransport Server   | 2             | 1               | 500m / 1000m | 256Mi / 512Mi |
 
 ### 12.2 Infrastructure Requirements
 
-| Change | Description |
-|---|---|
-| HTTP/3 proxy | Envoy with QUIC listener or Caddy reverse proxy for WebTransport |
-| COOP/COEP headers | `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp` on COP web app |
-| CORS for tiles | Tile server must set `Access-Control-Allow-Origin` for COEP compliance |
-| Wasm module hosting | Serve `.wasm` with `application/wasm` MIME type, cached aggressively |
+| Change              | Description                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------ |
+| HTTP/3 proxy        | Envoy with QUIC listener or Caddy reverse proxy for WebTransport                                       |
+| COOP/COEP headers   | `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp` on COP web app |
+| CORS for tiles      | Tile server must set `Access-Control-Allow-Origin` for COEP compliance                                 |
+| Wasm module hosting | Serve `.wasm` with `application/wasm` MIME type, cached aggressively                                   |
 
 ### 12.3 Updated Technology Stack
 
-| Layer | Current | New | Change Type |
-|---|---|---|---|
-| Event Streaming | Redpanda | Redpanda | **Retained** |
-| OLAP | ClickHouse | ClickHouse | **Retained** |
-| Backend Services | Go gRPC | Go gRPC | **Retained** |
-| Data Pipeline | Redpanda Connect | Redpanda Connect | **Retained** |
-| Real-time serialization | Protobuf (gRPC-Web) | FlatBuffers (WebTransport) + Protobuf (gRPC-Web) | **Added** |
-| Transport (hot path) | gRPC-Web/HTTP/2 | WebTransport/QUIC | **Replaced** |
-| Transport (commands) | gRPC-Web/HTTP/2 | gRPC-Web/HTTP/2 | **Retained** |
-| Browser decode | JS protobuf-ts | Rust Wasm FlatBuffer decoder | **Replaced** |
-| State management | Zustand (Map clone) | SharedArrayBuffer (zero-copy) | **Replaced** |
-| Rendering | MapLibre GL (WebGL) | Custom WebGPU pipeline | **Replaced** |
-| UI framework | React 18 | SolidJS | **Replaced** |
-| Text rendering | HTML div overlay | GPU SDF atlas | **Replaced** |
-| Selection | DOM event + MapLibre queryRenderedFeatures | GPU pick buffer | **Replaced** |
+| Layer                   | Current                                    | New                                              | Change Type  |
+| ----------------------- | ------------------------------------------ | ------------------------------------------------ | ------------ |
+| Event Streaming         | Redpanda                                   | Redpanda                                         | **Retained** |
+| OLAP                    | ClickHouse                                 | ClickHouse                                       | **Retained** |
+| Backend Services        | Go gRPC                                    | Go gRPC                                          | **Retained** |
+| Data Pipeline           | Redpanda Connect                           | Redpanda Connect                                 | **Retained** |
+| Real-time serialization | Protobuf (gRPC-Web)                        | FlatBuffers (WebTransport) + Protobuf (gRPC-Web) | **Added**    |
+| Transport (hot path)    | gRPC-Web/HTTP/2                            | WebTransport/QUIC                                | **Replaced** |
+| Transport (commands)    | gRPC-Web/HTTP/2                            | gRPC-Web/HTTP/2                                  | **Retained** |
+| Browser decode          | JS protobuf-ts                             | Rust Wasm FlatBuffer decoder                     | **Replaced** |
+| State management        | Zustand (Map clone)                        | SharedArrayBuffer (zero-copy)                    | **Replaced** |
+| Rendering               | MapLibre GL (WebGL)                        | Custom WebGPU pipeline                           | **Replaced** |
+| UI framework            | React 18                                   | SolidJS                                          | **Replaced** |
+| Text rendering          | HTML div overlay                           | GPU SDF atlas                                    | **Replaced** |
+| Selection               | DOM event + MapLibre queryRenderedFeatures | GPU pick buffer                                  | **Replaced** |
 
 ---
 
@@ -1041,6 +1047,7 @@ gantt
 ### 13.2 Coexistence During Migration
 
 During migration, both pipelines run simultaneously:
+
 - **New pipeline** (WebGPU): receives data via WebTransport + FlatBuffers
 - **Old pipeline** (React/MapLibre): continues receiving data via gRPC-Web
 - **Feature flag** (`RTSA_USE_WEBGPU=true`) toggles between pipelines at the COP entry point
@@ -1052,67 +1059,67 @@ During migration, both pipelines run simultaneously:
 
 ### 14.1 Performance Tests
 
-| Test | Tool | Target | Pass Criteria |
-|---|---|---|---|
-| 50k track rendering | Custom benchmark harness | 60 FPS sustained | p99 frame time < 16.67 ms |
-| 50k msg/s ingestion | Synthetic WebTransport feed | < 16 ms E2E latency | No frame drops over 60s |
-| GPU memory stability | 24-hour soak test | No VRAM growth | Stable ± 5 MB over 24h |
-| Fallback tier switch | Feature flag toggle | Correct rendering | All tiers render correctly |
+| Test                 | Tool                        | Target              | Pass Criteria              |
+| -------------------- | --------------------------- | ------------------- | -------------------------- |
+| 50k track rendering  | Custom benchmark harness    | 60 FPS sustained    | p99 frame time < 16.67 ms  |
+| 50k msg/s ingestion  | Synthetic WebTransport feed | < 16 ms E2E latency | No frame drops over 60s    |
+| GPU memory stability | 24-hour soak test           | No VRAM growth      | Stable ± 5 MB over 24h     |
+| Fallback tier switch | Feature flag toggle         | Correct rendering   | All tiers render correctly |
 
 ### 14.2 Security Tests
 
-| Test | Target | Pass Criteria |
-|---|---|---|
-| COOP/COEP enforcement | SharedArrayBuffer available only with correct headers | SAB unavailable without headers |
-| Classification filter | Records above clearance dropped client-side | No above-clearance data rendered |
-| WebTransport auth | Expired/invalid session token rejected | Connection refused |
-| Wasm memory bounds | Decoder cannot write outside SAB | No out-of-bounds write possible |
+| Test                  | Target                                                | Pass Criteria                    |
+| --------------------- | ----------------------------------------------------- | -------------------------------- |
+| COOP/COEP enforcement | SharedArrayBuffer available only with correct headers | SAB unavailable without headers  |
+| Classification filter | Records above clearance dropped client-side           | No above-clearance data rendered |
+| WebTransport auth     | Expired/invalid session token rejected                | Connection refused               |
+| Wasm memory bounds    | Decoder cannot write outside SAB                      | No out-of-bounds write possible  |
 
 ### 14.3 Compatibility Tests
 
-| Browser | Version | Test | Expected |
-|---|---|---|---|
-| Chrome | 113+ | Tier 1 (full) | 50k @ 60 FPS |
-| Edge | 113+ | Tier 1 (full) | 50k @ 60 FPS |
-| Firefox | 128+ | Tier 1 (full) | 50k @ 60 FPS |
-| Safari | 18+ | Tier 2 (WS fallback) | 30k @ 60 FPS |
-| Chrome (WebGPU disabled) | Any | Tier 4 (legacy) | 5k @ 30 FPS |
+| Browser                  | Version | Test                 | Expected     |
+| ------------------------ | ------- | -------------------- | ------------ |
+| Chrome                   | 113+    | Tier 1 (full)        | 50k @ 60 FPS |
+| Edge                     | 113+    | Tier 1 (full)        | 50k @ 60 FPS |
+| Firefox                  | 128+    | Tier 1 (full)        | 50k @ 60 FPS |
+| Safari                   | 18+     | Tier 2 (WS fallback) | 30k @ 60 FPS |
+| Chrome (WebGPU disabled) | Any     | Tier 4 (legacy)      | 5k @ 30 FPS  |
 
 ---
 
 ## 15. Risk Register
 
-| # | Risk | Probability | Impact | Mitigation |
-|---|---|---|---|---|
-| R-01 | WebGPU spec instability | Low (stable since 2023) | High | Pin to well-tested browser versions; fallback to Tier 4 |
-| R-02 | WebTransport firewall blocking | Medium | Medium | Tier 2 fallback via WebSocket; QUIC over 443 |
-| R-03 | SAB disabled by enterprise policy | Low | High | Tier 3 fallback via postMessage (20k track capacity) |
-| R-04 | GPU driver bugs on edge hardware | Medium | Medium | Explicit GPU adapter selection; software fallback |
-| R-05 | FlatBuffer schema drift vs Protobuf | Low | Medium | Schema generation from single source (.fbs → .proto sync) |
-| R-06 | SolidJS ecosystem maturity | Low | Low | Minimal dependency surface; core lib is stable |
-| R-07 | COOP/COEP breaks third-party integrations | Medium | Medium | Pre-audit all cross-origin resources; CORS proxy where needed |
-| R-08 | Wasm decoder memory leak | Low | High | Arena allocator with fixed-size budget; automated soak tests |
+| #    | Risk                                      | Probability             | Impact | Mitigation                                                    |
+| ---- | ----------------------------------------- | ----------------------- | ------ | ------------------------------------------------------------- |
+| R-01 | WebGPU spec instability                   | Low (stable since 2023) | High   | Pin to well-tested browser versions; fallback to Tier 4       |
+| R-02 | WebTransport firewall blocking            | Medium                  | Medium | Tier 2 fallback via WebSocket; QUIC over 443                  |
+| R-03 | SAB disabled by enterprise policy         | Low                     | High   | Tier 3 fallback via postMessage (20k track capacity)          |
+| R-04 | GPU driver bugs on edge hardware          | Medium                  | Medium | Explicit GPU adapter selection; software fallback             |
+| R-05 | FlatBuffer schema drift vs Protobuf       | Low                     | Medium | Schema generation from single source (.fbs → .proto sync)     |
+| R-06 | SolidJS ecosystem maturity                | Low                     | Low    | Minimal dependency surface; core lib is stable                |
+| R-07 | COOP/COEP breaks third-party integrations | Medium                  | Medium | Pre-audit all cross-origin resources; CORS proxy where needed |
+| R-08 | Wasm decoder memory leak                  | Low                     | High   | Arena allocator with fixed-size budget; automated soak tests  |
 
 ---
 
 ## 16. Appendix A — Glossary
 
-| Term | Definition |
-|---|---|
-| **COOP** | Cross-Origin-Opener-Policy — browser header isolating browsing context for SAB |
-| **COEP** | Cross-Origin-Embedder-Policy — browser header requiring CORS for all subresources |
-| **FlatBuffers** | Google's zero-copy serialization library (no decode step) |
-| **HOL Blocking** | Head-of-Line Blocking — TCP retransmit stalls all subsequent data |
-| **Instanced Rendering** | GPU technique drawing the same geometry N times with per-instance data |
-| **Pick Buffer** | Off-screen render target encoding object ID per pixel for hit testing |
-| **QUIC** | UDP-based transport protocol with multiplexed streams and built-in TLS |
-| **SAB** | SharedArrayBuffer — raw byte buffer accessible by multiple JS/Wasm threads |
-| **SDF** | Signed Distance Field — resolution-independent glyph rendering technique |
-| **WebGPU** | Modern GPU API for the web, successor to WebGL, supports compute shaders |
-| **WebTransport** | HTTP/3-based bidirectional transport with unreliable datagram mode |
-| **WGSL** | WebGPU Shading Language |
-| **Wasm** | WebAssembly — portable binary format for near-native code execution in browsers |
-| **Ring Buffer** | Fixed-size circular buffer; new writes overwrite oldest data |
+| Term                    | Definition                                                                        |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| **COOP**                | Cross-Origin-Opener-Policy — browser header isolating browsing context for SAB    |
+| **COEP**                | Cross-Origin-Embedder-Policy — browser header requiring CORS for all subresources |
+| **FlatBuffers**         | Google's zero-copy serialization library (no decode step)                         |
+| **HOL Blocking**        | Head-of-Line Blocking — TCP retransmit stalls all subsequent data                 |
+| **Instanced Rendering** | GPU technique drawing the same geometry N times with per-instance data            |
+| **Pick Buffer**         | Off-screen render target encoding object ID per pixel for hit testing             |
+| **QUIC**                | UDP-based transport protocol with multiplexed streams and built-in TLS            |
+| **SAB**                 | SharedArrayBuffer — raw byte buffer accessible by multiple JS/Wasm threads        |
+| **SDF**                 | Signed Distance Field — resolution-independent glyph rendering technique          |
+| **WebGPU**              | Modern GPU API for the web, successor to WebGL, supports compute shaders          |
+| **WebTransport**        | HTTP/3-based bidirectional transport with unreliable datagram mode                |
+| **WGSL**                | WebGPU Shading Language                                                           |
+| **Wasm**                | WebAssembly — portable binary format for near-native code execution in browsers   |
+| **Ring Buffer**         | Fixed-size circular buffer; new writes overwrite oldest data                      |
 
 ---
 
@@ -1134,13 +1141,13 @@ New Architecture (WebGPU):
 
 ### B.2 CPU Utilization at 10,000 Tracks
 
-| Thread | Current | New |
-|---|---|---|
-| Main thread | 85–95% | 5–15% |
-| Data Worker | N/A | 10–20% |
-| Render Worker | N/A | 5–10% |
+| Thread          | Current        | New             |
+| --------------- | -------------- | --------------- |
+| Main thread     | 85–95%         | 5–15%           |
+| Data Worker     | N/A            | 10–20%          |
+| Render Worker   | N/A            | 5–10%           |
 | GPU utilization | 20% (MapLibre) | 40–60% (WebGPU) |
 
 ---
 
-*End of document.*
+_End of document._
