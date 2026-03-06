@@ -207,7 +207,7 @@ func runTick(ctx context.Context, mgr *generator.EntityManager, sender client.Ob
 		}
 	}
 
-	// Cyber: 2-5 IOCs per tick (increased for better CYBER domain visibility).
+	// Cyber: 2 to 5 IOCs per tick (Intn(4) yields 0-3; +2 yields 2-5) for better CYBER domain visibility.
 	for i := 0; i < 2+r.Intn(4); i++ {
 		sendObs(ctx, sensor.GenerateCyberObservation(r), client.SensorTypeCyber, sender, &sent, &failed)
 	}

@@ -261,7 +261,9 @@ export const IntelSearchDashboard: React.FC = () => {
             {["AIR", "SURFACE", "SUBSURFACE", "LAND", "CYBER", "UNKNOWN"].map(
               (domain) => {
                 const count = results.tracks.filter((t) =>
-                  t.entityType.toUpperCase().includes(domain.toLowerCase() === "unknown" ? "" : domain)
+                  domain === "UNKNOWN"
+                    ? true
+                    : t.entityType.toUpperCase() === domain
                 ).length;
                 if (count === 0) return null;
                 return (

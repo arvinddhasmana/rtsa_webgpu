@@ -9,6 +9,7 @@ require (
 	github.com/arvinddhasmana/RTSA_VS_Opus/gen/go v0.0.0
 	github.com/arvinddhasmana/RTSA_VS_Opus/pkg v0.0.0
 	github.com/google/uuid v1.6.0
+	github.com/twmb/franz-go v1.17.0
 	go.opentelemetry.io/otel/trace v1.39.0
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.67.0
@@ -28,7 +29,6 @@ require (
 	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
-	github.com/twmb/franz-go v1.17.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.8.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel v1.39.0 // indirect
