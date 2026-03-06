@@ -1,0 +1,56 @@
+// CLASSIFICATION: UNCLASSIFIED
+// proto/rtsa/flatbuf/v1/track_update.fbs — Track position update record
+//
+// 128-byte GPU-aligned track record for WebTransport hot path.
+// Field order and byte offsets MUST match:
+//   - WGSL TrackRecord struct (web-cop-gpu/src/shaders/)
+//   - SharedArrayBuffer layout (web-cop-gpu/src/services/sab.ts)
+//   - Rust Wasm decoder (web-cop-gpu/wasm-decoder/src/lib.rs)
+//
+// Reference: docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md §2.3
+
+namespace rtsa.flatbuf.v1;
+
+enum ThreatLevel : uint32 {
+  Unknown  = 0,
+  Pending  = 1,
+  Friendly = 2,
+  Neutral  = 3,
+  Suspect  = 4,
+  Hostile  = 5,
+}
+
+// 128-byte GPU-aligned track record.
+// IMPORTANT: Field order matches SharedArrayBuffer binary layout
+// and WGSL TrackRecord struct — do NOT reorder fields.
+table TrackUpdate {
+  // ── Position (20 bytes) ─────────────────────────────────────────────────
+  longitude: float;            // offset 0x00 — radians, WGS-84
+  latitude: float;             // offset 0x04 — radians, WGS-84
+  course: float;               // offset 0x08 — radians, true north
+  speed: float;                // offset 0x0C — m/s
+  altitude: float;             // offset 0x10 — meters AMSL
+
+  // ── Identity (16 bytes) ─────────────────────────────────────────────────
+  track_id_hash: uint;         // offset 0x14 — FNV-1a hash of track UUID
+  source_bitmap: uint;         // offset 0x18 — sensor source bitmask (1 bit per SensorType)
+  classification_level: uint;  // offset 0x1C — security classification (ClassificationLevel enum value)
+  threat_level: ThreatLevel;   // offset 0x20 — hostile classification
+
+  // ── Display (12 bytes) ──────────────────────────────────────────────────
+  icon_index: uint;            // offset 0x24 — atlas lookup index (entity_type * 6 + threat_level)
+  alert_flags: uint;           // offset 0x28 — alert bitmask (bit 0 = anomaly detected)
+  update_epoch_ms: uint;       // offset 0x2C — server-side update timestamp (ms since epoch, lower 32 bits)
+
+  // ── Trail ring buffer (80 bytes = 5 x 16 bytes) ─────────────────────────
+  // Each entry: (lon_a, lat_a, lon_b, lat_b) — two endpoints of a trail segment
+  trail_0: [float];            // offset 0x30 — most recent segment (4 x float32)
+  trail_1: [float];            // offset 0x40
+  trail_2: [float];            // offset 0x50
+  trail_3: [float];            // offset 0x60
+  trail_4: [float];            // offset 0x70 — oldest segment
+
+  // Total: 128 bytes (aligned to 128-byte GPU cache line)
+}
+
+root_type TrackUpdate;
