@@ -12,9 +12,9 @@
     "lint": "eslint src/ --ext .ts,.tsx"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^1.10.1",
     "@connectrpc/connect": "^1.7.0",
     "@connectrpc/connect-web": "^1.7.0",
-    "@bufbuild/protobuf": "^1.10.1",
     "solid-js": "^1.9.0"
   },
   "devDependencies": {
@@ -24,6 +24,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vitest/coverage-v8": "^1.6.0",
+    "@webgpu/types": "^0.1.69",
     "eslint": "^8.57.0",
     "jsdom": "^24.0.0",
     "typescript": "^5.4.0",
