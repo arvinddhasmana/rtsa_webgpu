@@ -61,34 +61,42 @@ const RENDER_INTERVAL_MS = 16; // ~60 FPS
 let renderState: RenderState | null = null;
 let renderIntervalId: ReturnType<typeof setInterval> | null = null;
 let lastTickTime = performance.now();
-let canvas: OffscreenCanvas | null = null;
-let sab: SharedArrayBuffer | null = null;
+let activeCanvas: OffscreenCanvas | null = null;
+let activeSab: SharedArrayBuffer | null = null;
+
+/**
+ * Tear down existing GPU resources before re-initialisation.
+ * All GPU objects become invalid after device loss.
+ */
+function teardown(): void {
+  stopRenderLoop();
+  if (renderState) {
+    destroyAtlasTextures(renderState.atlas);
+    destroyPickResources(renderState.pick);
+    destroyBuffers(renderState.buffers);
+    // Do NOT call device.destroy() here — on device loss the device is already gone.
+    renderState = null;
+  }
+}
 
 /**
  * Initialise the full WebGPU rendering stack.
- * On device loss, this is called again with the same canvas and SAB.
+ * On device loss this is called again with the same canvas and SAB.
  */
 async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer): Promise<void> {
-  canvas = offscreen;
-  sab    = sabBuf;
+  activeCanvas = offscreen;
+  activeSab    = sabBuf;
 
-  // Tear down any existing state before re-init
-  if (renderState) {
-    stopRenderLoop();
-    destroyAtlasTextures(renderState.pipelines as unknown as Parameters<typeof destroyAtlasTextures>[0]);
-    destroyPickResources(renderState.pick);
-    destroyBuffers(renderState.buffers);
-  }
+  teardown();
 
   const { device, context, format } = await initGPU(offscreen);
 
   // Re-init on device loss (not destroyed)
-  device.lost.then((info) => {
+  device.lost.then((info: GPUDeviceLostInfo) => {
     if (info.reason === "destroyed") return;
     console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
-    stopRenderLoop();
-    if (canvas && sab) {
-      init(canvas, sab).catch((err: unknown) => {
+    if (activeCanvas && activeSab) {
+      init(activeCanvas, activeSab).catch((err: unknown) => {
         console.error("[RenderWorker] Re-init failed:", err);
       });
     }
@@ -112,6 +120,7 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer): Prom
     buffers,
     bindGroups,
     pipelines,
+    atlas,
     pick,
     sab: sabBuf,
     canvas: offscreen,
@@ -147,8 +156,8 @@ function startRenderLoop(): void {
 
     // Animate mock tracks and re-write to SAB
     tickMockTracks(dt);
-    if (sab) {
-      writeMockTracksToSAB(sab, MOCK_TRACK_COUNT);
+    if (activeSab) {
+      writeMockTracksToSAB(activeSab, MOCK_TRACK_COUNT);
     }
 
     try {
@@ -187,17 +196,17 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
       if (renderState) {
         renderState.canvas.width  = msg.width;
         renderState.canvas.height = msg.height;
-        // Re-create pick resources for new size
+        // Re-create pick resources for new canvas size
         destroyPickResources(renderState.pick);
         renderState.pick = createPickResources(
           renderState.device,
           msg.width,
           msg.height,
         );
-        // Re-configure canvas context
+        // Re-configure canvas context for new size
         renderState.context.configure({
-          device: renderState.device,
-          format: renderState.format,
+          device:    renderState.device,
+          format:    renderState.format,
           alphaMode: "premultiplied",
         });
       }
@@ -228,10 +237,14 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
   }
 });
 
-// Clean up on termination
+// Clean up on Worker termination
 self.addEventListener("close", () => {
   stopRenderLoop();
   if (renderState) {
+    destroyAtlasTextures(renderState.atlas);
+    destroyPickResources(renderState.pick);
+    destroyBuffers(renderState.buffers);
     renderState.device.destroy();
+    renderState = null;
   }
 });

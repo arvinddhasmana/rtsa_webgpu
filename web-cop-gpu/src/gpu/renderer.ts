@@ -19,20 +19,19 @@ import { GPUBuffers, MAX_TRACKS } from "./buffers";
 import { BindGroups } from "./bind-groups";
 import { AllPipelines } from "./pipelines";
 import { PickResources } from "./pick";
+import { AtlasTextures } from "./atlas";
 import { renderBackground } from "./map-tiles";
 import { writeUniforms, makeViewProjection } from "./uniforms";
 import { TRACK_DATA_OFFSET, RECORD_SIZE } from "../services/sab";
 
-/** Pre-allocated draw args reset data — zero per-frame heap alloc */
+/** Pre-allocated draw args reset data — zero per-frame heap alloc.
+ *  vertex_count=4 for quad-strip icons, halos, pick; instance_count reset to 0 before culling. */
 const DRAW_ARGS_RESET = new Uint32Array([
   4, // vertex_count (quad strip: 4 verts)
   0, // instance_count (reset to 0 before each culling pass)
   0, // first_vertex
   0, // first_instance
 ]);
-
-/** Pre-allocated trail draw args (24 verts per instance: 4 segments × 6 verts) */
-const TRAIL_DRAW_ARGS_RESET = new Uint32Array([24, 0, 0, 0]);
 
 export interface RenderState {
   device:     GPUDevice;
@@ -41,6 +40,7 @@ export interface RenderState {
   buffers:    GPUBuffers;
   bindGroups: BindGroups;
   pipelines:  AllPipelines;
+  atlas:      AtlasTextures;
   pick:       PickResources;
   sab:        SharedArrayBuffer;
   canvas:     OffscreenCanvas;
@@ -115,7 +115,6 @@ export function renderFrame(state: RenderState): void {
 
   // Reset indirect draw args (instance_count = 0) before culling
   device.queue.writeBuffer(buffers.drawArgs, 0, DRAW_ARGS_RESET);
-  device.queue.writeBuffer(buffers.drawArgs, 0, TRAIL_DRAW_ARGS_RESET); // reuse same buffer for trail (simplified)
 
   // Obtain the current swap chain texture
   const colorTexture = context.getCurrentTexture();
