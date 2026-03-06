@@ -643,12 +643,31 @@ Instead of HTML `<div>` overlays (current: 200 DOM elements causing layout thras
 
 ## 7. SolidJS Command Layer
 
-SolidJS replaces React for the UI control layer (menus, alert panels, classification buttons, feedback forms). It runs on the **main thread** but has near-zero overhead because:
+SolidJS is the **sole UI framework** — it handles all DOM-based user interactions including operator feedback, alert management, track inspection, search, and forensic queries. WebGPU handles only the tactical map rendering (canvas). There is no React, no MapLibre, no Zustand in the codebase.
+
+SolidJS runs on the **main thread** but has near-zero overhead because:
 
 1. **No Virtual DOM** — SolidJS compiles to direct DOM mutations (no diffing)
 2. **Fine-grained reactivity** — only the specific text node or attribute changes, not the component tree
 3. **~7 KB runtime** vs. React's ~45 KB (react + react-dom)
 4. **No re-renders** — signals propagate updates surgically
+
+### SolidJS Covers All Interactive UI
+
+Every user-facing feature that was previously a React component is implemented in SolidJS:
+
+| Feature | SolidJS Component | Backend Integration |
+| --- | --- | --- |
+| **Operator Feedback** (classify track, confirm/reject alert) | `FeedbackForm` | gRPC-Web → Feedback Service → Redpanda → Audit |
+| **Alert Acknowledgment** (inspect, confirm, reject, assign) | `AlertSidebar` + `AlertActions` | gRPC-Web → Alert Service → Redpanda → Audit |
+| **Track Detail Inspection** | `TrackDetailPanel` | GPU pick buffer → Worker → Main → SolidJS signal |
+| **Role & Dashboard Selection** | `RoleSelector` + `DashboardSelector` | Local SolidJS signal (no backend call) |
+| **Search** (track/alert text search) | `SearchOverlay` | gRPC-Web → Query Service → ClickHouse |
+| **Forensic Queries** (time range, spatial, attribute) | `QueryBuilder` + `ResultsView` | gRPC-Web → Query Service → ClickHouse |
+| **Event Timeline** | `EventTimeline` | gRPC-Web → Query Service → ClickHouse |
+| **Classification Banners** | `ClassificationBanner` | Static (deployment config) |
+| **Connection Status** | `ConnectionIndicator` | WebTransport readyState + gRPC health |
+| **FPS / Latency Metrics** | `StatusBar` | Render Worker → postMessage → SolidJS signal |
 
 ### 7.1 Component Architecture
 
@@ -802,7 +821,7 @@ gantt
 - _CesiumJS_ — Overkill for 2D tactical display; heavy runtime; license constraints.
 - _Three.js + instanced mesh_ — Possible, but no compute shaders in WebGL mode; WebGPU backend experimental.
 
-**Consequences:** Requires custom tile rendering (or hybrid: raster tiles as texture, tracks via WebGPU). Higher development effort. Requires WebGPU-capable browsers (Chrome 113+, Edge 113+, Firefox Nightly).
+**Consequences:** Requires custom tile rendering (or hybrid: raster tiles as texture, tracks via WebGPU). Higher development effort. Requires WebGPU-capable browsers (Chrome 113+, Edge 113+, Firefox 128+). Non-WebGPU browsers are blocked at startup (see ADR-V1-006).
 
 ### ADR-V1-002: SolidJS for Command UI Layer
 
@@ -885,45 +904,89 @@ gantt
 
 **Consequences:** No backend data layer changes required. FlatBuffer Serializer consumes from existing Redpanda topics.
 
+### ADR-V1-006: WebGPU-Only COP — No Legacy Fallback Pipeline
+
+| Attribute               | Value                                      |
+| ----------------------- | ------------------------------------------ |
+| **Status**              | Accepted                                   |
+| **Date**                | 2026-03-05                                 |
+| **Affected Components** | web-cop                                    |
+| **Related Requirements** | Deployment simplification, dev velocity   |
+
+**Context:** The original architecture proposed a 4-tier graceful degradation strategy with a Tier 4 legacy fallback retaining the full React + MapLibre + Zustand + gRPC-Web pipeline. This required maintaining two complete frontend stacks (React and SolidJS), two data paths (gRPC-Web streaming and WebTransport), two state management systems (Zustand and SharedArrayBuffer), and a feature flag toggling between them. For a 3–5 person team, this doubles the testing surface and creates ongoing maintenance burden.
+
+**Decision:** Remove all legacy fallback tiers. The COP requires WebGPU + WebTransport + SharedArrayBuffer as hard prerequisites. Non-capable browsers display a blocking requirements message instead of a degraded experience. There is no React, MapLibre, or Zustand code in the new codebase.
+
+**Rationale:**
+- RTSA COP runs on **controlled military workstations** — not consumer BYOD. Browser and hardware are provisioned.
+- WebGPU has been stable in Chrome/Edge for ~3 years (since May 2023) and Firefox for ~2 years (mid-2024).
+- Maintaining two frontend stacks for a 3–5 person team is disproportionate effort.
+- Every feature must be implemented and tested twice with dual pipelines.
+- Feature flag complexity introduces subtle dual-path bugs.
+- The legacy pipeline's 5k track ceiling is operationally insufficient regardless — there is no scenario where falling back to it is acceptable for mission use.
+
+**Alternatives Considered:**
+- *Keep Tier 4 React/MapLibre fallback* — Doubles dev/test effort; legacy ceiling (5k tracks) is mission-inadequate.
+- *Keep Tier 2–3 WebGPU with WebSocket/postMessage* — Still requires alternative transport/state code paths; modest benefit.
+- *Progressive enhancement* — Attractive in principle but incompatible with zero-copy SharedArrayBuffer design (the fundamental architecture change).
+
+**Consequences:** Non-WebGPU browsers cannot run the COP. Operator workstation provisioning must specify Chrome 113+ or Edge 113+ as minimum. Deployment pre-checks must validate WebGPU, WebTransport, and SharedArrayBuffer availability. This eliminates ~2 weeks of fallback implementation effort and removes the React/MapLibre/Zustand dependency tree entirely.
+
 ---
 
-## 10. Browser Compatibility & Fallback Strategy
+## 10. Browser Compatibility & Requirements
 
-### 10.1 WebGPU Support Matrix (as of 2026-03)
+### 10.1 Minimum Browser Requirements (Mandatory)
 
-| Browser      | WebGPU  | WebTransport | SharedArrayBuffer    | Status                            |
-| ------------ | ------- | ------------ | -------------------- | --------------------------------- |
-| Chrome 113+  | Yes     | Yes          | Yes (with COOP/COEP) | **Primary target**                |
-| Edge 113+    | Yes     | Yes          | Yes (with COOP/COEP) | **Primary target**                |
-| Firefox 128+ | Yes     | Yes          | Yes (with COOP/COEP) | **Supported**                     |
-| Safari 18+   | Partial | No           | Yes                  | **Degraded** (WebSocket fallback) |
+All three capabilities must be present. The COP **will not load** without them.
 
-### 10.2 Graceful Degradation Strategy
+| Capability | Minimum Browser | Detection |
+| --- | --- | --- |
+| WebGPU | Chrome 113+, Edge 113+, Firefox 128+ | `navigator.gpu !== undefined` |
+| WebTransport | Chrome 97+, Edge 97+, Firefox 114+ | `typeof WebTransport !== 'undefined'` |
+| SharedArrayBuffer | All modern (with COOP/COEP headers) | `typeof SharedArrayBuffer !== 'undefined'` |
+
+### 10.2 Supported Browsers (as of 2026-03)
+
+| Browser      | WebGPU | WebTransport | SharedArrayBuffer    | Status               |
+| ------------ | ------ | ------------ | -------------------- | -------------------- |
+| Chrome 113+  | Yes    | Yes          | Yes (with COOP/COEP) | **Approved**         |
+| Edge 113+    | Yes    | Yes          | Yes (with COOP/COEP) | **Approved**         |
+| Firefox 128+ | Yes    | Yes          | Yes (with COOP/COEP) | **Approved**         |
+| Safari 18+   | Partial| No WT        | Yes                  | **Not supported**    |
+| Older browsers | No   | No           | Varies               | **Not supported**    |
+
+### 10.2 Browser Requirements Gate (No Legacy Fallback)
+
+The RTSA COP is a controlled-environment military application. Operator workstations are provisioned with approved hardware and browser versions. Rather than maintaining a parallel legacy pipeline (React + MapLibre), the application enforces a **hard requirements gate** at startup:
 
 ```mermaid
 flowchart TD
     START["Browser loads COP"] --> CHECK_GPU{"navigator.gpu\nexists?"}
     CHECK_GPU -- Yes --> CHECK_WT{"WebTransport\navailable?"}
-    CHECK_GPU -- No --> FALLBACK_FULL["Full fallback:\nMapLibre GL + gRPC-Web\n(current architecture)"]
+    CHECK_GPU -- No --> BLOCK_GPU["BLOCKED:\nDisplay browser requirements.\nWebGPU required.\nApproved: Chrome 113+,\nEdge 113+, Firefox 128+"]
 
     CHECK_WT -- Yes --> CHECK_SAB{"SharedArrayBuffer\navailable?"}
-    CHECK_WT -- No --> FALLBACK_WS["WebSocket fallback:\nWebGPU + WS + Worker\n(slightly higher latency)"]
+    CHECK_WT -- No --> BLOCK_WT["BLOCKED:\nWebTransport required.\nCheck firewall/proxy config.\nQUIC (UDP 443) must\nbe permitted."]
 
     CHECK_SAB -- Yes --> FULL["Full pipeline:\nWebGPU + WebTransport + SAB\n(maximum performance)"]
-    CHECK_SAB -- No --> FALLBACK_COPY["Copy fallback:\nWebGPU + WebTransport + postMessage\n(good performance, higher GC)"]
+    CHECK_SAB -- No --> BLOCK_SAB["BLOCKED:\nSharedArrayBuffer unavailable.\nEnsure COOP/COEP headers\nare configured on server."]
 
     style FULL fill:#2e7d32,color:#fff
-    style FALLBACK_WS fill:#f57c00,color:#fff
-    style FALLBACK_COPY fill:#f57c00,color:#fff
-    style FALLBACK_FULL fill:#d32f2f,color:#fff
+    style BLOCK_GPU fill:#d32f2f,color:#fff
+    style BLOCK_WT fill:#d32f2f,color:#fff
+    style BLOCK_SAB fill:#d32f2f,color:#fff
 ```
 
-| Tier                | Pipeline                            | Expected Track Capacity |
-| ------------------- | ----------------------------------- | ----------------------- |
-| **Tier 1** (full)   | WebGPU + WebTransport + SAB + Wasm  | 50,000+ tracks @ 60 FPS |
-| **Tier 2** (WS)     | WebGPU + WebSocket + SAB + Wasm     | 30,000+ tracks @ 60 FPS |
-| **Tier 3** (copy)   | WebGPU + WebTransport + postMessage | 20,000+ tracks @ 60 FPS |
-| **Tier 4** (legacy) | MapLibre GL + gRPC-Web (current)    | 5,000 tracks @ 30 FPS   |
+**Rationale for no legacy fallback (see ADR-V1-006):**
+
+| Factor | Justification |
+| --- | --- |
+| Controlled environment | Military COP — operator workstations are provisioned, not BYOD |
+| Browser maturity | WebGPU stable in Chrome/Edge since May 2023 (~3 years), Firefox since mid-2024 |
+| Team size | 3–5 developers — maintaining two UI frameworks doubles testing surface |
+| Development velocity | Single pipeline eliminates feature flag complexity and dual-path bugs |
+| Testing matrix | Cut in half — no React/MapLibre/Zustand code paths to validate |
 
 ---
 
@@ -1036,22 +1099,26 @@ gantt
     SDF label rendering                       :p3c, 2026-04-21, 7d
     Alert halos + geofences                   :p3d, 2026-04-21, 7d
 
-    section Phase 4 — Polish & Hardening
-    Fallback pipeline (Tier 2–4)              :p4a, 2026-04-28, 7d
+    section Phase 4 — Hardening & Cutover
+    Browser requirements gate implementation  :p4a, 2026-04-28, 3d
     Performance benchmarking (50k tracks)     :p4b, 2026-04-28, 7d
     Security audit (SAB, COOP/COEP, QUIC)     :p4c, 2026-05-05, 7d
     Edge deployment validation                :p4d, 2026-05-05, 7d
-    Documentation + ADR finalization          :p4e, 2026-05-12, 7d
+    Old web-cop archival + cleanup            :p4e, 2026-05-12, 3d
+    Documentation + ADR finalization          :p4f, 2026-05-12, 5d
 ```
 
-### 13.2 Coexistence During Migration
+### 13.2 Clean-Break Migration
 
-During migration, both pipelines run simultaneously:
+The new COP is built as a **separate application** (`web-cop-gpu/`) alongside the existing `web-cop/` during development. There is no feature flag or runtime switching between old and new pipelines.
 
-- **New pipeline** (WebGPU): receives data via WebTransport + FlatBuffers
-- **Old pipeline** (React/MapLibre): continues receiving data via gRPC-Web
-- **Feature flag** (`RTSA_USE_WEBGPU=true`) toggles between pipelines at the COP entry point
-- The old pipeline serves as the Tier 4 fallback post-migration
+- **Development**: New `web-cop-gpu/` project with SolidJS + WebGPU from scratch
+- **Backend**: FlatBuffer Serializer and WebTransport Server deployed alongside existing gRPC services
+- **Validation**: New COP validated against the same synthetic test data as old COP
+- **Cutover**: Once performance targets are met, `web-cop-gpu/` replaces `web-cop/` as the deployed COP
+- **Cleanup**: Old `web-cop/` archived; React/MapLibre/Zustand dependencies removed from the repository
+
+This avoids feature flag complexity, dual-path bugs, and the overhead of maintaining two frontend frameworks simultaneously.
 
 ---
 
@@ -1064,7 +1131,7 @@ During migration, both pipelines run simultaneously:
 | 50k track rendering  | Custom benchmark harness    | 60 FPS sustained    | p99 frame time < 16.67 ms  |
 | 50k msg/s ingestion  | Synthetic WebTransport feed | < 16 ms E2E latency | No frame drops over 60s    |
 | GPU memory stability | 24-hour soak test           | No VRAM growth      | Stable ± 5 MB over 24h     |
-| Fallback tier switch | Feature flag toggle         | Correct rendering   | All tiers render correctly |
+| Browser gate         | Non-WebGPU browser test     | Blocking message    | COP does not load; clear error shown |
 
 ### 14.2 Security Tests
 
@@ -1079,11 +1146,11 @@ During migration, both pipelines run simultaneously:
 
 | Browser                  | Version | Test                 | Expected     |
 | ------------------------ | ------- | -------------------- | ------------ |
-| Chrome                   | 113+    | Tier 1 (full)        | 50k @ 60 FPS |
-| Edge                     | 113+    | Tier 1 (full)        | 50k @ 60 FPS |
-| Firefox                  | 128+    | Tier 1 (full)        | 50k @ 60 FPS |
-| Safari                   | 18+     | Tier 2 (WS fallback) | 30k @ 60 FPS |
-| Chrome (WebGPU disabled) | Any     | Tier 4 (legacy)      | 5k @ 30 FPS  |
+| Chrome                   | 113+    | Full pipeline        | 50k @ 60 FPS                  |
+| Edge                     | 113+    | Full pipeline        | 50k @ 60 FPS                  |
+| Firefox                  | 128+    | Full pipeline        | 50k @ 60 FPS                  |
+| Safari                   | 18+     | Requirements gate    | Blocked (no WebTransport)     |
+| Chrome (WebGPU disabled) | Any     | Requirements gate    | Blocked (clear error message) |
 
 ---
 
@@ -1091,10 +1158,10 @@ During migration, both pipelines run simultaneously:
 
 | #    | Risk                                      | Probability             | Impact | Mitigation                                                    |
 | ---- | ----------------------------------------- | ----------------------- | ------ | ------------------------------------------------------------- |
-| R-01 | WebGPU spec instability                   | Low (stable since 2023) | High   | Pin to well-tested browser versions; fallback to Tier 4       |
-| R-02 | WebTransport firewall blocking            | Medium                  | Medium | Tier 2 fallback via WebSocket; QUIC over 443                  |
-| R-03 | SAB disabled by enterprise policy         | Low                     | High   | Tier 3 fallback via postMessage (20k track capacity)          |
-| R-04 | GPU driver bugs on edge hardware          | Medium                  | Medium | Explicit GPU adapter selection; software fallback             |
+| R-01 | WebGPU spec instability                   | Low (stable since 2023) | High   | Pin to well-tested browser versions in workstation provisioning |
+| R-02 | WebTransport firewall blocking            | Medium                  | Medium | Network provisioning must permit QUIC (UDP 443); pre-deployment check |
+| R-03 | SAB disabled by enterprise policy         | Low                     | High   | COOP/COEP headers mandatory in deployment config; pre-deployment validation |
+| R-04 | GPU driver bugs on edge hardware          | Medium                  | Medium | Explicit GPU adapter selection; approved hardware list for workstations |
 | R-05 | FlatBuffer schema drift vs Protobuf       | Low                     | Medium | Schema generation from single source (.fbs → .proto sync)     |
 | R-06 | SolidJS ecosystem maturity                | Low                     | Low    | Minimal dependency surface; core lib is stable                |
 | R-07 | COOP/COEP breaks third-party integrations | Medium                  | Medium | Pre-audit all cross-origin resources; CORS proxy where needed |
