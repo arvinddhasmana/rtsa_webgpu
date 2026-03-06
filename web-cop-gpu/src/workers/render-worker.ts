@@ -1,47 +1,161 @@
 // CLASSIFICATION: UNCLASSIFIED
-// src/workers/render-worker.ts — Render Worker shell
+// src/workers/render-worker.ts — Render Worker (Phase 1: Full WebGPU implementation)
 //
 // Responsibilities:
 //   1. Accept OffscreenCanvas + SAB via postMessage
-//   2. Run a 60 Hz render loop (16ms setInterval)
-//   3. Read active_track_count from SAB header and log it (proves data flow)
-//   4. WebGPU device acquisition deferred to Phase 1
+//   2. Initialise WebGPU device, buffers, pipelines, atlases
+//   3. Seed the SAB with mock track data (Phase 1 — Phase 2 will provide real data)
+//   4. Run a 60 Hz render loop executing the full GPU pipeline
+//   5. Handle pick buffer read-back on "select_track" messages
+//   6. Handle device loss with re-initialisation
 //
-// Reference: docs/implementation/v4/phase0_foundation.md F0-7
+// Reference: docs/implementation/v4/phase1_core_rendering.md
+//            docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md
 
-const RENDER_INTERVAL_MS = 16; // ~60 FPS
+import { initGPU }           from "../gpu/device";
+import { allocateBuffers, destroyBuffers } from "../gpu/buffers";
+import { createPipelines }   from "../gpu/pipelines";
+import { createBindGroups }  from "../gpu/bind-groups";
+import { createPickResources, destroyPickResources, readPickPixel } from "../gpu/pick";
+import { createAtlasTextures, destroyAtlasTextures } from "../gpu/atlas";
+import { renderFrame, type RenderState } from "../gpu/renderer";
+import { initMockTracks, writeMockTracksToSAB, tickMockTracks, MOCK_TRACK_COUNT } from "../gpu/mock-data";
 
-const HEADER_OFFSET_ACTIVE_TRACK_COUNT = 0; // uint32 index 0 → byte 0
-const HEADER_OFFSET_WRITE_GENERATION = 1;   // uint32 index 1 → byte 4
-
+/** Messages accepted by the Render Worker */
 interface InitMessage {
   type: "init";
   canvas: OffscreenCanvas;
   sab: SharedArrayBuffer;
 }
 
-let header: Uint32Array | null = null;
+interface ResizeMessage {
+  type: "resize";
+  width: number;
+  height: number;
+}
+
+interface SelectTrackMessage {
+  type: "select_track";
+  x: number;
+  y: number;
+}
+
+/** Messages sent back to the main thread */
+interface PickedMessage {
+  type: "picked";
+  trackIdHash: number;
+  x: number;
+  y: number;
+}
+
+interface StatusMessage {
+  type: "status";
+  ready: boolean;
+  error?: string;
+}
+
+type InboundMessage = InitMessage | ResizeMessage | SelectTrackMessage;
+
+const RENDER_INTERVAL_MS = 16; // ~60 FPS
+
+let renderState: RenderState | null = null;
 let renderIntervalId: ReturnType<typeof setInterval> | null = null;
-let frameCount = 0;
+let lastTickTime = performance.now();
+let canvas: OffscreenCanvas | null = null;
+let sab: SharedArrayBuffer | null = null;
+
+/**
+ * Initialise the full WebGPU rendering stack.
+ * On device loss, this is called again with the same canvas and SAB.
+ */
+async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer): Promise<void> {
+  canvas = offscreen;
+  sab    = sabBuf;
+
+  // Tear down any existing state before re-init
+  if (renderState) {
+    stopRenderLoop();
+    destroyAtlasTextures(renderState.pipelines as unknown as Parameters<typeof destroyAtlasTextures>[0]);
+    destroyPickResources(renderState.pick);
+    destroyBuffers(renderState.buffers);
+  }
+
+  const { device, context, format } = await initGPU(offscreen);
+
+  // Re-init on device loss (not destroyed)
+  device.lost.then((info) => {
+    if (info.reason === "destroyed") return;
+    console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
+    stopRenderLoop();
+    if (canvas && sab) {
+      init(canvas, sab).catch((err: unknown) => {
+        console.error("[RenderWorker] Re-init failed:", err);
+      });
+    }
+  });
+
+  // Allocate all GPU resources (zero per-frame allocation after this)
+  const buffers    = allocateBuffers(device);
+  const atlas      = createAtlasTextures(device);
+  const pick       = createPickResources(device, offscreen.width, offscreen.height);
+  const pipelines  = createPipelines(device, format);
+  const bindGroups = createBindGroups(device, pipelines, buffers, atlas, pick);
+
+  // Seed SAB with mock data (Phase 1 — until real WebTransport data arrives)
+  initMockTracks(MOCK_TRACK_COUNT);
+  writeMockTracksToSAB(sabBuf, MOCK_TRACK_COUNT);
+
+  renderState = {
+    device,
+    context,
+    format,
+    buffers,
+    bindGroups,
+    pipelines,
+    pick,
+    sab: sabBuf,
+    canvas: offscreen,
+    trackCount: MOCK_TRACK_COUNT,
+    camera: {
+      centerLon: 0,
+      centerLat: 0,
+      scale:     2.0,
+    },
+    lastFrameTime: performance.now(),
+  };
+
+  startRenderLoop();
+
+  const status: StatusMessage = { type: "status", ready: true };
+  self.postMessage(status);
+
+  console.log(
+    `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
+    `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
+  );
+}
 
 function startRenderLoop(): void {
   if (renderIntervalId !== null) return;
 
   renderIntervalId = setInterval(() => {
-    if (!header) return;
+    if (!renderState) return;
 
-    frameCount++;
-    const trackCount = Atomics.load(header, HEADER_OFFSET_ACTIVE_TRACK_COUNT);
-    const generation = Atomics.load(header, HEADER_OFFSET_WRITE_GENERATION);
+    const now = performance.now();
+    const dt  = now - lastTickTime;
+    lastTickTime = now;
 
-    // Log track count every 60 frames (~1 second) to prove data flow
-    if (frameCount % 60 === 0) {
-      console.log(
-        `[RenderWorker] frame=${frameCount} tracks=${trackCount} gen=${generation}`,
-      );
+    // Animate mock tracks and re-write to SAB
+    tickMockTracks(dt);
+    if (sab) {
+      writeMockTracksToSAB(sab, MOCK_TRACK_COUNT);
     }
 
-    // TODO(Phase 1): WebGPU render pass goes here
+    try {
+      renderFrame(renderState);
+    } catch (err) {
+      console.error("[RenderWorker] renderFrame error:", err);
+    }
   }, RENDER_INTERVAL_MS);
 }
 
@@ -52,24 +166,72 @@ function stopRenderLoop(): void {
   }
 }
 
-self.addEventListener("message", (event: MessageEvent<InitMessage>) => {
+self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
   const msg = event.data;
 
-  if (msg.type === "init") {
-    // Store SAB header view (first 4096 bytes as Uint32Array)
-    header = new Uint32Array(msg.sab, 0, 4096 / 4);
+  switch (msg.type) {
+    case "init": {
+      init(msg.canvas, msg.sab).catch((err: unknown) => {
+        console.error("[RenderWorker] Init failed:", err);
+        const status: StatusMessage = {
+          type:  "status",
+          ready: false,
+          error: err instanceof Error ? err.message : String(err),
+        };
+        self.postMessage(status);
+      });
+      break;
+    }
 
-    // OffscreenCanvas received — WebGPU context will be acquired in Phase 1
-    // For Phase 0 we just confirm receipt and start the loop
-    console.log(
-      `[RenderWorker] Initialised. Canvas: ${msg.canvas.width}×${msg.canvas.height}`,
-    );
+    case "resize": {
+      if (renderState) {
+        renderState.canvas.width  = msg.width;
+        renderState.canvas.height = msg.height;
+        // Re-create pick resources for new size
+        destroyPickResources(renderState.pick);
+        renderState.pick = createPickResources(
+          renderState.device,
+          msg.width,
+          msg.height,
+        );
+        // Re-configure canvas context
+        renderState.context.configure({
+          device: renderState.device,
+          format: renderState.format,
+          alphaMode: "premultiplied",
+        });
+      }
+      break;
+    }
 
-    startRenderLoop();
+    case "select_track": {
+      if (renderState) {
+        readPickPixel(renderState.device, renderState.pick, msg.x, msg.y)
+          .then((trackIdHash) => {
+            const picked: PickedMessage = {
+              type: "picked",
+              trackIdHash,
+              x: msg.x,
+              y: msg.y,
+            };
+            self.postMessage(picked);
+          })
+          .catch((err: unknown) => {
+            console.error("[RenderWorker] Pick readback error:", err);
+          });
+      }
+      break;
+    }
+
+    default:
+      break;
   }
 });
 
 // Clean up on termination
 self.addEventListener("close", () => {
   stopRenderLoop();
+  if (renderState) {
+    renderState.device.destroy();
+  }
 });
