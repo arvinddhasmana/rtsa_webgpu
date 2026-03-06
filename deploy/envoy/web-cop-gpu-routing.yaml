@@ -1,0 +1,121 @@
+# CLASSIFICATION: UNCLASSIFIED
+# deploy/envoy/web-cop-gpu-routing.yaml
+# Envoy route patch for production cutover: web-cop → web-cop-gpu (H4-8)
+#
+# Topology note — two distinct entry points:
+#   Port 443 (TCP/TLS HTTP/1.1+HTTP/2): Envoy terminates TLS and serves
+#     the web-cop-gpu static frontend. This is a standard TCP listener.
+#
+#   Port 4443 (UDP/QUIC HTTP/3): The Go WebTransport service
+#     (pkg/webtransport) binds directly to UDP 4443 and terminates QUIC
+#     end-to-end. Browser WebTransport requires HTTP/3 over QUIC, so Envoy
+#     does NOT proxy this port — firewall rules must open UDP 4443 from
+#     client networks directly to the webtransport pod.
+#
+# Apply during cutover to route the HTTPS frontend to web-cop-gpu:
+#   kubectl apply -f deploy/envoy/web-cop-gpu-routing.yaml
+#
+# Rollback:
+#   kubectl apply -f deploy/envoy/web-cop-routing.yaml
+#
+# Reference: docs/implementation/v4/phase4_hardening_cutover.md §H4-8
+#            docs/deployment/webtransport-runbook.md §4
+
+static_resources:
+  clusters:
+    # web-cop-gpu frontend (WebGPU COP — production target)
+    - name: web_cop_gpu_frontend
+      connect_timeout: 5s
+      type: LOGICAL_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: web_cop_gpu_frontend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: web-cop-gpu
+                      port_value: 5174
+
+  listeners:
+    # HTTPS listener for the WebGPU COP static frontend (TCP/TLS).
+    # mTLS is required on this listener to match the production security baseline
+    # defined in deploy/envoy/envoy.yaml.
+    - name: cop_frontend_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 443
+      filter_chains:
+        - transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              # Enforce mTLS — all clients must present a certificate issued by the
+              # site CA, consistent with the existing production gateway config.
+              require_client_certificate: true
+              common_tls_context:
+                tls_params:
+                  tls_minimum_protocol_version: TLSv1_3
+                  tls_maximum_protocol_version: TLSv1_3
+                  cipher_suites:
+                    - TLS_AES_256_GCM_SHA384
+                    - TLS_CHACHA20_POLY1305_SHA256
+                tls_certificates:
+                  - certificate_chain:
+                      filename: /certs/server.crt
+                    private_key:
+                      filename: /certs/server.key
+                validation_context:
+                  trusted_ca:
+                    filename: /certs/ca.crt
+          filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                codec_type: AUTO
+                stat_prefix: cop_frontend
+                route_config:
+                  name: cop_frontend_routes
+                  virtual_hosts:
+                    - name: cop_frontend
+                      domains: ["*"]
+                      response_headers_to_add:
+                        # Cross-origin isolation — required for SharedArrayBuffer
+                        - header:
+                            key: Cross-Origin-Opener-Policy
+                            value: same-origin
+                          keep_empty_value: false
+                        - header:
+                            key: Cross-Origin-Embedder-Policy
+                            value: require-corp
+                          keep_empty_value: false
+                        # Defence-in-depth security headers
+                        - header:
+                            key: X-Content-Type-Options
+                            value: nosniff
+                          keep_empty_value: false
+                        - header:
+                            key: X-Frame-Options
+                            value: DENY
+                          keep_empty_value: false
+                        - header:
+                            key: Referrer-Policy
+                            value: strict-origin-when-cross-origin
+                          keep_empty_value: false
+                        - header:
+                            key: Content-Security-Policy
+                            value: "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https: wss:; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+                          keep_empty_value: false
+                      routes:
+                        # All HTTPS requests → web-cop-gpu static frontend
+                        - match:
+                            prefix: "/"
+                          route:
+                            cluster: web_cop_gpu_frontend
+                            timeout: 30s
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
