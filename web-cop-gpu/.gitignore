@@ -1,0 +1,13 @@
+# Build artifacts
+dist/
+node_modules/
+
+# Rust/Wasm build artifacts
+wasm-decoder/target/
+wasm-decoder/pkg/
+
+# Coverage reports
+coverage/
+
+# Test output
+.vitest-cache/
