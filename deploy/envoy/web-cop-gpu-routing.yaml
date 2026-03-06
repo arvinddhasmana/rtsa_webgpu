@@ -1,0 +1,138 @@
+# CLASSIFICATION: UNCLASSIFIED
+# deploy/envoy/web-cop-gpu-routing.yaml
+# Envoy route patch for production cutover: web-cop → web-cop-gpu (H4-8)
+#
+# Apply during cutover to switch the COP frontend from the React app (web-cop)
+# to the WebGPU COP (web-cop-gpu).
+#
+# Usage:
+#   kubectl apply -f deploy/envoy/web-cop-gpu-routing.yaml
+#
+# Rollback:
+#   kubectl apply -f deploy/envoy/web-cop-routing.yaml
+#
+# Reference: docs/implementation/v4/phase4_hardening_cutover.md §H4-8
+#            docs/deployment/webtransport-runbook.md §9
+
+static_resources:
+  clusters:
+    # web-cop-gpu frontend (WebGPU COP — production target)
+    - name: web_cop_gpu_frontend
+      connect_timeout: 5s
+      type: LOGICAL_DNS
+      lb_policy: ROUND_ROBIN
+      load_assignment:
+        cluster_name: web_cop_gpu_frontend
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: web-cop-gpu
+                      port_value: 5174
+
+    # WebTransport server (QUIC hot path)
+    - name: webtransport_server
+      connect_timeout: 5s
+      type: LOGICAL_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http3_protocol_options: {}
+      load_assignment:
+        cluster_name: webtransport_server
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: webtransport
+                      port_value: 4443
+
+  listeners:
+    # HTTPS listener for the WebGPU COP frontend
+    - name: cop_frontend_listener
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 443
+      filter_chains:
+        - transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              common_tls_context:
+                tls_params:
+                  tls_minimum_protocol_version: TLSv1_3
+                  tls_maximum_protocol_version: TLSv1_3
+                  cipher_suites:
+                    - TLS_AES_256_GCM_SHA384
+                    - TLS_CHACHA20_POLY1305_SHA256
+                tls_certificates:
+                  - certificate_chain:
+                      filename: /certs/server.crt
+                    private_key:
+                      filename: /certs/server.key
+          filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                codec_type: AUTO
+                stat_prefix: cop_frontend
+                route_config:
+                  name: cop_frontend_routes
+                  virtual_hosts:
+                    - name: cop_frontend
+                      domains: ["*"]
+                      response_headers_to_add:
+                        # Cross-origin isolation — required for SharedArrayBuffer
+                        - header:
+                            key: Cross-Origin-Opener-Policy
+                            value: same-origin
+                          keep_empty_value: false
+                        - header:
+                            key: Cross-Origin-Embedder-Policy
+                            value: require-corp
+                          keep_empty_value: false
+                        # Defence-in-depth security headers
+                        - header:
+                            key: X-Content-Type-Options
+                            value: nosniff
+                          keep_empty_value: false
+                        - header:
+                            key: X-Frame-Options
+                            value: DENY
+                          keep_empty_value: false
+                        - header:
+                            key: Referrer-Policy
+                            value: strict-origin-when-cross-origin
+                          keep_empty_value: false
+                        - header:
+                            key: Content-Security-Policy
+                            value: "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https: wss:; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+                          keep_empty_value: false
+                      routes:
+                        # WebTransport endpoint (QUIC hot path) — proxy to QUIC upstream
+                        - match:
+                            prefix: "/wt"
+                            headers:
+                              - name: ":method"
+                                string_match:
+                                  exact: "CONNECT"
+                          route:
+                            cluster: webtransport_server
+                            upgrade_configs:
+                              - upgrade_type: "webtransport"
+
+                        # All other requests → web-cop-gpu frontend
+                        - match:
+                            prefix: "/"
+                          route:
+                            cluster: web_cop_gpu_frontend
+                            timeout: 30s
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
