@@ -9,6 +9,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { useUIStore, type Theme } from "../../stores/uiStore";
 import { AlertPanel } from "../alerts/AlertPanel";
 import { AuditDashboard } from "./AuditDashboard";
+import { IntelSearchDashboard } from "./IntelSearchDashboard";
 import { DetailPanel } from "../detail/DetailPanel";
 import { ForensicsPanel } from "../forensics/ForensicsPanel";
 import { MapView } from "../map/MapView";
@@ -235,6 +236,8 @@ export const MainLayout: React.FC = () => {
           <SensorHealthDashboard />
         ) : activeDashboardView === "nato-exchange" ? (
           <NatoExchangeDashboard />
+        ) : activeDashboardView === "intel-search" ? (
+          <IntelSearchDashboard />
         ) : (
           /* Fallback generic layout (legacy-like) */
           <>
