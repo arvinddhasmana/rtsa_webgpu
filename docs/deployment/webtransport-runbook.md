@@ -189,7 +189,7 @@ WebTransport sessions are authenticated with short-lived JWT tokens issued by th
 
 1. The operator authenticates via the gRPC `AuthService.Login` RPC.
 2. The auth service returns a short-lived JWT (15 minutes TTL in production).
-3. The browser presents the JWT in the WebTransport URL: `?token=<jwt>`.
+3. The browser presents the JWT in the WebTransport connection request using the `Authorization: Bearer <jwt>` header (do **not** use URL query parameters such as `?token=`).
 4. The WebTransport service validates the JWT signature, expiry, and clearance claim.
 5. The clearance level from the JWT is used for server-side classification filtering.
 
