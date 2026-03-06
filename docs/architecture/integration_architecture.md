@@ -2,10 +2,11 @@
 # Integration Architecture
 
 > **Document**: RTSA Integration Architecture
-> **Version**: 1.0
+> **Version**: 3.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-23
+> **Last Updated**: 2026-03-05
 > **Compliance**: ITSG-33, NIST 800-53 Rev 5, NATO STANAG 5516
+> **Authoritative Source**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`
 
 ---
 
@@ -446,3 +447,137 @@ Every outbound export follows this pattern:
 4. **Always** provide defaults for new fields
 5. **Always** register schema changes in Schema Registry before deploying producers
 6. **Always** deploy consumers before producers when adding required processing
+
+---
+
+## 9. WebTransport Integration Pattern (Hot Path)
+
+The WebTransport hot path introduces a new integration pattern alongside the existing gRPC cold path:
+
+```mermaid
+flowchart LR
+    subgraph Backend["Backend (Zone 3)"]
+        RP[("Redpanda")] --> SER["FlatBuffer Serializer"]
+        SER --> WTS["WebTransport Server<br/>(HTTP/3 QUIC)"]
+    end
+
+    subgraph Proxy["Proxy (Zone 5)"]
+        ENV["Envoy Gateway<br/>(gRPC-Web + QUIC Listener)"]
+    end
+
+    subgraph Browser["Browser (Zone 6)"]
+        DW["Data Worker<br/>(WebTransport Client + Wasm Decoder)"]
+        RW["Render Worker<br/>(WebGPU Pipeline)"]
+        MT["Main Thread<br/>(SolidJS UI)"]
+    end
+
+    WTS -- "QUIC Datagrams<br/>(Unreliable, TLS 1.3)" --> DW
+    DW -- "SharedArrayBuffer" --> RW
+    ENV -- "gRPC-Web<br/>(HTTP/2, mTLS)" --> MT
+    MT -- "postMessage" --> RW
+
+    style WTS fill:#f57c00,color:#fff
+    style DW fill:#f57c00,color:#fff
+    style RW fill:#1565c0,color:#fff
+```
+
+### 9.1 FlatBuffer ↔ Protobuf Schema Relationship
+
+| Schema | Format | Coverage | Generated For | Used By |
+|---|---|---|---|---|
+| `.proto` (source of truth) | Protobuf | Full domain model | Go, TypeScript | Backend services, cold path |
+| `.fbs` (GPU projection) | FlatBuffers | Rendering-relevant fields only | Go, Rust | Serializer, Wasm decoder |
+
+**Synchronization rule**: Any change to track fields in `.proto` that affects rendering must be reflected in the `.fbs` schema.
+
+## 10. Browser Capability Requirements Gate
+
+The RTSA COP enforces a hard requirements gate at startup. No legacy fallback pipeline exists.
+
+```mermaid
+flowchart TD
+    START["Browser loads COP"] --> CHECK_GPU{"navigator.gpu\nexists?"}
+    CHECK_GPU -- Yes --> CHECK_WT{"WebTransport\navailable?"}
+    CHECK_GPU -- No --> BLOCK_GPU["BLOCKED:\nWebGPU required.\nApproved: Chrome 113+,\nEdge 113+, Firefox 128+"]
+
+    CHECK_WT -- Yes --> CHECK_SAB{"SharedArrayBuffer\navailable?"}
+    CHECK_WT -- No --> BLOCK_WT["BLOCKED:\nWebTransport required.\nCheck QUIC (UDP 443)\nfirewall config."]
+
+    CHECK_SAB -- Yes --> FULL["Full pipeline:\nWebGPU + WebTransport + SAB"]
+    CHECK_SAB -- No --> BLOCK_SAB["BLOCKED:\nSharedArrayBuffer unavailable.\nEnsure COOP/COEP headers\nconfigured on server."]
+
+    style FULL fill:#2e7d32,color:#fff
+    style BLOCK_GPU fill:#d32f2f,color:#fff
+    style BLOCK_WT fill:#d32f2f,color:#fff
+    style BLOCK_SAB fill:#d32f2f,color:#fff
+```
+
+**Rationale**: RTSA COP runs on controlled military workstations, not consumer BYOD. See ADR-V1-006 in `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`.
+
+---
+
+## 9. WebTransport Integration Pattern (Hot Path)
+
+The WebTransport hot path introduces a new integration pattern alongside the existing gRPC cold path:
+
+```mermaid
+flowchart LR
+    subgraph Backend["Backend (Zone 3)"]
+        RP[("Redpanda")] --> SER["FlatBuffer Serializer"]
+        SER --> WTS["WebTransport Server<br/>(HTTP/3 QUIC)"]
+    end
+
+    subgraph Proxy["Proxy (Zone 5)"]
+        ENV["Envoy Gateway<br/>(gRPC-Web + QUIC Listener)"]
+    end
+
+    subgraph Browser["Browser (Zone 6)"]
+        DW["Data Worker<br/>(WebTransport Client + Wasm Decoder)"]
+        RW["Render Worker<br/>(WebGPU Pipeline)"]
+        MT["Main Thread<br/>(SolidJS UI)"]
+    end
+
+    WTS -- "QUIC Datagrams<br/>(Unreliable, TLS 1.3)" --> DW
+    DW -- "SharedArrayBuffer" --> RW
+    ENV -- "gRPC-Web<br/>(HTTP/2, mTLS)" --> MT
+    MT -- "postMessage" --> RW
+
+    style WTS fill:#f57c00,color:#fff
+    style DW fill:#f57c00,color:#fff
+    style RW fill:#1565c0,color:#fff
+```
+
+### 9.1 FlatBuffer ↔ Protobuf Schema Relationship
+
+The system maintains two serialization schemas for the track domain:
+
+| Schema | Format | Coverage | Generated For | Used By |
+|---|---|---|---|---|
+| `.proto` (source of truth) | Protobuf | Full domain model | Go, TypeScript | Backend services, cold path |
+| `.fbs` (GPU projection) | FlatBuffers | Rendering-relevant fields only | Go, Rust | Serializer, Wasm decoder |
+
+**Synchronization rule**: Any change to track fields in `.proto` that affects rendering must be reflected in the `.fbs` schema. The `.fbs` schema contains a subset of `.proto` fields, re-ordered and padded for GPU buffer alignment.
+
+## 10. Browser Capability Requirements Gate
+
+The RTSA COP enforces a hard requirements gate at startup. No legacy fallback pipeline exists.
+
+```mermaid
+flowchart TD
+    START["Browser loads COP"] --> CHECK_GPU{"navigator.gpu\nexists?"}
+    CHECK_GPU -- Yes --> CHECK_WT{"WebTransport\navailable?"}
+    CHECK_GPU -- No --> BLOCK_GPU["BLOCKED:\nWebGPU required.\nApproved: Chrome 113+,\nEdge 113+, Firefox 128+"]
+
+    CHECK_WT -- Yes --> CHECK_SAB{"SharedArrayBuffer\navailable?"}
+    CHECK_WT -- No --> BLOCK_WT["BLOCKED:\nWebTransport required.\nCheck QUIC (UDP 443)\nfirewall config."]
+
+    CHECK_SAB -- Yes --> FULL["Full pipeline:\nWebGPU + WebTransport + SAB"]
+    CHECK_SAB -- No --> BLOCK_SAB["BLOCKED:\nSharedArrayBuffer unavailable.\nEnsure COOP/COEP headers\nconfigured on server."]
+
+    style FULL fill:#2e7d32,color:#fff
+    style BLOCK_GPU fill:#d32f2f,color:#fff
+    style BLOCK_WT fill:#d32f2f,color:#fff
+    style BLOCK_SAB fill:#d32f2f,color:#fff
+```
+
+**Rationale**: RTSA COP runs on controlled military workstations (not consumer BYOD). Browser and hardware are provisioned. Maintaining a parallel legacy pipeline (React/MapLibre) for a 3–5 person team is disproportionate effort. See ADR-V1-006 in the v1 architecture document.

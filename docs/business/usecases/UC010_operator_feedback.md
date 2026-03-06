@@ -126,7 +126,7 @@ The `[Assign]` quick-action in the Operator UI Dashboard allows the duty officer
 sequenceDiagram
     actor OP as Duty Officer
     actor OP2 as Target Operator
-    participant UI as React COP
+    participant UI as SolidJS COP
     participant GW as API Gateway
     participant AS as Alert Service
     participant AUDIT as Audit Trail (Redpanda)

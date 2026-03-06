@@ -1,448 +1,397 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
 # Component Design
 
-> **Document**: RTSA Component Design
-> **Version**: 2.0
+> **Document**: RTSA Component Design — WebGPU Pipeline
+> **Version**: 3.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-28
-> **Compliance**: ITSG-33, NIST 800-53 Rev 5
+> **Last Updated**: 2026-03-05
+> **Compliance**: ITSG-33 (CCCS), NIST 800-53 Rev 5
+> **Authoritative Source**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`
 
 ---
 
 ## 1. Overview
 
-This document defines the internal component design for each RTSA service. Components are organized by bounded context. Each service follows the standard Go project layout defined in the coding standards.
+This document describes the internal component design of each major subsystem in the RTSA platform. The backend (Go gRPC services, Redpanda, ClickHouse) is retained from the proven architecture. The frontend is a complete redesign using SolidJS, WebGPU, WebTransport, FlatBuffers, and SharedArrayBuffer.
 
 ---
 
-## 2. Standard Service Structure
+## 2. Backend Components (Retained)
 
-All Go services follow this internal structure:
+### 2.1 Ingestion Services (×6)
 
-```
-svc-<name>/
-├── cmd/
-│   └── <name>/main.go          # Entry point, wire dependencies
-├── internal/
-│   ├── config/                  # Configuration loading
-│   ├── domain/                  # Domain types, business logic
-│   ├── handler/                 # gRPC handler implementations
-│   ├── producer/                # Redpanda producers
-│   ├── consumer/                # Redpanda consumers
-│   ├── repository/              # Data access (ClickHouse, etc.)
-│   └── mapper/                  # Schema translation / mapping
-├── proto/                       # Service-specific .proto files
-├── deploy/
-│   └── helm/                    # Helm chart
-├── Dockerfile
-├── Makefile
-└── README.md
-```
-
----
-
-## 3. Sensor Ingestion Services
-
-### 3.1 Component Diagram — Radar Ingestion Service
-
-```mermaid
-C4Component
-    title Radar Ingestion Service — Component Diagram
-
-    Container_Boundary(svc, "svc-radar-ingestion") {
-        Component(handler, "RadarHandler", "gRPC Handler", "Receives radar track<br/>reports via gRPC")
-        Component(validator, "TrackValidator", "Domain Logic", "Validates coordinate bounds,<br/>speed, heading, timestamps")
-        Component(normalizer, "TrackNormalizer", "Mapper", "Converts radar-specific<br/>format to internal<br/>SensorObservation proto")
-        Component(enricher, "MetadataEnricher", "Domain Logic", "Adds classification header,<br/>trace context,<br/>observation timestamp")
-        Component(producer, "ObservationProducer", "Redpanda Producer", "Produces to<br/>sensors.radar.tracks")
-        Component(dlq, "DLQProducer", "Redpanda Producer", "Routes invalid messages<br/>to sensors.radar.dlq")
-        Component(health, "HealthServer", "gRPC Health", "Liveness + readiness<br/>probes")
-        Component(metrics, "MetricsExporter", "OpenTelemetry", "Tracks per second,<br/>validation errors,<br/>producer latency")
-    }
-
-    Rel(handler, validator, "Validates")
-    Rel(validator, normalizer, "Valid tracks")
-    Rel(validator, dlq, "Invalid tracks")
-    Rel(normalizer, enricher, "Normalized")
-    Rel(enricher, producer, "Enriched observation")
-```
-
-> **Note**: EW/SIGINT, ELINT/COMINT, ISR, AIS/BFT, and Cyber ingestion services follow the same component pattern with sensor-specific validators and normalizers. The key differences are:
-
-| Service | Validator Specifics | Normalizer Specifics |
-|---|---|---|
-| EW/SIGINT | Frequency 0.5–40 GHz, power dBm | EmitterObservation with modulation, PRI |
-| ELINT/COMINT | Emitter ID format, intercept completeness | InterceptObservation with content classification |
-| ISR | Geo-rect validity, resolution bounds | ISRObservation with platform + sensor metadata |
-| AIS/BFT | MMSI format (9 digits), AIS spoofing checks | MaritimeObservation with vessel details |
-| Cyber | STIX 2.1 schema validation, IOC dedup | ThreatObservation with MITRE ATT&CK mapping |
-
----
-
-## 4. Fusion Engine
-
-### 4.1 Component Diagram
-
-```mermaid
-C4Component
-    title Fusion Engine — Component Diagram
-
-    Container_Boundary(svc, "svc-fusion-engine") {
-        Component(consumer, "SensorConsumer", "Redpanda Consumer", "Consumes from all<br/>sensors.* topics<br/>(consumer group: fusion)")
-        Component(gate, "GatingFilter", "Domain Logic", "Spatial/temporal gating:<br/>- Distance ≤ threshold<br/>- Time ≤ 30s<br/>- Type compatibility")
-        Component(scorer, "CorrelationScorer", "Domain Logic", "Weighted scoring:<br/>- Position proximity (0.35)<br/>- Velocity similarity (0.25)<br/>- Type match (0.20)<br/>- Temporal proximity (0.20)")
-        Component(assigner, "TrackAssigner", "Domain Logic", "Assigns observation to<br/>existing track or<br/>creates new track")
-        Component(estimator, "StateEstimator", "Domain Logic", "Kalman filter for<br/>position/velocity<br/>state estimation")
-        Component(merger, "TrackMerger", "Domain Logic", "Merges tracks when<br/>correlation exceeds<br/>threshold (≥ 0.85)")
-        Component(producer, "FusedTrackProducer", "Redpanda Producer", "Produces to<br/>tracks.fused.{type}")
-        Component(stale, "StaleTrackMonitor", "Background Worker", "Marks tracks STALE<br/>after 60s no update.<br/>Drops after 5 min.")
-        Component(metrics, "FusionMetrics", "OpenTelemetry", "Correlation rate,<br/>track count,<br/>fusion latency")
-    }
-
-    Rel(consumer, gate, "Sensor observations")
-    Rel(gate, scorer, "Gated candidates")
-    Rel(scorer, assigner, "Scored pairs")
-    Rel(assigner, estimator, "Track + observation")
-    Rel(estimator, producer, "Updated fused track")
-    Rel(assigner, merger, "High-correlation tracks")
-    Rel(merger, producer, "Merged track")
-    Rel(stale, producer, "Track status updates")
-```
-
-### 4.2 Key Algorithms
-
-#### Gating Criteria
-
-| Criterion | Surface Track | Air Track | Subsurface |
+| Service | Sensor Type | Typical Volume | Partition Key |
 |---|---|---|---|
-| Max distance | 5 NM | 20 NM | 2 NM |
-| Max time delta | 30 s | 15 s | 60 s |
-| Type compatibility | Surface only | Air only | Sub only |
+| `svc-radar-ingestion` | Radar track plots | 1K–10K events/sec | `radar_id:track_id` |
+| `svc-ew-ingestion` | EW/SIGINT detections | 500–5K events/sec | `sensor_id:emitter_id` |
+| `svc-elint-ingestion` | ELINT/COMINT intelligence | 200–2K events/sec | `collector_id:signal_id` |
+| `svc-isr-ingestion` | ISR metadata/detections | 100–1K events/sec | `platform_id:mission_id` |
+| `svc-ais-ingestion` | AIS/BFT position reports | 50–500 events/sec | `unit_id` |
+| `svc-cyber-ingestion` | Cyber events/IOCs | 1K–50K events/sec | `sensor_id:source_ip` |
 
-#### Correlation Score Thresholds
+**Common Design Pattern**: Each ingestion service:
+1. Accepts authenticated mTLS gRPC streams from edge gateways
+2. Validates input against Protobuf schema + Wasm transforms (anti-poisoning)
+3. Produces validated events to sensor-specific Redpanda topics (`sensors.radar.*`, `sensors.ew.*`, etc.)
+4. Emits OpenTelemetry traces and metrics
 
-| Score Range | Action |
+### 2.2 Fusion Engine (`svc-fusion-engine`)
+
+- **Input**: `sensors.*` topics from Redpanda
+- **Processing**: Extended Kalman Filter, spatial-temporal alignment, track correlation (≥0.85 confidence threshold)
+- **Output**: `tracks.fused.*` topics
+- **Design**: Stateful stream processor with in-memory track state, periodic ClickHouse snapshots
+
+### 2.3 Anomaly Detection (`svc-anomaly-detection`)
+
+- **Input**: `tracks.fused.*` topics
+- **Processing**: Kinematic analysis, contextual analysis, risk scoring (GPU-backed inference)
+- **Output**: `alerts.anomaly.*` topics
+- **Design**: GPU inference engine with model hot-reload from model registry
+
+### 2.4 Feedback Service (`svc-feedback`)
+
+- **Input**: `feedback.*` topics (operator classifications, alert responses)
+- **Processing**: Trust scoring, anti-poisoning validation, operator reputation tracking
+- **Output**: `feedback.operator.validated` topic
+- **Design**: Stateful trust scoring with per-operator history
+
+### 2.5 Track, Alert, Query, Audit Services
+
+| Service | Purpose | Data Source | API |
+|---|---|---|---|
+| `svc-track` | Track state streaming (cold path) | Redpanda | gRPC-Web via Envoy |
+| `svc-alert` | Alert lifecycle management | Redpanda | gRPC-Web via Envoy |
+| `svc-query` | Historical forensic queries | ClickHouse | gRPC-Web via Envoy |
+| `svc-audit` | Immutable audit trail | Redpanda → ClickHouse | Internal gRPC |
+| `svc-nato-adapter` | STANAG 5516/NFFI/MIP exchange | Redpanda | gRPC + NATO protocols |
+| `svc-training` | Model retraining pipeline | Redpanda + ClickHouse | Internal gRPC |
+
+### 2.6 Wasm Data Transforms
+
+In-broker Redpanda transforms for schema validation and anti-poisoning. Go-compiled to Wasm, executed within Redpanda broker process. See `wasm-transforms/` directory.
+
+---
+
+## 3. New Backend Components
+
+### 3.1 FlatBuffer Serializer Service
+
+| Property | Specification |
 |---|---|
-| ≥ 0.85 | Auto-correlate (merge into existing track) |
-| 0.60 – 0.84 | Tentative correlation (flag for review) |
-| < 0.60 | No correlation (create new track or discard) |
+| Language | Go |
+| Input | Consumes `tracks.fused.*` and `alerts.anomaly.*` from Redpanda |
+| Output | FlatBuffer-encoded binary datagrams via WebTransport |
+| Format | 128-byte fixed-stride GPU-optimized records |
+| Throughput target | 100,000+ messages/second serialized |
+| Deployment | Co-located with WebTransport server |
 
----
+### 3.2 WebTransport Server
 
-## 5. Anomaly Detection Service
+| Property | Specification |
+|---|---|
+| Protocol | WebTransport over HTTP/3 (QUIC) |
+| Datagram mode | Unreliable datagrams for position updates |
+| Stream mode | Reliable unidirectional stream for initial state snapshot |
+| Authentication | Session token validated against mTLS certificate |
+| Encryption | TLS 1.3 (QUIC-native) with CSE-approved cipher suites |
+| Backpressure | Server-side rate adaptation: drops lowest-priority updates first |
 
-### 5.1 Component Diagram
+**Priority-based shedding under backpressure:**
 
-```mermaid
-C4Component
-    title Anomaly Detection Service — Component Diagram
-
-    Container_Boundary(svc, "svc-anomaly-detection") {
-        Component(consumer, "TrackConsumer", "Redpanda Consumer", "Consumes from<br/>tracks.fused.* topics")
-        Component(preprocessor, "FeatureExtractor", "Domain Logic", "Extracts features:<br/>- Speed delta<br/>- Heading change rate<br/>- Pattern deviation<br/>- Spatial anomaly score")
-        Component(inference, "InferenceEngine", "AI/ML Runtime", "Runs inference on<br/>pre-trained model.<br/>Outputs anomaly scores<br/>per anomaly type.")
-        Component(thresholder, "ThresholdEvaluator", "Domain Logic", "Maps scores to<br/>severity levels:<br/>NORMAL/WATCH/<br/>ELEVATED/CRITICAL")
-        Component(explainer, "ExplanationGenerator", "Domain Logic", "Produces human-readable<br/>explanation of<br/>why alert was raised")
-        Component(producer, "AlertProducer", "Redpanda Producer", "Produces to<br/>alerts.anomaly.{severity}")
-        Component(modelloader, "ModelLoader", "Background Worker", "Watches models.*<br/>topic for updates.<br/>Hot-swaps models.")
-        Component(degradation, "DegradationMonitor", "Background Worker", "Monitors false positive<br/>rate vs. baseline.<br/>Triggers rollback.")
-        Component(metrics, "InferenceMetrics", "OpenTelemetry", "Inference latency,<br/>alert counts by severity,<br/>model version")
-    }
-
-    Rel(consumer, preprocessor, "Fused tracks")
-    Rel(preprocessor, inference, "Feature vectors")
-    Rel(inference, thresholder, "Anomaly scores")
-    Rel(thresholder, explainer, "Elevated+ alerts")
-    Rel(explainer, producer, "Alert with explanation")
-    Rel(modelloader, inference, "Updated model")
-    Rel(degradation, modelloader, "Rollback trigger")
-```
-
-### 5.2 Anomaly Types
-
-| Type | Features Used | Threshold (ELEVATED) |
+| Priority | Data | Shedding behavior |
 |---|---|---|
-| Speed anomaly | Speed delta, historical avg | > 3σ from mean |
-| Route deviation | Heading change rate, expected route | > 30° sustained deviation |
-| AIS manipulation | AIS vs. radar position delta | > 0.5 NM discrepancy |
-| Behavioral pattern | Activity sequence encoding | Model confidence > 0.75 |
-| Temporal anomaly | Time-of-day activity pattern | Outside normal pattern, p < 0.05 |
-| Proximity alert | Distance to critical assets | < defined exclusion zone |
+| P0 (never shed) | CRITICAL alerts | Always delivered via reliable stream |
+| P1 | ELEVATED alerts, friendly force tracks | Shed only under extreme pressure |
+| P2 | Active hostile/unknown tracks | Reduce update rate to 5 Hz |
+| P3 | Active neutral tracks | Reduce update rate to 2 Hz |
+| P4 | Stale tracks, sensor observations | Shed first |
 
 ---
 
-## 6. Feedback Service
+## 4. Browser Thread Architecture
 
-### 6.1 Component Diagram
-
-```mermaid
-C4Component
-    title Feedback Service — Component Diagram
-
-    Container_Boundary(svc, "svc-feedback") {
-        Component(handler, "FeedbackHandler", "gRPC Handler", "Receives operator<br/>feedback submissions<br/>via gRPC")
-        Component(validator, "FeedbackValidator", "Domain Logic", "Validates feedback type,<br/>track ID exists,<br/>required fields present")
-        Component(trust, "TrustScorer", "Domain Logic", "Calculates trust score:<br/>- Clearance (0.2)<br/>- Accuracy (0.3)<br/>- Temporal (0.2)<br/>- Deviation (0.3)")
-        Component(antipoison, "AntiPoisonGuard", "Domain Logic", "Detects bulk anomalous<br/>feedback patterns.<br/>Rate limiting per operator.")
-        Component(producer_raw, "RawFeedbackProducer", "Redpanda Producer", "Produces to<br/>feedback.operator.submissions")
-        Component(producer_val, "ValidatedFeedbackProducer", "Redpanda Producer", "Produces to<br/>feedback.operator.validated<br/>(trust ≥ 0.5 only)")
-        Component(audit, "AuditEmitter", "Redpanda Producer", "Produces audit events<br/>for all feedback actions")
-        Component(metrics, "FeedbackMetrics", "OpenTelemetry", "Feedback rate,<br/>trust distribution,<br/>rejection rate")
-    }
-
-    Rel(handler, validator, "Raw feedback")
-    Rel(validator, trust, "Valid feedback")
-    Rel(trust, antipoison, "Scored feedback")
-    Rel(antipoison, producer_raw, "All feedback")
-    Rel(antipoison, producer_val, "Trusted feedback (≥ 0.5)")
-    Rel(antipoison, audit, "All actions")
-```
-
----
-
-## 7. NATO Adapter Service
-
-### 7.1 Component Diagram
-
-```mermaid
-C4Component
-    title NATO Adapter Service — Component Diagram
-
-    Container_Boundary(svc, "svc-nato-adapter") {
-        Component(l16_rx, "Link16Receiver", "Protocol Handler", "Receives J-Series<br/>messages from<br/>Link 16 terminal")
-        Component(nffi_rx, "NFFIReceiver", "HTTP/XML Handler", "Receives NFFI XML<br/>from MIP gateway")
-        Component(cdg_in, "InboundGuard", "Cross-Domain Guard", "Classification ceiling<br/>check, content inspection<br/>for inbound data")
-        Component(xlat_in, "InboundTranslator", "Mapper", "J-Series/NFFI →<br/>Internal proto format")
-
-        Component(consumer, "TrackConsumer", "Redpanda Consumer", "Consumes from<br/>tracks.fused.* for<br/>outbound export")
-        Component(cdg_out, "OutboundGuard", "Cross-Domain Guard", "Release policy check,<br/>source sanitization,<br/>REL TO marking")
-        Component(xlat_out, "OutboundTranslator", "Mapper", "Internal proto →<br/>J-Series/NFFI format")
-        Component(l16_tx, "Link16Transmitter", "Protocol Handler", "Sends J-Series<br/>messages to<br/>Link 16 terminal")
-        Component(nffi_tx, "NFFITransmitter", "HTTP/XML Handler", "Sends NFFI XML<br/>to MIP gateway")
-
-        Component(producer, "NATOProducer", "Redpanda Producer", "Produces inbound to<br/>sensors.nato.*")
-        Component(audit, "AuditEmitter", "Redpanda Producer", "All NATO exchange<br/>events audited")
-    }
-
-    Rel(l16_rx, cdg_in, "J-Series")
-    Rel(nffi_rx, cdg_in, "NFFI XML")
-    Rel(cdg_in, xlat_in, "Cleared data")
-    Rel(xlat_in, producer, "Internal proto")
-
-    Rel(consumer, cdg_out, "Fused tracks")
-    Rel(cdg_out, xlat_out, "Sanitized tracks")
-    Rel(xlat_out, l16_tx, "J-Series messages")
-    Rel(xlat_out, nffi_tx, "NFFI XML")
-```
-
----
-
-## 8. Presentation Services
-
-### 8.1 Track Service *(v2.0: dual consumer group)*
-
-```mermaid
-C4Component
-    title Track Service — Component Diagram (v2.0)
-
-    Container_Boundary(svc, "svc-track") {
-        Component(consumer, "FusedTrackConsumer", "Redpanda Consumer", "Consumer group: track-service<br/>Consumes tracks.fused.* topics")
-        Component(sensor_consumer, "SensorObsConsumer", "Redpanda Consumer", "Consumer group: track-svc-sensor-stream<br/>Consumes sensors.* topics (v2.0)")
-        Component(cache, "TrackStateCache", "In-Memory Store", "Current state of all<br/>active tracks.<br/>Indexed by track_id.")
-        Component(fanout, "SensorObsFanout", "In-Memory Fan-Out", "Distributes raw observations<br/>to all registered<br/>stream handlers (v2.0)")
-        Component(stream_handler, "StreamTracksHandler", "gRPC Server-Stream", "Streams track updates<br/>to connected clients<br/>with filtering")
-        Component(sensor_stream_handler, "StreamSensorObsHandler", "gRPC Server-Stream", "Streams raw sensor observations<br/>with classification + bbox + type<br/>filtering (v2.0)")
-        Component(detail_handler, "GetTrackDetailsHandler", "gRPC Unary", "Returns full track<br/>details with source<br/>attribution and history")
-        Component(filter, "TrackFilterEngine", "Domain Logic", "Applies classification,<br/>type, and spatial<br/>filters per client")
-        Component(metrics, "TrackMetrics", "OpenTelemetry", "Active track count,<br/>stream client count,<br/>update latency")
-    }
-
-    Rel(consumer, cache, "Track updates")
-    Rel(sensor_consumer, fanout, "Raw sensor observations")
-    Rel(cache, filter, "Active tracks")
-    Rel(filter, stream_handler, "Filtered updates")
-    Rel(cache, detail_handler, "Track details")
-    Rel(fanout, sensor_stream_handler, "Observed sensor data")
-```
-
-**New RPC — `StreamSensorObservations` *(v2.0)***: Server-streaming RPC consuming from `sensors.*` Redpanda topics via a dedicated consumer group. Classification filtering, bounding box filtering, and sensor type filtering are applied per connected client before forwarding each `SensorObservationUpdate`.
-
-### 8.2 Alert Service *(v2.0: AssignAlert)*
-
-```mermaid
-C4Component
-    title Alert Service — Component Diagram (v2.0)
-
-    Container_Boundary(svc, "svc-alert") {
-        Component(consumer, "AlertConsumer", "Redpanda Consumer", "Consumes from<br/>alerts.anomaly.* topics")
-        Component(queue, "AlertQueue", "In-Memory Priority Queue", "Priority queue sorted<br/>by severity then time.<br/>CRITICAL first.")
-        Component(stream_handler, "StreamAlertsHandler", "gRPC Server-Stream", "Streams alerts to<br/>connected UI clients")
-        Component(ack_handler, "AcknowledgeAlertHandler", "gRPC Unary", "Records operator<br/>acknowledgment of alert")
-        Component(assign_handler, "AssignAlertHandler", "gRPC Unary", "Assigns alert to another<br/>operator; produces audit event (v2.0)")
-        Component(audit_emitter, "AuditEmitter", "Redpanda Producer", "Emits audit events for<br/>acknowledgment and assignment")
-        Component(metrics, "AlertMetrics", "OpenTelemetry", "Alert rate by severity,<br/>unacknowledged count,<br/>time-to-acknowledge")
-    }
-
-    Rel(consumer, queue, "New alerts")
-    Rel(queue, stream_handler, "Prioritized alerts")
-    Rel(ack_handler, queue, "Remove acknowledged")
-    Rel(ack_handler, audit_emitter, "alert_acknowledged event")
-    Rel(assign_handler, queue, "Set assigned_to field")
-    Rel(assign_handler, audit_emitter, "alert_assigned event")
-```
-
-**New RPC — `AssignAlert` *(v2.0)***: Unary RPC with fields `alert_id`, `assigner_operator_id`, `assignee_operator_id`, `comment`. Sets an `assigned_to` field on the in-memory alert and produces an audit event to `audit.events`. Returns `success` and `assigned_at` timestamp.
-
-### 8.3 Query Service *(v2.0: GetEventTimeline)*
-
-```mermaid
-C4Component
-    title Query Service — Component Diagram (v2.0)
-
-    Container_Boundary(svc, "svc-query") {
-        Component(handler, "QueryHandler", "gRPC Handler", "Receives historical<br/>query requests")
-        Component(timeline_handler, "EventTimelineHandler", "gRPC Unary", "Unified timeline for a track_id<br/>across 4 ClickHouse tables (v2.0)")
-        Component(authz, "ClassificationFilter", "Security", "Injects classification<br/>filter based on<br/>caller's clearance")
-        Component(guardrail, "QueryGuardrail", "Domain Logic", "Enforces time range limits,<br/>result limits,<br/>query timeout")
-        Component(executor, "QueryExecutor", "ClickHouse Client", "Executes parameterized<br/>SQL against ClickHouse")
-        Component(paginator, "ResultPaginator", "Domain Logic", "Paginates large result<br/>sets for streaming<br/>gRPC response")
-        Component(audit, "QueryAuditEmitter", "Redpanda Producer", "Logs query execution<br/>to audit trail")
-    }
-
-    Rel(handler, authz, "Query request")
-    Rel(timeline_handler, authz, "Timeline request")
-    Rel(authz, guardrail, "Filtered query")
-    Rel(guardrail, executor, "Guarded query")
-    Rel(executor, paginator, "Result rows")
-    Rel(paginator, handler, "Paginated response")
-    Rel(executor, audit, "Query audit event")
-```
-
-**New RPC — `GetEventTimeline` *(v2.0)***: Unary RPC accepting `track_id`, `time_range`, `max_events`, and `clearance_level`. Executes a ClickHouse `UNION ALL` query across `tracks_fused`, `anomaly_detections`, `operator_feedback`, and `audit_log`, ordered by `event_time ASC`. Returns `repeated TimelineEvent` with a `oneof` payload discriminated by `TimelineEventType`.
-
----
-
-## 9. COP Web Application (React) *(v2.0: Two-Level RBAC Shell)*
-
-### 9.1 Architecture Overview
-
-v2.0 introduces a **Two-Level RBAC Shell**:
-- **Level 1** — Role Selector: Operations Commander, Intelligence Analyst, Security Officer, Sensor Operator, NATO Liaison
-- **Level 2** — Dashboard Selector: role-appropriate views rendered dynamically by `MainLayout`
+The browser data pipeline bypasses the main thread entirely for the hot path. Three threads cooperate:
 
 ```mermaid
 flowchart TD
-    APP[App] --> AUTH[AuthProvider]
-    AUTH --> LAYOUT[MainLayout]
-    LAYOUT --> TOOLBAR[Toolbar: RoleSelector + DashboardSelector]
-    LAYOUT --> ROUTER{activeDashboardView}
-    ROUTER -->|fusion| FD[FusionDashboard]
-    ROUTER -->|multi-domain| MD[MultiDomainDashboard]
-    ROUTER -->|operator| OD[OperatorDashboard]
-    ROUTER -->|forensics| FP[ForensicsPanel]
-    ROUTER -->|audit| AP[AlertPanel + AuditQueue]
-    ROUTER -->|sensor-health| SH[SensorHealthDashboard]
-    ROUTER -->|nato-exchange| NE[NATOExchangeDashboard]
+    subgraph MainThread["Main Thread (< 20% CPU)"]
+        SOLID["SolidJS UI Shell"]
+        PICK["GPU Pick Buffer Reader"]
+        CMD["Command Dispatcher<br/>(gRPC-Web)"]
+    end
 
-    FD --> MAP1[MapView: FusedTrack + SensorObs icons]
-    FD --> FSP[FusionSidePanel]
-    MD --> MAP2[MapView + SensorCoverageLayer]
-    MD --> DMO[DomainMetricsOverlay]
-    OD --> MAP3[MapView with backdrop-blur]
-    OD --> TL[TimelineView]
-    OD --> ALP[AlertPanel with quick-actions]
+    subgraph DataWorker["Data Worker Thread"]
+        WT["WebTransport Client"]
+        WASM["Wasm FlatBuffer Decoder<br/>(Rust-compiled)"]
+        RING["Ring Buffer Manager"]
+        IDX["Track Index<br/>(ID → slot mapping)"]
+    end
+
+    subgraph RenderWorker["Render Worker Thread (OffscreenCanvas)"]
+        WGPU["WebGPU Device"]
+        COMP["Compute Pipeline"]
+        REND["Render Pipeline"]
+        TILE["Tile Map Renderer"]
+    end
+
+    subgraph GPU["GPU"]
+        TBUF["Track Buffer<br/>(50k × 128B = 6.1 MB)"]
+        UBUF["Uniform Buffer<br/>(View/Projection Matrix)"]
+        IBUF["Icon Atlas Texture"]
+        PBUF["Pick Buffer<br/>(Track ID per pixel)"]
+    end
+
+    WT -- "Binary datagrams" --> WASM
+    WASM -- "Write to SAB<br/>(zero-copy)" --> RING
+    RING -- "Notify" --> REND
+
+    REND -- "writeBuffer()" --> TBUF
+    COMP -- "Read" --> TBUF
+    COMP -- "Interpolate + Cull" --> REND
+    REND -- "Instanced draw" --> CANVAS["Canvas"]
+    REND -- "Write" --> PBUF
+
+    PICK -- "readBuffer()" --> PBUF
+    SOLID -- "Feedback/Commands" --> CMD
+
+    IDX -. "Track lookup" .-> SOLID
+
+    style MainThread fill:#e8eaf6
+    style DataWorker fill:#fff3e0
+    style RenderWorker fill:#e0f2f1
+    style GPU fill:#fce4ec
 ```
 
-### 9.2 Component Hierarchy *(v2.0)*
+### Thread Responsibilities
+
+| Thread | CPU Budget | Responsibilities |
+|---|---|---|
+| **Main Thread** | < 20% | SolidJS UI shell, DOM panels, gRPC-Web commands, pick buffer reads |
+| **Data Worker** | 10–20% | WebTransport connection, Wasm FlatBuffer decode, SharedArrayBuffer writes |
+| **Render Worker** | 5–10% | WebGPU pipeline management, GPU buffer uploads, compute/render dispatch |
+| **GPU** | 40–60% | Compute shaders (interpolation, culling, LOD), render passes (all layers) |
+
+### Worker ↔ Main Thread Communication
+
+| Direction | Channel | Data | Frequency |
+|---|---|---|---|
+| Render → Main | `postMessage` | FPS, track count, visible count | 1 Hz |
+| Render → Main | `postMessage` | Picked track details (on click) | On demand |
+| Data Worker → Main | `postMessage` | Alert list (new/changed only) | On change |
+| Main → Render | `postMessage` | Viewport change (pan/zoom) | On user input |
+| Main → Render | `postMessage` | Selected track ID (highlight) | On click |
+| Main → Data Worker | `postMessage` | Filter criteria change | On user input |
+| Main → Backend | gRPC-Web (Protobuf) | Feedback, commands, queries | On user action |
+
+---
+
+## 5. SolidJS Component Architecture
+
+SolidJS handles all DOM-based user interactions. WebGPU handles only the tactical map rendering (canvas).
 
 ```mermaid
 flowchart TD
-    APP[App] --> AUTH[AuthProvider]
-    AUTH --> LAYOUT[MainLayout]
-    LAYOUT --> MAP[MapView]
-    LAYOUT --> ALERTS[AlertPanel]
-    LAYOUT --> DETAIL[DetailPanel]
-    LAYOUT --> FORENSICS[ForensicsPanel]
-    LAYOUT --> FUSION_SP[FusionSidePanel]
-    LAYOUT --> TIMELINE[TimelineView]
-    LAYOUT --> DOMAIN_O[DomainMetricsOverlay]
+    subgraph SolidApp["SolidJS Application (Main Thread)"]
+        Shell["App Shell<br/>(Classification Banners)"]
+        Toolbar["Toolbar<br/>(Role Selector, Dashboard Selector,<br/>Connection Status, Theme)"]
 
-    MAP --> TRACKS[TrackLayer]
-    MAP --> SENSOR_ICONS[SensorObsLayer]
-    MAP --> HALOS[ThreatHaloLayer]
-    MAP --> GEO[GeoFenceLayer]
-    MAP --> COVERAGE[SensorCoverageLayer]
-    MAP --> LAYER_TOGGLE[MapLayerToggle]
+        subgraph Panels["Overlay Panels"]
+            Detail["Track Detail Panel<br/>(selected track info)"]
+            Alerts["Alert Sidebar<br/>(priority-sorted list)"]
+            Feedback["Feedback Form<br/>(classification, justification)"]
+            Search["Search Overlay<br/>(track / alert search)"]
+            Timeline["Event Timeline<br/>(historical queries)"]
+        end
 
-    ALERTS --> ALERTCARD[AlertCard: Inspect / Confirm / Reject / Assign]
-    ALERTS --> ALERTFILTER[AlertFilter]
+        subgraph Status["Status Bar"]
+            Counts["Track / Alert Counts"]
+            FPS["FPS Counter"]
+            Latency["Network Latency"]
+            Classification["Classification Level"]
+        end
+    end
 
-    DETAIL --> IDENTITY[IdentitySection]
-    DETAIL --> POSITION[PositionSection]
-    DETAIL --> SOURCES[SourceAttribution]
-    DETAIL --> ENTITY_TL[EntityTimeline]
-    DETAIL --> FEEDBACKFORM[FeedbackForm]
+    subgraph Bridge["Worker ↔ Main Thread Bridge"]
+        TrackSignal["createSignal: selectedTrack"]
+        AlertSignal["createSignal: alerts[]"]
+        StatsSignal["createSignal: {trackCount, fps, latency}"]
+    end
 
-    FORENSICS --> QUERYBUILDER[QueryBuilder]
-    FORENSICS --> RESULTS[ResultsView]
-    FORENSICS --> REPLAY[MapReplay]
+    subgraph Canvas["WebGPU Canvas (Render Worker)"]
+        MAP["Tactical Map Display"]
+    end
+
+    Bridge --> Detail
+    Bridge --> Alerts
+    Bridge --> Counts
+    Canvas -- "Transparent overlay" --> Shell
+
+    style SolidApp fill:#e8eaf6
+    style Canvas fill:#e0f2f1
+    style Bridge fill:#fff3e0
 ```
 
-### 9.3 State Management *(v2.0)*
+### SolidJS Component Inventory
 
-| Store | Library | Content |
+| Feature | SolidJS Component | Backend Integration |
 |---|---|---|
-| TrackStore | Zustand | Active tracks indexed by `track_id` |
-| AlertStore | Zustand | Alert queue + acknowledgment state |
-| AuthStore | Zustand | Operator identity, clearance level |
-| UIStore | Zustand | Panel visibility, selected entity, filters, **`activeRole`**, **`activeDashboardView`** *(v2.0)* |
+| Operator Feedback | `FeedbackForm` | gRPC-Web → Feedback Service → Redpanda → Audit |
+| Alert Acknowledgment | `AlertSidebar` + `AlertActions` | gRPC-Web → Alert Service → Redpanda → Audit |
+| Track Detail Inspection | `TrackDetailPanel` | GPU pick buffer → Worker → Main → SolidJS signal |
+| Role & Dashboard Selection | `RoleSelector` + `DashboardSelector` | Local SolidJS signal (no backend call) |
+| Search | `SearchOverlay` | gRPC-Web → Query Service → ClickHouse |
+| Forensic Queries | `QueryBuilder` + `ResultsView` | gRPC-Web → Query Service → ClickHouse |
+| Event Timeline | `EventTimeline` | gRPC-Web → Query Service → ClickHouse |
+| Classification Banners | `ClassificationBanner` | Static (deployment config) |
+| Connection Status | `ConnectionIndicator` | WebTransport readyState + gRPC health |
+| FPS / Latency Metrics | `StatusBar` | Render Worker → postMessage → SolidJS signal |
 
-**New `uiStore` fields** *(v2.0)*:
-- `activeDashboardView: DashboardView` — current Level-2 view selection
-- `setDashboardView(view: DashboardView): void` — Level-2 view switch action
-- `ActiveRole` extended to include `sensor_operator` and `nato_liaison`
-- `setActiveRole` auto-resets `activeDashboardView` to the role's default
+### Optimistic UI Pattern
 
-### 9.4 Real-Time Hooks *(v2.0)*
+1. **SolidJS** immediately updates local signal state (optimistic)
+2. **Command** sent via reliable gRPC-Web to Feedback/Alert service
+3. **Backend** validates, produces audit event to Redpanda
+4. **Confirmation** returns via gRPC response
+5. If rejected: SolidJS rolls back local state and shows error toast
 
-| Hook | Transport | Purpose |
+---
+
+## 6. WebGPU Rendering Pipeline
+
+### 6.1 Per-Frame Pipeline
+
+```mermaid
+flowchart TD
+    subgraph PerFrame["Per-Frame Pipeline (16ms budget)"]
+        direction TB
+        DIRTY["1. Scan dirty bits<br/>(Atomics.load)"]
+        UPLOAD["2. Upload dirty slots<br/>(writeBuffer)"]
+        COMPUTE["3. Compute Pass"]
+        RENDER["4. Render Pass"]
+        PRESENT["5. Present frame"]
+    end
+
+    subgraph ComputePass["Compute Pass (~1ms)"]
+        INTERP["Interpolation Shader<br/>Extrapolate position by<br/>velocity × dt"]
+        CULL["View Frustum Cull<br/>Mark off-screen tracks<br/>as invisible"]
+        LOD["LOD Assignment<br/>Assign detail level<br/>by zoom + importance"]
+    end
+
+    subgraph RenderPass["Render Pass (~3ms)"]
+        MAP["Base Map Layer<br/>(Tiled raster/vector)"]
+        GEOFENCE["Geofence Layer<br/>(Polygon fill + outline)"]
+        COVERAGE["Sensor Coverage<br/>(Semi-transparent arcs)"]
+        TRAILS["Trail Layer<br/>(Line strip per track,<br/>alpha-decayed)"]
+        ICONS["Track Icon Layer<br/>(Instanced quads,<br/>icon atlas lookup)"]
+        HALOS["Alert Halo Layer<br/>(Instanced circles,<br/>animated pulse)"]
+        LABELS["Label Layer<br/>(SDF text rendering,<br/>GPU-computed layout)"]
+        PICK_R["Pick Buffer Write<br/>(Track ID per pixel)"]
+    end
+
+    DIRTY --> UPLOAD --> COMPUTE
+    COMPUTE --> INTERP --> CULL --> LOD
+    LOD --> RENDER
+    RENDER --> MAP --> GEOFENCE --> COVERAGE --> TRAILS --> ICONS --> HALOS --> LABELS --> PICK_R --> PRESENT
+
+    style PerFrame fill:#e3f2fd
+    style ComputePass fill:#fff3e0
+    style RenderPass fill:#e0f2f1
+```
+
+### 6.2 Render Layers (Bottom to Top)
+
+| Layer | Technique | Notes |
 |---|---|---|
-| `useTrackStream` | gRPC-Web server-stream | Subscribe to filtered fused track updates |
-| `useAlertStream` | gRPC-Web server-stream | Subscribe to severity-filtered alerts |
-| `useSensorStream` | gRPC-Web server-stream | Subscribe to raw sensor observations *(v2.0 — Fusion Dashboard)* |
-| `useConnectionStatus` | WebSocket heartbeat | Monitor backend connectivity |
-| `useOfflineMode` | Service Worker | Cache tracks and queue feedback when offline |
+| **Base map** | Tiled raster or MVT vector tiles | Standard tile pyramid, cached to GPU textures |
+| **Geofences** | Polygon triangulation (Earcut) | Pre-uploaded, rarely changes |
+| **Sensor coverage** | Arc geometry, semi-transparent | Updated on sensor health change only |
+| **Track trails** | Line strip per track, ring buffer | Alpha-decayed; oldest points fade to 0 |
+| **Track icons** | Instanced quads + icon atlas | Single `drawIndexedIndirect` call for all tracks |
+| **Alert halos** | Instanced circles, animated radius | Pulsating animation via uniform time |
+| **Labels** | SDF text rendering | GPU-computed collision avoidance |
+| **Pick buffer** | Color-coded track ID, off-screen | Read back on click for O(1) selection |
 
-### 9.5 Role-to-Dashboard Mapping *(v2.0)*
+### 6.3 GPU Pick Buffer (Selection)
 
-| Role | Default Dashboard | Available Dashboards |
+Instead of CPU-side hit testing, the render pipeline writes a pick buffer — an off-screen render target where each pixel contains the track slot index:
+
+```mermaid
+sequenceDiagram
+    participant User as Operator
+    participant Main as Main Thread
+    participant Render as Render Worker
+    participant GPU as GPU
+
+    User->>Main: Click at (x, y) on canvas
+    Main->>Render: postMessage("pick", {x, y})
+    Render->>GPU: readBuffer(pickBuffer, x, y, 1, 1)
+    GPU-->>Render: Uint32: slot_index
+    Render->>Main: postMessage("picked", {trackId, slot})
+    Main->>Main: SolidJS shows track detail panel
+```
+
+---
+
+## 7. Performance Budget
+
+### 7.1 Per-Frame Time Budget (16.67 ms for 60 FPS)
+
+```mermaid
+gantt
+    title Per-Frame Time Budget (16.67ms target)
+    dateFormat X
+    axisFormat %L ms
+
+    section Data
+    Scan dirty bits + upload    :a1, 0, 1500
+
+    section Compute
+    Interpolation shader        :a2, 1500, 500
+    Frustum culling             :a3, 2000, 300
+
+    section Render
+    Base map tiles              :a4, 2300, 2000
+    Geofences + coverage        :a5, 4300, 500
+    Track trails                :a6, 4800, 1500
+    Track icons (instanced)     :a7, 6300, 1000
+    Alert halos                 :a8, 7300, 500
+    SDF labels                  :a9, 7800, 1000
+    Pick buffer                 :a10, 8800, 500
+
+    section Present
+    Composite + vsync           :a11, 9300, 700
+```
+
+**Total: ~10 ms** — leaves 6.67 ms headroom for variance on lower-end hardware.
+
+### 7.2 Memory Budget
+
+| Component | Size | Location |
 |---|---|---|
-| Operations Commander | Fusion | Fusion, Multi-Domain, Operator UI |
-| Intelligence Analyst | Forensics | Forensics, Intelligence Search |
-| Security Officer | Audit & Feedback | Audit & Feedback |
-| Sensor Operator | Sensor Health | Sensor Health |
-| NATO Liaison | NATO Exchange | NATO Exchange |
+| SharedArrayBuffer (track data) | 6.1 MB | System RAM (shared) |
+| GPU track buffer | 6.1 MB | VRAM |
+| GPU interpolated buffer | 3.2 MB | VRAM |
+| GPU trail ring buffer | 12.8 MB | VRAM |
+| Icon atlas texture | 512 KB | VRAM |
+| SDF font atlas | 2 MB | VRAM |
+| Tile cache (256 tiles) | 64 MB | VRAM |
+| Pick buffer (1920×1080) | 8 MB | VRAM |
+| Wasm module heap | 4 MB | System RAM |
+| SolidJS DOM | ~2 MB | System RAM |
+| **Total VRAM** | **~97 MB** | — |
+| **Total System RAM** | **~12 MB** | — |
 
-### 9.6 Design System *(v2.0)*
+---
 
-| Category | Specification |
+## 8. Cross-References
+
+| Document | Path |
 |---|---|
-| Typography | Inter (Google Fonts) — weights 300/400/500/600/700 |
-| Base background | `#0B1120` (near-black) |
-| Panel background | `rgba(15, 23, 42, 0.60)` — glassmorphism with `backdrop-filter: blur(12px)` |
-| Primary accent | `#3B82F6` (blue) |
-| Warning accent | `#F59E0B` (amber) |
-| Critical accent | `#EF4444` (red) |
-| NVG theme | Green-on-black palette via `[data-theme="nvg"]` CSS override |
-| Panel collapse | CSS transitions on width/height with `.panel-collapsible.collapsed` class |
-
-| Library | Package Path | Purpose |
-|---|---|---|
-| `pkg/interceptors` | `github.com/rtsa/pkg/interceptors` | gRPC interceptor chain (auth, logging, metrics, tracing, classification) |
-| `pkg/redpanda` | `github.com/rtsa/pkg/redpanda` | franz-go wrapper with standard producer/consumer config |
-| `pkg/health` | `github.com/rtsa/pkg/health` | Standard health check server |
-| `pkg/shutdown` | `github.com/rtsa/pkg/shutdown` | Graceful shutdown orchestrator |
-| `pkg/classification` | `github.com/rtsa/pkg/classification` | Classification level types and enforcement |
-| `pkg/audit` | `github.com/rtsa/pkg/audit` | Audit event builder and producer |
-| `pkg/telemetry` | `github.com/rtsa/pkg/telemetry` | OpenTelemetry initialization |
-| `pkg/config` | `github.com/rtsa/pkg/config` | Environment-based configuration loader |
+| Full v1 Architecture Specification | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` |
+| High-Level Architecture | `docs/architecture/high_level_architecture.md` |
+| Data Architecture | `docs/architecture/data_architecture.md` |
+| Security Architecture | `docs/architecture/security_architecture.md` |
+| SolidJS Standards | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md` |
+| WebGPU Guidelines | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md` |
+| WGSL Shader Standards | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md` |

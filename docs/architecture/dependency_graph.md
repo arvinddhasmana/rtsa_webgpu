@@ -1,439 +1,248 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
 # Dependency Graph
 
-> **Document**: RTSA System Dependency Graph
-> **Version**: 2.0
+> **Document**: RTSA Dependency Graph — Backend + WebGPU Frontend
+> **Version**: 3.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-28
+> **Last Updated**: 2026-03-05
+> **Authoritative Source**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`
 
 ---
 
-## 1. System Dependency Overview
+## 1. System-Level Dependency Graph
 
 ```mermaid
 flowchart TD
-    subgraph External["External Dependencies"]
-        SENSORS[Sensor Systems]
-        NATO[NATO Systems]
-        PKI[Government PKI]
-        NTP[NTP Stratum 1]
-        SIEM[Enterprise SIEM]
+    subgraph Infrastructure["Infrastructure Dependencies"]
+        DOCKER["Docker / K8s / K3s"]
+        OTEL["OpenTelemetry Collector"]
+        PROM["Prometheus"]
+        GRAF["Grafana + Loki + Tempo"]
     end
 
-    subgraph Infrastructure["Infrastructure Layer"]
-        K8S[Kubernetes / K3s]
-        OS[Linux OS<br/>RHEL / Ubuntu]
-        HW[Hardware / VM]
-        NET[Network Fabric]
+    subgraph Backend["Backend Stack (Retained)"]
+        GO["Go 1.22+"]
+        GRPC["gRPC / Protobuf"]
+        RP["Redpanda (C++, no JVM)"]
+        CH["ClickHouse"]
+        RPC["Redpanda Connect"]
+        WASM_BE["Wasm Transforms (Go → Wasm)"]
+        ENVOY["Envoy Proxy<br/>(gRPC-Web + QUIC)"]
     end
 
-    subgraph Platform["Platform Layer"]
-        RP[Redpanda<br/>Event Streaming]
-        CH[ClickHouse<br/>OLAP Storage]
-        RPC[Redpanda Connect<br/>ETL Pipeline]
-        SR[Schema Registry<br/>Protobuf Schemas]
-        CM[cert-manager<br/>Certificate Lifecycle]
+    subgraph NewBackend["New Backend Components"]
+        FB_SER["FlatBuffer Serializer (Go)"]
+        WT_SRV["WebTransport Server (Go)"]
+        FLATC["FlatBuffers Compiler (flatc)"]
     end
 
-    subgraph Services["Application Services"]
-        ING[Ingestion Services<br/>6 sensor types]
-        FUS[Fusion Engine]
-        ANO[Anomaly Detection]
-        FB[Feedback Service]
-        TRAIN[Training Pipeline]
-        NATO_SVC[NATO Adapter]
-        TRACK[Track Service]
-        ALERT[Alert Service]
-        QUERY[Query Service]
-        AUDIT[Audit Service]
-        GW[API Gateway]
-        SYNC[Edge Sync Agent]
+    subgraph Frontend["Frontend Stack (New)"]
+        SOLID["SolidJS (~7 KB)"]
+        VITE["Vite + SolidJS Plugin"]
+        WEBGPU["WebGPU API (Browser)"]
+        WGSL["WGSL Shaders"]
+        WT_API["WebTransport API (Browser)"]
+        SAB["SharedArrayBuffer API"]
+        WASM_FE["Rust Wasm Decoder"]
+        WASM_PACK["wasm-pack / wasm-bindgen"]
+        CONNECT["ConnectRPC (gRPC-Web client)"]
     end
 
-    subgraph Presentation["Presentation Layer"]
-        UI[COP Web Application<br/>React + TypeScript]
+    subgraph BuildTools["Build Toolchain"]
+        PROTOC["protoc + buf"]
+        RUSTC["Rust Toolchain (rustup)"]
+        TSC["TypeScript 5+"]
+        NODE["Node.js 20+ / pnpm"]
     end
 
-    subgraph Observability["Observability Layer"]
-        PROM[Prometheus]
-        GRAF[Grafana]
-        LOKI[Loki]
-        TEMPO[Tempo]
-        OTEL[OpenTelemetry Collector]
-    end
-
-    %% External → Infrastructure
-    PKI --> CM
-    NTP --> K8S
-
-    %% Infrastructure → Platform
-    K8S --> RP
-    K8S --> CH
-    K8S --> RPC
-
-    %% Platform → Services
-    RP --> ING
-    RP --> FUS
-    RP --> ANO
-    RP --> FB
-    RP --> TRAIN
-    RP --> NATO_SVC
-    RP --> TRACK
-    RP --> ALERT
-    RP --> AUDIT
-    RP --> SYNC
-    SR --> ING
-    SR --> FUS
-    CH --> QUERY
-    RPC --> CH
+    GO --> GRPC
+    GO --> RP
+    GO --> CH
+    GO --> FB_SER
+    GO --> WT_SRV
+    GRPC --> PROTOC
+    FB_SER --> FLATC
+    FB_SER --> RP
+    WT_SRV --> FB_SER
     RPC --> RP
-    CM --> ING
-    CM --> FUS
-    CM --> ANO
+    RPC --> CH
+    WASM_BE --> RP
 
-    %% External → Services
-    SENSORS --> ING
-    NATO --> NATO_SVC
-    NATO_SVC --> NATO
-    AUDIT --> SIEM
+    SOLID --> VITE --> NODE
+    SOLID --> TSC
+    WEBGPU --> WGSL
+    CONNECT --> GRPC
+    CONNECT --> ENVOY
+    WASM_FE --> RUSTC --> WASM_PACK
+    WASM_FE --> SAB
+    WT_API --> WT_SRV
 
-    %% Services → Services
-    ING -->|sensors.*| RP
-    FUS -->|tracks.fused.*| RP
-    ANO -->|alerts.*| RP
-    FB -->|feedback.*| RP
+    DOCKER --> GO
+    DOCKER --> NODE
+    OTEL --> PROM --> GRAF
 
-    %% Services → Presentation
-    TRACK --> GW
-    ALERT --> GW
-    QUERY --> GW
-    GW --> UI
-
-    %% Observability
-    OTEL --> PROM
-    OTEL --> LOKI
-    OTEL --> TEMPO
-    PROM --> GRAF
-    LOKI --> GRAF
-    TEMPO --> GRAF
+    style RP fill:#d32f2f,color:#fff
+    style WEBGPU fill:#1565c0,color:#fff
+    style SOLID fill:#6a1b9a,color:#fff
+    style CH fill:#2e7d32,color:#fff
+    style FB_SER fill:#f57c00,color:#fff
+    style WT_SRV fill:#f57c00,color:#fff
+    style WASM_FE fill:#f57c00,color:#fff
 ```
 
 ---
 
-## 2. Service Dependency Matrix
+## 2. Backend Dependencies (Go)
 
-| Service | Depends On | Depended On By |
+### 2.1 Core Go Modules
+
+| Module | Import Path | Purpose | Status |
+|---|---|---|---|
+| gRPC Server | `google.golang.org/grpc` | Service-to-service + ingestion | **Retained** |
+| Protobuf Runtime | `google.golang.org/protobuf` | Message serialization (cold path) | **Retained** |
+| FlatBuffers | `github.com/google/flatbuffers/go` | Binary serialization (hot path) | **New** |
+| Redpanda Client | `github.com/twmb/franz-go` | Kafka-compatible producer/consumer | **Retained** |
+| ClickHouse Driver | `github.com/ClickHouse/clickhouse-go/v2` | OLAP queries | **Retained** |
+| ConnectRPC | `connectrpc.com/connect` | gRPC-Web server support | **Retained** |
+| OpenTelemetry | `go.opentelemetry.io/otel` | Distributed tracing + metrics | **Retained** |
+| slog | `log/slog` (stdlib) | Structured logging | **Retained** |
+| WebTransport | `github.com/quic-go/webtransport-go` | HTTP/3 QUIC datagram server | **New** |
+
+### 2.2 Proto / Schema Toolchain
+
+| Tool | Version | Purpose |
 |---|---|---|
-| **Radar Ingestion** | Redpanda, Schema Registry, cert-manager | Fusion Engine (via Redpanda) |
-| **EW/SIGINT Ingestion** | Redpanda, Schema Registry, cert-manager | Fusion Engine (via Redpanda) |
-| **ELINT/COMINT Ingestion** | Redpanda, Schema Registry, cert-manager | Fusion Engine (via Redpanda) |
-| **ISR Ingestion** | Redpanda, Schema Registry, cert-manager | Fusion Engine (via Redpanda) |
-| **AIS/BFT Ingestion** | Redpanda, Schema Registry, cert-manager | Fusion Engine (via Redpanda) |
-| **Cyber Ingestion** | Redpanda, Schema Registry, cert-manager | Fusion Engine (via Redpanda) |
-| **Fusion Engine** | Redpanda, Schema Registry | Anomaly Detection, Track Service (via Redpanda) |
-| **Anomaly Detection** | Redpanda, Schema Registry | Alert Service (via Redpanda), Feedback Service |
-| **Feedback Service** | Redpanda, Schema Registry | Training Pipeline (via Redpanda) |
-| **Training Pipeline** | Redpanda, Model Registry | Anomaly Detection (model updates via Redpanda) |
-| **NATO Adapter** | Redpanda, Link 16 Terminal, NFFI Gateway | Fusion Engine (inbound), NATO Systems (outbound) |
-| **Track Service** | Redpanda | API Gateway |
-| **Alert Service** | Redpanda | API Gateway |
-| **Query Service** | ClickHouse | API Gateway |
-| **Audit Service** | Redpanda, ClickHouse | SIEM (outbound) |
-| **API Gateway** | Track/Alert/Query Services, cert-manager | COP Web Application |
-| **Edge Sync Agent** | Redpanda (edge), Redpanda (DC) | None |
-| **Redpanda Connect** | Redpanda, ClickHouse | None (ETL pipeline) |
+| `buf` | Latest | Protobuf schema management, linting, breaking change detection |
+| `protoc-gen-go` | Matches Go module | Go code generation from .proto |
+| `protoc-gen-connect-go` | Latest | ConnectRPC server stubs |
+| `flatc` | Latest | FlatBuffer schema compilation (.fbs → Go/Rust/TypeScript) |
 
 ---
 
-## 3. Data Flow Dependency Chain
+## 3. Frontend Dependencies (SolidJS + WebGPU)
+
+### 3.1 NPM Packages
+
+| Package | Purpose | Status |
+|---|---|---|
+| `solid-js` | UI framework — fine-grained reactivity, JSX compilation | **New** (replaces `react`, `react-dom`) |
+| `vite` | Build tool + dev server | **Retained** |
+| `vite-plugin-solid` | SolidJS JSX transform for Vite | **New** |
+| `@connectrpc/connect-web` | gRPC-Web client (cold path) | **Retained** |
+| `@connectrpc/protobuf-es` | Protobuf runtime for TypeScript (cold path) | **Retained** |
+| `typescript` | Type checking | **Retained** |
+| `vitest` | Unit testing | **Retained** |
+| `@solidjs/testing-library` | SolidJS component testing | **New** (replaces `@testing-library/react`) |
+| `playwright` | E2E browser testing | **Retained** |
+
+### 3.2 Browser APIs (No NPM Package — Built-in)
+
+| API | Browser Minimum | Purpose |
+|---|---|---|
+| `WebGPU` (`navigator.gpu`) | Chrome 113+, Edge 113+, Firefox 128+ | GPU compute + render pipeline |
+| `WebTransport` | Chrome 97+, Edge 97+, Firefox 114+ | QUIC unreliable datagrams (hot path) |
+| `SharedArrayBuffer` | All modern (with COOP/COEP) | Zero-copy shared memory between workers |
+| `OffscreenCanvas` | All modern | WebGPU rendering from Render Worker |
+| `Atomics` | All modern (with SAB) | Lock-free synchronization of dirty bits |
+
+### 3.3 Rust / Wasm Toolchain (Decoder)
+
+| Tool | Purpose |
+|---|---|
+| `rustup` / `cargo` | Rust toolchain management |
+| `wasm-pack` | Build Rust → Wasm module with JS bindings |
+| `wasm-bindgen` | Rust ↔ JS FFI (SharedArrayBuffer access) |
+| `flatbuffers` (Rust crate) | FlatBuffer zero-copy reader in Wasm decoder |
+
+### 3.4 Removed Dependencies
+
+These dependencies from the React-era stack are **not present** in the new codebase:
+
+| Removed Package | Replaced By |
+|---|---|
+| `react`, `react-dom` | `solid-js` |
+| `zustand` | SolidJS signals + SharedArrayBuffer |
+| `maplibre-gl` | Custom WebGPU renderer |
+| `@tanstack/react-query` | SolidJS `createResource` + gRPC-Web |
+| `@testing-library/react` | `@solidjs/testing-library` |
+| `protobuf-ts` (hot path decode) | Rust Wasm FlatBuffer decoder |
+
+---
+
+## 4. Dual-Protocol Dependency Map
 
 ```mermaid
 flowchart LR
-    S[Sensor Data] --> ING[Ingestion]
-    ING --> RP1[Redpanda<br/>sensors.*]
-    RP1 --> FUS[Fusion]
-    FUS --> RP2[Redpanda<br/>tracks.fused.*]
-    RP2 --> ANO[Anomaly<br/>Detection]
-    ANO --> RP3[Redpanda<br/>alerts.*]
+    subgraph HotPath["Hot Path Dependencies"]
+        direction TB
+        RP_H["Redpanda"] --> FB_SER_H["FlatBuffer Serializer<br/>(Go + flatbuffers)"]
+        FB_SER_H --> WT_SRV_H["WebTransport Server<br/>(Go + quic-go)"]
+        WT_SRV_H --> WT_API_H["WebTransport API<br/>(Browser built-in)"]
+        WT_API_H --> WASM_H["Wasm Decoder<br/>(Rust + wasm-pack)"]
+        WASM_H --> SAB_H["SharedArrayBuffer<br/>(Browser built-in)"]
+        SAB_H --> GPU_H["WebGPU API<br/>(Browser built-in)"]
+    end
 
-    RP2 --> TS[Track<br/>Service]
-    RP3 --> AS[Alert<br/>Service]
+    subgraph ColdPath["Cold Path Dependencies"]
+        direction TB
+        SVC_C["Go gRPC Services"] --> ENV_C["Envoy Proxy<br/>(gRPC-Web transcoding)"]
+        ENV_C --> CONN_C["ConnectRPC Client<br/>(@connectrpc/connect-web)"]
+        CONN_C --> SOLID_C["SolidJS Signals<br/>(solid-js)"]
+    end
 
-    TS --> GW[API<br/>Gateway]
-    AS --> GW
-    GW --> UI[COP UI]
-
-    UI --> FB[Feedback<br/>Service]
-    FB --> RP4[Redpanda<br/>feedback.*]
-    RP4 --> TRAIN[Training<br/>Pipeline]
-    TRAIN --> RP5[Redpanda<br/>models.*]
-    RP5 --> ANO
-
-    RP1 --> RPC[Redpanda<br/>Connect]
-    RP2 --> RPC
-    RP3 --> RPC
-    RPC --> CH[(ClickHouse)]
-    CH --> QS[Query<br/>Service]
-    QS --> GW
+    style HotPath fill:#fff3e0
+    style ColdPath fill:#e3f2fd
 ```
 
-**Critical Path** (sensor-to-display latency budget):
+---
 
-| Stage | Target Latency | Cumulative |
+## 5. Build Dependency Chain
+
+```mermaid
+flowchart TD
+    PROTO[".proto schemas"] -->|buf generate| GO_STUBS["Go server stubs"]
+    PROTO -->|buf generate| TS_STUBS["TypeScript client stubs<br/>(cold path only)"]
+    FBS[".fbs schemas"] -->|flatc| GO_FB["Go FlatBuffer builders"]
+    FBS -->|flatc| RUST_FB["Rust FlatBuffer readers"]
+    RUST_FB -->|wasm-pack build| WASM_MOD[".wasm decoder module"]
+    SOLID_SRC["SolidJS source<br/>(.tsx / .ts)"] -->|vite build| JS_BUNDLE["JS bundle"]
+    WGSL_SRC["WGSL shaders<br/>(.wgsl)"] -->|embedded| JS_BUNDLE
+    WASM_MOD --> JS_BUNDLE
+    TS_STUBS --> JS_BUNDLE
+    GO_STUBS --> GO_BIN["Go service binaries"]
+    GO_FB --> GO_BIN
+
+    style PROTO fill:#e3f2fd
+    style FBS fill:#fff3e0
+    style WASM_MOD fill:#f57c00,color:#fff
+    style JS_BUNDLE fill:#6a1b9a,color:#fff
+    style GO_BIN fill:#2e7d32,color:#fff
+```
+
+---
+
+## 6. Infrastructure Dependencies
+
+| Component | Version / Image | Purpose |
 |---|---|---|
-| Sensor → Ingestion | < 10 ms | 10 ms |
-| Ingestion → Redpanda | < 5 ms | 15 ms |
-| Redpanda → Fusion | < 20 ms | 35 ms |
-| Fusion processing | < 50 ms | 85 ms |
-| Fusion → Redpanda | < 5 ms | 90 ms |
-| Redpanda → Track Service | < 10 ms | 100 ms |
-| Track Service → Gateway | < 5 ms | 105 ms |
-| Gateway → UI render | < 45 ms | **150 ms** |
+| Redpanda | `redpandadata/redpanda:latest` | Event streaming (C++, no JVM) |
+| ClickHouse | `clickhouse/clickhouse-server:latest` | OLAP analytics |
+| Envoy Proxy | `envoyproxy/envoy:latest` | gRPC-Web transcoding + HTTP/3 QUIC listener |
+| OpenTelemetry Collector | `otel/opentelemetry-collector:latest` | Telemetry aggregation |
+| Prometheus | `prom/prometheus:latest` | Metrics |
+| Grafana | `grafana/grafana:latest` | Dashboards |
+| Loki | `grafana/loki:latest` | Log aggregation |
+| Tempo | `grafana/tempo:latest` | Distributed traces |
 
 ---
 
-## 4. Startup Order
+## 7. Cross-References
 
-```mermaid
-flowchart TD
-    L0[Level 0: Infrastructure] --> L1[Level 1: Platform]
-    L1 --> L2[Level 2: Core Services]
-    L2 --> L3[Level 3: Processing Services]
-    L3 --> L4[Level 4: Presentation]
-    L4 --> L5[Level 5: Integration]
-
-    subgraph L0D["Level 0"]
-        K8S[Kubernetes]
-        NET[Network]
-        CERT[cert-manager]
-        NTP_C[NTP sync]
-    end
-
-    subgraph L1D["Level 1"]
-        RP[Redpanda]
-        CH[ClickHouse]
-        SR[Schema Registry]
-    end
-
-    subgraph L2D["Level 2"]
-        AUDIT[Audit Service]
-        RPC[Redpanda Connect]
-        OTEL[OTel Collector]
-    end
-
-    subgraph L3D["Level 3"]
-        ING[Ingestion Services]
-        FUS[Fusion Engine]
-        ANO[Anomaly Detection]
-        FB[Feedback Service]
-    end
-
-    subgraph L4D["Level 4"]
-        TRACK[Track Service]
-        ALERT[Alert Service]
-        QUERY[Query Service]
-        GW[API Gateway]
-        UI[COP Web App]
-    end
-
-    subgraph L5D["Level 5"]
-        NATO[NATO Adapter]
-        SYNC[Edge Sync Agent]
-        TRAIN[Training Pipeline]
-    end
-```
-
-| Level | Services | Ready When |
-|---|---|---|
-| 0 | Kubernetes, Network, cert-manager, NTP | Cluster healthy, certificates issued |
-| 1 | Redpanda, ClickHouse, Schema Registry | Brokers accepting connections, topics created |
-| 2 | Audit Service, Redpanda Connect, OTel Collector | Consuming audit events, ETL running |
-| 3 | Ingestion Services, Fusion, Anomaly, Feedback | gRPC servers ready, consuming/producing |
-| 4 | Track, Alert, Query Services, Gateway, UI | Streaming to clients, queries returning |
-| 5 | NATO Adapter, Sync Agent, Training Pipeline | NATO link established, sync running |
-
----
-
-## 5. Technology Dependency Tree
-
-```mermaid
-flowchart TD
-    subgraph Go["Go Ecosystem"]
-        GO[Go 1.22+]
-        GRPC_GO[google.golang.org/grpc]
-        PROTO_GO[google.golang.org/protobuf]
-        KGO[github.com/twmb/franz-go]
-        CH_GO[github.com/ClickHouse/clickhouse-go]
-        OTEL_GO[go.opentelemetry.io/otel]
-        SLOG[log/slog stdlib]
-        CRYPTO[crypto/tls stdlib]
-    end
-
-    subgraph React["React Ecosystem"]
-        REACT[React 18+]
-        TS[TypeScript 5+]
-        GRPC_WEB[grpc-web]
-        ZUSTAND[Zustand]
-        MAPLIB[Map Library]
-        VITE[Vite]
-    end
-
-    subgraph Platform_Tech["Platform Technologies"]
-        REDPANDA[Redpanda 24.x]
-        CLICKHOUSE[ClickHouse 24.x]
-        RP_CONNECT[Redpanda Connect 4.x]
-        BUF[buf CLI]
-    end
-
-    subgraph Security_Tools["Security Toolchain"]
-        COSIGN[cosign]
-        TRIVY[trivy]
-        SYFT[syft]
-        SEMGREP[semgrep]
-        GOSEC[gosec]
-        GOLINT[golangci-lint]
-    end
-
-    subgraph Observability_Stack["Observability"]
-        PROMETHEUS[Prometheus]
-        GRAFANA[Grafana]
-        LOKI[Loki]
-        TEMPO[Tempo]
-        OTEL_COL[OTel Collector]
-    end
-
-    subgraph Infra_Tools["Infrastructure"]
-        K8S_T[Kubernetes 1.29+]
-        K3S[K3s]
-        HELM[Helm 3]
-        GH_ACTIONS[GitHub Actions]
-    end
-
-    GO --> GRPC_GO
-    GO --> PROTO_GO
-    GO --> KGO
-    GO --> CH_GO
-    GO --> OTEL_GO
-    PROTO_GO --> BUF
-
-    REACT --> TS
-    REACT --> GRPC_WEB
-    REACT --> ZUSTAND
-
-    COSIGN --> GH_ACTIONS
-    TRIVY --> GH_ACTIONS
-    SYFT --> GH_ACTIONS
-    SEMGREP --> GH_ACTIONS
-    GOSEC --> GH_ACTIONS
-    GOLINT --> GH_ACTIONS
-
-    HELM --> K8S_T
-    HELM --> K3S
-```
-
----
-
-## 6. Failure Impact Analysis
-
-| Component Failure | Impact | Blast Radius | Mitigation |
-|---|---|---|---|
-| **Redpanda** (total) | All data flow stops | **Critical** — entire system | 5-node cluster, RF=3, automated recovery |
-| **Redpanda** (1 broker) | Temporary rebalance | Low — auto-recovery | Leader election < 2s |
-| **ClickHouse** (total) | Historical queries unavailable | Medium — analytics only | 2-replica per shard, separate read path |
-| **ClickHouse** (1 replica) | No impact (failover) | None | Automatic replica promotion |
-| **Fusion Engine** | No fused tracks produced | High — COP shows stale data | 3 replicas, consumer group rebalance |
-| **Anomaly Detection** | No new alerts generated | Medium — tracks still visible | 2 replicas, last-known alerts persist |
-| **Single Ingestion Service** | One sensor type not ingested | Low — other sensors continue | 2 replicas per sensor type |
-| **API Gateway** | UI cannot connect | High — no operator access | 2 replicas, health-check failover |
-| **Track Service** | No real-time track updates | High — stale COP | 2 replicas, cached last-known state |
-| **Query Service** | No historical queries | Low — real-time unaffected | 2 replicas |
-| **Audit Service** | Audit events queued in Redpanda | Low — no data loss | Events buffered in Redpanda until recovery |
-| **NATO Adapter** | No NATO data exchange | Medium — local ops continue | 2 replicas, queued messages in Redpanda |
-| **Edge WAN Link** | Edge operates independently | Low (edge) — edge continues | Store-and-forward, automatic resync |
-| **cert-manager** | No new certificates | Low — existing certs valid | 90-day cert lifetime provides buffer |
-
----
-
-## 7. Document Dependency Map
-
-```mermaid
-flowchart TD
-    subgraph Guidelines["SDLC Guidelines"]
-        MP[00_master_policy.md]
-        SC[01_security_compliance/]
-        REQ[02_requirements/]
-        ARCH_G[03_architecture_design/]
-        CODE[04_coding_standards/]
-        TEST[05_testing/]
-        CICD[06_integration_cicd/]
-        DEPLOY_G[07_deployment_operations/]
-        TECH[08_tech_specific/]
-        GOV[09_governance/]
-    end
-
-    subgraph Business["Business Documentation"]
-        BRD[requirements.md]
-        FEAT[feature_list.md]
-        UC[usecases/UC001-UC015]
-    end
-
-    subgraph Architecture["Architecture Documentation"]
-        HLA[high_level_architecture.md]
-        CD[component_design.md]
-        DA[data_architecture.md]
-        SA[security_architecture.md]
-        DEPL[deployment_architecture.md]
-        IA[integration_architecture.md]
-        DG[dependency_graph.md]
-    end
-
-    MP --> SC
-    MP --> REQ
-    MP --> ARCH_G
-    MP --> CODE
-    MP --> TEST
-    MP --> CICD
-    MP --> DEPLOY_G
-    MP --> TECH
-    MP --> GOV
-
-    REQ --> BRD
-    BRD --> FEAT
-    FEAT --> UC
-
-    ARCH_G --> HLA
-    HLA --> CD
-    HLA --> DA
-    HLA --> SA
-    HLA --> DEPL
-    HLA --> IA
-    CD --> DG
-    DA --> DG
-    IA --> DG
-
-    SC --> SA
-    CODE --> CD
-    TECH --> DA
-    DEPLOY_G --> DEPL
-    UC --> CD
-    UC --> IA
-```
-
----
-
-## 8. Requirement → Feature → Component Traceability
-
-| Requirement Group | Features | Components | Use Cases |
-|---|---|---|---|
-| CR-ING (Ingestion) | FEAT-01..06 | 6 Ingestion Services, Wasm Transforms | UC001..UC007 |
-| CR-ING-011..012 *(v2.0)* | FEAT-16, FEAT-19 | Track Service (`StreamSensorObservations`), Ingestion Service (`ListSensorStatuses` + `SensorCoverage`) | UC016, UC017 |
-| CR-FUS (Fusion) | FEAT-07 | Fusion Engine | UC008 |
-| CR-INF (Inference) | FEAT-08 | Anomaly Detection Service | UC009 |
-| CR-FB (Feedback) | FEAT-12, FEAT-13 | Feedback Service, Training Pipeline | UC010, UC011 |
-| CR-FB-008 *(v2.0)* | FEAT-18 | Alert Service (`AssignAlert`) | UC010 |
-| CR-UI (User Interface) | FEAT-13, FEAT-16..19 | Track/Alert/Query Services, Gateway, COP UI (Two-Level RBAC Shell) | UC012, UC016, UC017 |
-| CR-UI-009..020 *(v2.0)* | FEAT-13, FEAT-16..19 | `uiStore`, `RoleSelector`, `DashboardSelector`, `FusionDashboard`, `MultiDomainDashboard`, `OperatorDashboard`, `SensorHealthDashboard` | UC012, UC016, UC017 |
-| CR-HIS (Historical) | FEAT-14, FEAT-20 | Query Service, ClickHouse, Redpanda Connect | UC013 |
-| CR-HIS-008..009 *(v2.0)* | FEAT-20 | Query Service (`GetEventTimeline`), ClickHouse materialized views | UC013 |
-| CR-NATO (Interop) | FEAT-15 | NATO Adapter, Cross-Domain Guard | UC014, UC015 |
-| CR-SEC (Security) | All features | All services (cross-cutting) | All use cases |
+| Document | Path |
+|---|---|
+| Full v1 Architecture | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` |
+| Supply Chain Security | `docs/sdlc_guidelines/01_security_compliance/supply_chain_security.md` |
+| SolidJS Standards | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md` |
+| WebGPU Guidelines | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md` |
+| FlatBuffers Guidelines | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
+| WebTransport Guidelines | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md` |

@@ -1,395 +1,325 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
 # High-Level Architecture
 
-> **Document**: RTSA High-Level Architecture
-> **Version**: 2.0
+> **Document**: RTSA High-Level Architecture — WebGPU Performance-First Pipeline
+> **Version**: 3.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-28
-> **Compliance**: ITSG-33, NIST 800-53 Rev 5, NATO STANAG 5516
+> **Last Updated**: 2026-03-05
+> **Compliance**: ITSG-33 (CCCS), NIST 800-53 Rev 5, NATO STANAG 5516
+> **Authoritative Source**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`
 
 ---
 
 ## 1. Executive Summary
 
-The Real-Time Situational Awareness & Risk Assessment (RTSA) system is an event-driven microservices platform that ingests multi-sensor data (Radar, EW/SIGINT, ELINT/COMINT, ISR, AIS/BFT, Cyber), fuses it into a unified track picture, applies AI-driven anomaly detection, and presents a real-time common operating picture (COP) to operators. Human-in-the-loop feedback drives model improvement. The system supports deployment at tactical edge (disconnected, resource-constrained) and data centre (full capacity) environments.
+RTSA provides Canadian Armed Forces operators with a unified, real-time operational picture by fusing data from six sensor categories, applying AI-driven anomaly detection, and enabling human-in-the-loop feedback. The system supports full data centre and hardware-constrained tactical edge deployments while maintaining NATO interoperability via STANAG 5516 / NFFI / MIP.
 
-**v2.0 Changes**: The v2.0 release delivers three premium mission-critical dashboard views (Fusion Dashboard, Multi-Domain Dashboard, Operator UI) through a Two-Level Role-Based shell supporting all five operator roles. Backend API enhancements include raw sensor observation streaming (`StreamSensorObservations`), unified event timeline aggregation (`GetEventTimeline`), alert assignment (`AssignAlert`), sensor coverage geometry, and three real-time ClickHouse materialized views.
+The **performance-first v1 architecture** re-architects the frontend data pipeline from backend binary serialization through browser transport, off-main-thread processing, GPU-resident storage, to WebGPU compute-and-render — while preserving the proven Redpanda + ClickHouse + Go gRPC backend stack.
+
+### Performance Targets
+
+| Metric | Previous (React/MapLibre) | Target (WebGPU) |
+|---|---|---|
+| Concurrent rendered tracks | ~5,000 (degraded) | 50,000+ (sustained) |
+| Track update ingestion rate | ~2,000 msg/s (browser) | 50,000+ msg/s (browser) |
+| Frame rate under load | 15–30 FPS at 5k tracks | 60 FPS sustained at 50k tracks |
+| Update-to-pixel latency | 100–200 ms | < 16 ms (single frame) |
+| Main thread CPU utilization | 70–95% under load | < 20% (UI controls only) |
+| Memory per track | ~2 KB (JS objects + GeoJSON) | ~128 bytes (GPU buffer slot) |
 
 ---
 
-## 2. C4 Context Diagram
+## 2. C4 Context Diagram (Level 1)
 
 ```mermaid
 C4Context
-    title RTSA System — Context Diagram
+    title RTSA System Context — Level 1
 
-    Person(operator, "Operator", "Operations Commander,<br/>Intelligence Analyst,<br/>Watch Officer")
-    Person(secops, "Security Officer", "Monitors audit trail,<br/>manages classification")
-    Person(mleng, "ML Engineer", "Manages model lifecycle,<br/>reviews retraining")
+    Person(operator, "COP Operator", "Monitors tracks, classifies entities, acknowledges alerts")
+    Person(secops, "Security Officer", "Reviews audit trail, manages classification, monitors compliance")
+    Person(ml_eng, "ML Engineer", "Monitors model performance, reviews retraining")
+    Person(nato_liaison, "NATO Liaison", "Manages allied data exchange")
 
-    System(rtsa, "RTSA System", "Real-time situational awareness<br/>& AI-driven anomaly detection")
+    System(rtsa, "RTSA Platform", "Real-time situational awareness with AI-driven anomaly detection, multi-sensor fusion, and WebGPU tactical display")
 
-    System_Ext(radar, "Radar Systems", "Track detection &<br/>position reports")
-    System_Ext(ewsigint, "EW/SIGINT Sensors", "Electronic warfare &<br/>signals intelligence")
-    System_Ext(elint, "ELINT/COMINT Sensors", "Emitter detection &<br/>communications intercept")
-    System_Ext(isr, "ISR Platforms", "Imagery & full-motion<br/>video metadata")
-    System_Ext(ais, "AIS/BFT Systems", "Maritime AIS &<br/>Blue Force Tracking")
-    System_Ext(cyber, "Cyber Threat Feeds", "IOCs, STIX/TAXII,<br/>MITRE ATT&CK")
-    System_Ext(nato, "NATO Allied Systems", "Link 16, NFFI,<br/>MIP data shares")
-    System_Ext(siem, "SIEM / SOC", "Security event<br/>correlation")
+    System_Ext(radar, "Radar Systems", "Track plots: azimuth, range, elevation, velocity")
+    System_Ext(ew, "EW/SIGINT Systems", "Signal detections: frequency, bearing")
+    System_Ext(elint, "ELINT/COMINT Systems", "Electronic/communications intelligence")
+    System_Ext(isr, "ISR Platforms", "Imagery metadata, video frames")
+    System_Ext(ais, "AIS/BFT Systems", "Position reports, callsigns")
+    System_Ext(cyber, "Cyber Feeds", "Network events, IOCs")
+    System_Ext(nato, "NATO Allied Systems", "STANAG 5516 / NFFI / MIP exchange")
+    System_Ext(siem, "SIEM/SOC", "Security event correlation")
 
-    Rel(operator, rtsa, "Views COP, submits feedback", "gRPC-Web / HTTPS")
-    Rel(secops, rtsa, "Reviews audit, manages classification", "gRPC-Web / HTTPS")
-    Rel(mleng, rtsa, "Reviews model lifecycle", "gRPC-Web / HTTPS")
+    Rel(operator, rtsa, "WebGPU tactical display + SolidJS controls")
+    Rel(secops, rtsa, "Audit queries, classification management")
+    Rel(ml_eng, rtsa, "Model metrics, retraining review")
+    Rel(nato_liaison, rtsa, "Bidirectional NATO track exchange")
 
-    Rel(radar, rtsa, "Radar tracks", "gRPC / UDP")
-    Rel(ewsigint, rtsa, "SIGINT intercepts", "gRPC")
-    Rel(elint, rtsa, "Emitter data", "gRPC")
-    Rel(isr, rtsa, "ISR metadata", "gRPC")
-    Rel(ais, rtsa, "AIS/BFT positions", "NMEA / gRPC")
-    Rel(cyber, rtsa, "Threat indicators", "STIX/TAXII / gRPC")
-
-    BiRel(rtsa, nato, "Track exchange", "Link 16 / NFFI / MIP")
-    Rel(rtsa, siem, "Security events", "Syslog / CEF")
+    Rel(radar, rtsa, "mTLS gRPC streams")
+    Rel(ew, rtsa, "mTLS gRPC streams")
+    Rel(elint, rtsa, "mTLS gRPC streams")
+    Rel(isr, rtsa, "mTLS gRPC streams")
+    Rel(ais, rtsa, "mTLS gRPC streams")
+    Rel(cyber, rtsa, "mTLS gRPC streams")
+    Rel(nato, rtsa, "STANAG 5516 / NFFI / MIP")
+    Rel(rtsa, siem, "Audit events, security alerts")
 ```
 
 ---
 
-## 3. C4 Container Diagram
+## 3. End-to-End Data Pipeline
 
-```mermaid
-C4Container
-    title RTSA System — Container Diagram
-
-    Person(operator, "Operator", "")
-
-    System_Boundary(rtsa, "RTSA System") {
-        Container(ui, "COP Web Application", "React 18, TypeScript, gRPC-Web", "Real-time situational awareness<br/>dashboard with map, alerts,<br/>and feedback UI")
-
-        Container(gateway, "API Gateway", "Go, Envoy", "gRPC-Web proxy, mTLS termination,<br/>rate limiting, auth")
-
-        Container(radar_ing, "Radar Ingestion Service", "Go, gRPC", "Ingests radar tracks,<br/>normalizes to internal schema")
-        Container(ew_ing, "EW/SIGINT Ingestion Service", "Go, gRPC", "Ingests electronic warfare<br/>& signals intelligence data")
-        Container(elint_ing, "ELINT/COMINT Ingestion Service", "Go, gRPC", "Ingests emitter detections<br/>& communications intercepts")
-        Container(isr_ing, "ISR Ingestion Service", "Go, gRPC", "Ingests ISR platform<br/>metadata & observations")
-        Container(ais_ing, "AIS/BFT Ingestion Service", "Go, gRPC", "Ingests maritime AIS<br/>& Blue Force Tracking")
-        Container(cyber_ing, "Cyber Ingestion Service", "Go, gRPC", "Ingests cyber threat IOCs<br/>from STIX/TAXII feeds")
-        Container(nato_ing, "NATO Adapter Service", "Go, gRPC", "Bidirectional Link 16 / NFFI /<br/>MIP translation & exchange")
-
-        Container(fusion, "Fusion Engine", "Go, gRPC", "Multi-source track correlation,<br/>entity state estimation,<br/>confidence scoring")
-        Container(anomaly, "Anomaly Detection Service", "Go, gRPC", "AI/ML inference for<br/>behavioral, spatial, temporal<br/>anomaly detection")
-        Container(feedback, "Feedback Service", "Go, gRPC", "Operator feedback collection,<br/>trust scoring,<br/>anti-poisoning validation")
-        Container(training, "Model Training Pipeline", "Go, Python", "Feedback-driven model<br/>retraining with<br/>anti-poisoning safeguards")
-
-        Container(track_svc, "Track Service", "Go, gRPC", "Track state management,<br/>streaming to UI,<br/>historical queries")
-        Container(alert_svc, "Alert Service", "Go, gRPC", "Alert management,<br/>severity routing,<br/>acknowledgment tracking")
-        Container(query_svc, "Query Service", "Go, gRPC", "Historical queries against<br/>ClickHouse with<br/>classification filtering")
-        Container(audit_svc, "Audit Service", "Go, gRPC", "Immutable audit trail,<br/>compliance reporting")
-
-        ContainerDb(redpanda, "Redpanda Cluster", "Redpanda", "Event streaming backbone,<br/>all inter-service communication")
-        ContainerDb(clickhouse, "ClickHouse Cluster", "ClickHouse", "Historical storage, OLAP<br/>analytics, forensics")
-        Container(rpconnect, "Redpanda Connect", "Redpanda Connect", "Stream-to-OLAP ETL,<br/>batch materialization")
-    }
-
-    Rel(operator, ui, "Uses", "HTTPS")
-    Rel(ui, gateway, "gRPC-Web", "HTTPS/mTLS")
-    Rel(gateway, track_svc, "gRPC", "mTLS")
-    Rel(gateway, alert_svc, "gRPC", "mTLS")
-    Rel(gateway, feedback, "gRPC", "mTLS")
-    Rel(gateway, query_svc, "gRPC", "mTLS")
-
-    Rel(radar_ing, redpanda, "Produce", "sensors.radar.*")
-    Rel(ew_ing, redpanda, "Produce", "sensors.ew.*")
-    Rel(elint_ing, redpanda, "Produce", "sensors.elint.*")
-    Rel(isr_ing, redpanda, "Produce", "sensors.isr.*")
-    Rel(ais_ing, redpanda, "Produce", "sensors.ais.*")
-    Rel(cyber_ing, redpanda, "Produce", "sensors.cyber.*")
-    Rel(nato_ing, redpanda, "Produce/Consume", "sensors.nato.*")
-
-    Rel(redpanda, fusion, "Consume", "sensors.*")
-    Rel(fusion, redpanda, "Produce", "tracks.fused.*")
-    Rel(redpanda, anomaly, "Consume", "tracks.fused.*")
-    Rel(anomaly, redpanda, "Produce", "alerts.*")
-    Rel(feedback, redpanda, "Produce", "feedback.*")
-    Rel(redpanda, training, "Consume", "feedback.operator.validated")
-    Rel(audit_svc, redpanda, "Consume/Produce", "audit.*")
-
-    Rel(rpconnect, redpanda, "Consume", "all topics")
-    Rel(rpconnect, clickhouse, "Insert", "batch ETL")
-    Rel(query_svc, clickhouse, "Query", "SQL/mTLS")
-```
-
----
-
-## 4. Architectural Principles
-
-| # | Principle | Description |
-|---|---|---|
-| AP-01 | Event-Driven First | All inter-service communication flows through Redpanda. No direct service-to-service calls for data exchange. |
-| AP-02 | Security by Design | mTLS everywhere, classification enforcement at every boundary, zero-trust between services. |
-| AP-03 | Edge-Native | Every service must operate in resource-constrained edge environments (4 cores, 8 GB RAM minimum). |
-| AP-04 | Immutable Audit | All state-changing operations produce audit events. Audit data is append-only, never modified or deleted. |
-| AP-05 | Human-in-the-Loop | AI/ML systems never act autonomously on critical decisions without operator awareness. |
-| AP-06 | Graceful Degradation | Services degrade predictably under resource pressure. Shedding rules prioritize safety-critical data. |
-| AP-07 | NATO Interoperable | System can exchange data with allied systems using standard formats without custom integration. |
-| AP-08 | Observable | Every service emits structured logs, metrics, and traces via OpenTelemetry. |
-| AP-09 | Read-Model Separation | Premium dashboards requiring raw sensor data use dedicated consumer groups and read-models — never reaching into another service's write path. |
-| AP-10 | Role-Based Presentation | The COP UI enforces a Two-Level RBAC shell: Level 1 selects the operator role; Level 2 selects the dashboard view appropriate to that role. |
-
----
-
-## 5. Key Architectural Decisions
-
-### ADR-001: Redpanda as Event Backbone
-
-**Decision**: Use Redpanda as the sole inter-service communication mechanism.
-
-**Rationale**:
-- Kafka-compatible API with lower resource footprint (critical for edge)
-- Single binary, no JVM dependency
-- Built-in Schema Registry for protobuf schema evolution
-- Wasm Data Transforms for in-broker validation
-- Tiered storage for long-term event retention
-
-**Consequences**: All services are decoupled via topics. No synchronous service-to-service calls for data flow. Command/query separation is natural.
-
-### ADR-002: ClickHouse for Historical Analytics
-
-**Decision**: Use ClickHouse as the OLAP engine for historical queries and forensics.
-
-**Rationale**:
-- Columnar storage optimized for time-series analytics
-- MergeTree engine with native partitioning by date
-- Excellent compression for high-volume sensor data
-- SQL interface familiar to analysts
-- Lightweight enough for tactical edge deployment
-
-**Consequences**: Redpanda Connect handles stream-to-OLAP ETL. No direct writes from services to ClickHouse. Query service provides classification-filtered access.
-
-### ADR-003: Go for All Backend Services
-
-**Decision**: Use Go as the primary backend language.
-
-**Rationale**:
-- Excellent gRPC/protobuf support
-- Low memory footprint for edge deployment
-- Strong concurrency model (goroutines)
-- Static binary compilation (no runtime dependencies)
-- CSE-approved for Protected C workloads
-
-**Consequences**: All services follow the same project structure and coding standards. Shared libraries for common patterns (interceptors, health checks, graceful shutdown).
-
-### ADR-004: CQRS with Event Sourcing
-
-**Decision**: Separate command (write) and query (read) paths.
-
-**Rationale**:
-- Write path: Sensor ingestion → Redpanda → Fusion → Redpanda (optimized for throughput)
-- Read path: ClickHouse (optimized for complex analytical queries)
-- Event sourcing via Redpanda provides complete audit trail and replay capability
-
-**Consequences**: Redpanda Connect materializes views into ClickHouse. Slight eventual consistency delay (< 5s) between write and read paths.
-
-### ADR-005: Two-Level RBAC Shell for COP UI *(v2.0)*
-
-**Decision**: The COP Web Application enforces a two-level role selection. Level 1 selects the operator role (Commander, Analyst, Security, Sensor Operator, NATO Liaison). Level 2 selects the dashboard view available to that role (Fusion / Multi-Domain / Operator for Commander; Forensics / Intel Search for Analyst; Audit & Feedback for Security; Sensor Health for Sensor Operator; NATO Exchange for NATO Liaison).
-
-**Rationale**: A single undifferentiated layout provides information overload and insufficient role specificity. Dedicated dashboard views surface the right data for each role, improving decision speed and reducing cognitive load.
-
-**Consequences**: `uiStore.ts` gains `activeDashboardView` state. `MainLayout.tsx` routes to role + view specific layout components. Role selector defaults each role to its primary dashboard on selection.
-
-### ADR-006: Raw Sensor Observation Read Model via Dual Consumer Group *(v2.0)*
-
-**Decision**: Expose raw pre-fusion `SensorObservation` data to the UI via a second consumer group (`track-svc-sensor-stream`) in `svc-track`, presenting a new `StreamSensorObservations` server-streaming RPC.
-
-**Rationale**: The Fusion Dashboard requires rendering individual sensor tracks (Radar ◇, EW △, SIGINT ◻) alongside fused tracks (●) to visualize the correlation process. This data exists in `sensors.*` Redpanda topics but was previously only consumed by the Fusion Engine. A dedicated read-model consumer preserves AP-01 (Event-Driven First) without coupling to the Fusion Engine.
-
-**Consequences**: `svc-track` gains a second consumer and handler. Classification filtering applies at the stream boundary — only observations ≤ caller's clearance level are forwarded. A bounding box and sensor-type filter allow the UI to receive only locally relevant observations.
-
----
-
-## 6. Data Flow Overview
+The system processes data through four phases: Edge Ingestion → Fusion Core → Browser Data Engine → Tactical Display.
 
 ```mermaid
 flowchart LR
-    subgraph Sources["External Sources"]
-        R[Radar]
-        EW[EW/SIGINT]
-        EL[ELINT/COMINT]
-        ISR[ISR]
-        AIS[AIS/BFT]
-        CY[Cyber]
-        NATO[NATO Allies]
+    subgraph P1["Phase 1 — Edge Ingestion"]
+        S1["Radar / LiDAR"]
+        S2["EW / SIGINT"]
+        S3["ELINT / COMINT"]
+        S4["ISR Platforms"]
+        S5["AIS / BFT"]
+        S6["Cyber Feeds"]
+        EC["Edge Compute<br/>(FPGA / ASIC)"]
+        EG["Edge Gateway<br/>(Store & Forward)"]
     end
 
-    subgraph Ingestion["Ingestion Layer"]
-        RI[Radar Ingest]
-        EWI[EW Ingest]
-        ELI[ELINT Ingest]
-        ISRI[ISR Ingest]
-        AISI[AIS Ingest]
-        CYI[Cyber Ingest]
-        NI[NATO Adapter]
+    subgraph P2["Phase 2 — Fusion Core"]
+        IG["Ingress Gateway<br/>(Go gRPC Fleet)"]
+        RP[("Redpanda Broker<br/>(C++ / No JVM)")]
+        WASM_V["Wasm Transforms<br/>(Anti-Poisoning)"]
+        FUS["Fusion Engine<br/>(Kalman Filter)"]
+        AI["AI Inference<br/>(GPU-backed)"]
+        FB["Feedback Service<br/>(Trust Scoring)"]
+        SER["FlatBuffer Serializer<br/>(Binary Wire Format)"]
     end
 
-    subgraph Streaming["Event Backbone"]
-        RP[(Redpanda)]
+    subgraph P3["Phase 3 — Browser Data Engine"]
+        WT["WebTransport<br/>(QUIC Datagrams)"]
+        WW["Web Worker<br/>(Dedicated Thread)"]
+        WASM_D["Wasm Decoder<br/>(Rust / C++)"]
+        SAB["SharedArrayBuffer<br/>(Ring Buffer)"]
     end
 
-    subgraph Processing["Processing Layer"]
-        FUS[Fusion Engine]
-        ANO[Anomaly Detection]
-        FB[Feedback Service]
+    subgraph P4["Phase 4 — Tactical Display"]
+        GPU["WebGPU Pipeline"]
+        CS["Compute Shaders<br/>(Interpolation + Culling)"]
+        RS["Render Shaders<br/>(Instanced Drawing)"]
+        CANVAS["Fullscreen Canvas<br/>(Tactical Map)"]
+        UI["SolidJS Controls<br/>(Menus / Alerts / Feedback)"]
     end
 
-    subgraph Storage["Storage Layer"]
-        RPC[Redpanda Connect]
-        CH[(ClickHouse)]
-    end
+    S1 & S2 & S3 & S4 & S5 & S6 --> EC --> EG
+    EG -- "mTLS gRPC Stream" --> IG
+    IG --> RP
+    RP --> WASM_V --> RP
+    RP --> FUS --> RP
+    RP --> AI --> RP
+    RP --> FB --> RP
+    RP --> SER
+    SER -- "FlatBuffer binary" --> WT
+    WT -- "Unreliable Datagrams" --> WW
+    WW --> WASM_D
+    WASM_D -- "Zero-copy write" --> SAB
+    SAB -- "GPU buffer upload" --> GPU
+    GPU --> CS --> RS --> CANVAS
+    UI -- "Transparent Overlay" --> CANVAS
+    UI -- "Reliable Channel<br/>(gRPC-Web)" ---> IG
 
-    subgraph Presentation["Presentation Layer"]
-        TS[Track Service]
-        AS[Alert Service]
-        QS[Query Service]
-        GW[API Gateway]
-        UI[COP Web App]
-    end
-
-    R --> RI
-    EW --> EWI
-    EL --> ELI
-    ISR --> ISRI
-    AIS --> AISI
-    CY --> CYI
-    NATO --> NI
-
-    RI --> RP
-    EWI --> RP
-    ELI --> RP
-    ISRI --> RP
-    AISI --> RP
-    CYI --> RP
-    NI --> RP
-
-    RP --> FUS
-    FUS --> RP
-    RP --> ANO
-    ANO --> RP
-    RP --> FB
-    FB --> RP
-
-    RP --> RPC
-    RPC --> CH
-
-    RP --> TS
-    RP --> AS
-    CH --> QS
-
-    TS --> GW
-    AS --> GW
-    QS --> GW
-    GW --> UI
-
-    RP --> NI
+    style RP fill:#d32f2f,color:#fff
+    style GPU fill:#1565c0,color:#fff
+    style SAB fill:#2e7d32,color:#fff
+    style WASM_D fill:#f57c00,color:#fff
+    style UI fill:#6a1b9a,color:#fff
 ```
 
 ---
 
-## 7. Service Inventory
+## 4. Dual-Protocol Architecture
 
-| Service | Bounded Context | Topics Consumed | Topics Produced | Edge Deployed |
+The system uses two distinct communication protocols optimized for different access patterns:
+
+```mermaid
+flowchart TD
+    subgraph HotPath["Hot Path — Real-Time Display (50,000+ msg/s)"]
+        direction LR
+        BE_HOT["Backend<br/>FlatBuffer Serializer"] -- "WebTransport<br/>Unreliable Datagrams<br/>(QUIC)" --> WW_HOT["Web Worker<br/>+ Wasm Decoder"]
+        WW_HOT -- "SharedArrayBuffer" --> GPU_HOT["WebGPU<br/>Compute + Render"]
+    end
+
+    subgraph ColdPath["Cold Path — Commands & Queries (< 100 req/s)"]
+        direction LR
+        UI_COLD["SolidJS UI"] -- "gRPC-Web<br/>Protobuf<br/>(HTTP/2)" --> GW_COLD["Envoy Gateway"]
+        GW_COLD -- "gRPC / mTLS" --> SVC_COLD["Go Services<br/>(Track, Alert, Query,<br/>Feedback)"]
+    end
+
+    subgraph Historical["Historical Path — Analytics"]
+        direction LR
+        UI_HIST["Query Builder"] -- "gRPC-Web<br/>Protobuf" --> QS["Query Service"]
+        QS -- "SQL / mTLS" --> CH[("ClickHouse")]
+    end
+
+    style HotPath fill:#fff3e0
+    style ColdPath fill:#e3f2fd
+    style Historical fill:#e8f5e9
+```
+
+| Path | Protocol | Format | Reliability | Use Case |
 |---|---|---|---|---|
-| Radar Ingestion | Sensor Ingestion | — | `sensors.radar.*` | Yes |
-| EW/SIGINT Ingestion | Sensor Ingestion | — | `sensors.ew.*` | Yes |
-| ELINT/COMINT Ingestion | Sensor Ingestion | — | `sensors.elint.*` | Yes |
-| ISR Ingestion | Sensor Ingestion | — | `sensors.isr.*` | Yes |
-| AIS/BFT Ingestion | Sensor Ingestion | — | `sensors.ais.*` | Yes |
-| Cyber Ingestion | Sensor Ingestion | — | `sensors.cyber.*` | Yes |
-| NATO Adapter | Interoperability | `tracks.fused.*`, `sensors.nato.*` | `sensors.nato.*` | No |
-| Fusion Engine | Entity Fusion | `sensors.*` | `tracks.fused.*` | Yes |
-| Anomaly Detection | AI/ML Inference | `tracks.fused.*` | `alerts.*` | Yes |
-| Feedback Service | Human Feedback | — | `feedback.*` | Yes |
-| Training Pipeline | AI/ML Training | `feedback.operator.validated` | `models.*` | No |
-| Track Service | Presentation | `tracks.fused.*`, `sensors.*` *(v2.0)* | — | Yes |
-| Alert Service | Presentation | `alerts.*` | `audit.*` *(AssignAlert v2.0)* | Yes |
-| Query Service | Analytics | — (ClickHouse) | — | Yes |
-| Audit Service | Governance | `*` (filtered) | `audit.*` | Yes |
-| Redpanda Connect | Data Pipeline | `*` | — (ClickHouse) | Yes (limited) |
+| **Hot** | WebTransport (QUIC) | FlatBuffers | Unreliable datagrams | Track position updates, sensor observations, alert state |
+| **Cold** | gRPC-Web (HTTP/2) | Protobuf | Reliable, ordered | Operator feedback, alert acknowledgment, role selection |
+| **Historical** | gRPC-Web (HTTP/2) | Protobuf | Reliable, ordered | Forensic queries, event timeline, map replay |
 
 ---
 
-## 8. Cross-Cutting Concerns
+## 5. C4 Container Diagram (Level 2)
 
-### 8.1 Security
-- **mTLS**: All gRPC channels use mutual TLS with CSE-approved cipher suites
-- **Authentication**: Certificate-based identity for services and operators
-- **Authorization**: Clearance-level-based access control
-- **Classification**: Every data item carries classification metadata
-- **Audit**: Immutable, append-only audit trail via Redpanda
+```mermaid
+flowchart TD
+    subgraph Ingestion["Ingestion Layer (Zone 2)"]
+        SVC_RADAR["svc-radar-ingestion<br/>(Go gRPC)"]
+        SVC_EW["svc-ew-ingestion<br/>(Go gRPC)"]
+        SVC_ELINT["svc-elint-ingestion<br/>(Go gRPC)"]
+        SVC_ISR["svc-isr-ingestion<br/>(Go gRPC)"]
+        SVC_AIS["svc-ais-ingestion<br/>(Go gRPC)"]
+        SVC_CYBER["svc-cyber-ingestion<br/>(Go gRPC)"]
+    end
 
-### 8.2 Observability
-- **Metrics**: Prometheus-compatible via OpenTelemetry (15s scrape interval)
-- **Logging**: Structured JSON via Go `slog` → Loki
-- **Tracing**: Distributed traces via OpenTelemetry → Tempo
-- **Dashboards**: Grafana with domain-specific dashboards
+    subgraph Processing["Processing Layer (Zone 3)"]
+        RP[("Redpanda Cluster<br/>(C++, no JVM)")]
+        WASM["Wasm Transforms<br/>(Anti-Poisoning)"]
+        FUS["svc-fusion-engine<br/>(Go, Kalman Filter)"]
+        ANO["svc-anomaly-detection<br/>(Go, GPU Inference)"]
+        FB["svc-feedback<br/>(Go, Trust Scoring)"]
+        TRAIN["svc-training<br/>(Go + Python)"]
+    end
 
-### 8.3 Resilience
-- **Circuit Breakers**: Per-service circuit breakers for external dependencies
-- **Dead Letter Queues**: Invalid messages routed to DLQ topics with diagnostic context
-- **Graceful Shutdown**: All services handle SIGTERM with in-flight request completion
-- **Health Checks**: Liveness + readiness probes on every service
+    subgraph Serialization["Serialization Layer (Zone 3 — NEW)"]
+        SER["FlatBuffer Serializer<br/>(Go)"]
+        WTS["WebTransport Server<br/>(Go, HTTP/3 QUIC)"]
+    end
 
-### 8.4 Edge Deployment
-- **Resource Budget**: 4 CPU cores, 8 GB RAM minimum
-- **Offline Mode**: Full operation without data centre connectivity
-- **Sync Protocol**: Store-and-forward with priority-based queue on reconnect
-- **Model Distribution**: Edge receives pre-trained and incrementally updated models
+    subgraph Storage["Storage Layer (Zone 4)"]
+        CH[("ClickHouse<br/>(OLAP)")]
+        RPC["Redpanda Connect<br/>(ETL)"]
+    end
+
+    subgraph Presentation["Presentation Layer (Zone 5)"]
+        GW["Envoy Gateway<br/>(gRPC-Web + QUIC)"]
+        TRACK["svc-track<br/>(Go gRPC)"]
+        ALERT["svc-alert<br/>(Go gRPC)"]
+        QUERY["svc-query<br/>(Go gRPC)"]
+        AUDIT["svc-audit<br/>(Go gRPC)"]
+        NATO["svc-nato-adapter<br/>(Go gRPC)"]
+    end
+
+    subgraph Browser["Browser (Zone 6)"]
+        DATA_W["Data Worker<br/>(WebTransport + Wasm)"]
+        RENDER_W["Render Worker<br/>(OffscreenCanvas + WebGPU)"]
+        MAIN["Main Thread<br/>(SolidJS UI)"]
+    end
+
+    SVC_RADAR & SVC_EW & SVC_ELINT & SVC_ISR & SVC_AIS & SVC_CYBER --> RP
+    RP --> WASM --> RP
+    RP --> FUS --> RP
+    RP --> ANO --> RP
+    RP --> FB --> RP
+    RP --> TRAIN
+    RP --> RPC --> CH
+    RP --> SER --> WTS
+
+    RP --> TRACK --> GW
+    RP --> ALERT --> GW
+    CH --> QUERY --> GW
+    RP --> AUDIT --> CH
+
+    WTS -- "WebTransport<br/>QUIC Datagrams" --> DATA_W
+    DATA_W -- "SharedArrayBuffer" --> RENDER_W
+    RENDER_W -- "WebGPU Canvas" --> MAIN
+    GW -- "gRPC-Web<br/>HTTP/2" --> MAIN
+
+    style RP fill:#d32f2f,color:#fff
+    style RENDER_W fill:#1565c0,color:#fff
+    style DATA_W fill:#f57c00,color:#fff
+    style MAIN fill:#6a1b9a,color:#fff
+    style CH fill:#2e7d32,color:#fff
+    style SER fill:#f57c00,color:#fff
+    style WTS fill:#f57c00,color:#fff
+```
 
 ---
 
-## 9. Deployment Environments
+## 6. Security Zones
 
-| Environment | Orchestration | Redpanda | ClickHouse | Purpose |
-|---|---|---|---|---|
-| Development | Docker Compose | Single node | Single node | Local development |
-| Testing | K3s (single node) | Single node | Single node | CI/CD pipeline |
-| Staging | K8s (3 nodes) | 3-node cluster | 2-shard cluster | Pre-production validation |
-| Production (Data Centre) | K8s (5+ nodes) | 5-node cluster | 3-shard, 2-replica | Full capacity |
-| Production (Edge) | K3s (single node) | Single node | Single node | Tactical deployment |
+All traffic between zones uses mTLS with CSE-approved cipher suites. Components operate under a zero-trust model.
 
----
-
-## 10. Technology Stack Summary
-
-| Layer | Technology | Version | Purpose |
-|---|---|---|---|
-| Event Streaming | Redpanda | 24.x | Event backbone, audit trail |
-| Services | Go | 1.22+ | All backend microservices |
-| RPC Framework | gRPC + Protobuf | proto3 | Type-safe inter-service communication |
-| OLAP Database | ClickHouse | 24.x | Historical analytics, forensics, dashboard KPI views |
-| Data Pipeline | Redpanda Connect | 4.x | Stream-to-OLAP ETL |
-| Frontend | React + TypeScript | 18+ / 5+ | COP web application — Two-Level RBAC shell |
-| Frontend Transport | gRPC-Web | — | Real-time streaming to browser |
-| Frontend Build | Vite | 5.x | Development server (port 5173) and production build |
-| Container Runtime | containerd | — | OCI-compliant container runtime |
-| Orchestration | Kubernetes / K3s | 1.29+ | Service orchestration |
-| Observability | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | — | Metrics, logs, traces |
-| Security | cosign, trivy, semgrep, gosec | — | Supply chain & code security |
-| Build | buf, golangci-lint, GitHub Actions | — | Build, lint, CI/CD |
+```
+Zone 0 — External (Untrusted)   : Sensor networks, NATO allied systems, cyber feeds
+Zone 1 — DMZ                    : Cross-Domain Guards, Link 16 terminal, NFFI/MIP gateway
+Zone 2 — Ingestion (Restricted) : Ingestion services, Wasm Data Transforms
+Zone 3 — Processing (Confidential) : Redpanda, Fusion, Anomaly Detection, Feedback, FlatBuffer Serializer, WebTransport Server
+Zone 4 — Storage (Confidential) : ClickHouse, Redpanda Connect, Model Registry
+Zone 5 — Presentation (Controlled) : API Gateway (Envoy with QUIC), Track/Alert/Query services
+Zone 6 — Operator (User-Facing) : WebGPU COP (SolidJS + WebGPU canvas), Operator workstations
+Zone 7 — Management (Admin)     : Audit service, Observability stack (OTel, Prometheus, Grafana, Loki, Tempo)
+```
 
 ---
 
-## 11. v2.0 Change Summary
+## 7. Technology Stack
 
-| Area | Change | ADR |
+| Layer | Technology | Purpose |
 |---|---|---|
-| COP UI Architecture | Two-Level RBAC shell; 5 roles; 7 dashboard views | ADR-005 |
-| COP UI — Fusion Dashboard | Raw sensor icons alongside fused tracks; confidence metrics panel | ADR-006 |
-| COP UI — Multi-Domain Dashboard | Domain-split map; sensor coverage overlays; domain metrics | ADR-005 |
-| COP UI — Operator UI | Event timeline; alert quick-actions (`[Inspect]`/`[Confirm]`/`[Reject]`/`[Assign]`) | ADR-005 |
-| COP UI — Design System | Inter typography; CSS design tokens; glassmorphism panels; NVG theme | — |
-| Track Service | New `StreamSensorObservations` RPC; second Redpanda consumer group | ADR-006 |
-| Alert Service | New `AssignAlert` RPC; audit event on assignment | — |
-| Query Service | New `GetEventTimeline` RPC; UNION ALL across 4 ClickHouse tables | — |
-| Ingestion Service | Extended `SensorStatusResponse` with `SensorCoverage` geometry; new `ListSensorStatuses` RPC | — |
-| ClickHouse | Three new materialized views (`mv_active_tracks_by_domain`, `mv_sensor_throughput_5min`, `mv_alert_ack_latency`) | ADR-002 |
+| Event Streaming | Redpanda (C++, no JVM) | Real-time event log, audit trail, feedback routing |
+| Microservices | Go + gRPC (Protobuf) | Strict type-safety, high performance, small binary footprint |
+| Analytics / OLAP | ClickHouse | Historical storage, forensics, complex analytical queries |
+| Real-time Serialization | FlatBuffers | GPU-optimized zero-copy binary wire format for hot path |
+| Hot Path Transport | WebTransport (HTTP/3 / QUIC) | Unreliable datagrams for track updates — no HOL blocking |
+| Cold Path Transport | gRPC-Web (HTTP/2) | Reliable ordered RPCs for commands, queries, feedback |
+| Browser Decode | Rust → Wasm | Zero-allocation FlatBuffer decoder, off-main-thread |
+| State Management | SharedArrayBuffer | Zero-copy ring buffer shared between Worker threads |
+| Tactical Rendering | WebGPU + WGSL Compute Shaders | 50k instanced tracks at 60 FPS, GPU-side interpolation and culling |
+| UI Framework | SolidJS | Fine-grained reactivity, no Virtual DOM, ~7 KB runtime |
+| Text Rendering | SDF Font Atlases (GPU) | GPU-rendered labels replacing DOM `<div>` overlays |
+| Track Selection | GPU Pick Buffer | O(1) pixel-perfect selection, no DOM event listeners |
+| Data Pipeline | Redpanda Connect | Batch ETL: stream → ClickHouse / S3 |
+| Anti-Poisoning | Wasm Data Transforms / Go middleware | In-broker feedback trust validation |
+| Interoperability | STANAG 5516 / NFFI / MIP adapters | NATO data exchange with allied systems |
+| Observability | OpenTelemetry + Prometheus + Grafana + Loki + Tempo | Distributed tracing, metrics, structured logging |
+| Container Runtime | Docker / Kubernetes / K3s (edge) | Dev via Docker Compose, staging/prod via Helm |
+
+---
+
+## 8. Key Design Decisions
+
+| # | Decision | Rationale |
+|---|---|---|
+| D-01 | Replace React with SolidJS for command UI | Fine-grained reactivity, no Virtual DOM diffing, ~7 KB runtime |
+| D-02 | Replace MapLibre GL with custom WebGPU renderer | Direct GPU control, compute shaders for interpolation, instanced rendering |
+| D-03 | FlatBuffers over Protobuf for real-time stream | Zero-copy read, no deserialization step, direct memory-map to GPU |
+| D-04 | WebTransport over gRPC-Web for real-time stream | Unreliable datagrams (no HOL blocking), QUIC-native, lower latency |
+| D-05 | Web Worker + Wasm decoder pipeline | Off-main-thread binary processing, near-native throughput |
+| D-06 | SharedArrayBuffer + GPU buffer upload | Zero-copy path from network to GPU, eliminates GC pressure |
+| D-07 | Retain Protobuf/gRPC for command & query paths | Type-safe, existing backend contract, low-frequency operations |
+| D-08 | Retain Redpanda as event backbone | Proven, low-latency, Kafka-compatible, edge-deployable |
+| D-09 | Retain ClickHouse for historical analytics | Columnar OLAP optimized for time-series, existing materialized views |
+| D-10 | GPU-resident ring buffer for track state | Eliminates per-frame CPU→GPU transfer, compute shaders update in-place |
+| D-11 | WebGPU-only COP — no legacy fallback | Military controlled workstations, team size prevents dual-stack maintenance |
+
+---
+
+## 9. Cross-References
+
+| Document | Path |
+|---|---|
+| **Full v1 Architecture Specification** | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` |
+| Component Design | `docs/architecture/component_design.md` |
+| Data Architecture | `docs/architecture/data_architecture.md` |
+| Security Architecture | `docs/architecture/security_architecture.md` |
+| Deployment Architecture | `docs/architecture/deployment_architecture.md` |
+| Integration Architecture | `docs/architecture/integration_architecture.md` |
+| Dependency Graph | `docs/architecture/dependency_graph.md` |
+| Business Requirements | `docs/business/requirements.md` |
+| Feature List | `docs/business/feature_list.md` |
+| Use Cases | `docs/business/usecases/UC*.md` |

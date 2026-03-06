@@ -2,10 +2,11 @@
 # Data Architecture
 
 > **Document**: RTSA Data Architecture
-> **Version**: 2.0
+> **Version**: 3.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-28
+> **Last Updated**: 2026-03-05
 > **Compliance**: ITSG-33, NIST 800-53 Rev 5
+> **Authoritative Source**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`
 
 ---
 
@@ -35,17 +36,29 @@ flowchart TD
         RPC -->|Batch insert| CH[(ClickHouse<br/>OLAP Store)]
     end
 
-    subgraph Read["Read Path (Analytics)"]
+    subgraph Read["Read Path (Analytics — Cold Path)"]
         CH --> QS[Query Service]
-        QS -->|gRPC| UI[COP Web App]
+        QS -->|gRPC-Web / Protobuf| UI[SolidJS COP]
     end
 
-    subgraph Stream["Stream Path (Real-Time)"]
+    subgraph ColdStream["Cold Stream Path (Commands < 100 req/s)"]
         RP --> TS[Track Service]
         RP --> AS[Alert Service]
-        TS -->|gRPC-Web| UI
-        AS -->|gRPC-Web| UI
+        TS -->|gRPC-Web / Protobuf| UI
+        AS -->|gRPC-Web / Protobuf| UI
     end
+
+    subgraph HotStream["Hot Stream Path (50,000+ msg/s — NEW)"]
+        RP --> SER[FlatBuffer Serializer]
+        SER -->|FlatBuffer binary| WTS[WebTransport Server]
+        WTS -->|QUIC Unreliable Datagrams| DW[Data Worker + Wasm Decoder]
+        DW -->|SharedArrayBuffer| GPU[WebGPU Render Pipeline]
+    end
+
+    style SER fill:#f57c00,color:#fff
+    style WTS fill:#f57c00,color:#fff
+    style DW fill:#f57c00,color:#fff
+    style GPU fill:#1565c0,color:#fff
 ```
 
 ---
@@ -661,3 +674,105 @@ output:
       count: 1000
       period: "5s"
 ```
+
+---
+
+## 12. Hot Path Wire Format — FlatBuffer GPU-Optimized Records
+
+> **Context**: The hot path (real-time track position updates) uses FlatBuffers instead of Protobuf to eliminate deserialization overhead in the browser. Each track update is a fixed-stride 128-byte record for direct GPU buffer mapping.
+
+### 12.1 Why FlatBuffers for the Hot Path
+
+| Property | Protobuf (Cold Path) | FlatBuffers (Hot Path) |
+|---|---|---|
+| Deserialization | Full decode required (allocations) | Zero-copy read from buffer |
+| Browser overhead | ~50 μs per message decode | ~0 μs (offset access) |
+| Alignment | Variable-length encoding | 4-byte aligned (GPU-friendly) |
+| GPU upload | Requires JS object → typed array conversion | Direct `memcpy` to GPU buffer |
+| Use case | Commands, queries, feedback | Track position updates, alert state |
+
+### 12.2 Track Record Layout (128 bytes)
+
+```
+Offset  Size   Type        Field
+──────  ────   ────        ─────
+0       16     uint8[16]   track_id (UUID bytes)
+16      4      float32     latitude (WGS-84)
+20      4      float32     longitude (WGS-84)
+24      4      float32     altitude_meters
+28      4      float32     speed_knots
+32      4      float32     heading_degrees
+36      4      float32     confidence_score
+40      4      uint32      entity_type (SURFACE=1, AIR=2, SUB=3, LAND=4, CYBER=5)
+44      4      uint32      hostile_class (HOSTILE=1, FRIENDLY=2, NEUTRAL=3, UNKNOWN=4)
+48      4      uint32      track_status (ACTIVE=1, STALE=2, DROPPED=3, MERGED=4)
+52      4      uint32      alert_severity (NORMAL=0, WATCH=1, ELEVATED=2, CRITICAL=3)
+56      4      uint32      source_count
+60      4      float32     anomaly_score (0.0–1.0)
+64      8      uint64      timestamp_ns (nanoseconds since epoch)
+72      4      float32     velocity_x (m/s, pre-computed for interpolation)
+76      4      float32     velocity_y (m/s, pre-computed for interpolation)
+80      4      float32     velocity_z (m/s, for 3D interpolation)
+84      4      uint32      age_frames (frames since last server update)
+88      4      float32     trail_opacity (1.0 = fresh, decays)
+92      4      uint32      selected_flag (1 = operator selected)
+96      32     uint8[32]   reserved (future: classification, NATO fields)
+```
+
+**Total: 128 bytes per track** — At 50,000 tracks: **6.1 MB GPU buffer**.
+
+### 12.3 SharedArrayBuffer Ring Buffer Layout
+
+```
+┌─────────────────────────────────────────────────┐
+│ Header (4096 bytes)                              │
+│   [0..3]    uint32  active_track_count           │
+│   [4..7]    uint32  write_generation             │
+│   [8..11]   uint32  max_slots (50,000)           │
+│   [12..4095] reserved                            │
+├─────────────────────────────────────────────────┤
+│ Dirty Bitfield (8192 bytes)                      │
+│   1 bit per slot × 50,000 ≈ 6,250 bytes         │
+│   Padded to 8192 for alignment                   │
+├─────────────────────────────────────────────────┤
+│ Track Data (50,000 × 128 bytes = 6,400,000 B)   │
+│   Slot 0:    [offset 12288 .. offset 12415]      │
+│   Slot 1:    [offset 12416 .. offset 12543]      │
+│   ...                                            │
+│   Slot 49999: [offset 6,412,160 .. 6,412,287]   │
+└─────────────────────────────────────────────────┘
+Total: ~6.1 MB SharedArrayBuffer
+```
+
+### 12.4 Data Flow Sequence — Hot Path
+
+```mermaid
+sequenceDiagram
+    participant Server as WebTransport Server
+    participant Worker as Data Worker
+    participant Wasm as Wasm Decoder (Rust)
+    participant SAB as SharedArrayBuffer
+    participant Render as Render Worker
+
+    Note over Server,Worker: Connection establishment (QUIC handshake + auth)
+    Server->>Worker: Initial state snapshot (reliable stream)
+    Worker->>Wasm: Bulk decode snapshot
+    Wasm->>SAB: Write all track slots
+    Worker->>Render: postMessage("snapshot_ready", slotCount)
+
+    loop Every ~1ms (real-time updates)
+        Server->>Worker: Datagram batch (N × 128B records)
+        Worker->>Wasm: decode_batch(datagram)
+        Wasm->>SAB: Write updated slots (atomic writes)
+    end
+
+    loop Every 16ms (frame tick)
+        Render->>SAB: Scan dirty bits via Atomics.load()
+        Render->>Render: Upload dirty slots to GPU buffer
+        Render->>SAB: Clear dirty bits via Atomics.store()
+    end
+```
+
+### 12.5 Schema Synchronization
+
+The FlatBuffer schema (`.fbs`) and Protobuf schema (`.proto`) must stay synchronized for the track domain model. The FlatBuffer schema is the **GPU-optimized projection** of the Protobuf schema — it contains only the fields needed for real-time rendering. The Protobuf schema remains the source of truth for the full domain model used in backend services and the cold path.

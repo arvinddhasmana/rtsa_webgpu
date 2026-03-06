@@ -135,7 +135,7 @@ graph TB
     end
 
     subgraph "TB-5: Presentation Zone"
-        UI[React Dashboard<br/>Authenticated operators]
+        UI[SolidJS + WebGPU COP<br/>Authenticated operators]
     end
 
     subgraph "TB-6: NATO Network"

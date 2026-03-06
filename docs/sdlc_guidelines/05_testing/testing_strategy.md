@@ -38,7 +38,7 @@ graph TB
 | Sensor adapters / parsers | 90%+ | 85%+ | Every sensor type |
 | Feedback trust scoring | 95%+ | 90%+ | Every scoring path |
 | ClickHouse query builders | 85%+ | 80%+ | Every query template |
-| React components | 80%+ | 75%+ | Every component |
+| SolidJS components | 80%+ | 75%+ | Every component |
 | Wasm transforms | 90%+ | 85%+ | Every transform |
 | Configuration / startup | 80%+ | 75%+ | Validation paths |
 | Anti-poisoning logic | 95%+ | 90%+ | Every validation rule |
@@ -218,15 +218,15 @@ func (m *MockSensorIngester) IngestEvent(ctx context.Context, event *pb.SensorEv
 - Prefer hand-written mocks over code generation for clarity
 - Verify mock interactions when side effects matter
 
-## 7. React Testing Standards
+## 7. SolidJS + WebGPU COP Testing Standards
 
 ### 7.1 Tools
 
 | Tool | Purpose |
 |---|---|
 | Vitest | Test runner and assertion library |
-| React Testing Library | Component rendering and interaction |
-| MSW (Mock Service Worker) | gRPC-Web and REST API mocking |
+| `@solidjs/testing-library` | Component rendering and interaction |
+| MSW (Mock Service Worker) | gRPC-Web API mocking (cold path) |
 
 ### 7.2 Rules
 
@@ -234,11 +234,19 @@ func (m *MockSensorIngester) IngestEvent(ctx context.Context, event *pb.SensorEv
 - Use `screen.getByRole()`, `getByLabelText()` over `getByTestId()`
 - Test accessibility: every interactive element must be reachable via keyboard
 - Test classification badge rendering (correct color, correct label)
+- Never destructure SolidJS props in test components (breaks reactivity)
+
+### 7.3 WebGPU Testing Rules
+
+- Compute shader output is tested by running the compute pass, reading the output buffer via `mapAsync`, and asserting values in TypeScript
+- Pick buffer is tested by rendering known track positions and reading the pick texture
+- Visual regression uses Playwright `toHaveScreenshot()` against golden images
+- WebGPU tests require a real browser (no jsdom) — use Playwright for CI
 ### 7.3 Hybrid Validation Strategy (E2E)
 
 The COP Web Application employs a 3-tier Hybrid Validation strategy for End-to-End testing to balance reliability with realism:
 
-- **Tier 1: Mocked E2E Tests (Pre-Merge):** Built with Playwright and gRPC-Web mocks. These run in milliseconds, are completely deterministic, and are used to validate component rendering, state management, and routing locally and in CI gating.
+- **Tier 1: Mocked E2E Tests (Pre-Merge):** Built with Playwright and gRPC-Web mocks (cold path). These run in milliseconds, are completely deterministic, and are used to validate component rendering, signal state, and routing locally and in CI gating.
 - **Tier 2: Live Integration E2E Tests (Nightly/Release):** A separate Playwright suite running against the fully orchestrated Docker backend (via `scripts/cop-dev/start-backend.sh`). These tests assert that the UI correctly consumes and renders live space-seeded telemetry and verified backend states.
 - **Tier 3: Visual Agent QA (Ad-hoc):** Used during active development sprints. An AI visual subagent navigates the live frontend to organically verify that the simulated data "feels" right, validating edge cases, responsiveness, and human-like UX without brittle DOM selector assertions.
 
@@ -284,5 +292,5 @@ When generating test code:
 5. Include `//go:build integration` tag for tests requiring containers
 6. Target 80%+ line coverage minimum; 90%+ for domain logic and anti-poisoning
 7. Name tests with pattern `Test<Function>_<Scenario>_<ExpectedResult>`
-8. For React components, test behavior (user interactions) not implementation details
+8. For SolidJS components, test behavior (user interactions) not implementation details
 9. Verify classification markings in response-handling tests

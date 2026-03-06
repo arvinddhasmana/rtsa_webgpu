@@ -99,7 +99,7 @@ ITSG-33 and NIST 800-53 share the same control family structure. ITSG-33 tailors
 | AU-8 | AU-8 | Time Stamps | NTP-synced UTC; monotonic clock for event ordering within partitions | All services |
 | AU-9 | AU-9 | Protection of Audit Information | Append-only Redpanda topic; separate ACL; no delete permissions | Redpanda |
 | AU-10 | AU-10 | Non-repudiation | ECDSA-P384 signature on audit events using service certificate | All services |
-| AU-12 | AU-12 | Audit Record Generation | Structured JSON via Go `slog`; React structured logging; no PII/classified data in logs | All services |
+| AU-12 | AU-12 | Audit Record Generation | Structured JSON via Go `slog`; SolidJS structured logging; no PII/classified data in logs | All services |
 
 ### AI/ML-Specific Audit Controls
 

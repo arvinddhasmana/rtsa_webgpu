@@ -83,7 +83,7 @@ graph TB
 | Check | Tool | Failure Action |
 |---|---|---|
 | Go unit tests | `go test -race -cover` | **Block** (< 80% coverage) |
-| React unit tests | `vitest run --coverage` | **Block** (< 80% coverage) |
+| SolidJS + Wasm unit tests | `vitest run --coverage` | **Block** (< 80% coverage) |
 | Proto contract tests | `buf breaking` | **Block** |
 | Test report generation | CI native | Archive |
 

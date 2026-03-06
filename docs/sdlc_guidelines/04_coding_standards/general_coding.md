@@ -10,7 +10,7 @@
 
 ## 1. Purpose
 
-This document defines language-agnostic coding rules that apply to ALL source code in the RTSA project — Go, TypeScript/React, Protobuf, SQL, configuration files, and scripts.
+This document defines language-agnostic coding rules that apply to ALL source code in the RTSA project — Go, TypeScript/SolidJS, WGSL, Protobuf, Rust (Wasm), SQL, configuration files, and scripts.
 
 ## 2. Classification Headers
 

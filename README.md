@@ -18,14 +18,13 @@ RTSA provides Canadian Armed Forces (CAF) operators with a unified, real-time op
 ```
 Sensor Networks          Event Streaming           AI & Fusion             Operators
 ─────────────────        ────────────────          ───────────────         ─────────
-Radar                    ┌──────────────┐          Fusion Engine           React COP
-EW / SIGINT      ──────► │   Redpanda   │ ──────►  Anomaly Detection  ──►  Dashboard
-ELINT / COMINT           │   Cluster    │          Model Training
+Radar                    ┌──────────────┐          Fusion Engine           SolidJS +
+EW / SIGINT      ──────► │   Redpanda   │ ──────►  Anomaly Detection  ──►  WebGPU COP
+ELINT / COMINT           │   Cluster    │          Model Training          50k@60FPS
 ISR                      │  (Wasm Xfm)  │
 AIS / BFT                └──────────────┘
-Cyber Feeds                     │
-                         ClickHouse OLAP
-                         Historical Storage
+Cyber Feeds              ClickHouse OLAP   ◄── FlatBuffers (hot) ──►
+                         Historical Storage    gRPC-Web (cold)
 ```
 
 ---
@@ -52,7 +51,8 @@ Cyber Feeds                     │
 | Event Streaming   | [Redpanda](https://redpanda.com/)                   | Real-time event log, audit trail, inter-service bus |
 | Microservices     | Go 1.22+ with gRPC / Protobuf                       | High-performance, type-safe service communication   |
 | OLAP Storage      | ClickHouse                                          | Historical storage, forensics, analytical queries   |
-| Frontend          | React 18 + TypeScript + gRPC-Web                    | Real-time common operating picture (COP)            |
+| Frontend (Hot Path) | SolidJS + WebGPU + WebTransport               | Real-time COP — 50k tracks @ 60 FPS, QUIC, FlatBuffers |
+| Frontend (Cold Path) | SolidJS + gRPC-Web (ConnectRPC)              | Commands, queries, feedback — Protobuf over HTTP/2     |
 | Data Pipeline     | Redpanda Connect                                    | Batch ETL: stream → ClickHouse / S3                 |
 | Anti-Poisoning    | Wasm Data Transforms                                | In-broker feedback trust validation                 |
 | Interoperability  | STANAG 5516 / NFFI / MIP adapters                   | NATO data exchange                                  |
@@ -70,36 +70,41 @@ rtsa/
 │   ├── prompts/              # AI agent profiles (greatest-ever-developer, meanest-ever-reviewer)
 │   └── copilot-instructions.md
 ├── docs/
-│   ├── architecture/         # High-level, component, data, security, deployment architecture
+│   ├── architecture/         # High-level, component, data, security, deployment, integration
+│   │   └── v1/               # Canonical WebGPU Architecture document
 │   ├── business/             # Requirements, feature list, use cases (UC001–UC015)
-│   └── sdlc_guidelines/      # Coding standards, testing strategy, deployment, governance
+│   ├── implementation/v4/    # WebGPU COP implementation plan (5 phases)
+│   ├── sdlc_guidelines/      # Coding standards, testing strategy, deployment, governance
+│   └── archive/              # Archived pre-v1 React-era documentation
 ├── deploy/
 │   ├── docker-compose.yml    # Local development stack
-│   ├── docker-compose.test.yml
-│   └── charts/               # Helm charts — rtsa-platform umbrella + per-service subcharts
+│   └── Dockerfile.service    # Shared service Dockerfile
 ├── proto/
 │   └── rtsa/                 # Protobuf service contracts (versioned)
-├── services/
-│   ├── radar-ingestion/      # Go microservice — Radar sensor ingestion
-│   ├── ew-ingestion/         # Go microservice — EW/SIGINT ingestion
-│   ├── elint-ingestion/      # Go microservice — ELINT/COMINT ingestion
-│   ├── isr-ingestion/        # Go microservice — ISR metadata ingestion
-│   ├── ais-ingestion/        # Go microservice — AIS/BFT ingestion
-│   ├── cyber-ingestion/      # Go microservice — Cyber threat feed ingestion
-│   ├── nato-adapter/         # Go microservice — STANAG 5516/NFFI/MIP adapter
-│   ├── fusion-engine/        # Go microservice — Multi-source track fusion
-│   ├── anomaly-detection/    # Go microservice — AI/ML inference
-│   ├── feedback-service/     # Go microservice — Operator feedback & trust scoring
-│   ├── model-training/       # Go + Python — Reinforcement learning pipeline
-│   ├── track-service/        # Go microservice — Track state management & streaming
-│   ├── alert-service/        # Go microservice — Alert lifecycle management
-│   ├── query-service/        # Go microservice — Historical ClickHouse queries
-│   └── audit-service/        # Go microservice — Immutable audit trail
-├── ui/                       # React 18 + TypeScript COP dashboard
+├── pkg/                      # Shared Go libraries (config, audit, telemetry, etc.)
+├── gen/                      # Generated code (Go + TypeScript from Protobuf)
+├── svc-radar-ingestion/      # Go microservice — Radar sensor ingestion
+├── svc-ew-ingestion/         # Go microservice — EW/SIGINT ingestion
+├── svc-elint-ingestion/      # Go microservice — ELINT/COMINT ingestion
+├── svc-isr-ingestion/        # Go microservice — ISR metadata ingestion
+├── svc-ais-ingestion/        # Go microservice — AIS/BFT ingestion
+├── svc-cyber-ingestion/      # Go microservice — Cyber threat feed ingestion
+├── svc-nato-adapter/         # Go microservice — STANAG 5516/NFFI/MIP adapter
+├── svc-fusion-engine/        # Go microservice — Multi-source track fusion
+├── svc-anomaly-detection/    # Go microservice — AI/ML inference
+├── svc-feedback/             # Go microservice — Operator feedback & trust scoring
+├── svc-training/             # Go microservice — Reinforcement learning pipeline
+├── svc-track/                # Go microservice — Track state management & streaming
+├── svc-alert/                # Go microservice — Alert lifecycle management
+├── svc-query/                # Go microservice — Historical ClickHouse queries
+├── svc-audit/                # Go microservice — Immutable audit trail
+├── web-cop/                  # Current COP (being replaced by web-cop-gpu)
+├── wasm-transforms/          # In-broker Wasm data transforms
+├── tools/simulator/          # Synthetic sensor data generator
+├── tests/                    # Integration, E2E, and benchmark tests
 ├── scripts/
 │   ├── setup/                # Developer environment setup automation
 │   └── dev/                  # Development utility scripts
-├── GETTING_STARTED.md
 └── README.md
 ```
 
@@ -226,7 +231,7 @@ main (trunk)
 | Master Policy           | [docs/sdlc_guidelines/00_master_policy.md](docs/sdlc_guidelines/00_master_policy.md)                                                             |
 | Go Standards            | [docs/sdlc_guidelines/04_coding_standards/go_standards.md](docs/sdlc_guidelines/04_coding_standards/go_standards.md)                             |
 | Protobuf/gRPC Standards | [docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md](docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md)       |
-| React Standards         | [docs/sdlc_guidelines/04_coding_standards/react_standards.md](docs/sdlc_guidelines/04_coding_standards/react_standards.md)                       |
+| SolidJS Standards       | [docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md](docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md)                   |
 | Secure Coding           | [docs/sdlc_guidelines/04_coding_standards/secure_coding.md](docs/sdlc_guidelines/04_coding_standards/secure_coding.md)                           |
 | Testing Strategy        | [docs/sdlc_guidelines/05_testing/testing_strategy.md](docs/sdlc_guidelines/05_testing/testing_strategy.md)                                       |
 | Redpanda Guidelines     | [docs/sdlc_guidelines/08_tech_specific/redpanda_guidelines.md](docs/sdlc_guidelines/08_tech_specific/redpanda_guidelines.md)                     |

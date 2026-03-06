@@ -45,7 +45,11 @@ Then load the **feature-specific guidelines** based on what the PR touches:
 |---|---|
 | Go services | `docs/sdlc_guidelines/04_coding_standards/go_standards.md`, `secure_coding.md`, `general_coding.md` |
 | Protobuf / gRPC | `docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md` |
-| React / Frontend | `docs/sdlc_guidelines/04_coding_standards/react_standards.md` |
+| SolidJS / Frontend | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md` |
+| WGSL shaders | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md`, `webgpu_guidelines.md` |
+| WebGPU rendering | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`, `wgsl_shader_standards.md` |
+| FlatBuffer schemas | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
+| WebTransport work | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md`, `flatbuffers_guidelines.md` |
 | Tests | `docs/sdlc_guidelines/05_testing/testing_strategy.md` |
 | CI/CD | `docs/sdlc_guidelines/06_integration_cicd/ci_cd_pipeline.md` |
 | Deployment / Infra | `docs/sdlc_guidelines/07_deployment_operations/deployment_guidelines.md` |
@@ -103,11 +107,11 @@ go test ./... -race -coverprofile=coverage.out
 go tool cover -func=coverage.out
 ```
 
-For React/TSX components:
+For SolidJS/TSX components:
 ```bash
-npm run lint
-npm run test -- --coverage
-npm run build
+pnpm lint
+pnpm test -- --coverage
+pnpm build
 ```
 
 If any of these fail:
@@ -175,7 +179,7 @@ For **Go code**, enforce without exception:
 - [ ] No global mutable state
 - [ ] No `time.Sleep` in production code without a documented reason
 
-For **React / Frontend code**:
+For **SolidJS / Frontend code**:
 
 - [ ] No `any` types in TypeScript — strict types enforced
 - [ ] No inline styles that bypass the design system
@@ -183,6 +187,8 @@ For **React / Frontend code**:
 - [ ] No secret or environment-specific values in source
 - [ ] Accessibility attributes present on interactive elements
 - [ ] No `console.log` in production code
+- [ ] Props never destructured (preserves SolidJS reactivity)
+- [ ] GPU buffers allocated at init, not per-frame
 
 For **Protobuf**:
 

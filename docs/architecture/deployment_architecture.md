@@ -2,10 +2,11 @@
 # Deployment Architecture
 
 > **Document**: RTSA Deployment Architecture
-> **Version**: 2.0
+> **Version**: 3.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-28
+> **Last Updated**: 2026-03-05
 > **Compliance**: ITSG-33, NIST 800-53 Rev 5
+> **Authoritative Source**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`
 
 ---
 
@@ -98,6 +99,8 @@ flowchart TD
 | AIS/BFT Ingestion | 2 | 500m | 1000m | 256Mi | 512Mi |
 | Cyber Ingestion | 1 | 250m | 500m | 128Mi | 256Mi |
 | NATO Adapter | 2 | 500m | 1000m | 256Mi | 512Mi |
+| FlatBuffer Serializer | 2 | 500m | 1000m | 128Mi | 256Mi |
+| WebTransport Server | 2 | 500m | 1000m | 256Mi | 512Mi |
 | Fusion Engine | 3 | 1000m | 2000m | 512Mi | 1024Mi |
 | Anomaly Detection | 2 | 1000m | 2000m | 1024Mi | 2048Mi |
 | Feedback Service | 2 | 250m | 500m | 128Mi | 256Mi |
@@ -414,6 +417,23 @@ flowchart LR
 | ClickHouse | TCP :9440 / 10s | HTTP :8443/ping / 5s | TCP :9440 / 120s |
 | API Gateway | HTTP :8080/healthz / 10s | HTTP :8080/ready / 5s | HTTP :8080/healthz / 30s |
 | COP Web App | HTTP :5173/ / 30s | HTTP :5173/ / 10s | HTTP :5173/ / 30s |
+| FlatBuffer Serializer | gRPC health check / 10s | gRPC health check / 5s | gRPC health check / 30s |
+| WebTransport Server | QUIC health / 10s | HTTP :443/health / 5s | HTTP :443/health / 30s |
+
+---
+
+## 9.5 WebGPU COP Infrastructure Requirements
+
+The WebGPU COP introduces specific infrastructure requirements beyond the backend stack:
+
+| Change | Description |
+|---|---|
+| HTTP/3 proxy | Envoy with QUIC listener or Caddy reverse proxy for WebTransport datagrams |
+| COOP/COEP headers | `Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp` on COP web app for SharedArrayBuffer |
+| CORS for tiles | Tile server must set `Access-Control-Allow-Origin` for COEP compliance |
+| Wasm module hosting | Serve `.wasm` with `application/wasm` MIME type, cached aggressively |
+| Browser requirements | Operator workstations must run Chrome 113+, Edge 113+, or Firefox 128+ |
+| QUIC firewall rules | UDP port 443 must be permitted for WebTransport QUIC datagrams |
 
 ---
 

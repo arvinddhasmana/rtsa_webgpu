@@ -20,7 +20,7 @@ The RTSA project uses the C4 model (Context, Container, Component, Code) for sys
 graph TD
     subgraph "C4 Levels"
         L1[Level 1 — System Context<br/>RTSA system + external actors<br/>Who uses it? What does it interact with?]
-        L2[Level 2 — Container<br/>Deployable units: services, databases, queues<br/>Go services, Redpanda, ClickHouse, React]
+        L2[Level 2 — Container<br/>Deployable units: services, databases, queues<br/>Go services, Redpanda, ClickHouse, SolidJS+WebGPU COP]
         L3[Level 3 — Component<br/>Internal structure of each container<br/>Packages, modules, internal interfaces]
         L4[Level 4 — Code<br/>Class/struct/function level<br/>Only for complex or critical modules]
     end

@@ -39,7 +39,7 @@ This document is the master orchestration guide for implementing the RTSA system
 | 12     | `12-query-service-etl.md`       | ClickHouse queries + Redpanda Connect ETL pipelines      | P4    |
 | 13     | `13-audit-service.md`           | Immutable audit trail (Redpanda → ClickHouse)            | P4    |
 | 14     | `14-api-gateway.md`             | Envoy gRPC-Web proxy configuration                       | P4    |
-| 15     | `15-cop-web-application.md`     | React COP UI (map, alerts, feedback, forensics)          | P5    |
+| 15     | *(archived — see `docs/archive/pre_v1_2026-03/`)* | Legacy React COP — replaced by WebGPU COP (see `implementation/v4/`) | —     |
 | 16     | `16-test-data-simulators.md`    | Sensor simulators + realistic scenario data              | P2    |
 | 17     | `17-integration-e2e-testing.md` | Cross-module integration + E2E test harness              | P6    |
 
@@ -467,7 +467,7 @@ RTSA_VS_Opus/
 | Redpanda Console | 2.x     | `redpandadata/console:v2.4.0`                 |
 | Redpanda Connect | 4.x     | `redpandadata/connect:4.27.0`                 |
 | Node.js          | 20 LTS  | —                                             |
-| React            | 18+     | —                                             |
+| SolidJS          | Latest  | —                                             |
 | TypeScript       | 5+      | —                                             |
 | buf              | 1.32+   | —                                             |
 | Runtime image    | —       | `gcr.io/distroless/static-debian12:nonroot`   |

@@ -346,7 +346,7 @@ terminal. Open `http://localhost:5173` in the browser. Have the terminal visible
 **Expected outcome**:
 - Domain counts update from both `StreamTracks` (fused) and `StreamSensorObservations` (raw).
 - Coverage overlays rendered from `ListSensorStatuses` `SensorCoverage` geometry — new v2.0.
-- Layer toggle wires to `uiStore.layerVisibility` controlling MapLibre layer visibility.
+- Layer toggle wires to UI visibility signals controlling WebGPU render-layer visibility.
 
 ---
 
@@ -729,7 +729,7 @@ External Sensors --gRPC--> Ingestion Services --> Redpanda sensors.* topics
 |---|---|---|
 | `StreamSensorObservations` | `sensors.*` -> `track-svc-sensor-stream` consumer group -> gRPC-Web | Fusion Dashboard raw sensor icons |
 | `GetEventTimeline` | ClickHouse UNION ALL: `tracks_fused + anomaly_detections + operator_feedback + audit_log` | Operator UI timeline, Entity Detail Panel |
-| `SensorCoverage` geometry | `ListSensorStatuses` bulk RPC -> `SensorCoverageLayer` MapLibre layers | Multi-Domain overlays, Sensor Health map |
+| `SensorCoverage` geometry | `ListSensorStatuses` bulk RPC -> WebGPU coverage render pass | Multi-Domain overlays, Sensor Health map |
 | `AssignAlert` | `svc-alert` handler -> `audit.events` Redpanda topic | Operator UI, Security Officer audit log |
 | `mv_active_tracks_by_domain` | AggregatingMergeTree, 10-second granularity | Domain Metrics Overlay, Fusion Side Panel |
 | `mv_sensor_throughput_5min` | Rolling 5-min observation rate by sensor_type | Multi-Domain sensor throughput bar |

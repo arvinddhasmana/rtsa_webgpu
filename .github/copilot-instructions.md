@@ -1,15 +1,22 @@
+<!-- CLASSIFICATION: UNCLASSIFIED -->
 # RTSA Copilot Instructions — Root Policy Loader
 
 > **CLASSIFICATION: This repository contains UNCLASSIFIED code artifacts for a system rated Protected C / Secret.**
 > **No classified data, keys, credentials, PII, or operationally sensitive information may exist in this repository.**
 
+---
+
 ## Project Identity
 
-- **Project**: Real-Time Situational Awareness & Risk Assessment (RTSA)
-- **Domain**: Canadian Defence — Situational Awareness & AI-driven Anomaly Detection
-- **Classification Ceiling**: Protected C / Secret
-- **Compliance**: ITSG-33 (CCCS), NIST 800-53 Rev 5, NATO STANAG 5516
-- **Team Size**: 3–5 developers (trunk-based development)
+| Attribute | Value |
+|---|---|
+| **Project** | Real-Time Situational Awareness & Risk Assessment (RTSA) |
+| **Domain** | Canadian Defence — Situational Awareness & AI-driven Anomaly Detection |
+| **Classification Ceiling** | Protected C / Secret |
+| **Compliance** | ITSG-33 (CCCS), NIST 800-53 Rev 5, NATO STANAG 5516 |
+| **Team Size** | 3–5 developers (trunk-based development) |
+
+---
 
 ## Global Constraints — Always Enforce
 
@@ -23,6 +30,72 @@
 8. **mTLS everywhere.** All gRPC channels must use mutual TLS with CSE-approved cipher suites.
 9. **Immutable audit trail.** All state-changing operations must produce audit events routed through Redpanda.
 10. **Code review required.** No direct commits to main. All changes via PR with at least one reviewer.
+
+---
+
+## Core Technology Stack
+
+```mermaid
+flowchart LR
+  subgraph Ingestion["Ingestion Layer"]
+    S["Sensors<br/>Radar, SIGINT, ELINT<br/>ISR, AIS/BFT, Cyber"]
+    GI["Go gRPC<br/>Ingestion Services"]
+  end
+
+  subgraph Streaming["Event Streaming"]
+    RP["Redpanda<br/>Event Log + Audit"]
+    WASM["Wasm Transforms<br/>Anti-Poisoning"]
+  end
+
+  subgraph Processing["Processing Layer"]
+    AI["AI Inference<br/>Anomaly Detection"]
+    FE["Fusion Engine"]
+    FB["Feedback + Training"]
+  end
+
+  subgraph Storage["Storage Layer"]
+    CH["ClickHouse<br/>OLAP / Historical"]
+    RC["Redpanda Connect<br/>Batch ETL"]
+  end
+
+  subgraph Presentation["Presentation Layer"]
+    FBS["FlatBuffer Serializer"]
+    WTS["WebTransport Server<br/>QUIC Datagrams"]
+    ENV["Envoy Proxy<br/>gRPC-Web (cold path)"]
+    COP["SolidJS + WebGPU COP<br/>50k tracks @ 60 FPS"]
+  end
+
+  S --> GI --> RP
+  RP --> WASM --> RP
+  RP --> AI --> RP
+  RP --> FE --> RP
+  RP --> RC --> CH
+  RP --> FB
+  RP --> FBS --> WTS -->|hot path| COP
+  COP -->|cold path| ENV --> GI
+```
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| Event Streaming | Redpanda | Real-time event log, audit trail, feedback routing, tiered storage |
+| Services | Go + gRPC (Protobuf) | Microservices with strict type-safety |
+| Analytics / OLAP | ClickHouse | Historical storage, forensics, complex analytical queries |
+| Frontend (Hot Path) | SolidJS + WebGPU + WebTransport | Real-time COP — 50k tracks @ 60 FPS, QUIC datagrams, FlatBuffers |
+| Frontend (Cold Path) | SolidJS + gRPC-Web (ConnectRPC) | Commands, queries, feedback — Protobuf over HTTP/2 |
+| Data Pipeline | Redpanda Connect | Batch ETL from stream to ClickHouse / S3 |
+| Anti-Poisoning | Wasm Data Transforms / Go middleware | Feedback trust validation before model retraining |
+| Interoperability | STANAG 5516 / NFFI / MIP adapters | NATO data exchange with allied systems |
+
+### Performance Targets
+
+| Metric | Target |
+|---|---|
+| Sustained track count | 50,000 @ 60 FPS |
+| Update-to-pixel latency | < 16 ms |
+| Main thread CPU | < 20% |
+| Browser ingestion throughput | 50,000+ msg/s |
+
+---
 
 ## Mandatory Policy Loading by Task Type
 
@@ -38,26 +111,35 @@ When performing any task, load the **Master Policy** first, then load the task-s
 |---|---|
 | **Writing requirements / user stories** | `docs/sdlc_guidelines/02_requirements/*` |
 | **Architecture / design decisions** | `docs/sdlc_guidelines/03_architecture_design/*`, `docs/sdlc_guidelines/01_security_compliance/*` |
-| **Writing Go code** | `docs/sdlc_guidelines/04_coding_standards/general_coding.md`, `go_standards.md`, `secure_coding.md` |
-| **Writing Protobuf / gRPC** | `docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md`, `secure_coding.md` |
-| **Writing React code** | `docs/sdlc_guidelines/04_coding_standards/react_standards.md`, `general_coding.md`, `secure_coding.md` |
+| **Writing Go code** | `04_coding_standards/general_coding.md`, `go_standards.md`, `secure_coding.md` |
+| **Writing Protobuf / gRPC** | `04_coding_standards/protobuf_grpc_standards.md`, `secure_coding.md` |
+| **Writing SolidJS code** | `04_coding_standards/solidjs_standards.md`, `general_coding.md`, `secure_coding.md` |
+| **Writing WGSL shaders** | `08_tech_specific/wgsl_shader_standards.md`, `webgpu_guidelines.md` |
+| **Writing FlatBuffer schemas** | `08_tech_specific/flatbuffers_guidelines.md` |
+| **WebTransport work** | `08_tech_specific/webtransport_guidelines.md`, `flatbuffers_guidelines.md` |
+| **WebGPU rendering** | `08_tech_specific/webgpu_guidelines.md`, `wgsl_shader_standards.md` |
 | **Writing tests** | `docs/sdlc_guidelines/05_testing/*` |
 | **CI/CD pipeline work** | `docs/sdlc_guidelines/06_integration_cicd/*` |
 | **Deployment / infra** | `docs/sdlc_guidelines/07_deployment_operations/*` |
-| **Redpanda configuration** | `docs/sdlc_guidelines/08_tech_specific/redpanda_guidelines.md` |
-| **ClickHouse schemas / queries** | `docs/sdlc_guidelines/08_tech_specific/clickhouse_guidelines.md` |
-| **gRPC service design** | `docs/sdlc_guidelines/08_tech_specific/grpc_service_guidelines.md` |
-| **Wasm transforms** | `docs/sdlc_guidelines/08_tech_specific/wasm_transforms.md` |
-| **Reviewing AI output** | `docs/sdlc_guidelines/09_governance/agent_governance.md` |
-| **Creating prompts** | `docs/sdlc_guidelines/09_governance/prompt_templates.md` |
+| **Redpanda configuration** | `08_tech_specific/redpanda_guidelines.md` |
+| **ClickHouse schemas / queries** | `08_tech_specific/clickhouse_guidelines.md` |
+| **gRPC service design** | `08_tech_specific/grpc_service_guidelines.md` |
+| **Wasm transforms** | `08_tech_specific/wasm_transforms.md` |
+| **Reviewing AI output** | `09_governance/agent_governance.md` |
+| **Creating prompts** | `09_governance/prompt_templates.md` |
 
-### Project Documentation References
+> All paths relative to `docs/sdlc_guidelines/` unless fully specified.
+
+---
+
+## Project Documentation References
 
 | Document | Path |
 |---|---|
 | Business Requirements | `docs/business/requirements.md` |
 | Feature List | `docs/business/feature_list.md` |
 | Use Cases | `docs/business/usecases/UC*.md` |
+| **v1 Architecture (canonical)** | `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` |
 | High-Level Architecture | `docs/architecture/high_level_architecture.md` |
 | Component Design | `docs/architecture/component_design.md` |
 | Data Architecture | `docs/architecture/data_architecture.md` |
@@ -65,18 +147,9 @@ When performing any task, load the **Master Policy** first, then load the task-s
 | Deployment Architecture | `docs/architecture/deployment_architecture.md` |
 | Integration Architecture | `docs/architecture/integration_architecture.md` |
 | Dependency Graph | `docs/architecture/dependency_graph.md` |
+| v4 Implementation Plan | `docs/implementation/v4/README.md` |
 
-## Core Technology Stack — Quick Reference
-
-| Layer | Technology | Purpose |
-|---|---|---|
-| Event Streaming | Redpanda | Real-time event log, audit trail, feedback routing |
-| Services | Go + gRPC (Protobuf) | Microservices with strict type-safety |
-| Analytics / OLAP | ClickHouse | Historical storage, forensics, complex queries |
-| Frontend | React + gRPC-Web / WebSockets | Real-time situational awareness UI |
-| Data Pipeline | Redpanda Connect | Batch ETL from stream to ClickHouse |
-| Anti-Poisoning | Wasm Data Transforms / Go middleware | Feedback trust validation |
-| Interoperability | STANAG 5516 / NFFI / MIP adapters | NATO data exchange |
+---
 
 ## Custom AI Agent Profiles
 
@@ -113,3 +186,6 @@ Before submitting any generated code or documentation, validate against:
 6. Does the output follow the naming conventions in the coding standards? → **REQUIRED**
 7. Is the classification header present? → **REQUIRED**
 8. For new services/data flows: Has a threat model entry been created? → **REQUIRED**
+9. Does SolidJS code destructure props? → **REJECT** (breaks reactivity)
+10. Does WGSL code match TypeScript `GPUBindGroupLayout`? → **REQUIRED**
+11. Are GPU buffers allocated per-frame? → **REJECT** (allocate at init only)

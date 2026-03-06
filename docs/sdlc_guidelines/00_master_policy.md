@@ -3,8 +3,8 @@
 > **CLASSIFICATION: UNCLASSIFIED**
 > **Document Type**: Master Policy — All AI agents MUST load this first
 > **Project**: RTSA — Real-Time Situational Awareness & Risk Assessment
-> **Version**: 1.0
-> **Last Updated**: 2026-02-23
+> **Version**: 2.0
+> **Last Updated**: 2026-03-05
 > **Authority**: RTSA Project Lead
 
 ---
@@ -53,7 +53,7 @@ graph LR
     end
 
     subgraph "Presentation Layer"
-        UI[React Dashboard<br/>gRPC-Web / WebSockets]
+        UI[SolidJS + WebGPU COP<br/>WebTransport / gRPC-Web]
     end
 
     SENSORS --> GRPC_IN
@@ -82,7 +82,8 @@ graph LR
 | Event Streaming | Redpanda | Real-time event log, audit trail, feedback routing, tiered storage |
 | Microservices | Go + gRPC (Protobuf) | Strict type-safety, high performance, small binary footprint |
 | Analytics / OLAP | ClickHouse | Historical storage, forensics, complex analytical queries |
-| Frontend | React + gRPC-Web / WebSockets | Real-time situational awareness visualization |
+| Frontend (Hot Path) | SolidJS + WebGPU + WebTransport | Real-time COP — 50k tracks @ 60 FPS, QUIC datagrams, FlatBuffers |
+| Frontend (Cold Path) | SolidJS + gRPC-Web (ConnectRPC) | Commands, queries, feedback — Protobuf over HTTP/2 |
 | Data Pipeline | Redpanda Connect | Batch ETL: stream → ClickHouse / S3 |
 | Containerization | Docker + Docker Compose / Kubernetes | Container-based development, deployment, and orchestration |
 | Anti-Poisoning | Wasm Data Transforms / Go middleware | Feedback trust validation before model retraining |
@@ -162,7 +163,7 @@ These rules apply to ALL code, documentation, and configuration generated for th
 - **RULE-QUA-01**: Every code change must include corresponding unit tests. Target 80%+ line coverage.
 - **RULE-QUA-02**: Never use `panic()` in production Go code. Wrap errors with context using `fmt.Errorf("operation: %w", err)`.
 - **RULE-QUA-03**: Never swallow errors silently. Every error must be handled, logged, or propagated.
-- **RULE-QUA-04**: Use structured logging (Go: `slog`; React: structured JSON). Never log classified data or PII at any level.
+- **RULE-QUA-04**: Use structured logging (Go: `slog`; SolidJS: structured JSON). Never log classified data or PII at any level.
 - **RULE-QUA-05**: Follow naming conventions defined in language-specific coding standards.
 
 ### 5.4 Development Process
@@ -219,3 +220,4 @@ These rules apply to ALL code, documentation, and configuration generated for th
 | Date | Version | Change | Author |
 |---|---|---|---|
 | 2026-02-23 | 1.0 | Initial master policy creation | RTSA Project Lead |
+| 2026-03-05 | 2.0 | Updated tech stack for WebGPU COP (React → SolidJS + WebGPU + WebTransport) | RTSA Lead Architect |

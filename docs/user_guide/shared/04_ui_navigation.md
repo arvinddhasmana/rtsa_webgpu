@@ -9,6 +9,8 @@
 
 ---
 
+> **⚠ WebGPU COP Migration Notice** — UI navigation steps below reflect the *projected* SolidJS + WebGPU interface. Specific elements may change during implementation. See `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`.
+
 ## Overview
 
 This section covers the common interface patterns, controls, and keyboard shortcuts that apply to all users of the RTSA COP dashboard. Role-specific features are described in your role's guide.

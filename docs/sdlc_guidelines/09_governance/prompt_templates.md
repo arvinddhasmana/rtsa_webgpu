@@ -104,30 +104,30 @@ Create a ClickHouse table for [DATA_TYPE] with appropriate partitioning and TTL.
 3. Example parameterized Go query
 ```
 
-### 3.4 New React Component
+### 3.4 New SolidJS Component
 
 ```markdown
 ## Task
-Create a React component for [COMPONENT_NAME] that [PURPOSE].
+Create a SolidJS component for [COMPONENT_NAME] that [PURPOSE].
 
 ## Context
-- Part of the RTSA situational awareness UI
+- Part of the RTSA WebGPU COP overlay UI
 - Implements [UC_ID] requirement [REQ_ID]
-- Ref: docs/sdlc_guidelines/04_coding_standards/react_standards.md
+- Ref: docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md
 
 ## Requirements
-- TypeScript, functional component
+- TypeScript, named export function component
 - Include traceability comment (// Implements: [REQ_ID])
-- Handle real-time data via WebSocket/gRPC-Web
+- Props as signal accessors where applicable (never destructure)
+- Cold-path data via ConnectRPC/gRPC-Web; hot-path data via Worker postMessage signals
 - Support offline/edge degradation
 - Include classification badge display
 - Accessible (keyboard navigation, ARIA labels)
 - Dark mode compatible (NVG mode)
 
 ## Deliverables
-1. Component file (.tsx)
-2. Test file (.test.tsx) — behavior tests with React Testing Library
-3. Storybook story (if visual component)
+1. Component file (.tsx) in src/components/
+2. Test file (.test.tsx) — behavior tests with @solidjs/testing-library
 ```
 
 ### 3.5 New Wasm Data Transform

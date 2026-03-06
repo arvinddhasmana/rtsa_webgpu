@@ -43,7 +43,7 @@ operator interaction in the COP browser UI. This file covers:
 
 The COP currently has 23 vitest unit tests but zero browser-level tests. All UI
 requirements (CR-UI-\*) need at least one browser test exercising the real rendered DOM.
-Playwright is the standard choice for React + Vite projects.
+Playwright is the standard choice for SolidJS + Vite projects.
 
 ### Steps
 
@@ -99,10 +99,10 @@ Playwright is the standard choice for React + Vite projects.
    ```
 
 5. **Create `web-cop/e2e/helpers.ts`** — shared utilities:
-   - `waitForMapLoad()` — wait for MapLibre canvas to render
+   - `waitForMapLoad()` — wait for WebGPU canvas to render
    - `waitForGrpcConnection()` — wait for connection indicator to show "connected"
    - `mockGrpcStream()` — intercept gRPC-Web calls and return canned responses
-   - `injectTestTrack(page, track)` — inject a track into the Zustand store via
+   - `injectTestTrack(page, track)` — inject a track into a SolidJS signal via
      `page.evaluate()`
 
 ### Acceptance Criteria
@@ -130,7 +130,7 @@ Create one test file per feature area under `web-cop/e2e/`:
 
 | Test Name                              | Assertion                                            |
 | -------------------------------------- | ---------------------------------------------------- |
-| `map renders and shows canvas`         | MapLibre canvas element visible, non-zero dimensions |
+| `map renders and shows canvas`         | WebGPU canvas element visible, non-zero dimensions   |
 | `track appears on map after injection` | Inject 1 track → marker/icon appears at coordinates  |
 | `track moves on update`                | Inject track, update position → marker moves         |
 

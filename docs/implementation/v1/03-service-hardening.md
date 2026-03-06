@@ -259,7 +259,7 @@ CR-UI-007 (SHOULD priority) requires NVG-compatible dark mode. The COP web app h
 
 4. **Add theme selector** to the layout header — simple dropdown or toggle button
 
-5. **Test with map tiles**: Ensure MapLibre GL uses a dark tile source when NVG mode is active. Options:
+5. **Test with map tiles**: Ensure the WebGPU tile layer uses dark raster tiles when NVG mode is active. Options:
    - CartoDB Dark Matter tiles
    - MapTiler Dark style
    - Solid dark background with vector overlays only

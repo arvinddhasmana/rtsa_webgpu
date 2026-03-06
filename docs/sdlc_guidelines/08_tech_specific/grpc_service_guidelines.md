@@ -406,9 +406,9 @@ grpc.NewServer(
 )
 ```
 
-### 8.2 gRPC-Web Proxy
+### 8.2 gRPC-Web Proxy (Cold Path Only)
 
-For browser-based clients that need to communicate with gRPC services:
+For browser-based clients that need to communicate with gRPC services. In the WebGPU COP architecture, gRPC-Web is used exclusively for the **cold path** (commands, queries, feedback). Real-time track data uses WebTransport (see `webtransport_guidelines.md`).
 
 **Best practices:**
 - Use Envoy or grpc-web-proxy as the gRPC-Web proxy
@@ -416,6 +416,7 @@ For browser-based clients that need to communicate with gRPC services:
 - Configure CORS headers at the proxy
 - Support both unary and server-streaming (client streaming not supported by gRPC-Web)
 - Set appropriate timeouts on the proxy matching the backend service timeouts
+- Browser client uses ConnectRPC (`@connectrpc/connect-web`) — see `solidjs_standards.md` §6
 
 ## 9. Connection Management
 

@@ -39,7 +39,7 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] Error handling: no silenced errors, no panics (Go)
 - [ ] No SQL string concatenation (parameterized queries)
 - [ ] No use of `math/rand` for security purposes
-- [ ] No `dangerouslySetInnerHTML` (React)
+- [ ] No `innerHTML` directive with untrusted data (SolidJS)
 - [ ] Structured logging (no fmt.Println)
 - [ ] Classification markings enforced in data flow
 
@@ -83,20 +83,23 @@ This document provides structured checklists for code reviews, architecture revi
 - [ ] No removed or renumbered fields
 ```
 
-### 2.4 React-Specific
+### 2.4 SolidJS + WebGPU COP
 
 ```markdown
-## Code Review Checklist — React
+## Code Review Checklist — SolidJS + WebGPU
 
 - [ ] TypeScript strict mode (no `any` types)
-- [ ] Functional components (no class components)
-- [ ] Classification badge displayed correctly
+- [ ] Props not destructured (preserves SolidJS reactivity)
+- [ ] Classification banner displayed correctly
 - [ ] Accessibility: ARIA labels, keyboard navigation
 - [ ] Dark mode / NVG mode compatibility
 - [ ] Offline/edge degradation handled
-- [ ] No `dangerouslySetInnerHTML`
-- [ ] Component tests with React Testing Library
-- [ ] State management follows patterns (local/Zustand/server)
+- [ ] No `innerHTML` directive with untrusted data
+- [ ] Component tests with `@solidjs/testing-library`
+- [ ] Signal-based state management (no global stores)
+- [ ] Worker communication uses typed `postMessage` protocol
+- [ ] WGSL bindings match TypeScript `GPUBindGroupLayout`
+- [ ] No per-frame GPU buffer allocations
 ```
 
 ## 3. Architecture Review Checklist

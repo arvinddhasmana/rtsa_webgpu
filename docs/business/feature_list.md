@@ -193,9 +193,9 @@ graph TB
 
 ### FEAT-13: Situational Awareness UI
 
-**Description**: React-based operational display showing entity tracks on a geographic map with anomaly alerts, filtering, and classification markings.
+**Description**: SolidJS + WebGPU operational display showing entity tracks on a geographic map with anomaly alerts, filtering, and classification markings. Hot-path data arrives via WebTransport/FlatBuffers; cold-path commands use gRPC-Web.
 
-**Components**: React app, WebSocket/gRPC-Web, map renderer (Leaflet/MapLibre), Zustand state management
+**Components**: SolidJS COP, WebGPU renderer, WebTransport Data Worker, gRPC-Web (cold path), SolidJS signal-based state
 
 **Acceptance Criteria**:
 - Real-time entity display on map

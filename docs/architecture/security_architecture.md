@@ -2,10 +2,11 @@
 # Security Architecture
 
 > **Document**: RTSA Security Architecture
-> **Version**: 2.0
+> **Version**: 3.0
 > **Classification**: UNCLASSIFIED
-> **Last Updated**: 2026-02-28
+> **Last Updated**: 2026-03-05
 > **Compliance**: ITSG-33 (CCCS), NIST 800-53 Rev 5, NATO STANAG 5516
+> **Authoritative Source**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`
 
 ---
 
@@ -87,7 +88,7 @@ flowchart TD
     TRACK --> GW
     ALERT --> GW
     QUERY --> GW
-    GW -->|gRPC-Web/mTLS| UI
+    GW -->|gRPC-Web/mTLS<br/>+ WebTransport/QUIC| UI
     UI --> WORKSTATION
 
     FUS -->|Fused tracks| RP
@@ -443,3 +444,42 @@ flowchart LR
 | Integrity | SI-7, SI-10 | SI-7, SI-10 | cosign signing, input validation, Wasm transforms |
 | Network | SC-7, SC-8 | SC-7, SC-8 | Network segmentation, K8s NetworkPolicy, firewalls |
 | Incident Response | IR-4, IR-5, IR-6 | IR-4, IR-5, IR-6 | SIEM integration, escalation matrix, audit trail |
+
+---
+
+## 13. WebTransport Security (Hot Path)
+
+The hot path uses WebTransport (HTTP/3 / QUIC) for real-time track data delivery. Security controls differ from the gRPC-Web cold path:
+
+| Concern | Mitigation |
+|---|---|
+| Authentication | Session token in WebTransport connection URL, validated against mTLS operator certificate |
+| Encryption | QUIC mandates TLS 1.3; CSE-approved cipher suites enforced at server |
+| Data classification | Classification field in each 128-byte record; client-side filter drops records above operator clearance |
+| Session management | Server-side session timeout (30 min); reconnect requires re-authentication |
+| Rate limiting | Server-side per-session datagram rate limit |
+| Backpressure | Priority-based shedding — CRITICAL alerts never shed; lower-priority updates reduced first |
+
+## 14. SharedArrayBuffer Security
+
+SharedArrayBuffer enables zero-copy data sharing between browser threads. It requires strict isolation to mitigate Spectre-class side-channel attacks:
+
+| Concern | Mitigation |
+|---|---|
+| Spectre mitigation | `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` headers required |
+| Memory corruption | Wasm sandboxing limits writes to SAB bounds only; no raw pointer access from JS |
+| Cross-worker access | Only Data Worker writes; Render Worker reads; Main Thread reads metadata only |
+| Bounds checking | Ring buffer indices validated in Wasm before every write |
+
+## 15. WebGPU Security
+
+| Concern | Mitigation |
+|---|---|
+| GPU memory isolation | WebGPU enforces per-context GPU memory isolation (browser-level) |
+| Shader execution | WGSL shaders validated by browser before GPU dispatch |
+| Pick buffer data | Contains only slot indices (integers), no sensitive data |
+| Denial of service | GPU workload bounded: max 50k instances, max 256 workgroup size |
+
+## 16. Audit Trail — Dual Protocol
+
+All operator actions (feedback, alert acknowledgment, track selection) flow through the gRPC-Web cold path → Feedback/Alert Service → Redpanda → Audit Service. The WebGPU rendering hot path is **read-only** and produces no audit events. The WebTransport connection itself is logged (connect/disconnect/session duration) but individual datagrams are not audited.

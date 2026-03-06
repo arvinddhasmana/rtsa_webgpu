@@ -91,7 +91,7 @@ RTSA_VS_Opus/
 │   │   └── query_bench_test.go
 │   └── Makefile
 │
-├── web-cop/                      # React frontend
+├── web-cop/                      # SolidJS + WebGPU frontend
 │   ├── src/__tests__/            # Vitest unit tests
 │   ├── e2e/                      # Playwright browser E2E tests
 │   ├── vitest.config.ts
@@ -139,7 +139,7 @@ Unit tests have **no build tag** and run with a plain `go test ./...`.
 | Feedback trust scoring                | 95%+          | 90%+            |
 | Anti-poisoning logic                  | 95%+          | 90%+            |
 | Configuration / startup               | 80%+          | 75%+            |
-| React components                      | 80%+          | 75%+            |
+| SolidJS components                    | 80%+          | 75%+            |
 | **Global minimum**                    | **80%**       | —               |
 
 Coverage below threshold causes CI failure.
@@ -204,7 +204,7 @@ Coverage below threshold causes CI failure.
 - Every external dependency is accessed through a Go interface
 - Unit tests mock at the boundary (gRPC client, Redpanda producer, ClickHouse)
 - Prefer hand-written mocks over code generation
-- React tests use MSW (Mock Service Worker) for API mocking
+- SolidJS tests use MSW (Mock Service Worker) for gRPC-Web cold-path API mocking
 
 ---
 

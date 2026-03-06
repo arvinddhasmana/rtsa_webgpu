@@ -67,11 +67,11 @@ graph TD
 |---|---|---|
 | `gcr.io/distroless/static-debian12` | APPROVED | Preferred for Go binaries (no shell, minimal attack surface) |
 | `gcr.io/distroless/base-debian12` | APPROVED | For services requiring glibc |
-| `node:22-alpine` | APPROVED | React build stage only; not used in production images |
+| `node:22-alpine` | APPROVED | SolidJS build stage only; not used in production images |
 | `scratch` | APPROVED | Minimal base for statically-linked Go binaries |
 | Custom base images | CONDITIONAL | Must be built from approved bases; Dockerfile reviewed |
 
-### 3.3 NPM Packages (React Frontend)
+### 3.3 NPM Packages (SolidJS Frontend)
 
 | Source | Status | Notes |
 |---|---|---|
@@ -121,7 +121,7 @@ Before adding any new dependency:
 ### 5.1 Standard
 
 - Format: **CycloneDX** (JSON) — version 1.5 or later
-- Generate for: every container image, every Go binary, the React frontend bundle
+- Generate for: every container image, every Go binary, the SolidJS frontend bundle
 - Frequency: generated on every CI build; archived with release artifacts
 
 ### 5.2 SBOM Content
@@ -143,7 +143,7 @@ Each SBOM must include:
 | Language | Tool | Notes |
 |---|---|---|
 | Go | `cyclonedx-gomod` | Generates from `go.mod` and `go.sum` |
-| Node/React | `@cyclonedx/cdxgen` | Generates from `package-lock.json` |
+| Node/SolidJS | `@cyclonedx/cdxgen` | Generates from `package-lock.json` |
 | Container | `syft` | Generates SBOM from container image layers |
 | Aggregation | `cyclonedx-cli merge` | Merges per-component SBOMs into release SBOM |
 

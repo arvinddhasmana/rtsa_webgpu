@@ -235,7 +235,7 @@ VS Code with the WSL extension gives you a full IDE experience running inside WS
 4. Recommended additional extensions (install from within VS Code WSL session later):
    - `golang.go` — Go language support
    - `zxh404.vscode-proto3` — Protobuf syntax
-   - `dbaeumer.vscode-eslint` — ESLint for React/TypeScript
+   - `dbaeumer.vscode-eslint` — ESLint for SolidJS/TypeScript
    - `esbenp.prettier-vscode` — Prettier formatter
    - `bradlc.vscode-tailwindcss` — Tailwind CSS IntelliSense
 

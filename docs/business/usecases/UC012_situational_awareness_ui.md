@@ -32,7 +32,7 @@ The situational awareness UI renders a real-time common operating picture (COP) 
 ```mermaid
 sequenceDiagram
     actor OP as Operator
-    participant UI as React<br/>COP Application
+    participant UI as SolidJS + WebGPU<br/>COP Application
     participant GW as gRPC-Web<br/>Gateway
     participant TS as Track<br/>Service
     participant AS as Alert<br/>Service
@@ -117,12 +117,13 @@ flowchart LR
         AS --> GW
     end
 
-    subgraph Frontend["React Application"]
-        GW -->|gRPC-Web<br/>Server Stream| HOOK[useTrackStream<br/>useAlertStream]
-        HOOK --> STATE[Zustand Store]
-        STATE --> MAP[Map Component]
-        STATE --> ALERT[Alert Panel]
-        STATE --> DETAIL[Detail Panel]
+    subgraph Frontend["SolidJS + WebGPU COP"]
+        GW -->|WebTransport<br/>FlatBuffers| DW[Data Worker]
+        DW --> SAB[SharedArrayBuffer]
+        SAB --> RW[Render Worker<br/>WebGPU]
+        GW -->|gRPC-Web<br/>Cold Path| SIGNALS[SolidJS Signals]
+        SIGNALS --> ALERT[Alert Panel]
+        SIGNALS --> DETAIL[Detail Panel]
     end
 ```
 

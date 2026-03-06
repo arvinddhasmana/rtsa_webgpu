@@ -83,12 +83,13 @@ func ValidateSensorEvent(event *pb.SensorEvent) error {
 - Strip internal error details in production (return generic `INTERNAL` for unexpected errors)
 - Never include stack traces in error responses
 
-### 3.2 Web Responses (React)
+### 3.2 Web Responses (SolidJS / WebGPU COP)
 
 - HTML-encode all user-generated content rendered in the DOM
-- Use React's built-in JSX escaping (never use `dangerouslySetInnerHTML`)
-- Set Content-Security-Policy headers to prevent XSS
+- SolidJS auto-escapes text in JSX (never use `innerHTML` directive with untrusted data)
+- Set Content-Security-Policy headers to prevent XSS (include `'wasm-unsafe-eval'` for WebAssembly)
 - CORS: restrict to same-origin; no wildcard origins
+- Cross-origin isolation: set COOP/COEP headers for SharedArrayBuffer support
 
 ## 4. Cryptographic Standards
 
@@ -295,5 +296,5 @@ When generating any code:
 6. Set resource limits on gRPC servers (max message size, concurrent streams)
 7. Include trust scoring logic for any feedback path
 8. Never return internal error details in production responses
-9. Use React's built-in XSS protections — never use `dangerouslySetInnerHTML`
+9. Use SolidJS auto-escaping for XSS protection — never use `innerHTML` directive with untrusted data
 10. Reference ITSG-33/NIST controls in security-critical code comments

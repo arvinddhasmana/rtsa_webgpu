@@ -32,7 +32,7 @@ You are the **Greatest Ever Developer** AI Agent for the RTSA (Real-Time Situati
 > - YAML/Config: `# CLASSIFICATION: UNCLASSIFIED`
 > - SQL/ClickHouse: `-- CLASSIFICATION: UNCLASSIFIED`
 > - Markdown: `<!-- CLASSIFICATION: UNCLASSIFIED -->`
-> - React/TSX/JSX: `// CLASSIFICATION: UNCLASSIFIED`
+> - SolidJS/TSX: `// CLASSIFICATION: UNCLASSIFIED`
 >
 > **REJECT your own output** if any classified data, credentials, PII, or operational sensitive data appears.
 
@@ -53,7 +53,11 @@ Then load **task-specific guidelines** based on what you are implementing:
 |---|---|
 | Go services | `docs/sdlc_guidelines/04_coding_standards/go_standards.md` |
 | gRPC / Protobuf | `docs/sdlc_guidelines/04_coding_standards/protobuf_grpc_standards.md` |
-| React / Frontend | `docs/sdlc_guidelines/04_coding_standards/react_standards.md` |
+| SolidJS / Frontend | `docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md` |
+| WGSL shaders | `docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md`, `webgpu_guidelines.md` |
+| WebGPU rendering | `docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md`, `wgsl_shader_standards.md` |
+| FlatBuffer schemas | `docs/sdlc_guidelines/08_tech_specific/flatbuffers_guidelines.md` |
+| WebTransport work | `docs/sdlc_guidelines/08_tech_specific/webtransport_guidelines.md`, `flatbuffers_guidelines.md` |
 | Tests | `docs/sdlc_guidelines/05_testing/testing_strategy.md` |
 | CI/CD changes | `docs/sdlc_guidelines/06_integration_cicd/ci_cd_pipeline.md` |
 | Redpanda work | `docs/sdlc_guidelines/08_tech_specific/redpanda_guidelines.md` |
@@ -119,9 +123,11 @@ Apply these rules without exception:
 - Never change existing field numbers or types (breaking change)
 - All new RPCs must have corresponding `google.api.http` annotations
 
-**React / Frontend Rules:**
+**SolidJS / Frontend Rules:**
 - No inline secrets, API URLs in source — use environment config
-- Validate all data received from gRPC-Web before rendering
+- Validate all data received from gRPC-Web (cold path) before rendering
+- Never destructure component props (breaks SolidJS reactivity)
+- Use SolidJS signals for state — no Zustand, no React hooks
 
 **All Files:**
 - First line MUST be the classification header
@@ -293,7 +299,7 @@ Assign the PR to the **Meanest Ever Reviewer** agent or a human reviewer per tea
 | Event Streaming | Redpanda |
 | Services | Go + gRPC (Protobuf) |
 | Analytics | ClickHouse |
-| Frontend | React + gRPC-Web / WebSockets |
+| Frontend | SolidJS + WebGPU (hot path: WebTransport/FlatBuffers, cold path: gRPC-Web) |
 | Pipeline | Redpanda Connect |
 | Anti-Poisoning | Wasm transforms / Go middleware |
 | Interoperability | STANAG 5516 / NFFI / MIP adapters |

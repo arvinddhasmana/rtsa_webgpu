@@ -39,7 +39,7 @@ This document is the master orchestration guide for completing RTSA v1. It track
 - `svc-query` — ClickHouse queries, classification filtering, guardrails, pagination
 - `svc-audit` — immutable append-only repo, batched consumer, classification filtering
 - 4 Wasm data transforms (sensor, track, feedback, alert validators)
-- Full COP web application (React 18, MapLibre, Zustand, gRPC-Web, 73 source files)
+- Full COP web application (SolidJS + WebGPU COP — see `implementation/v4/` for current plan; legacy React/MapLibre COP archived)
 - Comprehensive simulator (6 sensor types, 4 movement patterns, 4 anomaly injectors)
 - 120+ Go test files, 23 TypeScript test files
 - 14 integration tests, 4 E2E tests, 4 benchmarks

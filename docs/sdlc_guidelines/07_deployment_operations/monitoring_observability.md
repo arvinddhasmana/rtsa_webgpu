@@ -18,7 +18,7 @@ This document defines monitoring, logging, tracing, and alerting standards for R
 graph LR
     subgraph apps ["RTSA Services"]
         SVC["Go Services<br/>(metrics, logs, traces)"]
-        UI["React UI<br/>(browser metrics)"]
+        UI[\"SolidJS + WebGPU COP<br/>(browser metrics)\"]
     end
 
     subgraph collect ["Collection"]

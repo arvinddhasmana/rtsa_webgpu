@@ -26,14 +26,14 @@ graph TD
     subgraph "Tier 3 — SDLC Phase Guidelines"
         RE[02_requirements/<br/>Engineering & Traceability]
         AD[03_architecture_design/<br/>C4, ADR, Threat modeling]
-        CS[04_coding_standards/<br/>Go, Protobuf, React, Security]
+        CS[04_coding_standards/<br/>Go, Protobuf, SolidJS, Security]
         TS[05_testing/<br/>Strategy, Security, Performance]
         CI[06_integration_cicd/<br/>Pipeline, Branching, Artifacts]
         DO[07_deployment_operations/<br/>Deploy, Edge, Monitoring]
     end
 
     subgraph "Tier 4 — Technology-Specific"
-        TECH["08_tech_specific/<br/>Redpanda, ClickHouse<br/>gRPC Services, Wasm<br/>Docker & Containers"]
+        TECH["08_tech_specific/<br/>Redpanda, ClickHouse<br/>gRPC Services, Wasm<br/>WebGPU, FlatBuffers<br/>WebTransport, Docker"]
     end
 
     subgraph "Tier 5 — Governance & Validation"
@@ -78,7 +78,7 @@ graph TD
 | **Architecture** | + `03_architecture_design/architecture_guidelines.md` → `design_guidelines.md` → `threat_modeling.md` |
 | **Go coding** | + `04_coding_standards/general_coding.md` → `go_standards.md` → `secure_coding.md` |
 | **Protobuf/gRPC** | + `04_coding_standards/protobuf_grpc_standards.md` → `secure_coding.md` |
-| **React coding** | + `04_coding_standards/general_coding.md` → `react_standards.md` → `secure_coding.md` |
+| **SolidJS coding** | + `04_coding_standards/general_coding.md` → `solidjs_standards.md` → `secure_coding.md` |
 | **Testing** | + `05_testing/testing_strategy.md` → `security_testing.md` → `performance_testing.md` |
 | **CI/CD** | + `06_integration_cicd/ci_cd_pipeline.md` → `branching_strategy.md` → `artifact_management.md` |
 | **Deployment** | + `07_deployment_operations/deployment_guidelines.md` → `edge_tactical_deployment.md` → `monitoring_observability.md` |
@@ -86,6 +86,9 @@ graph TD
 | **ClickHouse** | + `08_tech_specific/clickhouse_guidelines.md` |
 | **gRPC services** | + `08_tech_specific/grpc_service_guidelines.md` |
 | **Wasm transforms** | + `08_tech_specific/wasm_transforms.md` |
+| **WebGPU rendering** | + `08_tech_specific/webgpu_guidelines.md` → `wgsl_shader_standards.md` |
+| **FlatBuffers** | + `08_tech_specific/flatbuffers_guidelines.md` |
+| **WebTransport** | + `08_tech_specific/webtransport_guidelines.md` |
 | **Docker development** | + `development/docker_development.md` → `08_tech_specific/docker_container_guidelines.md` |
 | **Review/Governance** | + `09_governance/agent_governance.md` → `review_checklists.md` |
 
@@ -112,7 +115,7 @@ docs/sdlc_guidelines/
 │   ├── general_coding.md                  ← Language-agnostic rules
 │   ├── go_standards.md                    ← Go conventions
 │   ├── protobuf_grpc_standards.md         ← Proto3/gRPC patterns
-│   ├── react_standards.md                 ← React/TypeScript
+│   ├── solidjs_standards.md               ← SolidJS/TypeScript (WebGPU COP)
 │   └── secure_coding.md                   ← OWASP, crypto, input validation
 ├── 05_testing/
 │   ├── testing_strategy.md                ← Test pyramid, coverage
@@ -131,7 +134,11 @@ docs/sdlc_guidelines/
 │   ├── clickhouse_guidelines.md           ← Schema, engines, queries
 │   ├── grpc_service_guidelines.md         ← Interceptors, patterns
 │   ├── wasm_transforms.md                 ← Broker-side data transforms
-│   └── docker_container_guidelines.md     ← Container images, security, ops
+│   ├── docker_container_guidelines.md     ← Container images, security, ops
+│   ├── webgpu_guidelines.md               ← WebGPU device, buffers, pipelines
+│   ├── wgsl_shader_standards.md           ← WGSL naming, patterns, perf rules
+│   ├── flatbuffers_guidelines.md          ← Hot-path wire format, schema sync
+│   └── webtransport_guidelines.md         ← QUIC datagrams, Go server, Data Worker
 ├── development/
 │   └── docker_development.md              ← Docker Compose dev workflow
 └── 09_governance/
