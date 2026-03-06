@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@src": path.resolve(__dirname, "src"),
+      "@gen": path.resolve(__dirname, "../gen/ts"),
     },
   },
   server: {

@@ -2,7 +2,14 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["src/*"]
+      "@src/*": ["src/*"],
+      "@gen/*": ["../gen/ts/*"],
+      "@bufbuild/protobuf": ["./node_modules/@bufbuild/protobuf"],
+      "@bufbuild/protobuf/*": ["./node_modules/@bufbuild/protobuf/*"],
+      "@connectrpc/connect": ["./node_modules/@connectrpc/connect"],
+      "@connectrpc/connect/*": ["./node_modules/@connectrpc/connect/*"],
+      "@connectrpc/connect-web": ["./node_modules/@connectrpc/connect-web"],
+      "@connectrpc/connect-web/*": ["./node_modules/@connectrpc/connect-web/*"]
     },
     "target": "ES2022",
     "useDefineForClassFields": true,
