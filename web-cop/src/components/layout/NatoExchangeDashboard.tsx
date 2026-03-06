@@ -1,93 +1,119 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/layout/NatoExchangeDashboard.tsx
+//
+// NATO Liaison — NATO Exchange Dashboard.
+//
+// Layout:
+//   TOP:    LinkStatusHeader (Link 16, NFFI, MIP, STANAG 5516 indicators)
+//   LEFT:   NominationQueue (outbound tracks for N-COP)
+//   MAP:    Live map with NATO-shared tracks overlaid
+//   RIGHT:  InboundTracksPanel (allied tracks)
 
 import React from "react";
 import { useTrackStore } from "../../stores/trackStore";
+import { InboundTracksPanel } from "../nato/InboundTracksPanel";
+import { LinkStatusHeader } from "../nato/LinkStatusHeader";
+import { NominationQueue } from "../nato/NominationQueue";
 import { MapView } from "../map/MapView";
 import { CollapsiblePane } from "./CollapsiblePane";
 
+/**
+ * NatoExchangeDashboard — NATO Liaison default view.
+ *
+ * Wraps all four NATO sub-panels around the live map.
+ */
 export const NatoExchangeDashboard: React.FC = () => {
   const currentTracksMap = useTrackStore((s) => s.tracks);
+  const tracks = Array.from(currentTracksMap.values());
 
-  // Simulated NATOB STANAG-4609 / Link 16 exchange metrics
-  const sharedTracks = Array.from(currentTracksMap.values()).filter(t => t.confidenceScore > 0.8).length;
+  const leftCollapsed = false;
+  const rightCollapsed = false;
 
   return (
-    <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-      {/* Left Data Panel */}
-      <CollapsiblePane title="NATO BICES Exchange" width="35%" height="100%" direction="horizontal">
-        <div style={{ padding: "16px", color: "#F1F5F9", display: "flex", flexDirection: "column", gap: "16px", height: "100%", overflowY: "auto" }}>
+    <div
+      data-testid="nato-exchange-dashboard"
+      style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      {/* Link Status Header */}
+      <LinkStatusHeader />
 
-          {/* Header Metrics */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-            <MetricBox label="Link 16 Status" value="ACTIVE" color="#10B981" />
-            <MetricBox label="STANAG 4609" value="SYNCED" color="#10B981" />
-            <MetricBox label="Tracks Exported" value={sharedTracks.toString()} color="#3B82F6" />
-            <MetricBox label="Tracks Imported" value="14" color="#A855F7" />
-          </div>
+      {/* Main 3-column body */}
+      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+        {/* Left: Nomination Queue */}
+        <CollapsiblePane
+          title="Track Nomination"
+          width={leftCollapsed ? "32px" : "300px"}
+          height="100%"
+          direction="horizontal"
+        >
+          {!leftCollapsed && <NominationQueue tracks={tracks} />}
+        </CollapsiblePane>
 
-          <h4 style={{ fontSize: "0.85rem", color: "#9CA3AF", marginTop: "16px", borderBottom: "1px solid #334155", paddingBottom: "4px" }}>
-            Manual Track Nomination
-          </h4>
+        {/* Centre: Map */}
+        <div
+          style={{ flex: 1, overflow: "hidden", position: "relative" }}
+          aria-label="Map View"
+          role="region"
+          tabIndex={0}
+        >
+          <MapView />
 
-          <div style={{
-            backgroundColor: "var(--glass-bg)",
-            border: "var(--glass-border)",
-            padding: "16px",
-            borderRadius: "4px"
-          }}>
-             <div style={{ fontSize: "0.8rem", color: "#9CA3AF", marginBottom: "12px" }}>
-               Select a track on the map to nominate it for export to the NATO Common Operational Picture (N-COP).
-               Only UNCLASSIFIED or explicitly cleared tracks may be exported.
-             </div>
-
-             <button style={{
-               width: "100%",
-               padding: "8px",
-               backgroundColor: "#2563EB",
-               color: "white",
-               border: "none",
-               borderRadius: "4px",
-               cursor: "pointer",
-               fontWeight: "bold",
-               fontSize: "0.8rem"
-             }}>
-               Nominate Selected Track
-             </button>
-          </div>
-
-          <h4 style={{ fontSize: "0.85rem", color: "#9CA3AF", marginTop: "16px", borderBottom: "1px solid #334155", paddingBottom: "4px" }}>
-            Exchange Logs
-          </h4>
-          <div style={{ flex: 1, backgroundColor: "#0F172A", padding: "12px", borderRadius: "4px", fontFamily: "monospace", fontSize: "0.7rem", color: "#64748B", overflowY: "auto" }}>
-            <div>[10:45:01Z] TX: J3.2 Air Track (Trk 1045)</div>
-            <div>[10:45:03Z] RX: ACK from N-COP Gateway</div>
-            <div style={{ color: "#10B981" }}>[10:45:15Z] RX: J3.1 Maritime Track (Trk 992)</div>
-            <div>[10:45:16Z] TX: Internal COP Update</div>
-            <div style={{ color: "#DC2626" }}>[10:46:01Z] TX DROP: Track 1048 (Clearance mismatch)</div>
+          {/* Exchange log overlay (bottom of map) */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              backgroundColor: "rgba(15, 23, 42, 0.88)",
+              backdropFilter: "blur(8px)",
+              borderTop: "1px solid #334155",
+              padding: "6px 14px",
+              maxHeight: "80px",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.6rem",
+                fontFamily: "monospace",
+                lineHeight: "1.6",
+                color: "#64748B",
+              }}
+            >
+              <span style={{ color: "#10B981" }}>
+                [TX] J3.2 Air Track (Trk 1045) → NATO N-COP Gateway
+              </span>
+              <br />
+              [RX] ACK from N-COP Gateway — track accepted
+              <br />
+              <span style={{ color: "#10B981" }}>
+                [RX] J3.1 Maritime Track (Trk 0922) ← GBR
+              </span>
+              <br />
+              <span style={{ color: "#EF4444" }}>
+                [TX DROP] Track 1048 — Classification mismatch (PROTECTED_B
+                &gt; sharing ceiling)
+              </span>
+            </div>
           </div>
         </div>
-      </CollapsiblePane>
 
-      {/* Main Area: Map */}
-      <div style={{ flex: 1, overflow: "hidden", position: "relative" }} aria-label="Map View" role="region" tabIndex={0}>
-        <MapView />
+        {/* Right: Inbound Allied Tracks */}
+        <CollapsiblePane
+          title="Inbound Tracks"
+          width={rightCollapsed ? "32px" : "300px"}
+          height="100%"
+          direction="horizontal"
+        >
+          {!rightCollapsed && <InboundTracksPanel />}
+        </CollapsiblePane>
       </div>
     </div>
   );
 };
-
-const MetricBox: React.FC<{ label: string; value: string; color?: string }> = ({ label, value, color }) => (
-  <div style={{
-    backgroundColor: "var(--glass-bg)",
-    border: "var(--glass-border)",
-    padding: "12px",
-    borderRadius: "4px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center"
-  }}>
-    <span style={{ fontSize: "1.1rem", fontWeight: "bold", color: color || "#F1F5F9" }}>{value}</span>
-    <span style={{ fontSize: "0.65rem", color: "#9CA3AF", textAlign: "center", marginTop: "4px" }}>{label}</span>
-  </div>
-);

@@ -9,6 +9,7 @@ import { useTrackStore } from "../../stores/trackStore";
 import { useUIStore } from "../../stores/uiStore";
 import type { AnomalyAlert } from "../../types/alert";
 import type { FusedTrack } from "../../types/track";
+import { ConfidenceHistogram } from "./ConfidenceHistogram";
 
 /* ─── Domain & Confidence helpers ──────────────────── */
 
@@ -272,6 +273,19 @@ const TrackGridTab: React.FC<TrackGridTabProps> = ({
         </span>
         <span className="ds-kpi-label">Obs/10s</span>
       </div>
+    </div>
+
+    {/* Confidence Distribution Histogram */}
+    <div
+      style={{
+        padding: "4px 16px 8px",
+        borderBottom: "1px solid var(--ds-border-subtle, rgba(255,255,255,0.06))",
+      }}
+    >
+      <div style={{ fontSize: "var(--ds-text-2xs, 0.625rem)", color: "var(--ds-text-muted, #64748B)", marginBottom: "4px", letterSpacing: "0.05em" }}>
+        CONFIDENCE DISTRIBUTION
+      </div>
+      <ConfidenceHistogram tracks={tracks} height={64} />
     </div>
 
     {/* Sortable Track Table */}

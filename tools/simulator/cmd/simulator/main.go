@@ -103,6 +103,8 @@ slog.Info("entity manager initialised",
 "surface", cfg.SurfaceEntityCount,
 "air", cfg.AirEntityCount,
 "subsurface", cfg.SubEntityCount,
+"land", cfg.LandEntityCount,
+"cyber", cfg.CyberEntityCount,
 "anomaly_rate", cfg.AnomalyRate,
 )
 
@@ -193,14 +195,20 @@ func runTick(ctx context.Context, mgr *generator.EntityManager, sender client.Ob
 			sendObs(ctx, sensor.GenerateELINTObservation(e, "ELINT-SIM-001"), client.SensorTypeELINT, sender, &sent, &failed)
 		}
 
-		// ISR: 20% probability.
-		if r.Float64() < 0.2 {
+		// ISR: 20% probability for all; always for LAND entities.
+		if r.Float64() < 0.2 || e.EntityType == commonv1.EntityType_ENTITY_TYPE_LAND {
 			sendObs(ctx, sensor.GenerateISRObservation(e, "ISR-SIM-001"), client.SensorTypeISR, sender, &sent, &failed)
+		}
+
+		// EW: always for CYBER entities (RF signature of compromised nodes).
+		if e.EntityType == commonv1.EntityType_ENTITY_TYPE_CYBER && r.Float64() < 0.7 {
+			ewID := ewIDs[r.Intn(len(ewIDs))]
+			sendObs(ctx, sensor.GenerateEWObservation(e, ewID), client.SensorTypeEW, sender, &sent, &failed)
 		}
 	}
 
-	// Cyber: 1-3 IOCs per tick, independent of entities.
-	for i := 0; i < 1+r.Intn(3); i++ {
+	// Cyber: 2-5 IOCs per tick (increased for better CYBER domain visibility).
+	for i := 0; i < 2+r.Intn(4); i++ {
 		sendObs(ctx, sensor.GenerateCyberObservation(r), client.SensorTypeCyber, sender, &sent, &failed)
 	}
 
@@ -249,6 +257,8 @@ cfg.AirEntityCount = sc.Entities.Air.Count
 if sc.Entities.Subsurface.Count > 0 {
 cfg.SubEntityCount = sc.Entities.Subsurface.Count
 }
+// Land and Cyber counts may be set via env var; scenario YAML can override
+// them once the scenario format is extended. Defaulting to 0 override here.
 if sc.Anomalies.InjectionRate > 0 {
 cfg.AnomalyRate = sc.Anomalies.InjectionRate
 }
