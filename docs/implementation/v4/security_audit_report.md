@@ -60,7 +60,7 @@ This audit covers the WebGPU COP (`web-cop-gpu`) frontend and its backend integr
 | Token expiry enforced            | `exp` claim checked                  | ✅ PASS | `jwt.RegisteredClaims` validates expiry           |
 | Signing method validation        | Unexpected methods rejected          | ✅ PASS | `auth.go:NewTokenValidator` checks method type    |
 | Clearance level in claims        | `clearance_level` claim required     | ✅ PASS | `SessionClaims.ClearanceLevel` field verified     |
-| Token passed in URL query param  | `?token=<jwt>` (WebTransport URL)    | ✅ PASS | `pkg/webtransport/server.go` token extraction     |
+| Token transport mechanism        | `Authorization: Bearer <jwt>` header only; `token` query param deprecated | ⚠ PARTIAL | CodeQL flagged legacy `?token=<jwt>` WebTransport URL usage; update `TokenValidator.ValidateRequest` and `pkg/webtransport/server.go` to header-only and reject `token` query param in production |
 
 ### 2.5 Classification Filtering
 
