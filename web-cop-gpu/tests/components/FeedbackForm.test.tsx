@@ -93,4 +93,10 @@ describe("FeedbackForm", () => {
     fireEvent.click(cancelBtn);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("has correct data-testid", () => {
+    setFeedbackOpen(true);
+    render(() => <FeedbackForm />);
+    expect(screen.getByTestId("feedback-form")).toBeInTheDocument();
+  });
 });

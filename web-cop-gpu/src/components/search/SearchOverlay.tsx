@@ -108,6 +108,7 @@ export function SearchOverlay() {
         aria-label="Track search"
       >
         <div
+          data-testid="search-overlay"
           style={{
             background: "#0d1424",
             border: "1px solid #2d3f56",

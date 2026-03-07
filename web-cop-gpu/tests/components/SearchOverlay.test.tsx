@@ -54,4 +54,10 @@ describe("SearchOverlay", () => {
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     expect(searchOpen()).toBe(true);
   });
+
+  it("has correct data-testid", () => {
+    setSearchOpen(true);
+    render(() => <SearchOverlay />);
+    expect(screen.getByTestId("search-overlay")).toBeInTheDocument();
+  });
 });

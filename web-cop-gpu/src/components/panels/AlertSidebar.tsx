@@ -115,7 +115,7 @@ export function AlertSidebar() {
   const visibleAlerts = () => alerts();
 
   return (
-    <div style={{ display: "flex", "flex-direction": "column", height: "100%" }}>
+    <div data-testid="alert-sidebar" style={{ display: "flex", "flex-direction": "column", height: "100%" }}>
       {/* Header */}
       <div
         style={{

@@ -37,6 +37,7 @@ export function ClassificationBanner() {
   return (
     <div
       role="banner"
+      data-testid="classification-banner-top"
       aria-label={`Classification level: ${LEVEL}`}
       style={bannerStyle}
     >

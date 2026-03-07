@@ -36,4 +36,9 @@ describe("RoleSelector", () => {
     fireEvent.change(select, { target: { value: "operations_commander" } });
     expect(onChange).toHaveBeenCalledWith("operations_commander");
   });
+
+  it("has correct data-testid", () => {
+    render(() => <RoleSelector />);
+    expect(screen.getByTestId("role-selector")).toBeInTheDocument();
+  });
 });

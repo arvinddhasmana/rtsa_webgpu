@@ -45,6 +45,7 @@ export function AppShell(props: AppShellProps) {
       >
         {/* Left toolbar */}
         <div
+          data-testid="app-toolbar"
           style={{
             width: "14rem",
             "flex-shrink": "0",

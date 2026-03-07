@@ -73,4 +73,9 @@ describe("AlertSidebar", () => {
     const ackButtons = screen.queryAllByLabelText("Acknowledge alert");
     expect(ackButtons.length).toBe(0);
   });
+
+  it("has correct data-testid", () => {
+    render(() => <AlertSidebar />);
+    expect(screen.getByTestId("alert-sidebar")).toBeInTheDocument();
+  });
 });

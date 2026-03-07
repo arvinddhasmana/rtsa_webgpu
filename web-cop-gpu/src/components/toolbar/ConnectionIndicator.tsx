@@ -31,6 +31,7 @@ export function ConnectionIndicator() {
 
   return (
     <div
+      data-testid="connection-indicator"
       style={{
         padding: "0.5rem",
         "border-top": "1px solid #1e2a3a",

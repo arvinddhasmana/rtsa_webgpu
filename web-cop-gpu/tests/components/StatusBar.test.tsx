@@ -67,4 +67,13 @@ describe("StatusBar", () => {
     render(() => <StatusBar />);
     expect(screen.getByText("42 ms")).toBeDefined();
   });
+
+  it("has correct data-testids", () => {
+    setFps(60);
+    setLatencyMs(42);
+    render(() => <StatusBar />);
+    expect(screen.getByTestId("status-bar")).toBeInTheDocument();
+    expect(screen.getByTestId("fps-display")).toBeInTheDocument();
+    expect(screen.getByTestId("latency-display")).toBeInTheDocument();
+  });
 });
