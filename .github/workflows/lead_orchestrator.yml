@@ -50,7 +50,6 @@ jobs:
 
             ---
             $CONTENT" \
-            --label "ai-orchestrator" \
-            --assignee "@copilot"
+            --label "ai-orchestrator"
 
-          echo "Successfully created issue and assigned to @copilot."
+          echo "Successfully created issue."
