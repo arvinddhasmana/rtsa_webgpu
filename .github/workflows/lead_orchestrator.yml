@@ -1,0 +1,56 @@
+name: Lead Orchestrator (Task Queue)
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch: # Allows you to start the loop manually
+
+jobs:
+  assign-next-task:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Issue for Next Task
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Find the first file in the todo folder alphabetically
+          FILE=$(ls .github/instructions/todo/*.md 2>/dev/null | head -n 1)
+
+          if [ -z "$FILE" ]; then
+            echo "No files found in instructions/todo/. All tasks complete!"
+            exit 0
+          fi
+
+          FILENAME=$(basename "$FILE")
+          echo "Next task identified: $FILENAME"
+
+          # 2. Check if there is already an active AI task to prevent overlap
+          OPEN_ISSUES=$(gh issue list --label "ai-orchestrator" --state open --json number --jq 'length')
+          if [ "$OPEN_ISSUES" -gt 0 ]; then
+            echo "An AI task is currently in progress. Waiting for it to finish."
+            exit 0
+          fi
+
+          # 3. Read the instruction file
+          CONTENT=$(cat "$FILE")
+
+          # 4. Create the issue, invoke the custom agent, and assign to Copilot
+          gh issue create \
+            --title "AI Task: $FILENAME" \
+            --body "/agent greatest-ever-dev-forworkflow
+
+            Please execute the instructions found below.
+            **Remember:** As per your agent profile, you must move \`$FILE\` to \`.github/instructions/done/$FILENAME\` as part of your PR.
+
+            ---
+            $CONTENT" \
+            --label "ai-orchestrator" \
+            --assignee "@copilot"
+
+          echo "Successfully created issue and assigned to @copilot."
