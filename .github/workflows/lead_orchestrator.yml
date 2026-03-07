@@ -1,3 +1,4 @@
+# CLASSIFICATION: UNCLASSIFIED
 name: Lead Orchestrator (Task Queue)
 
 on:
@@ -15,12 +16,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Ensure ai-orchestrator label exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Create the label if it doesn't already exist; suppress error if it does.
+          gh label create "ai-orchestrator" \
+            --color "0075ca" \
+            --description "AI Orchestrator automated task" \
+            2>/dev/null || true
+
       - name: Create Issue for Next Task
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 1. Find the first file in the todo folder alphabetically
-          FILE=$(ls .github/instructions/todo/*.md 2>/dev/null | head -n 1)
+          # 1. Find the first file in the todo folder (explicit sort for determinism)
+          FILE=$(ls .github/instructions/todo/*.md 2>/dev/null | sort | head -n 1)
 
           if [ -z "$FILE" ]; then
             echo "No files found in instructions/todo/. All tasks complete!"
@@ -30,26 +41,44 @@ jobs:
           FILENAME=$(basename "$FILE")
           echo "Next task identified: $FILENAME"
 
-          # 2. Check if there is already an active AI task to prevent overlap
+          # 2. Check if there is already an active AI issue to prevent overlap
           OPEN_ISSUES=$(gh issue list --label "ai-orchestrator" --state open --json number --jq 'length')
           if [ "$OPEN_ISSUES" -gt 0 ]; then
             echo "An AI task is currently in progress. Waiting for it to finish."
             exit 0
           fi
 
-          # 3. Read the instruction file
-          CONTENT=$(cat "$FILE")
+          # 3. Build the issue body in a temp file so that special characters in
+          #    the instruction content (quotes, $, backticks) are handled safely.
+          #
+          #    NOTE: .agent.md files are VS Code Copilot Chat constructs and are NOT
+          #    loaded by the GitHub Copilot coding agent (issue-assignment mode).
+          #    The agent persona and model are declared inline in the issue body.
+          AGENT_INSTRUCTIONS=$(cat .github/agents/greatest-ever-dev-forworkflow.agent.md)
+          BODY_FILE=$(mktemp)
+          {
+            printf '<!-- Copilot coding agent directive -->\n'
+            printf '**Model:** claude-sonnet-4-5 (Claude Sonnet 4.6)\n\n'
+            printf 'You are the **Greatest Ever Developer** AI Agent for the RTSA project,\n'
+            printf 'following the full agent profile at `.github/agents/greatest-ever-dev-forworkflow.agent.md`.\n'
+            printf 'Read and internalize that file before starting work.\n\n'
+            printf 'Please execute the task instructions found below.\n\n'
+            printf '**MANDATORY administrative steps (do these as part of your PR):**\n'
+            printf '1. Move `%s` to `.github/instructions/done/%s` (do not rename).\n' "$FILE" "$FILENAME"
+            printf '2. Add the label `ai-orchestrator` to your PR so the auto-merge workflow picks it up.\n'
+            printf '3. Write `Resolves #<issue_number>` in the PR description to close this issue on merge.\n\n'
+            printf '---\n\n'
+            printf '## Task Instructions\n\n'
+            cat "$FILE"
+          } > "$BODY_FILE"
 
-          # 4. Create the issue, invoke the custom agent, and assign to Copilot
+          # 4. Create the issue and assign to the GitHub Copilot coding agent.
+          #    The --assignee "copilot" assignment is what triggers the coding agent.
           gh issue create \
             --title "AI Task: $FILENAME" \
-            --body "/agent greatest-ever-dev-forworkflow
+            --body-file "$BODY_FILE" \
+            --label "ai-orchestrator" \
+            --assignee "copilot"
 
-            Please execute the instructions found below.
-            **Remember:** As per your agent profile, you must move \`$FILE\` to \`.github/instructions/done/$FILENAME\` as part of your PR.
-
-            ---
-            $CONTENT" \
-            --label "ai-orchestrator"
-
-          echo "Successfully created issue."
+          rm -f "$BODY_FILE"
+          echo "Successfully created issue and assigned to GitHub Copilot."

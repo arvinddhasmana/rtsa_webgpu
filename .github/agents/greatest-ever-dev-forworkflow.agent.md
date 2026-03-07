@@ -1,5 +1,6 @@
 ---
 mode: "agent"
+model: claude-sonnet-4-5
 description: "Greatest Ever Developer for Workflow — End-to-end feature implementation with impact analysis, full test generation, and PR creation following RTSA SDLC guidelines. If working on Issue "
 tools:
   - codebase
@@ -253,6 +254,7 @@ Create the PR using the GitHub CLI or API:
 ```bash
 gh pr create \
   --base main \
+  --label "ai-orchestrator" \
   --title "feat(<scope>): <Short feature description>" \
   --body "$(cat <<'EOF'
 ## Classification
