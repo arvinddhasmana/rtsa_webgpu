@@ -55,37 +55,28 @@ jobs:
           #    loaded by the GitHub Copilot coding agent (issue-assignment mode).
           #    The agent persona and model are declared inline in the issue body.
           #
-          #    We use heredocs for all static text to avoid printf interpreting
+          #    We use printf with %s for all static text to avoid interpretation of
           #    strings starting with '-' (e.g. '---') as option flags.
           BODY_FILE=$(mktemp)
 
-          # Static header — heredoc is immune to special-character escaping issues.
-          cat > "$BODY_FILE" << 'STATIC_HEADER'
-<!-- Copilot coding agent directive -->
-**Model:** claude-sonnet-4-5 (Claude Sonnet 4.6)
-
-You are the **Greatest Ever Developer** AI Agent for the RTSA project,
-following the full agent profile at `.github/agents/greatest-ever-dev-forworkflow.agent.md`.
-Read and internalize that file before starting work.
-
-Please execute the task instructions found below.
-
-**MANDATORY administrative steps (do these as part of your PR):**
-STATIC_HEADER
+          # Static header — use printf with %s to avoid option parsing and YAML indent issues.
+          : > "$BODY_FILE"
+          printf '%s\n' '<!-- Copilot coding agent directive -->' >> "$BODY_FILE"
+          printf '%s\n\n' '**Model:** claude-sonnet-4-5 (Claude Sonnet 4.6)' >> "$BODY_FILE"
+          printf '%s\n' 'You are the **Greatest Ever Developer** AI Agent for the RTSA project,' >> "$BODY_FILE"
+          printf '%s\n' 'following the full agent profile at `.github/agents/greatest-ever-dev-forworkflow.agent.md`.' >> "$BODY_FILE"
+          printf '%s\n\n' 'Read and internalize that file before starting work.' >> "$BODY_FILE"
+          printf '%s\n\n' 'Please execute the task instructions found below.' >> "$BODY_FILE"
+          printf '%s\n' '**MANDATORY administrative steps (do these as part of your PR):**' >> "$BODY_FILE"
 
           # Dynamic line — use %s format specifiers so paths are never misinterpreted.
           printf '1. Move `%s` to `.github/instructions/done/%s` (do not rename).\n' "$FILE" "$FILENAME" >> "$BODY_FILE"
 
-          # Remaining static content — another heredoc avoids any '-' / special-char issues.
-          cat >> "$BODY_FILE" << 'STATIC_FOOTER'
-2. Add the label `ai-orchestrator` to your PR so the auto-merge workflow picks it up.
-3. Write `Resolves #<issue_number>` in the PR description to close this issue on merge.
-
----
-
-## Task Instructions
-
-STATIC_FOOTER
+          # Remaining static content — keep using %s so strings starting with '-' are safe.
+          printf '%s\n' '2. Add the label `ai-orchestrator` to your PR so the auto-merge workflow picks it up.' >> "$BODY_FILE"
+          printf '%s\n\n' '3. Write `Resolves #<issue_number>` in the PR description to close this issue on merge.' >> "$BODY_FILE"
+          printf '%s\n\n' '---' >> "$BODY_FILE"
+          printf '%s\n\n' '## Task Instructions' >> "$BODY_FILE"
 
           # Append the raw task file — cat never interprets content.
           cat "$FILE" >> "$BODY_FILE"
