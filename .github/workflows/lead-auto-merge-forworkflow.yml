@@ -32,4 +32,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         # Squash merge without --auto so it works regardless of branch-protection config.
-        run: gh pr merge --squash "${{ github.event.pull_request.html_url }}"
+        # --yes suppresses any interactive confirmation prompt in non-TTY CI environments.
+        run: gh pr merge --squash --yes "${{ github.event.pull_request.html_url }}"

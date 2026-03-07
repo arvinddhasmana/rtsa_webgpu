@@ -54,23 +54,41 @@ jobs:
           #    NOTE: .agent.md files are VS Code Copilot Chat constructs and are NOT
           #    loaded by the GitHub Copilot coding agent (issue-assignment mode).
           #    The agent persona and model are declared inline in the issue body.
-          AGENT_INSTRUCTIONS=$(cat .github/agents/greatest-ever-dev-forworkflow.agent.md)
+          #
+          #    We use heredocs for all static text to avoid printf interpreting
+          #    strings starting with '-' (e.g. '---') as option flags.
           BODY_FILE=$(mktemp)
-          {
-            printf '<!-- Copilot coding agent directive -->\n'
-            printf '**Model:** claude-sonnet-4-5 (Claude Sonnet 4.6)\n\n'
-            printf 'You are the **Greatest Ever Developer** AI Agent for the RTSA project,\n'
-            printf 'following the full agent profile at `.github/agents/greatest-ever-dev-forworkflow.agent.md`.\n'
-            printf 'Read and internalize that file before starting work.\n\n'
-            printf 'Please execute the task instructions found below.\n\n'
-            printf '**MANDATORY administrative steps (do these as part of your PR):**\n'
-            printf '1. Move `%s` to `.github/instructions/done/%s` (do not rename).\n' "$FILE" "$FILENAME"
-            printf '2. Add the label `ai-orchestrator` to your PR so the auto-merge workflow picks it up.\n'
-            printf '3. Write `Resolves #<issue_number>` in the PR description to close this issue on merge.\n\n'
-            printf '---\n\n'
-            printf '## Task Instructions\n\n'
-            cat "$FILE"
-          } > "$BODY_FILE"
+
+          # Static header — heredoc is immune to special-character escaping issues.
+          cat > "$BODY_FILE" << 'STATIC_HEADER'
+<!-- Copilot coding agent directive -->
+**Model:** claude-sonnet-4-5 (Claude Sonnet 4.6)
+
+You are the **Greatest Ever Developer** AI Agent for the RTSA project,
+following the full agent profile at `.github/agents/greatest-ever-dev-forworkflow.agent.md`.
+Read and internalize that file before starting work.
+
+Please execute the task instructions found below.
+
+**MANDATORY administrative steps (do these as part of your PR):**
+STATIC_HEADER
+
+          # Dynamic line — use %s format specifiers so paths are never misinterpreted.
+          printf '1. Move `%s` to `.github/instructions/done/%s` (do not rename).\n' "$FILE" "$FILENAME" >> "$BODY_FILE"
+
+          # Remaining static content — another heredoc avoids any '-' / special-char issues.
+          cat >> "$BODY_FILE" << 'STATIC_FOOTER'
+2. Add the label `ai-orchestrator` to your PR so the auto-merge workflow picks it up.
+3. Write `Resolves #<issue_number>` in the PR description to close this issue on merge.
+
+---
+
+## Task Instructions
+
+STATIC_FOOTER
+
+          # Append the raw task file — cat never interprets content.
+          cat "$FILE" >> "$BODY_FILE"
 
           # 4. Create the issue and assign to the GitHub Copilot coding agent.
           #    The --assignee "copilot" assignment is what triggers the coding agent.
