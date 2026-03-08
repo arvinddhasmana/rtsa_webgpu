@@ -14,3 +14,11 @@ export const [grpcConnected, setGrpcConnected] = createSignal(true);
 
 /** True while an initial connection attempt is in progress. */
 export const [connecting, setConnecting] = createSignal(true);
+
+/**
+ * Whether the gRPC alert stream is healthy.
+ * Set to false when a non-AbortError occurs in startAlertStream; the UI can
+ * observe this signal to show an "alerts stream error" indicator without
+ * relying on console logging in production.
+ */
+export const [alertStreamHealthy, setAlertStreamHealthy] = createSignal(true);

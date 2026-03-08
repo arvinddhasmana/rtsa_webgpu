@@ -398,3 +398,35 @@ if math.Abs(float64(latB-wantLat)) > 1e-5 {
 t.Errorf("trail_0 lat_b: want %v, got %v", wantLat, latB)
 }
 }
+
+// TestSerialize_AlertFlags verifies that alertFlags is derived from threat level:
+// Suspect (4) and Hostile (5) produce alertFlags = 1; all others produce 0.
+func TestSerialize_AlertFlags(t *testing.T) {
+tests := []struct {
+hc        commonv1.HostileClassification
+wantAlert uint32
+}{
+{commonv1.HostileClassification_HOSTILE_CLASSIFICATION_HOSTILE, 1}, // threat=5 → alert
+{commonv1.HostileClassification_HOSTILE_CLASSIFICATION_SUSPECT, 1}, // threat=4 → alert
+{commonv1.HostileClassification_HOSTILE_CLASSIFICATION_NEUTRAL, 0}, // threat=3 → no alert
+{commonv1.HostileClassification_HOSTILE_CLASSIFICATION_FRIENDLY, 0}, // threat=2 → no alert
+{commonv1.HostileClassification_HOSTILE_CLASSIFICATION_PENDING, 0},  // threat=1 → no alert
+{commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN, 0},  // threat=0 → no alert
+}
+
+s := flatbuf.NewSerializer()
+for _, tc := range tests {
+update := makeTrackUpdate("alert-test", 0, 0, 0, 0, 0,
+tc.hc, commonv1.EntityType_ENTITY_TYPE_AIR,
+commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED, nil,
+)
+rec, ok := s.Serialize(update)
+if !ok {
+t.Fatalf("Serialize returned false for hc %v", tc.hc)
+}
+got := readU32(rec, flatbuf.OffAlertFlags)
+if got != tc.wantAlert {
+t.Errorf("alert_flags hc=%v: want %d, got %d", tc.hc, tc.wantAlert, got)
+}
+}
+}

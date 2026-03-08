@@ -74,6 +74,15 @@ let activeSab: SharedArrayBuffer | null = null;
 let activeDataWorker = false;
 /** Stats postMessage throttle counter (reset every 60 frames ≈ 1 second). */
 let statsCounter = 0;
+/** Tracks consecutive renderFrame errors to detect a failed render pipeline. */
+let renderFrameErrorCount = 0;
+/** Number of consecutive renderFrame errors before posting a status:ready=false message. */
+const RENDER_ERROR_THRESHOLD = 5;
+
+/** Build a status message indicating the render worker has encountered an error. */
+function makeErrorStatus(error: string): StatusMessage {
+  return { type: "status", ready: false, error };
+}
 
 /**
  * Tear down existing GPU resources before re-initialisation.
@@ -81,6 +90,7 @@ let statsCounter = 0;
  */
 function teardown(): void {
   stopRenderLoop();
+  renderFrameErrorCount = 0;
   if (renderState) {
     renderState.frameTimer.destroy();
     destroyAtlasTextures(renderState.atlas);
@@ -112,10 +122,14 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   // Re-init on device loss (not destroyed)
   device.lost.then((info: GPUDeviceLostInfo) => {
     if (info.reason === "destroyed") return;
-    console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
+    if (import.meta.env.DEV) {
+      console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
+    }
     if (activeCanvas && activeSab) {
       init(activeCanvas, activeSab, activeDataWorker).catch((err: unknown) => {
-        console.error("[RenderWorker] Re-init failed:", err);
+        if (import.meta.env.DEV) {
+          console.error("[RenderWorker] Re-init failed:", err);
+        }
       });
     }
   });
@@ -160,10 +174,12 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   const status: StatusMessage = { type: "status", ready: true };
   self.postMessage(status);
 
-  console.log(
-    `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
-    `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
-  );
+  if (import.meta.env.DEV) {
+    console.log(
+      `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
+      `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
+    );
+  }
 }
 
 function startRenderLoop(): void {
@@ -191,8 +207,23 @@ function startRenderLoop(): void {
 
     try {
       renderFrame(renderState);
+      // Reset consecutive error counter on each successful frame.
+      renderFrameErrorCount = 0;
     } catch (err) {
-      console.error("[RenderWorker] renderFrame error:", err);
+      renderFrameErrorCount++;
+      if (import.meta.env.DEV) {
+        console.error("[RenderWorker] renderFrame error:", err);
+      }
+      // After repeated failures the render pipeline is likely broken.
+      // Stop the loop and notify the main thread so the failure is observable.
+      if (renderFrameErrorCount >= RENDER_ERROR_THRESHOLD) {
+        stopRenderLoop();
+        const errMsg = err instanceof Error ? err.message : String(err);
+        self.postMessage(makeErrorStatus(
+          `Render pipeline failed after ${RENDER_ERROR_THRESHOLD} consecutive errors: ${errMsg}`,
+        ));
+        return;
+      }
     }
 
     // R-010: Mark JS frame end (after GPU command submission inside renderFrame).
@@ -232,7 +263,9 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
   switch (msg.type) {
     case "init": {
       init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false).catch((err: unknown) => {
-        console.error("[RenderWorker] Init failed:", err);
+        if (import.meta.env.DEV) {
+          console.error("[RenderWorker] Init failed:", err);
+        }
         const status: StatusMessage = {
           type:  "status",
           ready: false,
@@ -277,7 +310,13 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
             self.postMessage(picked);
           })
           .catch((err: unknown) => {
-            console.error("[RenderWorker] Pick readback error:", err);
+            if (import.meta.env.DEV) {
+              console.error("[RenderWorker] Pick readback error:", err);
+            }
+            // Notify the main thread so the failure is observable in production.
+            self.postMessage(makeErrorStatus(
+              `Pick readback failed: ${err instanceof Error ? err.message : String(err)}`,
+            ));
           });
       }
       break;

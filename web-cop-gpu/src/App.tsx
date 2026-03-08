@@ -32,6 +32,7 @@ import {
 import { setWtConnected, setConnecting } from "./signals/connection";
 import { updateAlerts } from "./signals/alerts";
 import { role, dashboard } from "./signals/viewport";
+import { setOperatorId, operatorIdFromToken } from "./signals/auth";
 
 // Services
 import { fetchTrackDetail } from "./services/query";
@@ -228,6 +229,8 @@ export default function App() {
     // When VITE_WEBTRANSPORT_URL is undefined (local dev), the worker falls back to mock mode.
     const wtUrl = import.meta.env.VITE_WEBTRANSPORT_URL as string | undefined;
     const token = wtUrl ? await fetchAuthToken() : undefined;
+    // Decode operator identity from JWT claims; falls back to "anonymous".
+    setOperatorId(operatorIdFromToken(token));
     const dataInit: DataInitMessage = { type: "init", sab, url: wtUrl, token };
     dataWorker.postMessage(dataInit);
 
