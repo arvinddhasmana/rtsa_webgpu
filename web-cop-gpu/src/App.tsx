@@ -201,6 +201,7 @@ export default function App() {
         type: "init",
         canvas: offscreen,
         sab,
+        dataWorkerActive: true,
       };
       // Transfer OffscreenCanvas only — SAB is shared, not transferred
       renderWorker.postMessage(initMsg, [offscreen]);

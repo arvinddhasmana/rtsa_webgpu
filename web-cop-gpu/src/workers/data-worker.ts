@@ -22,6 +22,7 @@ const MAX_BATCH_SIZE = 9;                        // max records per datagram (9�
 const MAX_BACKOFF_MS = 30_000;
 const BASE_BACKOFF_MS = 1_000;
 const MOCK_INTERVAL_MS = 16; // ~60 Hz mock update rate
+const MOCK_BATCH_SIZE = 1_000; // records written per tick — fills 50k slots in ~800 ms
 const STATS_INTERVAL_MS = 1_000;
 
 // ── Message types ─────────────────────────────────────────────────────────────
@@ -189,10 +190,17 @@ function startMockUpdates(): void {
 
   mockIntervalId = setInterval(() => {
     if (!trackData || !sabHeader) return;
-    writeMockRecord(slotIndex % maxSlots);
-    slotIndex = (slotIndex + 1) % maxSlots;
-    Atomics.store(sabHeader, HEADER_OFFSET_ACTIVE_TRACK_COUNT,
-      Math.min(slotIndex, maxSlots));
+    const batchCount = Math.min(MOCK_BATCH_SIZE, maxSlots);
+    for (let i = 0; i < batchCount; i++) {
+      writeMockRecord(slotIndex);
+      slotIndex = (slotIndex + 1) % maxSlots;
+    }
+    const currentCount = Atomics.load(sabHeader, HEADER_OFFSET_ACTIVE_TRACK_COUNT);
+    Atomics.store(
+      sabHeader,
+      HEADER_OFFSET_ACTIVE_TRACK_COUNT,
+      Math.min(currentCount + batchCount, maxSlots),
+    );
   }, MOCK_INTERVAL_MS);
 
   postMessage({ type: "connection_status", connected: true, latency: 0 } satisfies StatusMessage);

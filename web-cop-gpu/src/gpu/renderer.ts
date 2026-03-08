@@ -70,7 +70,7 @@ export interface RenderState {
 export function renderFrame(state: RenderState): void {
   const { device, context, buffers, bindGroups, pipelines, pick, sab } = state;
 
-  const now = performance.now() | 0;
+  const now = Date.now() & 0xffffffff;
   state.lastFrameTime = now;
 
   // 1. Read active_track_count from SAB header (Atomics.load for safety)
