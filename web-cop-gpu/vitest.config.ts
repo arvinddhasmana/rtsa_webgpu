@@ -1,9 +1,16 @@
 // CLASSIFICATION: UNCLASSIFIED
 import { defineConfig } from "vitest/config";
 import solid from "vite-plugin-solid";
+import path from "path";
 
 export default defineConfig({
   plugins: [solid()],
+  resolve: {
+    alias: {
+      "@src": path.resolve(__dirname, "src"),
+      "@gen": path.resolve(__dirname, "../gen/ts"),
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,
@@ -12,7 +19,7 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json", "html"],
       include: ["src/**/*.ts", "src/**/*.tsx"],
-      exclude: ["src/workers/**", "src/**/*.d.ts"],
+      exclude: ["src/**/*.d.ts"],
     },
   },
 });

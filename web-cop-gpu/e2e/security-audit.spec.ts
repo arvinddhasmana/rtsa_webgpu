@@ -96,4 +96,75 @@ test.describe("Security Audit — ITSG-33 Controls", () => {
     });
     expect(sensitiveKeys).toHaveLength(0);
   });
+
+  test("no eval() or new Function() calls in the JavaScript bundle", async ({ page }) => {
+    let bundleContent = "";
+    page.on("response", async (response) => {
+      const url = response.url();
+      // Capture JS bundle files served from the app origin
+      if (url.includes(".js") && !url.includes("node_modules") && response.status() === 200) {
+        try {
+          bundleContent += await response.text();
+        } catch {
+          // Ignore responses that cannot be read as text
+        }
+      }
+    });
+
+    await gotoApp(page);
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    // eval() and new Function() allow arbitrary code execution and must never appear
+    // in production bundles. Vite strips eval in production builds.
+    expect(bundleContent).not.toContain("eval(");
+    expect(bundleContent).not.toContain("new Function(");
+  });
+
+  test("no hardcoded external http:// URLs in the JavaScript bundle", async ({ page }) => {
+    let bundleContent = "";
+    page.on("response", async (response) => {
+      const url = response.url();
+      if (url.includes(".js") && response.status() === 200) {
+        try {
+          bundleContent += await response.text();
+        } catch {
+          // Ignore non-text responses
+        }
+      }
+    });
+
+    await gotoApp(page);
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    // Extract all http:// occurrences — localhost is permitted for dev, but
+    // no hardcoded external service URLs are allowed.
+    const httpMatches = bundleContent.match(/http:\/\/(?!localhost)[^\s"'`,)]+/g) ?? [];
+    expect(
+      httpMatches,
+      `Found hardcoded external http:// URLs in bundle: ${httpMatches.join(", ")}`,
+    ).toHaveLength(0);
+  });
+
+  test("Wasm script tags include SRI integrity attribute when present", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
+
+    // If the page loads a Wasm wrapper script via a <script> or <link> tag, it
+    // must include an `integrity` attribute for SRI verification. If no such
+    // element exists, the test passes (Wasm may be loaded via dynamic import).
+    const wasmScriptsWithoutIntegrity = await page.evaluate(() => {
+      const scripts = Array.from(document.querySelectorAll("script[src], link[rel='modulepreload']"));
+      return scripts
+        .filter((el) => {
+          const src = el.getAttribute("src") ?? el.getAttribute("href") ?? "";
+          return src.includes("wasm") && !el.hasAttribute("integrity");
+        })
+        .map((el) => el.getAttribute("src") ?? el.getAttribute("href") ?? "");
+    });
+
+    expect(
+      wasmScriptsWithoutIntegrity,
+      `Wasm script(s) loaded without SRI integrity attribute: ${wasmScriptsWithoutIntegrity.join(", ")}`,
+    ).toHaveLength(0);
+  });
 });

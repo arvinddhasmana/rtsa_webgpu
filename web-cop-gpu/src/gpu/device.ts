@@ -33,12 +33,10 @@ export async function initGPU(canvas: OffscreenCanvas): Promise<GPUContext> {
     },
   });
 
-  // Handle device loss — log and schedule re-init
-  device.lost.then((info) => {
-    if (info.reason === "destroyed") return; // intentional teardown
-    console.error(`[GPU] Device lost: ${info.reason} — ${info.message}`);
-    // Caller is responsible for re-initialising via the Render Worker
-  });
+  // NOTE: device.lost handling is intentionally NOT registered here.
+  // The Render Worker's init() function is the sole registrant of the device.lost
+  // handler to prevent duplicate listeners accumulating across re-init cycles.
+  // See render-worker.ts init() for the handler registration.
 
   const context = canvas.getContext("webgpu");
   if (!context) {
