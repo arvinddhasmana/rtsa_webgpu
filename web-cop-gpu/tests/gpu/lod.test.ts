@@ -64,4 +64,15 @@ describe("computeLod", () => {
     expect(LOD_LEVELS.FULL).toBeGreaterThan(LOD_LEVELS.MEDIUM);
     expect(LOD_LEVELS.MEDIUM).toBeGreaterThan(LOD_LEVELS.MINIMAL);
   });
+
+  it("maxInstances is always ≤ trackCount across all LOD levels", () => {
+    const trackCounts = [0, 1, 5_000, 10_000, 20_000, 50_000];
+    const scales = [0.001, 0.01, 0.1, 0.5, 1.0, 2.0];
+    for (const tc of trackCounts) {
+      for (const s of scales) {
+        const flags = computeLod(s, tc);
+        expect(flags.maxInstances).toBeLessThanOrEqual(tc);
+      }
+    }
+  });
 });

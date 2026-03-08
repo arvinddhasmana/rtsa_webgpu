@@ -23,6 +23,8 @@ import { AtlasTextures } from "./atlas";
 import { renderBackground } from "./map-tiles";
 import { writeUniforms, makeViewProjection } from "./uniforms";
 import { TRACK_DATA_OFFSET, RECORD_SIZE } from "../services/sab";
+import { computeLod } from "./lod";
+import { FrameTimer } from "./frame-timer";
 
 /** Pre-allocated draw args reset data — zero per-frame heap alloc.
  *  vertex_count=4 for quad-strip icons, halos, pick; instance_count reset to 0 before culling. */
@@ -57,6 +59,9 @@ export interface RenderState {
 
   /** Frame timing */
   lastFrameTime: number;
+
+  /** Frame timer for GPU timestamp queries and JS wall-clock measurement. */
+  frameTimer: FrameTimer;
 }
 
 /**
@@ -82,6 +87,10 @@ export function renderFrame(state: RenderState): void {
   state.trackCount = trackCount;
 
   if (trackCount === 0) return; // Nothing to render
+
+  // Compute LOD flags for this frame based on camera scale and track count.
+  // Must happen before render pass dispatch so conditional passes are skipped correctly.
+  const lod = computeLod(state.camera.scale, trackCount);
 
   // 2. Upload track data from SAB to GPU storage buffer (one writeBuffer per frame)
   // SharedArrayBuffer is accepted by writeBuffer per the WebGPU spec;
@@ -149,7 +158,7 @@ export function renderFrame(state: RenderState): void {
   renderBackground(encoder, colorView);
 
   // 6. Render: trail lines (loadOp: load — composites on top of background)
-  {
+  if (lod.renderTrails) {
     const pass = encoder.beginRenderPass({
       label: "trail-pass",
       colorAttachments: [{
@@ -180,13 +189,19 @@ export function renderFrame(state: RenderState): void {
     pass.setBindGroup(0, bindGroups.trackIcons.g0);
     pass.setBindGroup(1, bindGroups.trackIcons.g1);
     pass.setBindGroup(2, bindGroups.trackIcons.g2);
-    // 4 verts per instance, use indirect draw args from culling pass
-    pass.drawIndirect(buffers.drawArgs, 0);
+    if (lod.level === "full") {
+      // At full LOD, use indirect draw so the GPU-computed culled count is respected.
+      pass.drawIndirect(buffers.drawArgs, 0);
+    } else {
+      // At medium/minimal LOD, cap instance count to the LOD budget (20k or 10k).
+      // The culling pass still populates visible_indices; we cap how many are drawn.
+      pass.draw(4, lod.maxInstances, 0, 0);
+    }
     pass.end();
   }
 
   // 8. Render: alert halos
-  {
+  if (lod.renderHalos) {
     const pass = encoder.beginRenderPass({
       label: "halos-pass",
       colorAttachments: [{
@@ -203,7 +218,7 @@ export function renderFrame(state: RenderState): void {
   }
 
   // 9. Render: SDF labels
-  {
+  if (lod.renderLabels) {
     const pass = encoder.beginRenderPass({
       label: "labels-pass",
       colorAttachments: [{
@@ -241,5 +256,6 @@ export function renderFrame(state: RenderState): void {
   }
 
   // 11. Submit all commands and present
+  state.frameTimer.resolveTimestamps(encoder);
   device.queue.submit([encoder.finish()]);
 }
