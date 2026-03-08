@@ -92,7 +92,7 @@ describe("Data Worker mock mode", () => {
     new globalThis.WebTransport(transportUrl);
 
     expect(WebTransportMock).toHaveBeenCalledOnce();
-    const calledWith: string = WebTransportMock.mock.calls[0]![0] as string;
+    const calledWith = (WebTransportMock.mock.calls[0] as [string] | undefined)?.[0];
     expect(calledWith).toContain("?token=test.jwt.token");
     expect(calledWith).toContain("https://rtsa.mil.ca:4443/wt");
   });
@@ -104,7 +104,7 @@ describe("Data Worker mock mode", () => {
     new globalThis.WebTransport(transportUrl);
 
     expect(WebTransportMock).toHaveBeenCalledOnce();
-    const calledWith: string = WebTransportMock.mock.calls[0]![0] as string;
+    const calledWith = (WebTransportMock.mock.calls[0] as [string] | undefined)?.[0];
     expect(calledWith).toBe("https://rtsa.mil.ca:4443/wt");
     expect(calledWith).not.toContain("token=");
   });

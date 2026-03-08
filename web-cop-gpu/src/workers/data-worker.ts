@@ -296,8 +296,8 @@ export function buildTransportUrl(url: string, token: string | undefined): strin
 function getJwtExpiryMs(token: string): number {
   try {
     const parts = token.split(".");
-    if (parts.length !== 3) return -1;
-    const payload = JSON.parse(atob(parts[1]!)) as { exp?: number };
+    if (parts.length !== 3 || !parts[1]) return -1;
+    const payload = JSON.parse(atob(parts[1])) as { exp?: number };
     if (typeof payload.exp !== "number") return -1;
     return payload.exp * 1000;
   } catch {
@@ -336,15 +336,16 @@ function scheduleTokenExpiryNotification(token: string): void {
  *
  * Reference: webtransport_guidelines.md §6.3
  */
-async function connectWithRetry(url: string): Promise<void> {
+async function connectWithRetry(initialUrl: string): Promise<void> {
   // TODO(R-017): After N consecutive WebTransport failures, fall back to
   // gRPC-Web server-streaming for the hot path (required for enterprise proxy
   // environments). See v4 implementation review R-017 for specification.
   let attempt = 0;
+  let transportUrl = initialUrl;
 
   while (true) {
     try {
-      await connectWebTransport(url);
+      await connectWebTransport(transportUrl);
       // Clean connection close — reset attempt counter
       attempt = 0;
     } catch (_err) {
@@ -353,8 +354,8 @@ async function connectWithRetry(url: string): Promise<void> {
       postMessage({ type: "connection_status", connected: false, latency: -1 } satisfies StatusMessage);
       await sleep(delay);
     }
-    // Use the latest URL (may have changed due to token refresh)
-    if (currentUrl) url = buildTransportUrl(currentUrl, currentToken);
+    // Rebuild the URL after each attempt to pick up any token refresh.
+    if (currentUrl) transportUrl = buildTransportUrl(currentUrl, currentToken);
   }
 }
 
