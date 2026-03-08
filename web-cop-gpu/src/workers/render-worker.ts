@@ -20,6 +20,8 @@ import { createPickResources, destroyPickResources, readPickPixel } from "../gpu
 import { createAtlasTextures, destroyAtlasTextures } from "../gpu/atlas";
 import { renderFrame, type RenderState } from "../gpu/renderer";
 import { initMockTracks, writeMockTracksToSAB, tickMockTracks, MOCK_TRACK_COUNT } from "../gpu/mock-data";
+import { FrameTimer } from "../gpu/frame-timer";
+import type { RenderStatsMessage } from "./shared-protocol";
 
 /** Messages accepted by the Render Worker */
 interface InitMessage {
@@ -70,6 +72,8 @@ let activeCanvas: OffscreenCanvas | null = null;
 let activeSab: SharedArrayBuffer | null = null;
 /** True when the Data Worker is the sole SAB writer — Render Worker skips mock-data. */
 let activeDataWorker = false;
+/** Stats postMessage throttle counter (reset every 60 frames ≈ 1 second). */
+let statsCounter = 0;
 
 /**
  * Tear down existing GPU resources before re-initialisation.
@@ -78,6 +82,7 @@ let activeDataWorker = false;
 function teardown(): void {
   stopRenderLoop();
   if (renderState) {
+    renderState.frameTimer.destroy();
     destroyAtlasTextures(renderState.atlas);
     destroyPickResources(renderState.pick);
     destroyBuffers(renderState.buffers);
@@ -98,6 +103,11 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   teardown();
 
   const { device, context, format } = await initGPU(offscreen);
+
+  // Instantiate FrameTimer once per device (zero per-frame allocations).
+  // Enables GPU timestamp queries when the device supports the feature;
+  // gracefully falls back to JS wall-clock timing when unsupported.
+  const frameTimer = new FrameTimer(device);
 
   // Re-init on device loss (not destroyed)
   device.lost.then((info: GPUDeviceLostInfo) => {
@@ -142,6 +152,7 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
       scale:     2.0,
     },
     lastFrameTime: performance.now(),
+    frameTimer,
   };
 
   startRenderLoop();
@@ -161,6 +172,9 @@ function startRenderLoop(): void {
   renderIntervalId = setInterval(() => {
     if (!renderState) return;
 
+    // R-010: Mark JS frame start for wall-clock measurement.
+    renderState.frameTimer.markJsStart();
+
     const now = performance.now();
     const dt  = now - lastTickTime;
     lastTickTime = now;
@@ -179,6 +193,28 @@ function startRenderLoop(): void {
       renderFrame(renderState);
     } catch (err) {
       console.error("[RenderWorker] renderFrame error:", err);
+    }
+
+    // R-010: Mark JS frame end (after GPU command submission inside renderFrame).
+    const jsMs = renderState.frameTimer.markJsEnd();
+
+    // R-010: Async GPU timestamp readback — non-blocking, updates smoothed averages.
+    // No new allocations here; FrameTimer uses pre-allocated buffers internally.
+    void renderState.frameTimer.readbackAsync(jsMs);
+
+    // Throttle stats postMessage to once per second (~60 frames).
+    statsCounter++;
+    if (statsCounter >= 60) {
+      statsCounter = 0;
+      // Use actual frame-to-frame interval for fps — more accurate than JS work duration.
+      const fps = dt > 0 ? Math.round(1000 / dt) : 0;
+      const statsMsg: RenderStatsMessage = {
+        type: "stats",
+        fps,
+        trackCount: renderState.trackCount,
+        visibleCount: renderState.trackCount,
+      };
+      self.postMessage(statsMsg);
     }
   }, RENDER_INTERVAL_MS);
 }
@@ -256,6 +292,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 self.addEventListener("close", () => {
   stopRenderLoop();
   if (renderState) {
+    renderState.frameTimer.destroy();
     destroyAtlasTextures(renderState.atlas);
     destroyPickResources(renderState.pick);
     destroyBuffers(renderState.buffers);

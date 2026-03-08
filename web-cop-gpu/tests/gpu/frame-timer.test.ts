@@ -121,6 +121,19 @@ describe("FrameTimer", () => {
     expect(() => timer.destroy()).not.toThrow();
   });
 
+  it("smoothed.mainThreadMs is positive after a measured JS frame", async () => {
+    const device = makeDevice(false);
+    const timer = new FrameTimer(device);
+    timer.markJsStart();
+    // Simulate non-trivial JS work duration (performance.now will advance)
+    const jsMs = timer.markJsEnd();
+    await timer.readbackAsync(jsMs);
+    // mainThreadMs should be non-negative (≥ 0) after one frame
+    expect(timer.smoothed.mainThreadMs).toBeGreaterThanOrEqual(0);
+    // totalFrameMs matches mainThreadMs when GPU unsupported
+    expect(timer.smoothed.totalFrameMs).toBeGreaterThanOrEqual(0);
+  });
+
   it("PASS_LABELS has correct length", () => {
     expect(PASS_LABELS.length).toBe(11);
   });

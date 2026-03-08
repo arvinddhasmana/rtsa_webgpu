@@ -101,7 +101,8 @@ export default function App() {
       }
 
       case "stats":
-        // The render worker currently doesn't send stats yet; handled via local FPS counter
+        // Use measured FPS from the Render Worker's FrameTimer when available.
+        if (msg.fps > 0) setFps(msg.fps);
         setTrackCount(msg.trackCount);
         setVisibleCount(msg.visibleCount);
         break;
