@@ -42,6 +42,11 @@ export interface RenderInitMessage {
   type: "init";
   canvas: OffscreenCanvas;
   sab: SharedArrayBuffer;
+  /**
+   * When true, the Data Worker is the sole SAB writer for mock/live data.
+   * The Render Worker must NOT write mock data to the SAB when this flag is set.
+   */
+  dataWorkerActive?: boolean;
 }
 
 export interface RenderResizeMessage {

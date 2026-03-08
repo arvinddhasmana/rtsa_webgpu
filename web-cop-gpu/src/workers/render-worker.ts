@@ -26,6 +26,11 @@ interface InitMessage {
   type: "init";
   canvas: OffscreenCanvas;
   sab: SharedArrayBuffer;
+  /**
+   * When true, the Data Worker is the sole SAB writer.
+   * The Render Worker must NOT call mock-data functions in this mode.
+   */
+  dataWorkerActive?: boolean;
 }
 
 interface ResizeMessage {
@@ -63,6 +68,8 @@ let renderIntervalId: ReturnType<typeof setInterval> | null = null;
 let lastTickTime = performance.now();
 let activeCanvas: OffscreenCanvas | null = null;
 let activeSab: SharedArrayBuffer | null = null;
+/** True when the Data Worker is the sole SAB writer — Render Worker skips mock-data. */
+let activeDataWorker = false;
 
 /**
  * Tear down existing GPU resources before re-initialisation.
@@ -83,9 +90,10 @@ function teardown(): void {
  * Initialise the full WebGPU rendering stack.
  * On device loss this is called again with the same canvas and SAB.
  */
-async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer): Promise<void> {
+async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataWorkerActive: boolean): Promise<void> {
   activeCanvas = offscreen;
   activeSab    = sabBuf;
+  activeDataWorker = dataWorkerActive;
 
   teardown();
 
@@ -96,7 +104,7 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer): Prom
     if (info.reason === "destroyed") return;
     console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
     if (activeCanvas && activeSab) {
-      init(activeCanvas, activeSab).catch((err: unknown) => {
+      init(activeCanvas, activeSab, activeDataWorker).catch((err: unknown) => {
         console.error("[RenderWorker] Re-init failed:", err);
       });
     }
@@ -109,9 +117,12 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer): Prom
   const pipelines  = createPipelines(device, format);
   const bindGroups = createBindGroups(device, pipelines, buffers, atlas, pick);
 
-  // Seed SAB with mock data (Phase 1 — until real WebTransport data arrives)
-  initMockTracks(MOCK_TRACK_COUNT);
-  writeMockTracksToSAB(sabBuf, MOCK_TRACK_COUNT);
+  // Seed SAB with mock data only when no Data Worker is providing data.
+  // When activeDataWorker is true, the Data Worker is the sole SAB writer.
+  if (!activeDataWorker) {
+    initMockTracks(MOCK_TRACK_COUNT);
+    writeMockTracksToSAB(sabBuf, MOCK_TRACK_COUNT);
+  }
 
   renderState = {
     device,
@@ -154,10 +165,14 @@ function startRenderLoop(): void {
     const dt  = now - lastTickTime;
     lastTickTime = now;
 
-    // Animate mock tracks and re-write to SAB
-    tickMockTracks(dt);
-    if (activeSab) {
-      writeMockTracksToSAB(activeSab, MOCK_TRACK_COUNT);
+    // Animate mock tracks only when Render Worker is the sole SAB writer.
+    // When the Data Worker is active it is the sole writer; the Render Worker
+    // must only read from the SAB.
+    if (!activeDataWorker) {
+      tickMockTracks(dt);
+      if (activeSab) {
+        writeMockTracksToSAB(activeSab, MOCK_TRACK_COUNT);
+      }
     }
 
     try {
@@ -180,7 +195,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 
   switch (msg.type) {
     case "init": {
-      init(msg.canvas, msg.sab).catch((err: unknown) => {
+      init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false).catch((err: unknown) => {
         console.error("[RenderWorker] Init failed:", err);
         const status: StatusMessage = {
           type:  "status",

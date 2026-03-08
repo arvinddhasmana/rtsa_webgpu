@@ -30,6 +30,11 @@ export interface MockTrackState {
   threatLevel: number;
   alertFlags: number;
   iconIndex: number;
+  /**
+   * Trail ring buffer — 6 positions (newest first) forming 5 trail segments.
+   * trail[0] = current position, trail[5] = oldest position.
+   */
+  trail: Array<{ lon: number; lat: number }>;
 }
 
 /** In-memory state for each mock track (used to animate them each frame). */
@@ -42,16 +47,24 @@ let mockTracks: MockTrackState[] = [];
 export function initMockTracks(count: number = MOCK_TRACK_COUNT): void {
   mockTracks = [];
   for (let i = 0; i < count; i++) {
+    const lon = LON_MIN + Math.random() * (LON_MAX - LON_MIN);
+    const lat = LAT_MIN + Math.random() * (LAT_MAX - LAT_MIN);
+    // Initialise all trail positions to the starting point
+    const trail: Array<{ lon: number; lat: number }> = [];
+    for (let ti = 0; ti < 6; ti++) {
+      trail.push({ lon, lat });
+    }
     mockTracks.push({
       trackIdHash: i + 1, // 0 reserved for "no track" in pick buffer
-      lon:         LON_MIN + Math.random() * (LON_MAX - LON_MIN),
-      lat:         LAT_MIN + Math.random() * (LAT_MAX - LAT_MIN),
+      lon,
+      lat,
       course:      Math.random() * TWO_PI,
       speed:       100 + Math.random() * 500, // 100–600 m/s
       altitude:    1000 + Math.random() * 10_000,
       threatLevel: Math.floor(Math.random() * 6),      // 0–5
       alertFlags:  Math.random() < 0.05 ? 1 : 0,      // ~5% have alerts
       iconIndex:   Math.floor(Math.random() * 16),     // 16 icon types
+      trail,
     });
   }
 }
@@ -94,17 +107,15 @@ export function writeMockTracksToSAB(
     trackData.setUint32 (base + 0x2c, now >>> 0,     true); // update_epoch_ms
 
     // Trail ring (5 × vec4<f32> — lon_a, lat_a, lon_b, lat_b per segment)
+    // trail[0] = newest position, trail[5] = oldest position
     for (let s = 0; s < 5; s++) {
       const offset = base + 0x30 + s * 16;
-      // Mock trail: each segment slightly offset backwards
-      const lonA = t.lon - Math.sin(t.course) * (s + 1) * 0.001;
-      const latA = t.lat - Math.cos(t.course) * (s + 1) * 0.001;
-      const lonB = t.lon - Math.sin(t.course) * s * 0.001;
-      const latB = t.lat - Math.cos(t.course) * s * 0.001;
-      trackData.setFloat32(offset +  0, lonA, true);
-      trackData.setFloat32(offset +  4, latA, true);
-      trackData.setFloat32(offset +  8, lonB, true);
-      trackData.setFloat32(offset + 12, latB, true);
+      const pNewer = t.trail[s]!;
+      const pOlder = t.trail[s + 1]!;
+      trackData.setFloat32(offset +  0, pOlder.lon, true);
+      trackData.setFloat32(offset +  4, pOlder.lat, true);
+      trackData.setFloat32(offset +  8, pNewer.lon, true);
+      trackData.setFloat32(offset + 12, pNewer.lat, true);
     }
   }
 }
@@ -112,6 +123,8 @@ export function writeMockTracksToSAB(
 /**
  * Advance all mock tracks by one tick (animate position along course).
  * dt_ms is the elapsed time in milliseconds since the last tick.
+ * After updating each track's position, shifts the trail ring buffer by one
+ * entry and inserts the new position as the newest trail point.
  */
 export function tickMockTracks(dt_ms: number): void {
   const dt_s = dt_ms / 1000;
@@ -130,5 +143,11 @@ export function tickMockTracks(dt_ms: number): void {
     // Bounce latitude at ±π/2
     if (t.lat >  Math.PI / 2) { t.lat =  Math.PI - t.lat; t.course = TWO_PI - t.course; }
     if (t.lat < -Math.PI / 2) { t.lat = -Math.PI - t.lat; t.course = TWO_PI - t.course; }
+
+    // Shift trail ring buffer: oldest entry drops off, current position is newest
+    for (let ti = 5; ti > 0; ti--) {
+      t.trail[ti] = t.trail[ti - 1]!;
+    }
+    t.trail[0] = { lon: t.lon, lat: t.lat };
   }
 }
