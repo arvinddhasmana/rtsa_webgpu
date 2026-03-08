@@ -103,14 +103,43 @@ export interface DataStatsMessage {
 export type DataToMainMessage =
   | AlertsUpdatedMessage
   | DataConnectionStatusMessage
-  | DataStatsMessage;
+  | DataStatsMessage
+  | TokenExpiringMessage;
 
 // ── Main Thread → Data Worker ──────────────────────────────────────────────────
 
 export interface DataInitMessage {
   type: "init";
   sab: SharedArrayBuffer;
+  /** WebTransport server URL. Undefined in dev → worker falls back to mock mode. */
   url?: string;
+  /**
+   * Short-lived JWT for WebTransport authentication.
+   * Appended as `?token=<jwt>` to the WebTransport URL.
+   * NEVER log this value. (SDLC Rule 5)
+   */
+  token?: string;
 }
 
-export type MainToDataMessage = DataInitMessage;
+/**
+ * Sent by the main thread when a refreshed JWT is available.
+ * The Data Worker reconnects to WebTransport with the new token.
+ * NEVER log the token value. (SDLC Rule 5)
+ */
+export interface TokenRefreshMessage {
+  type: "token-refresh";
+  token: string;
+}
+
+export type MainToDataMessage = DataInitMessage | TokenRefreshMessage;
+
+// ── Data Worker → Main Thread (additional) ────────────────────────────────────
+
+/**
+ * Sent by the Data Worker when the current JWT is approaching expiry
+ * (60 seconds before the token expires). The main thread should fetch a
+ * new token and send a TokenRefreshMessage back.
+ */
+export interface TokenExpiringMessage {
+  type: "token-expiring";
+}

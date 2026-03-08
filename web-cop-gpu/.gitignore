@@ -6,6 +6,9 @@ node_modules/
 wasm-decoder/target/
 wasm-decoder/pkg/
 
+# Wasm output copied to public/ by prebuild script
+public/wasm/
+
 # Coverage reports
 coverage/
 

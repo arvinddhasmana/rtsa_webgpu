@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "prebuild": "mkdir -p public/wasm && cp -r wasm-decoder/pkg/. public/wasm/ || echo 'wasm-decoder/pkg/ not found — run wasm-pack build first'",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
