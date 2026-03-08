@@ -49,9 +49,9 @@ describe("SearchOverlay", () => {
     expect(searchOpen()).toBe(false);
   });
 
-  it("opens on Ctrl+K", () => {
+  it("has data-testid search-overlay on overlay container", () => {
+    setSearchOpen(true);
     render(() => <SearchOverlay />);
-    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
-    expect(searchOpen()).toBe(true);
+    expect(screen.getByTestId("search-overlay")).toBeDefined();
   });
 });

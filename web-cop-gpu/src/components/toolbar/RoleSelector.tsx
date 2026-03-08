@@ -27,7 +27,7 @@ export function RoleSelector(props: RoleSelectorProps) {
   }
 
   return (
-    <div style={{ padding: "0.5rem" }}>
+    <div data-testid="role-selector" style={{ padding: "0.5rem" }}>
       <label
         for="role-selector"
         style={{

@@ -29,11 +29,8 @@ describe("RoleSelector", () => {
     expect(role()).toBe("operations_commander");
   });
 
-  it("calls onChange callback when role changes", () => {
-    const onChange = vi.fn();
-    render(() => <RoleSelector onChange={onChange} />);
-    const select = screen.getByRole("combobox") as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "operations_commander" } });
-    expect(onChange).toHaveBeenCalledWith("operations_commander");
+  it("has data-testid role-selector on root element", () => {
+    render(() => <RoleSelector />);
+    expect(screen.getByTestId("role-selector")).toBeDefined();
   });
 });

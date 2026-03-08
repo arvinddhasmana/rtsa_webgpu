@@ -16,4 +16,9 @@ describe("ClassificationBanner", () => {
     const banner = screen.getByRole("banner");
     expect(banner.getAttribute("aria-label")).toContain("UNCLASSIFIED");
   });
+
+  it("has data-testid classification-banner-top", () => {
+    render(() => <ClassificationBanner />);
+    expect(screen.getByTestId("classification-banner-top")).toBeDefined();
+  });
 });

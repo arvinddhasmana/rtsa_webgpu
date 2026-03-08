@@ -57,4 +57,9 @@ describe("ConnectionIndicator", () => {
     render(() => <ConnectionIndicator />);
     expect(screen.getByText("Latency: —")).toBeDefined();
   });
+
+  it("has data-testid connection-indicator on root element", () => {
+    render(() => <ConnectionIndicator />);
+    expect(screen.getByTestId("connection-indicator")).toBeDefined();
+  });
 });

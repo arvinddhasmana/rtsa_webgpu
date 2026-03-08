@@ -77,6 +77,7 @@ export function FeedbackForm() {
       >
         {/* Modal */}
         <div
+          data-testid="feedback-form"
           style={{
             background: "#0d1424",
             border: "1px solid #2d3f56",

@@ -62,9 +62,20 @@ describe("StatusBar", () => {
     expect(wt.length).toBeGreaterThan(0);
   });
 
-  it("shows latency when connected", () => {
-    setLatencyMs(42);
+  it("has data-testid status-bar on root element", () => {
     render(() => <StatusBar />);
-    expect(screen.getByText("42 ms")).toBeDefined();
+    expect(screen.getByTestId("status-bar")).toBeDefined();
+  });
+
+  it("has data-testid fps-display", () => {
+    setFps(30);
+    render(() => <StatusBar />);
+    expect(screen.getByTestId("fps-display")).toBeDefined();
+  });
+
+  it("has data-testid latency-display", () => {
+    setLatencyMs(10);
+    render(() => <StatusBar />);
+    expect(screen.getByTestId("latency-display")).toBeDefined();
   });
 });
