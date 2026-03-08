@@ -27,6 +27,14 @@ const MOCK_INTERVAL_MS = 16; // ~60 Hz mock update rate
 const MOCK_BATCH_SIZE = 1_000; // records written per tick — fills 50k slots in ~800 ms
 const STATS_INTERVAL_MS = 1_000;
 
+import {
+  buildTransportUrl,
+  getJwtExpiryMs,
+  writeRecordToSlot as writeRecordToSlotLogic,
+  writeMockRecord as writeMockRecordLogic,
+  type WasmDecoder,
+} from "./data-worker-logic";
+
 // ── Message types ─────────────────────────────────────────────────────────────
 
 interface InitMessage {
@@ -100,14 +108,7 @@ let decodeErrors = 0;
 
 // ── Wasm decoder (optional — fallback to direct copy if not loaded) ───────────
 
-interface WasmDecoder {
-  write_slot_from_datagram(
-    sab_slice: Uint8Array,
-    slot_index: number,
-    max_slots: number,
-    datagram: Uint8Array,
-  ): boolean;
-}
+// WasmDecoder interface is imported from data-worker-logic.ts.
 
 let wasmDecoder: WasmDecoder | null = null;
 
@@ -139,20 +140,11 @@ async function loadWasmDecoder(): Promise<void> {
 
 /**
  * Decode a single 128-byte record into the SAB at the given slot.
- * Uses the Rust Wasm decoder if available, otherwise falls back to direct copy.
+ * Delegates to the pure writeRecordToSlot logic in data-worker-logic.ts.
  */
 function writeRecordToSlot(record: Uint8Array, slot: number): boolean {
-  if (!trackData || slot >= maxSlots) return false;
-  if (record.byteLength < RECORD_SIZE) return false;
-
-  if (wasmDecoder) {
-    return wasmDecoder.write_slot_from_datagram(trackData, slot, maxSlots, record);
-  }
-
-  // Fallback: direct copy at documented SAB offset
-  const offset = slot * RECORD_SIZE;
-  trackData.set(record.subarray(0, RECORD_SIZE), offset);
-  return true;
+  if (!trackData) return false;
+  return writeRecordToSlotLogic(trackData, slot, maxSlots, record, wasmDecoder);
 }
 
 /**
@@ -197,30 +189,11 @@ function processDatagram(datagram: Uint8Array): void {
 
 /**
  * Write a mock 128-byte track record into the SharedArrayBuffer.
- * Used for testing the data flow before a real WebTransport server is available.
- *
- * Field offsets match wasm-decoder/src/lib.rs offsets module.
+ * Delegates to the pure writeMockRecord logic in data-worker-logic.ts.
  */
 function writeMockRecord(slot: number): void {
-  if (!trackData || slot >= maxSlots) return;
-
-  const offset = slot * RECORD_SIZE;
-  const view = new DataView(trackData.buffer, trackData.byteOffset + offset, RECORD_SIZE);
-
-  const lon = (Math.random() * 2 - 1) * Math.PI;
-  const lat = (Math.random() * 2 - 1) * (Math.PI / 2);
-  view.setFloat32(0x00, lon, true);                           // longitude
-  view.setFloat32(0x04, lat, true);                           // latitude
-  view.setFloat32(0x08, 0, true);                             // course
-  view.setFloat32(0x0c, 10, true);                            // speed m/s
-  view.setFloat32(0x10, 1000, true);                          // altitude meters
-  view.setUint32(0x14, slot, true);                           // track_id_hash
-  view.setUint32(0x18, 1, true);                              // source_bitmap
-  view.setUint32(0x1c, 1, true);                              // classification_level
-  view.setUint32(0x20, 0, true);                              // threat_level = Unknown
-  view.setUint32(0x24, 0, true);                              // icon_index
-  view.setUint32(0x28, 0, true);                              // alert_flags
-  view.setUint32(0x2c, Date.now() & 0xffffffff, true);        // update_epoch_ms
+  if (!trackData) return;
+  writeMockRecordLogic(trackData, slot, maxSlots);
 }
 
 function startMockUpdates(): void {
@@ -277,33 +250,9 @@ function stopStatsReporting(): void {
 
 // ── WebTransport connection ───────────────────────────────────────────────────
 
-/**
- * Build the authenticated WebTransport URL by appending the JWT as a query
- * parameter. The Go server validates the `token` query param per auth.go §7.1.
- *
- * IMPORTANT: Do not log the constructed URL — it contains the token. (SDLC Rule 5)
- */
-export function buildTransportUrl(url: string, token: string | undefined): string {
-  if (!token) return url;
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}token=${token}`;
-}
-
-/**
- * Decode the `exp` claim from a JWT payload without verifying the signature.
- * Returns the expiry as a Unix timestamp in milliseconds, or -1 if unparseable.
- */
-function getJwtExpiryMs(token: string): number {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3 || !parts[1]) return -1;
-    const payload = JSON.parse(atob(parts[1])) as { exp?: number };
-    if (typeof payload.exp !== "number") return -1;
-    return payload.exp * 1000;
-  } catch {
-    return -1;
-  }
-}
+// buildTransportUrl and getJwtExpiryMs are imported from data-worker-logic.ts.
+// buildTransportUrl is re-exported for backward compatibility with existing tests.
+export { buildTransportUrl } from "./data-worker-logic";
 
 /**
  * Schedule a `token-expiring` notification to the main thread 60 seconds

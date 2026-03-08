@@ -21,6 +21,14 @@ import { createAtlasTextures, destroyAtlasTextures } from "../gpu/atlas";
 import { renderFrame, type RenderState } from "../gpu/renderer";
 import { initMockTracks, writeMockTracksToSAB, tickMockTracks, MOCK_TRACK_COUNT } from "../gpu/mock-data";
 import { FrameTimer } from "../gpu/frame-timer";
+import {
+  makeErrorStatus,
+  computeFps,
+  shouldFlushStats,
+  RENDER_INTERVAL_MS,
+  RENDER_ERROR_THRESHOLD,
+  type RenderStatusMessage,
+} from "../gpu/render-logic";
 import type { RenderStatsMessage } from "./shared-protocol";
 
 /** Messages accepted by the Render Worker */
@@ -55,15 +63,13 @@ interface PickedMessage {
   y: number;
 }
 
-interface StatusMessage {
-  type: "status";
-  ready: boolean;
-  error?: string;
-}
+// StatusMessage is re-exported from render-logic as RenderStatusMessage.
+// Use the imported type alias for all status message creation.
+type StatusMessage = RenderStatusMessage;
 
 type InboundMessage = InitMessage | ResizeMessage | SelectTrackMessage;
 
-const RENDER_INTERVAL_MS = 16; // ~60 FPS
+// RENDER_INTERVAL_MS and RENDER_ERROR_THRESHOLD are imported from render-logic.ts.
 
 let renderState: RenderState | null = null;
 let renderIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -76,13 +82,8 @@ let activeDataWorker = false;
 let statsCounter = 0;
 /** Tracks consecutive renderFrame errors to detect a failed render pipeline. */
 let renderFrameErrorCount = 0;
-/** Number of consecutive renderFrame errors before posting a status:ready=false message. */
-const RENDER_ERROR_THRESHOLD = 5;
 
-/** Build a status message indicating the render worker has encountered an error. */
-function makeErrorStatus(error: string): StatusMessage {
-  return { type: "status", ready: false, error };
-}
+// makeErrorStatus is imported from render-logic.ts.
 
 /**
  * Tear down existing GPU resources before re-initialisation.
@@ -119,7 +120,14 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   // gracefully falls back to JS wall-clock timing when unsupported.
   const frameTimer = new FrameTimer(device);
 
-  // Re-init on device loss (not destroyed)
+  // Register device.lost handler exclusively here in init().
+  // Do NOT register this handler anywhere else (e.g. in device.ts):
+  // each call to init() produces a new GPUDevice whose lost promise is a
+  // one-shot — it settles exactly once. Registering multiple .then() calls
+  // on the same device's lost promise is harmless (each fires once), but
+  // registering the handler in a shared module would accumulate O(N) handlers
+  // across N re-init cycles. Keeping the registration here ensures exactly
+  // one re-init callback per device, with no stale references.
   device.lost.then((info: GPUDeviceLostInfo) => {
     if (info.reason === "destroyed") return;
     if (import.meta.env.DEV) {
@@ -235,10 +243,10 @@ function startRenderLoop(): void {
 
     // Throttle stats postMessage to once per second (~60 frames).
     statsCounter++;
-    if (statsCounter >= 60) {
+    if (shouldFlushStats(statsCounter)) {
       statsCounter = 0;
       // Use actual frame-to-frame interval for fps — more accurate than JS work duration.
-      const fps = dt > 0 ? Math.round(1000 / dt) : 0;
+      const fps = computeFps(dt);
       const statsMsg: RenderStatsMessage = {
         type: "stats",
         fps,
@@ -301,6 +309,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
       if (renderState) {
         readPickPixel(renderState.device, renderState.pick, msg.x, msg.y)
           .then((trackIdHash) => {
+            if (trackIdHash === null) return;
             const picked: PickedMessage = {
               type: "picked",
               trackIdHash,
