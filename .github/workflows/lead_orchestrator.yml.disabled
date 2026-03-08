@@ -82,12 +82,26 @@ jobs:
           cat "$FILE" >> "$BODY_FILE"
 
           # 4. Create the issue and assign to the GitHub Copilot coding agent.
-          #    The --assignee "copilot" assignment is what triggers the coding agent.
+          #    The assignee handle differs by org setup; resolve it dynamically.
+          ASSIGNEE="github-copilot"
+          ASSIGNEE_ARG=()
+          if ! gh api "users/${ASSIGNEE}" >/dev/null 2>&1; then
+            ASSIGNEE="copilot"
+            if ! gh api "users/${ASSIGNEE}" >/dev/null 2>&1; then
+              echo "Copilot assignee not found (tried 'github-copilot' and 'copilot')."
+              echo "Creating the issue unassigned; enable the Copilot coding agent to auto-assign."
+            else
+              ASSIGNEE_ARG=(--assignee "$ASSIGNEE")
+            fi
+          else
+            ASSIGNEE_ARG=(--assignee "$ASSIGNEE")
+          fi
+
           gh issue create \
             --title "AI Task: $FILENAME" \
             --body-file "$BODY_FILE" \
             --label "ai-orchestrator" \
-            --assignee "copilot"
+            "${ASSIGNEE_ARG[@]}"
 
           rm -f "$BODY_FILE"
           echo "Successfully created issue and assigned to GitHub Copilot."
