@@ -35,6 +35,7 @@ import { role, dashboard } from "./signals/viewport";
 
 // Services
 import { fetchTrackDetail } from "./services/query";
+import { fetchAuthToken } from "./services/auth";
 import { startAlertStream } from "./services/alerts";
 
 // Components
@@ -55,6 +56,7 @@ import type {
   DataToMainMessage,
   RenderInitMessage,
   DataInitMessage,
+  TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -133,6 +135,20 @@ export default function App() {
         updateAlerts(msg.alerts);
         break;
 
+      case "token-expiring":
+        // Fetch a refreshed JWT and forward it to the Data Worker.
+        // Do not log the token value. (SDLC Rule 5)
+        fetchAuthToken().then((newToken) => {
+          if (newToken && dataWorker) {
+            const refreshMsg: TokenRefreshMessage = { type: "token-refresh", token: newToken };
+            dataWorker.postMessage(refreshMsg);
+          }
+        }).catch(() => {
+          // Auth refresh failed — worker will continue with the existing token
+          // until it expires and reconnection fails naturally.
+        });
+        break;
+
       default:
         break;
     }
@@ -208,8 +224,11 @@ export default function App() {
       renderWorker.postMessage(initMsg, [offscreen]);
     }
 
-    // Init Data Worker (stub mode — no URL for Phase 2 mock)
-    const dataInit: DataInitMessage = { type: "init", sab };
+    // Init Data Worker — pass URL and JWT token when available.
+    // When VITE_WEBTRANSPORT_URL is undefined (local dev), the worker falls back to mock mode.
+    const wtUrl = import.meta.env.VITE_WEBTRANSPORT_URL as string | undefined;
+    const token = wtUrl ? await fetchAuthToken() : undefined;
+    const dataInit: DataInitMessage = { type: "init", sab, url: wtUrl, token };
     dataWorker.postMessage(dataInit);
 
     // Local FPS counter from requestAnimationFrame
