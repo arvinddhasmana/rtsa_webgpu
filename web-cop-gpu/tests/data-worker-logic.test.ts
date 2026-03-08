@@ -44,8 +44,13 @@ describe("buildTransportUrl", () => {
 // ── getJwtExpiryMs ────────────────────────────────────────────────────────────
 
 function makeJwt(payload: Record<string, unknown>): string {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const body = btoa(JSON.stringify(payload));
+  const toBase64Url = (s: string): string =>
+    btoa(s)
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+  const header = toBase64Url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+  const body = toBase64Url(JSON.stringify(payload));
   return `${header}.${body}.fake-signature`;
 }
 

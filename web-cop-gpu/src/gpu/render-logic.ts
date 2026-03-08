@@ -43,8 +43,9 @@ export function computeFps(dtMs: number): number {
 
 /**
  * Decide whether the stats throttle counter has reached the flush threshold.
- * Returns true when the counter (1-indexed) is a multiple of 60, i.e. once
- * per second at a 60 Hz render interval.
+ * Returns true once the counter is greater than or equal to 60, i.e. after
+ * roughly one second at a 60 Hz render interval. Callers are expected to
+ * reset the counter after a flush.
  */
 export function shouldFlushStats(counter: number): boolean {
   return counter >= 60;

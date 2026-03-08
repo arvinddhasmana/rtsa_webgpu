@@ -30,7 +30,13 @@ export function getJwtExpiryMs(token: string): number {
   try {
     const parts = token.split(".");
     if (parts.length !== 3 || !parts[1]) return -1;
-    const payload = JSON.parse(atob(parts[1])) as { exp?: number };
+    // JWT payloads are Base64URL-encoded; normalize to standard Base64 for atob().
+    let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padding = base64.length % 4;
+    if (padding !== 0) {
+      base64 += "=".repeat(4 - padding);
+    }
+    const payload = JSON.parse(atob(base64)) as { exp?: number };
     if (typeof payload.exp !== "number") return -1;
     return payload.exp * 1000;
   } catch {

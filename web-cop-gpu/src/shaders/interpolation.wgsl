@@ -7,9 +7,9 @@
 // Reference: docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md §4.2
 
 // TrackRecord layout (128 bytes, verified 2026-03-06):
-// Offset 0x00: lat, lon, heading, speed, altitude (5×f32 = 20 bytes)
-// Offset 0x14: track_id, update_epoch_ms, alert_flags, threat_level,
-//              icon_type, trail_head_idx, trail_count (7×u32 = 28 bytes)
+// Offset 0x00: lon, lat, course, speed, altitude (5×f32 = 20 bytes)
+// Offset 0x14: track_id_hash, source_bitmap, classification_level, threat_level,
+//              icon_index, alert_flags, update_epoch_ms (7×u32 = 28 bytes)
 // Offset 0x30: trail (array<vec4<f32>, 5> = 80 bytes, 16-byte aligned ✓)
 // Total: 128 bytes
 struct TrackRecord {

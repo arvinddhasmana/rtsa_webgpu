@@ -33,6 +33,15 @@ import type { RenderStatsMessage } from "./shared-protocol";
 
 /** Messages accepted by the Render Worker */
 interface InitMessage {
+  type: "init";
+  canvas: OffscreenCanvas;
+  sab: SharedArrayBuffer;
+  /**
+   * When true, the Data Worker is the sole SAB writer.
+   * The Render Worker must NOT call mock-data functions in this mode.
+   */
+  dataWorkerActive?: boolean;
+}
 
 interface ResizeMessage {
   type: "resize";
@@ -300,6 +309,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
       if (renderState) {
         readPickPixel(renderState.device, renderState.pick, msg.x, msg.y)
           .then((trackIdHash) => {
+            if (trackIdHash === null) return;
             const picked: PickedMessage = {
               type: "picked",
               trackIdHash,

@@ -15,12 +15,11 @@
 package integration
 
 import (
-"encoding/binary"
-"math"
-"os"
-"path/filepath"
-"testing"
-"time"
+	"encoding/binary"
+	"math"
+	"os"
+	"testing"
+	"time"
 
 commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
@@ -166,10 +165,12 @@ t.Logf("Record is %d bytes (correct)", len(rec))
 t.Logf("track_id_hash=0x%08x threat=%d class=%d speed=%.1f alt=%.1f epoch=%d",
 gotHash, gotThreat, gotClass, gotSpeed, gotAlt, gotEpoch)
 
-// ── Write record to testdata/ for optional Rust decoder validation ────────
-if err := writeTestdataFile(t, rec[:]); err != nil {
-t.Logf("Warning: could not write testdata file: %v", err)
-}
+	// ── Write a temp record for optional manual Rust decoder validation ───────
+	// Keep the test hermetic: never write artifacts into the repository tree.
+	tmpPath := t.TempDir() + "/roundtrip_track.bin"
+	if err := os.WriteFile(tmpPath, rec[:], 0o600); err == nil {
+		t.Logf("roundtrip binary fixture written to %s", tmpPath)
+	}
 }
 
 // TestSerializerRoundtrip_NilInput ensures the serializer handles nil gracefully.
@@ -213,17 +214,4 @@ if len(bigBatch) != wantLen {
 t.Errorf("batch capping: got %d bytes, want %d bytes (MaxBatchSize=%d)",
 len(bigBatch), wantLen, flatbuf.MaxBatchSize)
 }
-}
-
-// writeTestdataFile writes the 128-byte record to testdata/roundtrip_track.bin
-// relative to the tests/integration directory. This binary artifact can be
-// consumed by a Rust integration test to validate decoder compatibility.
-func writeTestdataFile(t *testing.T, data []byte) error {
-t.Helper()
-dir := filepath.Join("testdata")
-if err := os.MkdirAll(dir, 0o755); err != nil {
-return err
-}
-path := filepath.Join(dir, "roundtrip_track.bin")
-return os.WriteFile(path, data, 0o644)
 }
