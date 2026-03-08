@@ -92,6 +92,7 @@ export function SearchOverlay() {
     <Show when={searchOpen()}>
       {/* Backdrop */}
       <div
+        data-testid="search-overlay"
         style={{
           position: "fixed",
           inset: "0",

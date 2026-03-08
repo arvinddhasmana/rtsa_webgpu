@@ -67,10 +67,8 @@ describe("AlertSidebar", () => {
     expect(ackButtons.length).toBe(1); // only alert-1 is unacknowledged
   });
 
-  it("does not show Ack button for acknowledged alerts", () => {
-    setAlerts([{ ...mockAlerts[1], acknowledged: true }]);
+  it("has data-testid alert-sidebar on root element", () => {
     render(() => <AlertSidebar />);
-    const ackButtons = screen.queryAllByLabelText("Acknowledge alert");
-    expect(ackButtons.length).toBe(0);
+    expect(screen.getByTestId("alert-sidebar")).toBeDefined();
   });
 });

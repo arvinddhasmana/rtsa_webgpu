@@ -20,7 +20,7 @@ export function DashboardSelector() {
   }
 
   return (
-    <div style={{ padding: "0.5rem" }}>
+    <div data-testid="dashboard-selector" style={{ padding: "0.5rem" }}>
       <label
         for="dashboard-selector"
         style={{

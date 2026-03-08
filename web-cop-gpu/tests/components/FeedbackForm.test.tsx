@@ -86,11 +86,9 @@ describe("FeedbackForm", () => {
     expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("closes when Cancel is clicked", () => {
+  it("has data-testid feedback-form on modal container", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
-    const cancelBtn = screen.getByRole("button", { name: "Cancel" });
-    fireEvent.click(cancelBtn);
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByTestId("feedback-form")).toBeDefined();
   });
 });

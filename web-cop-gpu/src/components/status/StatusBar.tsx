@@ -42,6 +42,7 @@ export function StatusBar() {
 
   return (
     <div
+      data-testid="status-bar"
       style={{
         display: "flex",
         "align-items": "stretch",
@@ -53,7 +54,7 @@ export function StatusBar() {
       {/* FPS */}
       <div style={itemStyle}>
         <span style={labelStyle}>FPS</span>
-        <span style={{ ...valueStyle, color: fpsColor() }}>{fps().toFixed(0)}</span>
+        <span data-testid="fps-display" style={{ ...valueStyle, color: fpsColor() }}>{fps().toFixed(0)}</span>
       </div>
 
       {/* Track count */}
@@ -71,7 +72,7 @@ export function StatusBar() {
       {/* Latency */}
       <div style={itemStyle}>
         <span style={labelStyle}>Latency</span>
-        <span style={valueStyle}>{latencyDisplay()}</span>
+        <span data-testid="latency-display" style={valueStyle}>{latencyDisplay()}</span>
       </div>
 
       {/* Connection */}
