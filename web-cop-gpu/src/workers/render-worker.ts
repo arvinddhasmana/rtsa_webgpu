@@ -112,10 +112,14 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   // Re-init on device loss (not destroyed)
   device.lost.then((info: GPUDeviceLostInfo) => {
     if (info.reason === "destroyed") return;
-    console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
+    if (import.meta.env.DEV) {
+      console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
+    }
     if (activeCanvas && activeSab) {
       init(activeCanvas, activeSab, activeDataWorker).catch((err: unknown) => {
-        console.error("[RenderWorker] Re-init failed:", err);
+        if (import.meta.env.DEV) {
+          console.error("[RenderWorker] Re-init failed:", err);
+        }
       });
     }
   });
@@ -160,10 +164,12 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   const status: StatusMessage = { type: "status", ready: true };
   self.postMessage(status);
 
-  console.log(
-    `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
-    `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
-  );
+  if (import.meta.env.DEV) {
+    console.log(
+      `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
+      `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
+    );
+  }
 }
 
 function startRenderLoop(): void {
@@ -192,7 +198,9 @@ function startRenderLoop(): void {
     try {
       renderFrame(renderState);
     } catch (err) {
-      console.error("[RenderWorker] renderFrame error:", err);
+      if (import.meta.env.DEV) {
+        console.error("[RenderWorker] renderFrame error:", err);
+      }
     }
 
     // R-010: Mark JS frame end (after GPU command submission inside renderFrame).
@@ -232,7 +240,9 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
   switch (msg.type) {
     case "init": {
       init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false).catch((err: unknown) => {
-        console.error("[RenderWorker] Init failed:", err);
+        if (import.meta.env.DEV) {
+          console.error("[RenderWorker] Init failed:", err);
+        }
         const status: StatusMessage = {
           type:  "status",
           ready: false,
@@ -277,7 +287,9 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
             self.postMessage(picked);
           })
           .catch((err: unknown) => {
-            console.error("[RenderWorker] Pick readback error:", err);
+            if (import.meta.env.DEV) {
+              console.error("[RenderWorker] Pick readback error:", err);
+            }
           });
       }
       break;

@@ -9,6 +9,7 @@ import { Show, createSignal } from "solid-js";
 import { feedbackOpen, setFeedbackOpen } from "../../signals/viewport";
 import { trackDetail } from "../../signals/track";
 import { submitFeedback, type FeedbackTypeOption } from "../../services/feedback";
+import { operatorId } from "../../signals/auth";
 
 const FEEDBACK_OPTIONS: { value: FeedbackTypeOption; label: string }[] = [
   { value: "CONFIRM_HOSTILE", label: "Confirm Hostile" },
@@ -44,7 +45,7 @@ export function FeedbackForm() {
     try {
       await submitFeedback({
         trackId: detail.trackId,
-        operatorId: "operator",
+        operatorId: operatorId(),
         feedbackType: feedbackType(),
         justification: justification(),
       });

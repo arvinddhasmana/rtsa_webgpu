@@ -56,3 +56,13 @@ const TrailSlotSize = 16 // 4 × float32
 
 // NumTrailSlots is the number of trail history entries per record.
 const NumTrailSlots = 5
+
+// ThreatLevel colour mapping (matches WGSL threat_color() function in trail.wgsl
+// and the halo colour switch in halos.wgsl). Conforms to STANAG APP-6.
+//
+//	0 = Unknown  → grey
+//	1 = Pending  → blue
+//	2 = Friendly → green
+//	3 = Neutral  → green   ← APP-6: neutral is green, not amber
+//	4 = Suspect  → amber/orange
+//	5 = Hostile  → red

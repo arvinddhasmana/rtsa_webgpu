@@ -48,15 +48,21 @@ const TRAIL_SEGMENTS:         u32 = 4u;
 const VERTS_PER_SEGMENT:      u32 = 6u;
 const VERTS_PER_INSTANCE:     u32 = 24u; // 4 segments × 6 vertices
 
-// Threat-level colour palette (STANAG colour codes)
+// Threat-level colour palette — STANAG APP-6 compliant.
+// 0 = Unknown  → grey
+// 1 = Pending  → blue
+// 2 = Friendly → green
+// 3 = Neutral  → green  (APP-6: neutral is green, not amber)
+// 4 = Suspect  → amber/orange
+// 5 = Hostile  → red
 fn threat_color(level: u32) -> vec3<f32> {
   switch (level) {
     case 0u: { return vec3<f32>(0.5,  0.5,  0.5);  } // Unknown  — grey
-    case 1u: { return vec3<f32>(0.1,  0.6,  1.0);  } // Friendly — blue
-    case 2u: { return vec3<f32>(0.2,  0.8,  0.2);  } // Neutral  — green
-    case 3u: { return vec3<f32>(1.0,  0.85, 0.0);  } // Suspect  — amber
-    case 4u: { return vec3<f32>(1.0,  0.5,  0.0);  } // Hostile  — orange
-    case 5u: { return vec3<f32>(1.0,  0.2,  0.2);  } // Joker    — red
+    case 1u: { return vec3<f32>(0.1,  0.6,  1.0);  } // Pending  — blue
+    case 2u: { return vec3<f32>(0.2,  0.8,  0.2);  } // Friendly — green
+    case 3u: { return vec3<f32>(0.2,  0.8,  0.2);  } // Neutral  — green (APP-6)
+    case 4u: { return vec3<f32>(1.0,  0.6,  0.0);  } // Suspect  — amber/orange
+    case 5u: { return vec3<f32>(1.0,  0.2,  0.2);  } // Hostile  — red
     default: { return vec3<f32>(0.5,  0.5,  0.5);  }
   }
 }

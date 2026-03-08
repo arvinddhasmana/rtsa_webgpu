@@ -57,7 +57,9 @@ export function startAlertStream(): AbortController {
     } catch (err) {
       // AbortError is expected when the stream is cancelled
       if (err instanceof Error && err.name !== "AbortError") {
-        console.error("[AlertService] Stream error:", err);
+        if (import.meta.env.DEV) {
+          console.error("[AlertService] Stream error:", err);
+        }
       }
     }
   })();
@@ -76,7 +78,9 @@ export async function acknowledgeAlert(
   try {
     await client.acknowledgeAlert({ alertId, operatorId, comment });
   } catch (err) {
-    console.error("[AlertService] Acknowledge failed:", err);
+    if (import.meta.env.DEV) {
+      console.error("[AlertService] Acknowledge failed:", err);
+    }
     throw err;
   }
 }

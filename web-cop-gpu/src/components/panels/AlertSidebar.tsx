@@ -9,6 +9,7 @@ import { For, Show, createSignal } from "solid-js";
 import { alerts } from "../../signals/alerts";
 import { acknowledgeAlert } from "../../services/alerts";
 import type { AlertPayload } from "../../workers/shared-protocol";
+import { operatorId } from "../../signals/auth";
 
 const SEVERITY_COLORS: Record<AlertPayload["severity"], string> = {
   CRITICAL: "#ef4444",
@@ -31,7 +32,7 @@ function AlertItem(props: AlertItemProps) {
     setAcking(true);
     setAckError(null);
     try {
-      await acknowledgeAlert(props.alert.alertId, "operator");
+      await acknowledgeAlert(props.alert.alertId, operatorId());
     } catch (_err) {
       setAckError("Ack failed");
     } finally {

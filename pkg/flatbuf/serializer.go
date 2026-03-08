@@ -109,7 +109,10 @@ putU32(&rec, OffThreatLevel, threatLevel)
 
 // ── Display fields ───────────────────────────────────────────────────
 iconIndex := buildIconIndex(track.GetEntityType(), track.GetHostileClass())
-alertFlags := uint32(0) // Phase 3 will wire alert state; keep zero for now
+alertFlags := uint32(0)
+	if threatLevel >= 4 { // Suspect (4) or Hostile (5)
+		alertFlags = 1
+	}
 
 var epochMs uint32
 if ts := track.GetUpdatedAt(); ts != nil {

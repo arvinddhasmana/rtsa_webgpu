@@ -6,15 +6,18 @@ import { render, screen, fireEvent } from "@solidjs/testing-library";
 import { FeedbackForm } from "../../src/components/panels/FeedbackForm";
 import { setFeedbackOpen } from "../../src/signals/viewport";
 import { setTrackDetail } from "../../src/signals/track";
+import { setOperatorId } from "../../src/signals/auth";
 import type { TrackDetail } from "../../src/signals/track";
 
 // Mock the feedback service
+const submitFeedbackMock = vi.fn().mockResolvedValue({
+  feedbackId: "fb-1",
+  trustScore: 0.8,
+  validated: true,
+});
+
 vi.mock("../../src/services/feedback", () => ({
-  submitFeedback: vi.fn().mockResolvedValue({
-    feedbackId: "fb-1",
-    trustScore: 0.8,
-    validated: true,
-  }),
+  submitFeedback: (...args: unknown[]) => submitFeedbackMock(...args),
 }));
 
 const mockTrack: TrackDetail = {
@@ -36,6 +39,8 @@ const mockTrack: TrackDetail = {
 afterEach(() => {
   setFeedbackOpen(false);
   setTrackDetail(null);
+  setOperatorId("anonymous");
+  submitFeedbackMock.mockClear();
 });
 
 describe("FeedbackForm", () => {
@@ -90,5 +95,42 @@ describe("FeedbackForm", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
     expect(screen.getByTestId("feedback-form")).toBeDefined();
+  });
+
+  it("submits with operatorId from auth signal, not hardcoded string", async () => {
+    setOperatorId("op-sentinel-1");
+    setFeedbackOpen(true);
+    setTrackDetail(mockTrack);
+    render(() => <FeedbackForm />);
+
+    const textarea = screen.getByLabelText("Justification (required)") as HTMLTextAreaElement;
+    fireEvent.input(textarea, { target: { value: "Radar confirmed hostile intent" } });
+    const submitBtn = screen.getByRole("button", { name: "Submit" });
+    fireEvent.click(submitBtn);
+
+    // Wait for async submission
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(submitFeedbackMock).toHaveBeenCalledTimes(1);
+    const callArgs = submitFeedbackMock.mock.calls[0][0] as { operatorId: string };
+    expect(callArgs.operatorId).toBe("op-sentinel-1");
+    expect(callArgs.operatorId).not.toBe("operator");
+  });
+
+  it("falls back to anonymous operatorId when no token has been acquired", async () => {
+    // Default signal value is "anonymous"
+    setFeedbackOpen(true);
+    setTrackDetail(mockTrack);
+    render(() => <FeedbackForm />);
+
+    const textarea = screen.getByLabelText("Justification (required)") as HTMLTextAreaElement;
+    fireEvent.input(textarea, { target: { value: "Fallback operator test" } });
+    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    const callArgs = submitFeedbackMock.mock.calls[0][0] as { operatorId: string };
+    expect(callArgs.operatorId).toBe("anonymous");
+    expect(callArgs.operatorId).not.toBe("operator");
   });
 });

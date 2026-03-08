@@ -117,13 +117,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let inner_alpha = smoothstep(ring_inner, ring_inner + 0.1, dist);
   let alpha = outer_alpha * inner_alpha * 0.85;
 
-  // Colour based on threat level
+  // Colour based on threat level — STANAG APP-6 compliant.
+  // Halos are only rendered for tracks with alert_flags > 0 (checked in vs_main),
+  // so colour here applies to Suspect (4) and Hostile (5) tracks.
   var color: vec3<f32>;
   switch (in.threat_level) {
-    case 5u:  { color = vec3<f32>(1.0, 0.2, 0.2); } // Joker — red
-    case 4u:  { color = vec3<f32>(1.0, 0.5, 0.0); } // Hostile — orange
-    case 3u:  { color = vec3<f32>(1.0, 0.85, 0.0); } // Suspect — amber
-    default:  { color = vec3<f32>(0.2, 0.8, 1.0); } // blue for lower threats
+    case 5u:  { color = vec3<f32>(1.0, 0.2, 0.2); } // Hostile — red
+    case 4u:  { color = vec3<f32>(1.0, 0.6, 0.0); } // Suspect — amber/orange
+    default:  { color = vec3<f32>(0.2, 0.8, 1.0); } // lower threats — blue
   }
 
   return vec4<f32>(color, alpha);
