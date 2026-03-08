@@ -74,6 +74,15 @@ let activeSab: SharedArrayBuffer | null = null;
 let activeDataWorker = false;
 /** Stats postMessage throttle counter (reset every 60 frames ≈ 1 second). */
 let statsCounter = 0;
+/** Tracks consecutive renderFrame errors to detect a failed render pipeline. */
+let renderFrameErrorCount = 0;
+/** Number of consecutive renderFrame errors before posting a status:ready=false message. */
+const RENDER_ERROR_THRESHOLD = 5;
+
+/** Build a status message indicating the render worker has encountered an error. */
+function makeErrorStatus(error: string): StatusMessage {
+  return { type: "status", ready: false, error };
+}
 
 /**
  * Tear down existing GPU resources before re-initialisation.
@@ -81,6 +90,7 @@ let statsCounter = 0;
  */
 function teardown(): void {
   stopRenderLoop();
+  renderFrameErrorCount = 0;
   if (renderState) {
     renderState.frameTimer.destroy();
     destroyAtlasTextures(renderState.atlas);
@@ -197,9 +207,22 @@ function startRenderLoop(): void {
 
     try {
       renderFrame(renderState);
+      // Reset consecutive error counter on each successful frame.
+      renderFrameErrorCount = 0;
     } catch (err) {
+      renderFrameErrorCount++;
       if (import.meta.env.DEV) {
         console.error("[RenderWorker] renderFrame error:", err);
+      }
+      // After repeated failures the render pipeline is likely broken.
+      // Stop the loop and notify the main thread so the failure is observable.
+      if (renderFrameErrorCount >= RENDER_ERROR_THRESHOLD) {
+        stopRenderLoop();
+        const errMsg = err instanceof Error ? err.message : String(err);
+        self.postMessage(makeErrorStatus(
+          `Render pipeline failed after ${RENDER_ERROR_THRESHOLD} consecutive errors: ${errMsg}`,
+        ));
+        return;
       }
     }
 
@@ -290,6 +313,10 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
             if (import.meta.env.DEV) {
               console.error("[RenderWorker] Pick readback error:", err);
             }
+            // Notify the main thread so the failure is observable in production.
+            self.postMessage(makeErrorStatus(
+              `Pick readback failed: ${err instanceof Error ? err.message : String(err)}`,
+            ));
           });
       }
       break;

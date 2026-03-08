@@ -2,7 +2,7 @@
 // tests/components/FeedbackForm.test.tsx
 
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@solidjs/testing-library";
+import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
 import { FeedbackForm } from "../../src/components/panels/FeedbackForm";
 import { setFeedbackOpen } from "../../src/signals/viewport";
 import { setTrackDetail } from "../../src/signals/track";
@@ -108,10 +108,7 @@ describe("FeedbackForm", () => {
     const submitBtn = screen.getByRole("button", { name: "Submit" });
     fireEvent.click(submitBtn);
 
-    // Wait for async submission
-    await new Promise((r) => setTimeout(r, 50));
-
-    expect(submitFeedbackMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(submitFeedbackMock).toHaveBeenCalledTimes(1));
     const callArgs = submitFeedbackMock.mock.calls[0][0] as { operatorId: string };
     expect(callArgs.operatorId).toBe("op-sentinel-1");
     expect(callArgs.operatorId).not.toBe("operator");
@@ -127,8 +124,7 @@ describe("FeedbackForm", () => {
     fireEvent.input(textarea, { target: { value: "Fallback operator test" } });
     fireEvent.click(screen.getByRole("button", { name: "Submit" }));
 
-    await new Promise((r) => setTimeout(r, 50));
-
+    await waitFor(() => expect(submitFeedbackMock).toHaveBeenCalledTimes(1));
     const callArgs = submitFeedbackMock.mock.calls[0][0] as { operatorId: string };
     expect(callArgs.operatorId).toBe("anonymous");
     expect(callArgs.operatorId).not.toBe("operator");

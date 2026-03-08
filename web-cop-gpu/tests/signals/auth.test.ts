@@ -28,12 +28,15 @@ describe("operatorId signal", () => {
 
 describe("operatorIdFromToken", () => {
   /**
-   * Build a minimal JWT with the given payload object (no real signature).
-   * The only part the decoder reads is the base64url-encoded payload.
+   * Build a minimal JWT using base64url encoding (RFC 4648 §5) — the same
+   * encoding real JWT issuers produce: "-" and "_" replace "+" and "/",
+   * and padding ("=") is omitted.
    */
   function makeJwt(payload: Record<string, unknown>): string {
-    const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-    const body = btoa(JSON.stringify(payload));
+    const toBase64Url = (str: string): string =>
+      btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    const header = toBase64Url(JSON.stringify({ alg: "HS256", typ: "JWT" }));
+    const body = toBase64Url(JSON.stringify(payload));
     return `${header}.${body}.fakesig`;
   }
 

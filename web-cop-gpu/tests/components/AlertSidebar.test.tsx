@@ -2,7 +2,7 @@
 // tests/components/AlertSidebar.test.tsx
 
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@solidjs/testing-library";
+import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
 import { AlertSidebar } from "../../src/components/panels/AlertSidebar";
 import { setAlerts } from "../../src/signals/alerts";
 import { setOperatorId } from "../../src/signals/auth";
@@ -85,9 +85,7 @@ describe("AlertSidebar", () => {
     const ackBtn = screen.getByLabelText("Acknowledge alert");
     fireEvent.click(ackBtn);
 
-    await new Promise((r) => setTimeout(r, 50));
-
-    expect(acknowledgeAlertMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(acknowledgeAlertMock).toHaveBeenCalledTimes(1));
     expect(acknowledgeAlertMock).toHaveBeenCalledWith("alert-1", "op-sentinel-2");
     expect(acknowledgeAlertMock).not.toHaveBeenCalledWith("alert-1", "operator");
   });
@@ -98,7 +96,7 @@ describe("AlertSidebar", () => {
     render(() => <AlertSidebar />);
 
     fireEvent.click(screen.getByLabelText("Acknowledge alert"));
-    await new Promise((r) => setTimeout(r, 50));
+    await waitFor(() => expect(acknowledgeAlertMock).toHaveBeenCalledTimes(1));
 
     expect(acknowledgeAlertMock).toHaveBeenCalledWith("alert-1", "anonymous");
     expect(acknowledgeAlertMock).not.toHaveBeenCalledWith("alert-1", "operator");

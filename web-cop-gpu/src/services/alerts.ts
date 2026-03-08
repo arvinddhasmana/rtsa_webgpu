@@ -10,6 +10,7 @@ import { transport } from "./grpc-client";
 import { ClassificationLevel } from "@gen/rtsa/common/v1/types_pb.js";
 import type { AlertPayload } from "../workers/shared-protocol";
 import { updateAlerts, acknowledgeAlertLocally } from "../signals/alerts";
+import { setAlertStreamHealthy } from "../signals/connection";
 
 const client = createPromiseClient(AlertService, transport);
 
@@ -57,6 +58,8 @@ export function startAlertStream(): AbortController {
     } catch (err) {
       // AbortError is expected when the stream is cancelled
       if (err instanceof Error && err.name !== "AbortError") {
+        // Signal stream unhealthy so UI can surface the failure without console.* in production.
+        setAlertStreamHealthy(false);
         if (import.meta.env.DEV) {
           console.error("[AlertService] Stream error:", err);
         }
