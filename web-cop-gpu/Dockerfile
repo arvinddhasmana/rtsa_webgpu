@@ -73,8 +73,16 @@ server {
     add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https: wss:; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
 
     # ── Wasm MIME type ───────────────────────────────────────
-    types {
-        application/wasm wasm;
+    # A types{} block in a server{} context replaces the entire inherited
+    # mime.types table, and include is invalid inside types{}.
+    # Use a dedicated location with default_type instead — .wasm is absent
+    # from nginx's standard mime.types so default_type applies cleanly.
+    location ~* \.wasm$ {
+        default_type application/wasm;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        add_header Cross-Origin-Opener-Policy   "same-origin"       always;
+        add_header Cross-Origin-Embedder-Policy "require-corp"      always;
     }
 
     # ── SPA fallback ─────────────────────────────────────────
@@ -83,7 +91,7 @@ server {
     }
 
     # ── Cache static assets ──────────────────────────────────
-    location ~* \.(js|css|wasm|png|jpg|svg|ico|woff2?)$ {
+    location ~* \.(js|css|png|jpg|svg|ico|woff2?)$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
         # Re-add COOP/COEP on cached assets (add_header in location overrides server block)

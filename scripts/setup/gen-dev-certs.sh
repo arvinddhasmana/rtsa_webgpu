@@ -23,11 +23,8 @@ log_warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 # Validate prerequisites
 # ─────────────────────────────────────────────────────────────
 check_prereqs() {
-  if ! command -v mkcert &>/dev/null; then
-    echo "ERROR: mkcert is not installed."
-    echo "  Install via: go install filippo.io/mkcert@latest"
-    echo "  Or on macOS: brew install mkcert"
-    echo "  Run 'mkcert -install' after installation to create the local CA."
+  if ! command -v openssl &>/dev/null; then
+    echo "ERROR: openssl is not installed. Install it via your package manager."
     exit 1
   fi
 }
@@ -53,47 +50,61 @@ check_existing_certs() {
 
 # ─────────────────────────────────────────────────────────────
 # Generate certificates
+# Uses plain openssl (no mkcert) to produce PKCS8-format ECDSA P-256 keys.
+# PKCS8 format (BEGIN PRIVATE KEY) is required for Envoy/BoringSSL.
+# Permissions are set to 644 so Docker containers running as non-root can read
+# the key files via bind mounts (these are dev-only, never committed).
 # ─────────────────────────────────────────────────────────────
 generate_certs() {
   mkdir -p "${CERT_DIR}"
+  local tmp
+  tmp="$(mktemp -d)"
+  trap 'rm -rf "${tmp}"' EXIT
   log_info "Generating development TLS certificates in ${CERT_DIR}/"
 
-  # Ensure the local CA is installed in the system trust store
-  mkcert -install
+  # ── CA ───────────────────────────────────────────────────
+  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
+    -out "${CERT_DIR}/ca.key" 2>/dev/null
+  openssl req -new -x509 -key "${CERT_DIR}/ca.key" -sha256 -days 3650 \
+    -out "${CERT_DIR}/ca.crt" \
+    -subj "/O=RTSA Dev CA/CN=rtsa-dev-ca" 2>/dev/null
+  log_pass "CA certificate: ${CERT_DIR}/ca.crt"
 
-  # CA certificate location (set by mkcert)
-  local ca_root
-  ca_root="$(mkcert -CAROOT)"
-
-  # Copy the CA cert into our cert dir for service configuration
-  cp "${ca_root}/rootCA.pem" "${CERT_DIR}/ca.crt"
-  cp "${ca_root}/rootCA-key.pem" "${CERT_DIR}/ca.key"
-  log_pass "Local CA copied to ${CERT_DIR}/ca.crt"
-
-  # Generate server certificate
-  # SANs cover localhost and *.rtsa.local for all services
-  mkcert \
-    -cert-file "${CERT_DIR}/server.crt" \
-    -key-file  "${CERT_DIR}/server.key" \
-    "localhost" \
-    "127.0.0.1" \
-    "*.rtsa.local" \
-    "rtsa.local"
+  # ── Server cert (SANs: localhost, *.rtsa.local, 127.0.0.1) ─
+  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
+    -out "${CERT_DIR}/server.key" 2>/dev/null
+  openssl req -new -key "${CERT_DIR}/server.key" -out "${tmp}/server.csr" \
+    -subj "/O=RTSA Dev/CN=localhost" 2>/dev/null
+  cat > "${tmp}/server-ext.cnf" <<'EXT'
+[SAN]
+subjectAltName=DNS:localhost,DNS:*.rtsa.local,DNS:rtsa.local,IP:127.0.0.1
+EXT
+  openssl x509 -req -in "${tmp}/server.csr" \
+    -CA "${CERT_DIR}/ca.crt" -CAkey "${CERT_DIR}/ca.key" -CAcreateserial \
+    -out "${CERT_DIR}/server.crt" -days 3650 -sha256 \
+    -extfile "${tmp}/server-ext.cnf" -extensions SAN 2>/dev/null
   log_pass "Server certificate: ${CERT_DIR}/server.crt"
 
-  # Generate client certificate for mTLS client authentication
-  mkcert \
-    -client \
-    -cert-file "${CERT_DIR}/client.crt" \
-    -key-file  "${CERT_DIR}/client.key" \
-    "rtsa-client" \
-    "localhost"
+  # ── Client cert (mTLS) ──────────────────────────────────
+  openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 \
+    -out "${CERT_DIR}/client.key" 2>/dev/null
+  openssl req -new -key "${CERT_DIR}/client.key" -out "${tmp}/client.csr" \
+    -subj "/O=RTSA Dev Client/CN=rtsa-client" 2>/dev/null
+  cat > "${tmp}/client-ext.cnf" <<'EXT'
+[SAN]
+subjectAltName=DNS:rtsa-client,DNS:localhost
+extendedKeyUsage=clientAuth
+EXT
+  openssl x509 -req -in "${tmp}/client.csr" \
+    -CA "${CERT_DIR}/ca.crt" -CAkey "${CERT_DIR}/ca.key" -CAcreateserial \
+    -out "${CERT_DIR}/client.crt" -days 3650 -sha256 \
+    -extfile "${tmp}/client-ext.cnf" -extensions SAN 2>/dev/null
   log_pass "Client certificate: ${CERT_DIR}/client.crt"
 
-  # Set restrictive permissions on private keys
-  chmod 600 "${CERT_DIR}"/*.key
-  chmod 644 "${CERT_DIR}"/*.crt
-  log_pass "Certificate permissions set (keys: 600, certs: 644)"
+  # 644 on keys: Docker containers run as non-root (e.g. envoy UID 101) and
+  # need read access via bind mount. These are dev-only certs, never committed.
+  chmod 644 "${CERT_DIR}"/*.key "${CERT_DIR}"/*.crt
+  log_pass "Certificate permissions set (644 — readable by Docker non-root users)"
 }
 
 # ─────────────────────────────────────────────────────────────
