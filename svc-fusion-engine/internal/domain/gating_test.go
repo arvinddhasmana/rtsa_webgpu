@@ -163,3 +163,63 @@ func TestGatingFilter_NilPosition(t *testing.T) {
 		t.Errorf("expected 0 candidates for nil position, got %d", len(candidates))
 	}
 }
+
+// Test GatingConfigFor fallback
+func TestGatingFilter_GatingConfigFor_Fallback(t *testing.T) {
+	gf := newGatingFilter()
+	// Unspecified should use surface fallback
+	cfg := gf.GatingConfigFor(commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED)
+	if cfg.MaxDistanceNM != 5.0 || cfg.MaxTimeDelta != 30*time.Second {
+		t.Errorf("expected surface fallback, got %+v", cfg)
+	}
+}
+
+// Test sensorTypeToEntityType logic
+func TestSensorTypeToEntityType_Coverage(t *testing.T) {
+	tm := domain.NewTrackManager(domain.NewKalmanFilter())
+
+	tests := []struct {
+		sensor commonv1.SensorType
+		entity commonv1.EntityType
+	}{
+		{commonv1.SensorType_SENSOR_TYPE_EW_SIGINT, commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED},
+		{commonv1.SensorType_SENSOR_TYPE_ELINT_COMINT, commonv1.EntityType_ENTITY_TYPE_UNSPECIFIED},
+		{commonv1.SensorType_SENSOR_TYPE_ISR, commonv1.EntityType_ENTITY_TYPE_SURFACE},
+		{commonv1.SensorType_SENSOR_TYPE_AIS_BFT, commonv1.EntityType_ENTITY_TYPE_SURFACE},
+		{commonv1.SensorType_SENSOR_TYPE_CYBER, commonv1.EntityType_ENTITY_TYPE_CYBER},
+		{commonv1.SensorType(999), commonv1.EntityType_ENTITY_TYPE_SURFACE}, // default
+	}
+
+	for _, tc := range tests {
+		obs := &ingestionv1.SensorObservation{
+			SensorType: tc.sensor,
+			Position:   &commonv1.Position{Latitude: 0, Longitude: 0},
+		}
+		track, _ := tm.CreateTrack(obs)
+		if track.EntityType != tc.entity {
+			t.Errorf("sensor %v: expected entity %v, got %v", tc.sensor, tc.entity, track.EntityType)
+		}
+	}
+}
+
+func TestEntityTypesCompatible_Coverage(t *testing.T) {
+	gf := newGatingFilter()
+	obs := newRadarObs(0, 0, time.Now())
+	track := newSurfaceTrack(0.01, 0.01, time.Now())
+
+	// Both specific, mismatch
+	track.EntityType = commonv1.EntityType_ENTITY_TYPE_AIR
+	cands := gf.FindCandidates(obs, []*domain.TrackState{track})
+	if len(cands) != 0 {
+		t.Errorf("expected no match, got %d", len(cands))
+	}
+
+	// Obs UNSPECIFIED (ELINT)
+	obs2 := newRadarObs(0, 0, time.Now())
+	obs2.SensorType = commonv1.SensorType_SENSOR_TYPE_ELINT_COMINT
+	track2 := newSurfaceTrack(0.01, 0.01, time.Now())
+	cands2 := gf.FindCandidates(obs2, []*domain.TrackState{track2})
+	if len(cands2) != 1 {
+		t.Errorf("expected match for UNSPECIFIED obs, got %d", len(cands2))
+	}
+}

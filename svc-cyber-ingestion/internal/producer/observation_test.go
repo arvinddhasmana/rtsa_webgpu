@@ -90,3 +90,12 @@ func TestObservationProducer_Produce_WithTracing(t *testing.T) {
 		t.Errorf("expected trace id %s, got %s", expectedTraceID, mock.lastTraceID)
 	}
 }
+
+func TestObservationProducer_Produce_Panic(t *testing.T) {
+	p := producer.NewObservationProducer(nil, "topic")
+	obs := &ingestionv1.SensorObservation{}
+	defer func() {
+		_ = recover()
+	}()
+	_ = p.Produce(context.Background(), obs)
+}

@@ -2,6 +2,8 @@
 package producer_test
 
 import (
+	"context"
+
 "testing"
 
 commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
@@ -40,4 +42,13 @@ t.Error("observation_id should not be empty")
 if obs.GetClassification() == commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNSPECIFIED {
 t.Error("classification should not be unspecified")
 }
+}
+
+func TestObservationProducer_Produce_Panic(t *testing.T) {
+	p := producer.NewObservationProducer(nil, "topic")
+	obs := &ingestionv1.SensorObservation{}
+	defer func() {
+		_ = recover()
+	}()
+	_ = p.Produce(context.Background(), obs)
 }

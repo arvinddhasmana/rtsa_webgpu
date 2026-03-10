@@ -223,3 +223,70 @@ func TestTrackManager_MarkDropped(t *testing.T) {
 		t.Errorf("expected DROPPED, got %v", got.Status)
 	}
 }
+
+func TestTrackManager_CreateTrack_MetadataParsing(t *testing.T) {
+	tm := newTM()
+	obs := radarObs("RADAR-01", 45.0, -60.0)
+	obs.Metadata = map[string]string{
+		"sim_hostile_class": "HOSTILE",
+		"sim_entity_type":   "AIR",
+	}
+	track, err := tm.CreateTrack(obs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if track.HostileClass != commonv1.HostileClassification_HOSTILE_CLASSIFICATION_HOSTILE {
+		t.Errorf("expected HOSTILE, got %v", track.HostileClass)
+	}
+	if track.EntityType != commonv1.EntityType_ENTITY_TYPE_AIR {
+		t.Errorf("expected AIR, got %v", track.EntityType)
+	}
+}
+
+func TestTrackManager_CreateTrack_SpeedHeading(t *testing.T) {
+	tm := newTM()
+	obs := radarObs("RADAR-01", 45.0, -60.0)
+	speed := float64(10.0)   // 10 knots
+	heading := float64(90.0) // East
+	obs.Position.SpeedKnots = &speed
+	obs.Position.HeadingDegrees = &heading
+
+	track, err := tm.CreateTrack(obs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// 10 knots = 5.144 m/s. Heading 90 means East. So vE ~ 5.144, vN ~ 0
+	if track.KalmanState.VelocityE <= 5.0 {
+		t.Errorf("expected VelocityE > 5.0, got %v", track.KalmanState.VelocityE)
+	}
+	if track.KalmanState.VelocityN > 0.001 || track.KalmanState.VelocityN < -0.001 {
+		t.Errorf("expected VelocityN ~ 0, got %v", track.KalmanState.VelocityN)
+	}
+}
+
+func TestTrackManager_ComputeConfidence(t *testing.T) {
+	tm := newTM()
+	obs1 := radarObs("R1", 45.0, -60.0)
+	obs2 := radarObs("R2", 45.0, -60.0)
+	obs3 := radarObs("R3", 45.0, -60.0)
+
+	track, _ := tm.CreateTrack(obs1)
+	ft1 := track.ToFusedTrack()
+	if ft1.ConfidenceScore != 0.5 {
+		t.Errorf("expected 0.5 for 1 source, got %v", ft1.ConfidenceScore)
+	}
+
+	tm.UpdateTrack(track.TrackID, obs2)
+	ft2 := track.ToFusedTrack()
+	if ft2.ConfidenceScore != 0.75 {
+		t.Errorf("expected 0.75 for 2 sources, got %v", ft2.ConfidenceScore)
+	}
+
+	tm.UpdateTrack(track.TrackID, obs3)
+	ft3 := track.ToFusedTrack()
+	if ft3.ConfidenceScore != 0.9 {
+		t.Errorf("expected 0.9 for 3 sources, got %v", ft3.ConfidenceScore)
+	}
+}

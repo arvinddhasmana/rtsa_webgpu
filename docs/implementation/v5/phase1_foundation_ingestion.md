@@ -209,7 +209,9 @@ _Issues found during Phase 1 review are recorded here and fixed in batch after a
 
 | # | UC | Severity | File(s) | Issue Description | Requirement |
 |---|----|----------|---------|-------------------|-------------|
-| | | | | _(to be populated during execution)_ | |
+| 1 | UC002-UC007 | IMPROVEMENT | `svc-*-ingestion/` | Unit test coverage is ~65%, below target | Target ≥80% |
+| 2 | UC008 | IMPROVEMENT | `svc-fusion-engine/` | Unit test coverage is 72.7%, below target | Target ≥90% |
+
 
 ---
 

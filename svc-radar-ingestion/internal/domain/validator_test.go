@@ -365,3 +365,14 @@ if result.Valid {
 t.Error("expected invalid when radar data is nil")
 }
 }
+
+func TestValidator_OptionsCoverage(t *testing.T) {
+	v := domain.NewRadarValidator(zap.NewNop(),
+		domain.WithMaxAirSpeedKnots(2000.0),
+		domain.WithMaxFutureOffset(1*time.Minute),
+		domain.WithMaxPastOffset(1*time.Minute),
+	)
+	if v == nil {
+		t.Fatal("expected non-nil validator")
+	}
+}

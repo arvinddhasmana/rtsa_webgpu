@@ -85,3 +85,19 @@ if result.SensorId != "RADAR-002" {
 t.Errorf("expected trimmed sensor_id, got: %q", result.SensorId)
 }
 }
+
+func TestNormalizer_NegativeAngles(t *testing.T) {
+	n := domain.NewRadarNormalizer()
+	obs := validObs()
+	heading := float64(-90.0) // should be 270.0
+	obs.Position.HeadingDegrees = &heading
+	obs.GetRadar().BearingDegrees = -45.0 // should be 315.0
+
+	result := n.Normalize(obs)
+	if result.Position.GetHeadingDegrees() != 270.0 {
+		t.Errorf("expected 270.0 heading, got %f", result.Position.GetHeadingDegrees())
+	}
+	if result.GetRadar().BearingDegrees != 315.0 {
+		t.Errorf("expected 315.0 bearing, got %f", result.GetRadar().BearingDegrees)
+	}
+}

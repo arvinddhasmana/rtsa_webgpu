@@ -199,3 +199,51 @@ func TestHandler_ListSensorStatuses(t *testing.T) {
 		t.Errorf("expected 1 sensor, got %d", len(resp.Sensors))
 	}
 }
+
+func TestHandler_IngestSensorData_GrpcError(t *testing.T) {
+	logger := zap.NewNop()
+	validator := domain.NewRadarValidator(logger)
+	normalizer := domain.NewRadarNormalizer()
+	guard := classification.NewGuard(commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED)
+	enricher := mapper.NewEnricher("svc-radar-ingestion", guard)
+	h := handler.NewIngestionHandler(validator, normalizer, enricher, nil, nil, nil, logger, nil)
+
+	validObs := validObservation("RADAR-001") // unclassified
+	secretObs := validObservation("RADAR-002")
+	secretObs.Classification = commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET
+
+	stream := &mockStream{
+		observations: []*ingestionv1.SensorObservation{validObs, secretObs},
+		ctx:          context.Background(),
+	}
+
+	err := h.IngestSensorData(stream)
+	if err != nil {
+		t.Fatalf("unexpected stream error: %v", err)
+	}
+	if stream.summary.Rejected != 1 {
+		t.Errorf("expected 1 rejected due to grpc error, got %d", stream.summary.Rejected)
+	}
+}
+
+func TestHandler_ListSensorStatuses_ActiveWithin(t *testing.T) {
+	h := buildHandler()
+	h.IngestSingleObservation(context.Background(), validObservation("RADAR-001"))
+	
+	// immediately active
+	req := &ingestionv1.ListSensorStatusesRequest{ActiveWithinSeconds: 60}
+	resp, _ := h.ListSensorStatuses(context.Background(), req)
+	if len(resp.Sensors) != 1 {
+		t.Errorf("expected 1 sensor, got %d", len(resp.Sensors))
+	}
+	
+	// Wait a bit, although mocking the clock is better. For now a short sleep logic could work
+    // However, Sleep makes tests slow. I will just rely on the test passing and taking whatever time.
+	// We can manually set the internal state or time.Sleep(1500 * time.Millisecond).
+	time.Sleep(1500 * time.Millisecond)
+	req2 := &ingestionv1.ListSensorStatusesRequest{ActiveWithinSeconds: 1}
+	resp2, _ := h.ListSensorStatuses(context.Background(), req2)
+	if len(resp2.Sensors) != 0 {
+		t.Errorf("expected 0 sensors due to timeout, got %d", len(resp2.Sensors))
+	}
+}
