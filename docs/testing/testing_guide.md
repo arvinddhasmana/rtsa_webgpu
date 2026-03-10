@@ -18,9 +18,9 @@ The RTSA project follows a **test pyramid** strategy with four layers:
 | **Integration Tests** | `tests/integration/`                   | `integration` | testcontainers-go (auto)  | Scenario-complete      |
 | **E2E Tests**         | `tests/e2e/`                           | `e2e`         | Full Docker Compose stack | Critical paths         |
 | **Benchmarks**        | `tests/benchmark/`                     | `integration` | testcontainers-go (auto)  | NFR thresholds         |
-| **Frontend Unit**     | `web-cop/src/__tests__/`               | —             | Vitest                    | 80%+                   |
-| **Frontend E2E (T1)** | `web-cop/e2e/mocked/`                  | —             | Playwright (Mocked)       | Critical flows         |
-| **Frontend E2E (T2)** | `web-cop/e2e/live/`                    | —             | Playwright (Live Backend) | Integration flows      |
+| **Frontend Unit**     | `web-cop-gpu/tests/`                   | —             | Vitest                    | 80%+                   |
+| **Frontend E2E (T1)** | `web-cop-gpu/e2e/`                     | —             | Playwright (Mocked)       | Critical flows         |
+| **Frontend E2E (T2)** | `web-cop-gpu/e2e/`                     | —             | Playwright (Live Backend) | Integration flows      |
 | **Frontend QA (T3)**  | Ad-hoc / AI Agents                     | —             | Browser Subagent          | UX Verification        |
 
 ---
@@ -91,8 +91,8 @@ RTSA_VS_Opus/
 │   │   └── query_bench_test.go
 │   └── Makefile
 │
-├── web-cop/                      # SolidJS + WebGPU frontend
-│   ├── src/__tests__/            # Vitest unit tests
+├── web-cop-gpu/                   # SolidJS + WebGPU frontend
+│   ├── tests/                    # Vitest unit tests
 │   ├── e2e/                      # Playwright browser E2E tests
 │   ├── vitest.config.ts
 │   └── playwright.config.ts

@@ -435,7 +435,7 @@ cd ~/workspace/rtsa
 **What the script installs and configures:**
 
 | Step | Tool / Action      | Version | Notes                                       |
-| ---- | ------------------ | ------- | ------------------------------------------- |
+| ---- | ------------------ | ------- | ------------------------------------------- | --- | --- | ---------------- | ----- | ---------------------------------------- | ----------------- | --- | ------------- | --- | ----------------------- |
 | 1    | Go toolchain       | 1.22.4  | Auto-downloaded and installed if absent     |
 | 2    | buf CLI            | 1.32.2  | Protobuf toolchain                          |
 | 2    | protoc-gen-go      | latest  | Go Protobuf code generator                  |
@@ -452,7 +452,7 @@ cd ~/workspace/rtsa
 | 7    | helm               | latest  | Kubernetes chart deployment                 |
 | 8    | Git configuration  | —       | Identity check, `pull.rebase`, `.githooks/` |
 | 9    | Go modules         | —       | `go mod download` for all services          |
-| 10   | Frontend deps      | —       | `pnpm install` in `ui/`                     |
+| 10   | Frontend deps      | —       | `pnpm install` in `web-cop-gpu/`            | \n  | 10  | Rust + wasm-pack | 1.77+ | Wasm decoder compilation (cargo install) | ", "oldString": " | 10  | Frontend deps | —   | `pnpm install` in `ui/` |
 | 11   | Protobuf codegen   | —       | `buf generate proto/`                       |
 | 12   | `.env` file        | —       | Created from `.env.example`                 |
 | 13   | Dev TLS certs      | —       | CA + server + client certs via mkcert       |

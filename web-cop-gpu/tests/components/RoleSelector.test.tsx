@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // tests/components/RoleSelector.test.tsx
 
-import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@solidjs/testing-library";
+import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { afterEach, describe, expect, it } from "vitest";
 import { RoleSelector } from "../../src/components/toolbar/RoleSelector";
 import { role, setRole } from "../../src/signals/viewport";
 

@@ -2,10 +2,11 @@
 # .dockerignore — exclude large/conflicting paths from all Docker build contexts
 
 # Node.js build artefacts
-web-cop/node_modules/
-web-cop/dist/
-web-cop/playwright-report/
-web-cop/test-results/
+web-cop-gpu/node_modules/
+web-cop-gpu/dist/
+web-cop-gpu/playwright-report/
+web-cop-gpu/test-results/
+web-cop-gpu/wasm-decoder/target/
 
 # Go build cache
 **/vendor/

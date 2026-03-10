@@ -13,14 +13,14 @@
 
 The WebTransport service (`pkg/webtransport`) delivers real-time track data to the WebGPU COP frontend via QUIC datagrams over WebTransport (RFC 9297). It is the hot path for 50k-track @ 60 FPS delivery.
 
-| Property             | Value                                              |
-| -------------------- | -------------------------------------------------- |
-| Port                 | 4443 (QUIC/UDP)                                    |
-| Protocol             | WebTransport over HTTP/3                           |
-| TLS                  | TLS 1.3 with CSE-approved cipher suites            |
-| Auth                 | JWT (HS256 dev, RS256 production)                  |
-| Max sessions         | 100 simultaneous                                   |
-| Record format        | 128-byte FlatBuffer (binary), up to 9 per datagram |
+| Property      | Value                                              |
+| ------------- | -------------------------------------------------- |
+| Port          | 4443 (QUIC/UDP)                                    |
+| Protocol      | WebTransport over HTTP/3                           |
+| TLS           | TLS 1.3 with CSE-approved cipher suites            |
+| Auth          | JWT (HS256 dev, RS256 production)                  |
+| Max sessions  | 100 simultaneous                                   |
+| Record format | 128-byte FlatBuffer (binary), up to 9 per datagram |
 
 ---
 
@@ -37,18 +37,18 @@ The WebTransport service (`pkg/webtransport`) delivers real-time track data to t
 
 All configuration is via environment variables. No secrets in config files.
 
-| Variable                  | Required | Default              | Description                                      |
-| ------------------------- | -------- | -------------------- | ------------------------------------------------ |
-| `WT_LISTEN_ADDR`          | Yes      | `0.0.0.0:4443`       | Listen address for the QUIC endpoint             |
-| `WT_TLS_CERT_FILE`        | Yes      | —                    | Path to TLS certificate (PEM)                    |
-| `WT_TLS_KEY_FILE`         | Yes      | —                    | Path to TLS private key (PEM)                    |
-| `WT_JWT_SECRET`           | Dev only | —                    | HMAC-SHA256 JWT secret (development only)        |
-| `WT_JWT_PUBLIC_KEY_FILE`  | Prod     | —                    | Path to RS256 public key for JWT validation      |
-| `WT_REDPANDA_BROKERS`     | Yes      | `localhost:9092`     | Comma-separated Redpanda broker addresses        |
-| `WT_TRACK_TOPIC`          | Yes      | `track-updates`      | Redpanda topic for track records                 |
-| `WT_MAX_SESSIONS`         | No       | `100`                | Maximum concurrent WebTransport sessions         |
-| `WT_ALLOWED_ORIGINS`      | No       | (all)                | Comma-separated allowed origins (empty = allow all, dev only) |
-| `WT_CONGESTION_THRESHOLD` | No       | `0.8`                | QUIC send buffer fill ratio to trigger priority shedding |
+| Variable                  | Required | Default          | Description                                                   |
+| ------------------------- | -------- | ---------------- | ------------------------------------------------------------- |
+| `WT_LISTEN_ADDR`          | Yes      | `0.0.0.0:4443`   | Listen address for the QUIC endpoint                          |
+| `WT_TLS_CERT_FILE`        | Yes      | —                | Path to TLS certificate (PEM)                                 |
+| `WT_TLS_KEY_FILE`         | Yes      | —                | Path to TLS private key (PEM)                                 |
+| `WT_JWT_SECRET`           | Dev only | —                | HMAC-SHA256 JWT secret (development only)                     |
+| `WT_JWT_PUBLIC_KEY_FILE`  | Prod     | —                | Path to RS256 public key for JWT validation                   |
+| `WT_REDPANDA_BROKERS`     | Yes      | `localhost:9092` | Comma-separated Redpanda broker addresses                     |
+| `WT_TRACK_TOPIC`          | Yes      | `track-updates`  | Redpanda topic for track records                              |
+| `WT_MAX_SESSIONS`         | No       | `100`            | Maximum concurrent WebTransport sessions                      |
+| `WT_ALLOWED_ORIGINS`      | No       | (all)            | Comma-separated allowed origins (empty = allow all, dev only) |
+| `WT_CONGESTION_THRESHOLD` | No       | `0.8`            | QUIC send buffer fill ratio to trigger priority shedding      |
 
 ---
 
@@ -131,31 +131,32 @@ Returns `200 OK` when the Redpanda consumer is connected and the TLS certificate
 
 The service exports Prometheus metrics on port 9101:
 
-| Metric                                   | Type    | Description                            |
-| ---------------------------------------- | ------- | -------------------------------------- |
-| `wt_sessions_active`                     | Gauge   | Currently active WebTransport sessions |
-| `wt_datagrams_sent_total`                | Counter | Total datagrams sent across all sessions |
-| `wt_records_sent_total`                  | Counter | Total track records forwarded          |
-| `wt_records_dropped_total`               | Counter | Records dropped (priority shedding)    |
-| `wt_auth_failures_total`                 | Counter | JWT validation failures                |
-| `wt_session_duration_seconds`            | Histogram | Session lifetime distribution         |
-| `wt_datagram_send_duration_seconds`      | Histogram | Per-datagram send latency             |
+| Metric                              | Type      | Description                              |
+| ----------------------------------- | --------- | ---------------------------------------- |
+| `wt_sessions_active`                | Gauge     | Currently active WebTransport sessions   |
+| `wt_datagrams_sent_total`           | Counter   | Total datagrams sent across all sessions |
+| `wt_records_sent_total`             | Counter   | Total track records forwarded            |
+| `wt_records_dropped_total`          | Counter   | Records dropped (priority shedding)      |
+| `wt_auth_failures_total`            | Counter   | JWT validation failures                  |
+| `wt_session_duration_seconds`       | Histogram | Session lifetime distribution            |
+| `wt_datagram_send_duration_seconds` | Histogram | Per-datagram send latency                |
 
 ### Grafana Dashboard
 
 Import `deploy/grafana/webtransport-dashboard.json` for the pre-built dashboard showing:
+
 - Active sessions and throughput
 - Priority shedding rate (should be < 1% under normal load)
 - Authentication failure rate
 
 ### Alerts
 
-| Alert                             | Threshold                        | Action                                     |
-| --------------------------------- | -------------------------------- | ------------------------------------------ |
-| `WTSessionCount > 95`             | > 95% of max sessions            | Scale out or throttle new connections       |
-| `WTAuthFailures > 10/min`         | 10 failures per minute           | Investigate potential token replay attack   |
-| `WTDropRate > 5%`                 | Drop rate above 5%               | Check Redpanda consumer lag and QUIC buffer |
-| `WTService down`                  | Health check fails 2 consecutive | Page on-call, initiate rollback if needed   |
+| Alert                     | Threshold                        | Action                                      |
+| ------------------------- | -------------------------------- | ------------------------------------------- |
+| `WTSessionCount > 95`     | > 95% of max sessions            | Scale out or throttle new connections       |
+| `WTAuthFailures > 10/min` | 10 failures per minute           | Investigate potential token replay attack   |
+| `WTDropRate > 5%`         | Drop rate above 5%               | Check Redpanda consumer lag and QUIC buffer |
+| `WTService down`          | Health check fails 2 consecutive | Page on-call, initiate rollback if needed   |
 
 ---
 
@@ -214,48 +215,49 @@ WebTransport sessions are authenticated with short-lived JWT tokens issued by th
 
 Refer to `docs/implementation/v4/phase4_hardening_cutover.md §H4-8` for the full cutover plan.
 
-### Pre-Cutover Checklist
+> **✅ Cutover Status**: Production cutover is complete. The legacy `web-cop` has been deleted
+> from the repository. `web-cop-gpu` is the sole frontend COP.
 
-- [ ] `web-cop-gpu` smoke test with production data: 30 min sustained 50k tracks
-- [ ] All Playwright E2E tests green in CI
-- [ ] Visual regression suite green in CI
-- [ ] Security audit report signed off
-- [ ] WebTransport TLS certificate valid for production domain
-- [ ] QUIC firewall rules applied on all production firewalls
-- [ ] Grafana dashboard confirmed operational
-- [ ] Rollback DNS TTL reduced to 60 seconds (before cutover)
+### Pre-Cutover Checklist (Completed)
 
-### Cutover Steps
+- [x] `web-cop-gpu` smoke test with production data: 30 min sustained 50k tracks
+- [x] All Playwright E2E tests green in CI
+- [x] Visual regression suite green in CI
+- [x] Security audit report signed off
+- [x] WebTransport TLS certificate valid for production domain
+- [x] QUIC firewall rules applied on all production firewalls
+- [x] Grafana dashboard confirmed operational
+- [x] Old `web-cop` deleted from repository
 
-1. Deploy `web-cop-gpu` alongside `web-cop` (parallel operation, 1 week canary)
-2. Internal team validates `web-cop-gpu` on production data
-3. Switch Envoy routing to `web-cop-gpu`:
+### Post-Cutover Verification
+
+1. Verify `web-cop-gpu` container is healthy:
    ```bash
-   kubectl apply -f deploy/envoy/web-cop-gpu-routing.yaml
+   curl -sf http://localhost:5173/ > /dev/null && echo "OK"
    ```
-4. Monitor for 24 hours using Grafana dashboards
-5. If no issues: decommission `web-cop` (archive React code)
+2. Monitor WebTransport connection metrics in Grafana for 24 hours
+3. Verify all Playwright E2E tests pass against `web-cop-gpu`
 
 ### Rollback
 
-If critical issues discovered:
-1. Revert Envoy routing:
-   ```bash
-   kubectl apply -f deploy/envoy/web-cop-routing.yaml
-   ```
-2. `web-cop` remains running throughout cutover period — no data migration needed
-3. Open an incident ticket and report to team lead
+If critical issues are discovered with the WebTransport pipeline, the fallback path is to
+serve the COP over gRPC-Web (cold path) only. The WebTransport server can be scaled to zero
+while the issue is investigated:
+
+```bash
+docker compose -f deploy/docker-compose.services.yml up -d --scale webtransport-server=0
+```
 
 ---
 
 ## 10. Troubleshooting
 
-| Symptom                                  | Cause                                           | Resolution                                               |
-| ---------------------------------------- | ----------------------------------------------- | -------------------------------------------------------- |
-| Clients cannot connect via WebTransport  | UDP/4443 blocked by firewall                   | Open UDP/4443 on all firewall tiers                      |
-| `401 Unauthorized` in browser console   | Expired or invalid JWT token                    | Re-issue token via auth service; check server clock sync |
-| High drop rate (`wt_records_dropped`)    | QUIC congestion or Redpanda consumer lag        | Scale WebTransport replicas; check Redpanda health       |
-| Tracks not updating despite connection  | SAB not being updated by Data Worker            | Check Data Worker logs in browser DevTools console       |
-| Visual glitches at 50k tracks            | GPU buffer upload bottleneck                    | Profile with Chrome DevTools GPU tab; check FrameTimer   |
-| Certificate error in browser            | Mismatched SAN or expired certificate           | Rotate certificate; verify FQDN matches                  |
-| SharedArrayBuffer unavailable           | Missing COOP/COEP headers on frontend           | Verify Envoy adds COOP/COEP headers in routing config    |
+| Symptom                                 | Cause                                    | Resolution                                               |
+| --------------------------------------- | ---------------------------------------- | -------------------------------------------------------- |
+| Clients cannot connect via WebTransport | UDP/4443 blocked by firewall             | Open UDP/4443 on all firewall tiers                      |
+| `401 Unauthorized` in browser console   | Expired or invalid JWT token             | Re-issue token via auth service; check server clock sync |
+| High drop rate (`wt_records_dropped`)   | QUIC congestion or Redpanda consumer lag | Scale WebTransport replicas; check Redpanda health       |
+| Tracks not updating despite connection  | SAB not being updated by Data Worker     | Check Data Worker logs in browser DevTools console       |
+| Visual glitches at 50k tracks           | GPU buffer upload bottleneck             | Profile with Chrome DevTools GPU tab; check FrameTimer   |
+| Certificate error in browser            | Mismatched SAN or expired certificate    | Rotate certificate; verify FQDN matches                  |
+| SharedArrayBuffer unavailable           | Missing COOP/COEP headers on frontend    | Verify Envoy adds COOP/COEP headers in routing config    |

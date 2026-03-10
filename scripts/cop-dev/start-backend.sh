@@ -3,19 +3,24 @@
 # scripts/cop-dev/start-backend.sh
 # One-command backend startup for COP Web UI development.
 #
-# Starts all RTSA infrastructure and services EXCEPT web-cop,
-# so you can run `npm run dev` locally with hot-reload on port 5173.
+# Starts all RTSA infrastructure and services for COP Web UI development.
+#
+# By default (--local-frontend), web-cop-gpu is excluded from Docker so you
+# can run `pnpm dev` locally with hot-reload on port 5173.
+# Use --containerized-frontend to include the web-cop-gpu container instead.
 #
 # Usage:
 #   bash scripts/cop-dev/start-backend.sh [OPTIONS]
 #
 # Options:
-#   --setup             Run scripts/setup/setup-dev.sh first (first-time only)
-#   --scenario <file>   Simulator scenario YAML (default: sensor-health-demo.yaml)
-#   --no-sim            Skip starting the simulator
-#   --no-seed           Skip seeding demo data
-#   --dry-run           Print commands without executing
-#   -h, --help          Show this help
+#   --setup                  Run scripts/setup/setup-dev.sh first (first-time only)
+#   --scenario <file>        Simulator scenario YAML (default: sensor-health-demo.yaml)
+#   --local-frontend         Exclude web-cop-gpu container; run frontend locally (default)
+#   --containerized-frontend Include web-cop-gpu container in Docker Compose
+#   --no-sim                 Skip starting the simulator
+#   --no-seed                Skip seeding demo data
+#   --dry-run                Print commands without executing
+#   -h, --help               Show this help
 
 set -euo pipefail
 
@@ -28,6 +33,7 @@ SCENARIO="sensor-health-demo.yaml"
 RUN_SIMULATOR="true"
 SEED_DATA="true"
 DRY_RUN="false"
+LOCAL_FRONTEND="true"
 
 # ── Colours ───────────────────────────────────────────────────
 GREEN='\033[0;32m'
@@ -41,26 +47,31 @@ usage() {
   cat <<'USAGE'
 COP Web UI — Backend Startup Script
 
-Starts all RTSA backend services (infra + microservices + simulator)
-while EXCLUDING the web-cop container. Run `npm run dev` locally.
+Starts all RTSA backend services (infra + microservices + simulator).
+
+By default, web-cop-gpu is EXCLUDED so you can run pnpm dev locally.
+Use --containerized-frontend to include the web-cop-gpu Docker container.
 
 Usage:
   bash scripts/cop-dev/start-backend.sh [OPTIONS]
 
 Options:
-  --setup              Run scripts/setup/setup-dev.sh first (first-time only)
-  --scenario <file>    Simulator scenario YAML file (default: sensor-health-demo.yaml)
-                       Available: maritime-demo.yaml, multi-domain-demo.yaml,
-                       fusion-dashboard-demo.yaml, operator-ui-demo.yaml,
-                       sensor-health-demo.yaml, nato-exchange-demo.yaml,
-                       analyst-forensics-demo.yaml
-  --no-sim             Skip starting the simulator
-  --no-seed            Skip seeding demo data into ClickHouse
-  --dry-run            Print commands without executing
-  -h, --help           Show this help
+  --setup                  Run scripts/setup/setup-dev.sh first (first-time only)
+  --scenario <file>        Simulator scenario YAML file (default: sensor-health-demo.yaml)
+                           Available: maritime-demo.yaml, multi-domain-demo.yaml,
+                           fusion-dashboard-demo.yaml, operator-ui-demo.yaml,
+                           sensor-health-demo.yaml, nato-exchange-demo.yaml,
+                           analyst-forensics-demo.yaml
+  --local-frontend         Exclude web-cop-gpu container; run frontend locally (default)
+  --containerized-frontend Include web-cop-gpu container in Docker Compose
+  --no-sim                 Skip starting the simulator
+  --no-seed                Skip seeding demo data into ClickHouse
+  --dry-run                Print commands without executing
+  -h, --help               Show this help
 
 Examples:
-  bash scripts/cop-dev/start-backend.sh                           # Default (sensor-health + seed)
+  bash scripts/cop-dev/start-backend.sh                           # Default (local frontend + seed)
+  bash scripts/cop-dev/start-backend.sh --containerized-frontend  # Include web-cop-gpu container
   bash scripts/cop-dev/start-backend.sh --scenario maritime-demo.yaml
   bash scripts/cop-dev/start-backend.sh --no-sim                  # Backend only, no simulator
   bash scripts/cop-dev/start-backend.sh --setup                   # First-time setup + start
@@ -84,6 +95,12 @@ while [ "$#" -gt 0 ]; do
     --scenario)
       shift
       SCENARIO="${1:-sensor-health-demo.yaml}"
+      ;;
+    --local-frontend)
+      LOCAL_FRONTEND="true"
+      ;;
+    --containerized-frontend)
+      LOCAL_FRONTEND="false"
       ;;
     --no-sim)
       RUN_SIMULATOR="false"
@@ -141,9 +158,14 @@ else
   echo -e "${YELLOW}[3/6] Skipping data seeding (--no-seed)${NC}"
 fi
 
-# ── Phase 4: Application services (EXCLUDING web-cop) ───────
-echo -e "${CYAN}[4/6] Starting application services (web-cop excluded)...${NC}"
-run_cmd "$DC up -d --build --scale web-cop=0"
+# ── Phase 4: Application services ────────────────────────────
+if [ "$LOCAL_FRONTEND" = "true" ]; then
+  echo -e "${CYAN}[4/6] Starting application services (web-cop-gpu excluded for local dev)...${NC}"
+  run_cmd "$DC up -d --build --scale web-cop-gpu=0"
+else
+  echo -e "${CYAN}[4/6] Starting application services (including web-cop-gpu container)...${NC}"
+  run_cmd "$DC up -d --build"
+fi
 
 # ── Phase 5: Health checks ──────────────────────────────────
 echo -e "${CYAN}[5/6] Waiting for services to pass health checks...${NC}"
@@ -211,8 +233,12 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║   Backend ready for UI development!                  ║${NC}"
 echo -e "${GREEN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "  Next steps:"
-echo "    cd web-cop && npm run dev"
+if [ "$LOCAL_FRONTEND" = "true" ]; then
+  echo "  Next steps:"
+  echo "    cd web-cop-gpu && pnpm dev"
+else
+  echo "  web-cop-gpu running in Docker at http://localhost:5173"
+fi
 echo ""
 echo "  Connection URLs:"
 echo "    Frontend (Vite)      : http://localhost:5173"

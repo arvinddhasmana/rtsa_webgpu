@@ -1106,19 +1106,19 @@ gantt
     Performance benchmarking (50k tracks)     :p4b, 2026-04-28, 7d
     Security audit (SAB, COOP/COEP, QUIC)     :p4c, 2026-05-05, 7d
     Edge deployment validation                :p4d, 2026-05-05, 7d
-    Old web-cop archival + cleanup            :p4e, 2026-05-12, 3d
-    Documentation + ADR finalization          :p4f, 2026-05-12, 5d
+    Old web-cop archival + cleanup            :done, p4e, 2026-05-12, 3d
+    Documentation + ADR finalization          :done, p4f, 2026-05-12, 5d
 ```
 
 ### 13.2 Clean-Break Migration
 
-The new COP is built as a **separate application** (`web-cop-gpu/`) alongside the existing `web-cop/` during development. There is no feature flag or runtime switching between old and new pipelines.
+The COP was built as a **separate application** (`web-cop-gpu/`) and has fully replaced the legacy `web-cop/` React COP, which has been deleted from the repository. There is no feature flag or runtime switching — `web-cop-gpu/` is the sole frontend.
 
-- **Development**: New `web-cop-gpu/` project with SolidJS + WebGPU from scratch
+- **Development**: `web-cop-gpu/` project with SolidJS + WebGPU built from scratch
 - **Backend**: FlatBuffer Serializer and WebTransport Server deployed alongside existing gRPC services
 - **Validation**: New COP validated against the same synthetic test data as old COP
-- **Cutover**: Once performance targets are met, `web-cop-gpu/` replaces `web-cop/` as the deployed COP
-- **Cleanup**: Old `web-cop/` archived; React/MapLibre/Zustand dependencies removed from the repository
+- **Cutover**: ✅ Complete — `web-cop-gpu/` is the deployed COP. Old `web-cop/` deleted from repository
+- **Cleanup**: ✅ Complete — React/MapLibre/Zustand dependencies fully removed
 
 This avoids feature flag complexity, dual-path bugs, and the overhead of maintaining two frontend frameworks simultaneously.
 

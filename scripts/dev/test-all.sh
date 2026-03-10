@@ -147,7 +147,7 @@ run_frontend() {
 
   local fe_ok=true
   set +e
-  (cd "${REPO_ROOT}/web-cop" && pnpm test 2>&1) | tee "${fe_log}"
+  (cd "${REPO_ROOT}/web-cop-gpu" && pnpm test 2>&1) | tee "${fe_log}"
   local _pe=("${PIPESTATUS[@]}")
   set -e
   [ "${_pe[0]}" -eq 0 ] || fe_ok=false
@@ -334,10 +334,10 @@ main() {
     bash "${SCRIPT_DIR}/test-go.sh"
 
   # 2. Frontend Unit Tests
-  if [ -d "${REPO_ROOT}/web-cop" ] && command -v pnpm &>/dev/null; then
+  if [ -d "${REPO_ROOT}/web-cop-gpu" ] && command -v pnpm &>/dev/null; then
     run_frontend
   else
-    log_warn "Frontend tests — skipped (web-cop/ not found or pnpm not available)"
+    log_warn "Frontend tests — skipped (web-cop-gpu/ not found or pnpm not available)"
     STAGE_NAMES+=("Unit — Frontend")
     STAGE_TOTAL+=(0); STAGE_PASSED+=(0); STAGE_FAILED+=(0)
     STAGE_STATUS+=("SKIPPED")

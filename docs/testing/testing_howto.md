@@ -211,21 +211,21 @@ Benchmarks call `b.Errorf()` if thresholds are not met:
 ### Run all frontend tests
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm test
 ```
 
 ### Run with coverage
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm test:coverage
 ```
 
 ### Run in watch mode
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm test:watch
 ```
 
@@ -236,28 +236,28 @@ pnpm test:watch
 ### Prerequisites
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm exec playwright install --with-deps
 ```
 
 ### Run all browser E2E tests
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm test:e2e
 ```
 
 ### Run headed (visible browser)
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm test:e2e:headed
 ```
 
 ### View HTML report
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm test:e2e:report
 ```
 
@@ -294,9 +294,9 @@ go tool cover -func=coverage.out | tail -1   # Summary line
 ### Frontend coverage
 
 ```bash
-cd web-cop
+cd web-cop-gpu
 pnpm test:coverage
-# Coverage report in: web-cop/coverage/
+# Coverage report in: web-cop-gpu/coverage/
 ```
 
 ---
@@ -469,10 +469,10 @@ grep -oP 'FAILED=\K[0-9]+' "${LATEST}e2e/counts.txt"
 | Integration tests     | `cd tests && make test-integration`                                      |
 | E2E tests             | `cd tests && make test-e2e`                                              |
 | Benchmarks            | `cd tests && make test-bench`                                            |
-| Frontend unit tests   | `cd web-cop && pnpm test`                                                |
-| Frontend E2E          | `cd web-cop && pnpm test:e2e`                                            |
+| Frontend unit tests   | `cd web-cop-gpu && pnpm test`                                            |
+| Frontend E2E          | `cd web-cop-gpu && pnpm test:e2e`                                        |
 | Coverage (Go)         | `./scripts/dev/test-go.sh` → `.coverage/`                                |
-| Coverage (frontend)   | `cd web-cop && pnpm test:coverage`                                       |
+| Coverage (frontend)   | `cd web-cop-gpu && pnpm test:coverage`                                   |
 | Pre-PR gate           | `./scripts/dev/pre-pr-check.sh`                                          |
 | Everything            | `./scripts/dev/test-all.sh`                                              |
 | Skip E2E + benchmarks | `./scripts/dev/test-all.sh --skip-e2e --skip-bench`                      |

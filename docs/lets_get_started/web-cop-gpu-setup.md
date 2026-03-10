@@ -11,7 +11,7 @@
 
 ## 1. Overview
 
-`web-cop-gpu` is the production WebGPU Common Operating Picture (COP) frontend. It replaces the legacy React-based `web-cop` for the hot-path track rendering. It uses:
+`web-cop-gpu` is the production WebGPU Common Operating Picture (COP) frontend. It uses:
 
 - **SolidJS** — reactive UI framework (no virtual DOM)
 - **WebGPU** — GPU-accelerated track rendering (50k tracks @ 60 FPS)
@@ -24,13 +24,13 @@
 
 ## 2. Prerequisites
 
-| Tool        | Version   | Purpose                          |
-| ----------- | --------- | -------------------------------- |
-| Node.js     | 20 LTS+   | Build toolchain                  |
-| npm         | 10+       | Package manager                  |
-| Rust        | 1.77+     | Wasm decoder compilation         |
-| wasm-pack   | 0.12+     | Rust → Wasm build tool           |
-| Chrome/Edge | 117+      | WebGPU-capable browser           |
+| Tool        | Version | Purpose                  |
+| ----------- | ------- | ------------------------ |
+| Node.js     | 20 LTS+ | Build toolchain          |
+| pnpm        | 9+      | Package manager          |
+| Rust        | 1.77+   | Wasm decoder compilation |
+| wasm-pack   | 0.12+   | Rust → Wasm build tool   |
+| Chrome/Edge | 117+    | WebGPU-capable browser   |
 
 > **Note**: Firefox does not yet support WebGPU. Use Chrome or Edge for development.
 
@@ -42,7 +42,7 @@
 
 ```bash
 cd web-cop-gpu
-npm install
+pnpm install
 ```
 
 ### 3.2 Build the Wasm Decoder (Rust)
@@ -56,10 +56,11 @@ wasm-pack build --target web --out-dir ../src/wasm-decoder-pkg
 
 ```bash
 cd web-cop-gpu
-npm run dev
+pnpm dev
 ```
 
 The dev server starts at **http://localhost:5174**. It sets the required security headers:
+
 - `Cross-Origin-Opener-Policy: same-origin`
 - `Cross-Origin-Embedder-Policy: require-corp`
 
@@ -123,13 +124,13 @@ web-cop-gpu/
 
 ```bash
 cd web-cop-gpu
-npm test
+pnpm test
 ```
 
 ### Unit Tests with Coverage
 
 ```bash
-npm run test:coverage
+pnpm test:coverage
 ```
 
 Target: **≥ 80% line coverage** per file (SDLC requirement).
@@ -139,19 +140,19 @@ Target: **≥ 80% line coverage** per file (SDLC requirement).
 First, start the dev server in a separate terminal:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Then run the E2E suite:
 
 ```bash
-npm run test:e2e
+pnpm test:e2e
 ```
 
 Run with a browser UI (headed mode):
 
 ```bash
-npm run test:e2e:headed
+pnpm test:e2e:headed
 ```
 
 ### Visual Regression Tests
@@ -159,13 +160,13 @@ npm run test:e2e:headed
 Capture golden screenshots (first run):
 
 ```bash
-npm run test:e2e:update-snapshots
+pnpm test:e2e:update-snapshots
 ```
 
 Compare against golden screenshots (CI):
 
 ```bash
-npm run test:e2e:visual
+pnpm test:e2e:visual
 ```
 
 > Golden screenshots are stored in `e2e/snapshots/`. They must be committed to the repository.
@@ -178,11 +179,11 @@ npm run test:e2e:visual
 
 The SAB is divided into three regions:
 
-| Region               | Offset   | Size    | Purpose                           |
-| -------------------- | -------- | ------- | --------------------------------- |
-| Header               | 0        | 4 KB    | Atomic counters (active_count)    |
-| Dirty Bitfield       | 4096     | 8 KB    | Bit per slot for changed tracks   |
-| Track Data           | 12288    | variable| 128-byte records, up to 65536     |
+| Region         | Offset | Size     | Purpose                         |
+| -------------- | ------ | -------- | ------------------------------- |
+| Header         | 0      | 4 KB     | Atomic counters (active_count)  |
+| Dirty Bitfield | 4096   | 8 KB     | Bit per slot for changed tracks |
+| Track Data     | 12288  | variable | 128-byte records, up to 65536   |
 
 ### Zero Per-Frame Allocation Rule
 
@@ -191,6 +192,7 @@ All GPU buffers are allocated **once at startup** to maximum capacity (`MAX_TRAC
 ### LOD System
 
 The LOD system (`src/gpu/lod.ts`) automatically reduces rendering complexity at low zoom levels:
+
 - **Full** (`scale ≥ 0.5`): all effects, all tracks
 - **Medium** (`scale ≥ 0.1`): no trails, labels disabled above 10k tracks, max 20k instances
 - **Minimal** (`scale < 0.1`): icons only, max 10k instances
@@ -198,6 +200,7 @@ The LOD system (`src/gpu/lod.ts`) automatically reduces rendering complexity at 
 ### Frame Timer
 
 The `FrameTimer` (`src/gpu/frame-timer.ts`) wraps GPU timestamp queries to measure per-pass timing. It provides:
+
 - Smoothed 60-frame rolling averages
 - JS main-thread wall-clock measurement
 - Graceful fallback when `timestamp-query` is unsupported
@@ -219,24 +222,24 @@ All developers must follow these rules:
 
 ## 8. Performance Targets
 
-| Metric                | Target        | Measurement            |
-| --------------------- | ------------- | ---------------------- |
-| Total frame time      | ≤ 8 ms        | FrameTimer.smoothed    |
-| SAB read + upload     | ≤ 2 ms        | FrameTimer.sabUploadMs |
-| Compute passes        | ≤ 1 ms        | FrameTimer.computeMs   |
-| Render passes         | ≤ 4 ms        | FrameTimer.renderMs    |
-| Main thread CPU       | < 20%         | Chrome DevTools        |
-| Track throughput      | 50k @ 60 FPS  | StatusBar FPS display  |
+| Metric            | Target       | Measurement            |
+| ----------------- | ------------ | ---------------------- |
+| Total frame time  | ≤ 8 ms       | FrameTimer.smoothed    |
+| SAB read + upload | ≤ 2 ms       | FrameTimer.sabUploadMs |
+| Compute passes    | ≤ 1 ms       | FrameTimer.computeMs   |
+| Render passes     | ≤ 4 ms       | FrameTimer.renderMs    |
+| Main thread CPU   | < 20%        | Chrome DevTools        |
+| Track throughput  | 50k @ 60 FPS | StatusBar FPS display  |
 
 ---
 
 ## 9. Troubleshooting
 
-| Symptom                              | Cause                                  | Fix                                                     |
-| ------------------------------------ | -------------------------------------- | ------------------------------------------------------- |
-| Degraded notice on startup           | WebGPU or SAB unavailable              | Use Chrome 117+ with COOP/COEP headers                  |
-| SharedArrayBuffer unavailable        | Missing COOP/COEP headers              | Run via `npm run dev` (not file://)                     |
-| Wasm decoder fails to load           | wasm-pack build not run                | Run `wasm-pack build` in `wasm-decoder/`                |
-| WebTransport connection fails        | Backend not running or TLS error       | Start `pkg/webtransport` server with dev TLS certs      |
-| GPU buffer size errors               | Track count exceeds MAX_TRACKS         | Track count is capped at 65,536 (SAB layout)            |
-| Visual regression failures in CI     | Rendering differences between machines | Update snapshots with `npm run test:e2e:update-snapshots`|
+| Symptom                          | Cause                                  | Fix                                                    |
+| -------------------------------- | -------------------------------------- | ------------------------------------------------------ |
+| Degraded notice on startup       | WebGPU or SAB unavailable              | Use Chrome 117+ with COOP/COEP headers                 |
+| SharedArrayBuffer unavailable    | Missing COOP/COEP headers              | Run via `pnpm dev` (not file://)                       |
+| Wasm decoder fails to load       | wasm-pack build not run                | Run `wasm-pack build` in `wasm-decoder/`               |
+| WebTransport connection fails    | Backend not running or TLS error       | Start `pkg/webtransport` server with dev TLS certs     |
+| GPU buffer size errors           | Track count exceeds MAX_TRACKS         | Track count is capped at 65,536 (SAB layout)           |
+| Visual regression failures in CI | Rendering differences between machines | Update snapshots with `pnpm test:e2e:update-snapshots` |

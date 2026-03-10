@@ -129,6 +129,8 @@ echo -e "${CYAN}[2/4] Starting infrastructure and services...${NC}"
 source "$SCRIPT_DIR/_common.sh"
 start_infrastructure_and_services
 
+echo -e "${CYAN}[3/4] Seeding and scenario preparation complete.${NC}"
+
 echo -e "${CYAN}[4/4] Launching scenario: ${SCENARIO}${NC}"
 
 # Build child script args: pass --skip-infra to avoid duplicate setup;
@@ -183,13 +185,16 @@ esac
 
 echo -e "${GREEN}=== Demo run completed for scenario: ${SCENARIO} ===${NC}"
 echo ""
-echo "  Dashboard URL  : http://localhost:5173"
-echo "  API Gateway    : http://localhost:8080"
-echo "  Redpanda Admin : http://localhost:8081"
+echo "  COP (WebGPU)   : http://localhost:5173  (Chrome 113+ / Edge 113+ required)"
+echo "  API Gateway    : https://localhost:8443"
+echo "  Redpanda Admin : http://localhost:8080"
 echo "  ClickHouse UI  : http://localhost:8123/play"
 echo ""
 echo "  Tip: services remain running for live UI exploration."
 echo "  Stop with: bash scripts/demo/stop-demo.sh --volumes"
+
+# Open COP in default browser
+open_cop_browser "http://localhost:5173"
 
 if [ "$STOP_ON_COMPLETE" = "true" ]; then
   echo -e "${CYAN}--stop-on-complete flag set. Tearing down...${NC}"

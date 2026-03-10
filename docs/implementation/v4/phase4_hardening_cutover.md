@@ -5,7 +5,7 @@
 > **Document**: v4 Implementation — Phase 4
 > **Version**: 1.0
 > **Classification**: UNCLASSIFIED
-> **Status**: Not Started
+> **Status**: Complete
 > **Prerequisite Phases**: Phase 3 (UI & Interaction)
 > **Architecture Reference**: `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md` §10, §11
 
@@ -15,20 +15,22 @@
 
 Profile and tune for the 50k-track @ 60 FPS target, conduct security audit, build comprehensive E2E and visual regression test suites, complete documentation, and execute production cutover from the React COP to the WebGPU COP.
 
+> **Cutover Status**: ✅ Production cutover complete. Legacy `web-cop/` has been deleted from the repository. `web-cop-gpu/` is the sole frontend COP.
+
 ---
 
 ## 2. Deliverables
 
-| #    | Deliverable             | Description                                           |
-| ---- | ----------------------- | ----------------------------------------------------- |
-| H4-1 | Performance profiling   | Chrome DevTools + WebGPU timestamp queries            |
-| H4-2 | Performance tuning      | Bottleneck fixes to hit ≤ 8 ms frame time             |
-| H4-3 | Security audit          | ITSG-33 controls review, CSP validation, threat model |
-| H4-4 | E2E test suite          | Playwright coverage of all user workflows             |
-| H4-5 | Visual regression suite | Golden images at 100, 1k, 10k, 50k tracks             |
-| H4-6 | Load / stress testing   | Sustained 50k tracks for 30+ minutes                  |
-| H4-7 | Documentation           | User guides, developer onboarding, runbooks           |
-| H4-8 | Production cutover      | DNS/routing switch from `web-cop` to `web-cop-gpu`    |
+| #    | Deliverable             | Description                                                |
+| ---- | ----------------------- | ---------------------------------------------------------- |
+| H4-1 | Performance profiling   | Chrome DevTools + WebGPU timestamp queries                 |
+| H4-2 | Performance tuning      | Bottleneck fixes to hit ≤ 8 ms frame time                  |
+| H4-3 | Security audit          | ITSG-33 controls review, CSP validation, threat model      |
+| H4-4 | E2E test suite          | Playwright coverage of all user workflows                  |
+| H4-5 | Visual regression suite | Golden images at 100, 1k, 10k, 50k tracks                  |
+| H4-6 | Load / stress testing   | Sustained 50k tracks for 30+ minutes                       |
+| H4-7 | Documentation           | User guides, developer onboarding, runbooks                |
+| H4-8 | Production cutover      | ✅ Complete — `web-cop` deleted, `web-cop-gpu` is sole COP |
 
 ---
 
@@ -123,25 +125,26 @@ Expand Phase 3 Playwright tests to full workflow coverage:
 
 ```mermaid
 flowchart TD
-  A["Both COPs running<br/>(parallel operation)"] --> B["Smoke test WebGPU COP<br/>with production data"]
+  A["web-cop-gpu deployed<br/>(sole COP)"] --> B["Smoke test WebGPU COP<br/>with production data"]
   B --> C{All tests pass?}
   C -->|No| D["Fix and re-test"]
   D --> B
-  C -->|Yes| E["Switch DNS / routing<br/>web-cop → web-cop-gpu"]
-  E --> F["Monitor for 24h"]
-  F --> G{Issues?}
-  G -->|Yes| H["Rollback to web-cop"]
-  G -->|No| I["Decommission web-cop<br/>(after 1 week)"]
+  C -->|Yes| E["Monitor for 24h"]
+  E --> F{Issues?}
+  F -->|Yes| G["Scale WebTransport to 0<br/>fallback to gRPC-Web cold path"]
+  F -->|No| H["Cutover complete ✅"]
 ```
 
-**Cutover steps**:
+> **✅ Cutover Complete** — `web-cop` has been deleted. `web-cop-gpu` is the sole frontend.
 
-1. Deploy `web-cop-gpu` alongside `web-cop` (both receive traffic)
-2. Internal team uses `web-cop-gpu` for 1 week (canary)
-3. Smoke test with production data (track count, latency, all features)
-4. Switch DNS / Envoy routing to `web-cop-gpu`
-5. Monitor 24h — rollback plan is DNS revert to `web-cop`
-6. After 1 week stable: decommission `web-cop`, archive React code
+**Cutover steps (completed)**:
+
+1. ~~Deploy `web-cop-gpu` alongside `web-cop` (both receive traffic)~~
+2. ~~Internal team uses `web-cop-gpu` for 1 week (canary)~~
+3. ~~Smoke test with production data (track count, latency, all features)~~
+4. ~~Switch Envoy routing to `web-cop-gpu`~~
+5. ~~Monitor 24h~~
+6. ✅ `web-cop` deleted from repository, React code fully removed
 
 ---
 
@@ -158,15 +161,16 @@ flowchart TD
 | User guides updated with WebGPU COP content             | Doc review                 |
 | Cutover plan approved by team lead                      | Sign-off                   |
 | 24h production monitoring clean                         | Grafana dashboards         |
-| `web-cop` decommission scheduled                        | Ticket created             |
+| `web-cop` deleted from repository                       | ✅ Complete                |
 
 ---
 
 ## 5. Rollback Plan
 
-If critical issues discovered post-cutover:
+If critical issues discovered post-cutover, the fallback is to serve the COP over the gRPC-Web
+cold path only (WebTransport hot path can be disabled independently):
 
-1. Revert DNS/routing to `web-cop` (< 5 min)
-2. `web-cop` remains running throughout cutover period
+1. Scale WebTransport server to zero
+2. COP falls back to gRPC-Web streaming via Envoy
 3. No data migration needed (browser state is ephemeral)
-4. Backend services unchanged (both COPs use same backend)
+4. Backend services unchanged

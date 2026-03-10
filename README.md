@@ -98,7 +98,7 @@ rtsa/
 ├── svc-alert/                # Go microservice — Alert lifecycle management
 ├── svc-query/                # Go microservice — Historical ClickHouse queries
 ├── svc-audit/                # Go microservice — Immutable audit trail
-├── web-cop/                  # Current COP (being replaced by web-cop-gpu)
+├── web-cop-gpu/              # SolidJS + WebGPU Common Operating Picture (50k tracks @ 60 FPS)
 ├── wasm-transforms/          # In-broker Wasm data transforms
 ├── tools/simulator/          # Synthetic sensor data generator
 ├── tests/                    # Integration, E2E, and benchmark tests

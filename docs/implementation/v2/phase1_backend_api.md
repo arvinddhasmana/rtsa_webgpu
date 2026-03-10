@@ -1,4 +1,5 @@
 <!-- CLASSIFICATION: UNCLASSIFIED -->
+
 # Phase 1 — Backend API Enhancements
 
 > **Phase**: 1 of 4 | **Depends on**: Nothing | **Blocks**: Phase 3
@@ -9,6 +10,7 @@
 ## Purpose
 
 The current backend only streams `FusedTrack` and `AnomalyAlert` data to the UI. The premium dashboards require three additional data streams that do not exist yet:
+
 1. Raw sensor observations (for Fusion Dashboard)
 2. A unified event timeline (for Operator UI)
 3. Sensor coverage geometry (for Multi-Domain Dashboard)
@@ -88,7 +90,7 @@ Open the Track Service implementation directory at `svc-track/`. The service alr
 
 ### 1.4 Generate TypeScript client stub for the UI
 
-After buf generation, verify the TypeScript/gRPC-Web stubs are also updated in `gen/ts/` (or wherever the web-cop consumes generated types from). The web-cop should be able to import and call `streamSensorObservations()`.
+After buf generation, verify the TypeScript/gRPC-Web stubs are also updated in `gen/ts/` (or wherever `web-cop-gpu` consumes generated types from). The `web-cop-gpu` frontend should be able to import and call `streamSensorObservations()`.
 
 ---
 
@@ -259,6 +261,7 @@ message ListSensorStatusesResponse {
 ### 3.3 Regenerate and implement
 
 Run `buf generate`. Then implement the `ListSensorStatuses` handler in the relevant ingestion services. This handler should:
+
 1. Query an in-memory sensor registry (populated from configuration or from the first observation received from each sensor)
 2. For each registered sensor, return its current `SensorStatusResponse` including the `SensorCoverage` geometry
 3. The coverage geometry for common sensor types should be populated from environment/config variables:
@@ -297,6 +300,7 @@ message AssignAlertResponse {
 ### 4.2 Implement in `svc-alert`
 
 Create `svc-alert/internal/handler/assign.go`. The handler should:
+
 1. Validate the alert exists in the in-memory priority queue
 2. Set an `assigned_to` field on the alert
 3. Produce an audit event to `audit.events` via the existing audit emitter pattern

@@ -33,8 +33,13 @@ Before running any demo, verify these prerequisites:
 | Go toolchain          | 1.22+           | `go version`             |
 | Node.js               | 20 LTS+         | `node --version`         |
 | pnpm                  | 9.x             | `pnpm --version`         |
+| Rust toolchain        | 1.77+           | `rustc --version`        |
+| wasm-pack             | 0.12+           | `wasm-pack --version`    |
 | `grpcurl` (optional)  | 1.8+            | `grpcurl --version`      |
 | `curl`                | any             | `curl --version`         |
+
+> **Browser requirement**: WebGPU requires **Chrome 113+** or **Edge 113+**. Firefox Nightly
+> with `dom.webgpu.enabled` may work but is not officially supported.
 
 Clone the repository if you have not already:
 
@@ -111,6 +116,13 @@ All services should show `[✓]` before proceeding. Critical services: `redpanda
 `svc-track`, `svc-alert`, `svc-query`, `svc-fusion-engine`, `svc-anomaly-detection`,
 `svc-feedback`.
 
+Verify the WebGPU COP is reachable:
+
+```bash
+curl -sf http://localhost:5173/ > /dev/null && echo "[✓] web-cop-gpu: http://localhost:5173" \
+  || echo "[✗] web-cop-gpu not responding on port 5173"
+```
+
 ### 4.4 Seed demo data (optional but recommended for UI demos)
 
 Seed representative historical data into ClickHouse so dashboards render with realistic track
@@ -185,7 +197,8 @@ This section is written for the human presenter. Each sub-section covers one rol
 scenario, with a recommended talk track, specific UI actions, and the expected outcomes.
 
 **Setup before presenting**: Run `bash scripts/demo/run-demo.sh multi-domain --seed` in a
-terminal. Open `http://localhost:5173` in the browser. Have the terminal visible separately.
+terminal. Open `http://localhost:5173` in **Chrome 113+** or **Edge 113+** (WebGPU required).
+Have the terminal visible separately.
 
 ---
 
@@ -631,6 +644,7 @@ Covers UC001–UC017. Duration: approximately 60 minutes.
 - [ ] Ports 5173, 9092, 8123, and 8080 are free: `lsof -i :5173`
 - [ ] `bash scripts/demo/run-demo.sh multi-domain --seed` completes successfully
 - [ ] `http://localhost:5173` loads with RTSA classification banner at top and bottom
+- [ ] Browser is **Chrome 113+** or **Edge 113+** (WebGPU required)
 - [ ] Role Selector shows all 5 roles: Operations Commander, Intelligence Analyst, Security
       Officer, Sensor Operator, NATO Liaison
 - [ ] Operations Commander role shows Fusion, Multi-Domain, and Operator tabs
@@ -650,6 +664,7 @@ Covers UC001–UC017. Duration: approximately 60 minutes.
 | Fusion Side Panel shows zero     | `docker logs rtsa-svc-track --tail 30`                   |
 | GetEventTimeline returns empty   | `bash scripts/dev/init-clickhouse.sh`                    |
 | Browser CORS error               | `docker restart rtsa-gateway`                            |
+| Map blank / WebGPU not available | Use Chrome 113+ or Edge 113+; check `chrome://gpu`       |
 
 ---
 

@@ -122,6 +122,39 @@ start_infrastructure_and_services() {
   else
     echo -e "${YELLOW}=== Some services did not pass health check — demo may be degraded ===${NC}"
   fi
+
+  # Wait for web-cop-gpu frontend container (non-fatal — warn only)
+  wait_for_web_cop_gpu || true
+}
+
+# ── Web-COP-GPU health check ─────────────────────────────────────────────────
+# Waits for the web-cop-gpu container to serve HTTP on port 5173.
+wait_for_web_cop_gpu() {
+  echo -n "  Checking web-cop-gpu (port 5173)... "
+  local attempt=0
+  local max=30
+  while [ "$attempt" -lt "$max" ]; do
+    if curl -sf --max-time 2 http://localhost:5173/ >/dev/null 2>&1; then
+      echo -e "${GREEN}healthy${NC}"
+      return 0
+    fi
+    attempt=$(( attempt + 1 ))
+    sleep 1
+  done
+  echo -e "${YELLOW}not reachable (ensure web-cop-gpu container is running or start local dev server)${NC}"
+  return 1
+}
+
+# ── Open browser helper ───────────────────────────────────────────────────────
+open_cop_browser() {
+  local url="${1:-http://localhost:5173}"
+  if command -v xdg-open &>/dev/null; then
+    xdg-open "$url" 2>/dev/null &
+  elif command -v open &>/dev/null; then
+    open "$url" 2>/dev/null &
+  else
+    echo -e "${CYAN}  Open COP in browser: ${url}${NC}"
+  fi
 }
 
 # ── Simulator runner ──────────────────────────────────────────────────────────

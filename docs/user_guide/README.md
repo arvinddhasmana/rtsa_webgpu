@@ -13,10 +13,7 @@
 
 ## Welcome to RTSA
 
-> **⚠ WebGPU COP Migration Notice**
-> The RTSA frontend is migrating from the legacy React/MapLibre stack to a **SolidJS + WebGPU** Common Operating Picture (see `docs/architecture/v1/RTSA_WebGPU_Architecture_v1.md`). UI steps described in these guides reflect the _projected_ UX based on the new SolidJS component architecture. Specific UI elements, labels, and navigation flows may be updated during and/or after WebGPU COP implementation.
-
-The **Real-Time Situational Awareness & Risk Assessment (RTSA)** system gives Canadian Armed Forces (CAF) operators a unified, real-time operational picture of the battlespace. It fuses data from six sensor categories — Radar, Electronic Warfare/SIGINT, ELINT/COMINT, ISR platforms, AIS/Blue Force Tracking, and Cyber threat feeds — applies AI-driven anomaly detection, and presents everything through an interactive Common Operating Picture (COP) dashboard.
+The **Real-Time Situational Awareness & Risk Assessment (RTSA)** system gives Canadian Armed Forces (CAF) operators a unified, real-time operational picture of the battlespace. It fuses data from six sensor categories — Radar, Electronic Warfare/SIGINT, ELINT/COMINT, ISR platforms, AIS/Blue Force Tracking, and Cyber threat feeds — applies AI-driven anomaly detection, and presents everything through an interactive Common Operating Picture (COP) dashboard built with **SolidJS + WebGPU**.
 
 This guide helps you understand and use the system effectively, regardless of your role.
 

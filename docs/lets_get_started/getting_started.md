@@ -43,6 +43,8 @@ The following tools are required to develop and run RTSA locally. The automated 
 | **protoc-gen-go-grpc** | latest      | Automated                   | Go gRPC code generation         |
 | **Node.js**            | 20 LTS      | Manual                      | Frontend development            |
 | **pnpm**               | 9+          | Automated                   | Frontend package manager        |
+| **Rust**               | 1.77+       | Manual                      | Wasm decoder compilation        |
+| **wasm-pack**          | 0.12+       | Manual (`cargo install`)    | Rust → Wasm build tool          |
 | **Docker Desktop**     | 26+         | Manual                      | Container runtime               |
 | **Docker Compose**     | v2 (plugin) | Bundled with Docker Desktop | Local dev stack                 |
 | **kubectl**            | 1.29+       | Automated                   | Kubernetes CLI (staging/prod)   |

@@ -68,6 +68,16 @@ static_resources:
                         expose_headers: "grpc-status, grpc-message, grpc-status-details-bin"
                         max_age: "86400"
                         allow_credentials: true
+                      response_headers_to_add:
+                        # Cross-origin isolation — required for SharedArrayBuffer (WebGPU)
+                        - header:
+                            key: Cross-Origin-Opener-Policy
+                            value: same-origin
+                          append: false
+                        - header:
+                            key: Cross-Origin-Embedder-Policy
+                            value: require-corp
+                          append: false
                       routes:
                         # Track Service — server-streaming, no timeout
                         - match:

@@ -241,6 +241,27 @@ install_pnpm() {
 }
 
 # ─────────────────────────────────────────────────────────────
+# Step 3b: Rust toolchain + wasm-pack (for web-cop-gpu wasm-decoder)
+# ─────────────────────────────────────────────────────────────
+check_rust() {
+  log_step "Checking Rust toolchain (required for wasm-decoder)"
+
+  if ! has_cmd rustc; then
+    log_warn "Rust is not installed. Required for web-cop-gpu/wasm-decoder."
+    log_info "  Install: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+    return
+  fi
+
+  log_pass "Rust $(rustc --version | awk '{print $2}')"
+
+  if has_cmd wasm-pack; then
+    log_pass "wasm-pack $(wasm-pack --version | awk '{print $2}') installed"
+  else
+    log_warn "wasm-pack not found. Install with: cargo install wasm-pack"
+  fi
+}
+
+# ─────────────────────────────────────────────────────────────
 # Step 4: Docker
 # ─────────────────────────────────────────────────────────────
 check_docker() {
@@ -548,9 +569,9 @@ setup_go_modules() {
 setup_frontend() {
   log_step "Setting up frontend dependencies"
 
-  local ui_dir="${REPO_ROOT}/web-cop"
+  local ui_dir="${REPO_ROOT}/web-cop-gpu"
   if [ ! -d "$ui_dir" ]; then
-    log_info "No web-cop/ directory found yet — skipping frontend setup"
+    log_info "No web-cop-gpu/ directory found yet — skipping frontend setup"
     return
   fi
 
@@ -719,6 +740,7 @@ main() {
   install_proto_plugins
   check_node
   install_pnpm
+  check_rust
   check_docker
   install_gitleaks
   install_gosec

@@ -616,11 +616,16 @@ services:
   # Consumes track-fused Redpanda topic, serialises to 128-byte FlatBuffer
   # records, and streams to browsers via WebTransport datagrams.
   # Reference: docs/implementation/v4/phase2_backend_integration.md §4.2
+  # NOTE: svc-webtransport/ service directory is under active development.
+  #       Gated behind the 'webtransport' profile to prevent build failures.
+  #       Enable with: docker compose ... --profile webtransport up
   # ──────────────────────────────────────────
   svc-webtransport:
+    profiles:
+      - webtransport
     build:
       context: ..
-      dockerfile: Dockerfile.service
+      dockerfile: deploy/Dockerfile.service
       args:
         SERVICE: svc-webtransport
     container_name: rtsa-webtransport
@@ -656,16 +661,16 @@ services:
       - rtsa-net
 
   # ──────────────────────────────────────────
-  # Web-COP — React Common Operating Picture
+  # Web-COP-GPU — SolidJS + WebGPU Common Operating Picture
   # ──────────────────────────────────────────
-  web-cop:
+  web-cop-gpu:
     build:
       context: ..
-      dockerfile: web-cop/Dockerfile
+      dockerfile: web-cop-gpu/Dockerfile
       args:
         # OSM tiles for dev; override with air-gapped tile server for classified environments.
         VITE_MAP_TILE_URL: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    container_name: rtsa-web-cop
+    container_name: rtsa-web-cop-gpu
     ports:
       - "5173:80"
     depends_on:

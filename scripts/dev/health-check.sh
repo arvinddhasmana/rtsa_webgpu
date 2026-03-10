@@ -308,24 +308,31 @@ check_go_build() {
 check_frontend() {
   log_section "Frontend"
 
-  local ui_dir="${REPO_ROOT}/web-cop"
+  local ui_dir="${REPO_ROOT}/web-cop-gpu"
   if [ ! -d "$ui_dir" ]; then
-    log_info "No web-cop/ directory found — skipping frontend check"
+    log_info "No web-cop-gpu/ directory found — skipping frontend check"
     return
   fi
 
   if [ -d "${ui_dir}/node_modules" ]; then
     log_pass "Frontend dependencies installed (node_modules present)"
   else
-    log_warn "Frontend dependencies not installed — run: cd web-cop && pnpm install"
+    log_warn "Frontend dependencies not installed — run: cd web-cop-gpu && pnpm install"
   fi
 
   if [ -f "${ui_dir}/package.json" ] && command -v pnpm &>/dev/null; then
     if (cd "$ui_dir" && pnpm tsc --noEmit 2>/dev/null); then
       log_pass "TypeScript compilation OK"
     else
-      log_warn "TypeScript compilation had issues — check web-cop/ for errors"
+      log_warn "TypeScript compilation had issues — check web-cop-gpu/ for errors"
     fi
+  fi
+
+  # Wasm decoder prerequisites
+  if command -v wasm-pack &>/dev/null; then
+    log_pass "wasm-pack available (required for wasm-decoder build)"
+  else
+    log_warn "wasm-pack not found — install with: cargo install wasm-pack"
   fi
 }
 
