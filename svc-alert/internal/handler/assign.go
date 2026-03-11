@@ -5,7 +5,9 @@ import (
 	"context"
 	"log/slog"
 
+	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
 	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,13 +17,15 @@ import (
 // AssignHandler serves the unary AssignAlert RPC.
 type AssignHandler struct {
 	assigner *domain.Assigner
+	emitter  *audit.Emitter
 	logger   *slog.Logger
 }
 
 // NewAssignHandler creates a new AssignHandler.
-func NewAssignHandler(assigner *domain.Assigner, logger *slog.Logger) *AssignHandler {
+func NewAssignHandler(assigner *domain.Assigner, emitter *audit.Emitter, logger *slog.Logger) *AssignHandler {
 	return &AssignHandler{
 		assigner: assigner,
+		emitter:  emitter,
 		logger:   logger,
 	}
 }
@@ -49,6 +53,17 @@ func (h *AssignHandler) AssignAlert(ctx context.Context, req *inferencev1.Assign
 		}
 
 		return nil, status.Errorf(codes.Internal, "failed to assign alert: %v", err)
+	}
+
+	if h.emitter != nil {
+		h.emitter.Emit(ctx, audit.AuditParams{
+			EventType:    audit.EventAlertAcknowledged, // Reusing event or using custom "alert.assigned"
+			ActorID:      req.GetAssignerOperatorId(),
+			ActorType:    auditv1.ActorType_ACTOR_TYPE_OPERATOR,
+			ResourceType: "alert",
+			ResourceID:   req.GetAlertId(),
+			Action:       auditv1.AuditAction_AUDIT_ACTION_UPDATE, // Updating assignment
+		})
 	}
 
 	return &inferencev1.AssignAlertResponse{

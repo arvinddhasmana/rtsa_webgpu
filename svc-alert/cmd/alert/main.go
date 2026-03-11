@@ -19,6 +19,9 @@ import (
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/handler"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	"go.uber.org/zap"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	grpchealth "google.golang.org/grpc/health"
@@ -50,7 +53,23 @@ func main() {
 	}
 	ack := domain.NewAcknowledger(queue, ackMetrics, logger)
 
+
+	// ─── Audit Emitter ────────────────────────────────────────────────────────
+	auditZap, _ := zap.NewProduction()
+	defer auditZap.Sync()
+	auditProd, err := redpanda.NewProducer(context.Background(), redpanda.ProducerConfig{
+		Connection:    redpanda.ConnectionOptions{Brokers: cfg.RedpandaBrokers},
+		ServiceName:   cfg.ServiceName,
+		SchemaVersion: "1.0.0",
+	})
+	if err != nil {
+		logger.Error("failed to create audit producer", "error", err.Error())
+		os.Exit(1)
+	}
+	auditEmitter := audit.NewEmitter(auditProd, cfg.ServiceName, auditZap)
+
 	// ─── gRPC handlers ────────────────────────────────────────────────────────
+
 	streamMetrics := &handler.StreamMetrics{
 		StreamClients:        m.StreamClients,
 		AlertsUnacknowledged: m.AlertsUnacknowledged,
@@ -59,7 +78,7 @@ func main() {
 	ackH := handler.NewAcknowledgeHandler(ack, logger)
 	detailsH := handler.NewDetailsHandler(queue, logger)
 	assigner := domain.NewAssigner(queue, logger)
-	assignH := handler.NewAssignHandler(assigner, logger)
+	assignH := handler.NewAssignHandler(assigner, auditEmitter, logger)
 	alertServer := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 
 	// ─── Redpanda consumer ────────────────────────────────────────────────────

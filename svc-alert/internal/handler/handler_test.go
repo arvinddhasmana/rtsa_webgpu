@@ -2,22 +2,22 @@
 package handler_test
 
 import (
-"context"
-"errors"
-"log/slog"
-"os"
-"testing"
-"time"
+	"context"
+	"errors"
+	"log/slog"
+	"os"
+	"testing"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/handler"
-"google.golang.org/grpc/codes"
-"google.golang.org/grpc/status"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/handler"
 	"github.com/prometheus/client_golang/prometheus"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
-"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -494,7 +494,7 @@ func TestAlertServer_AcknowledgeAlert(t *testing.T) {
 	streamH := handler.NewStreamHandler(q, nil, newTestLogger())
 
 	assigner := domain.NewAssigner(q, newTestLogger())
-	assignH := handler.NewAssignHandler(assigner, newTestLogger())
+	assignH := handler.NewAssignHandler(assigner, nil, newTestLogger())
 
 	srv := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 
@@ -524,7 +524,7 @@ func TestAlertServer_GetAlertDetails(t *testing.T) {
 	streamH := handler.NewStreamHandler(q, nil, newTestLogger())
 
 	assigner := domain.NewAssigner(q, newTestLogger())
-	assignH := handler.NewAssignHandler(assigner, newTestLogger())
+	assignH := handler.NewAssignHandler(assigner, nil, newTestLogger())
 
 	srv := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 
@@ -553,7 +553,7 @@ func TestAlertServer_StreamAlerts(t *testing.T) {
 	detailsH := handler.NewDetailsHandler(q, newTestLogger())
 
 	assigner := domain.NewAssigner(q, newTestLogger())
-	assignH := handler.NewAssignHandler(assigner, newTestLogger())
+	assignH := handler.NewAssignHandler(assigner, nil, newTestLogger())
 
 	streamMetrics := &handler.StreamMetrics{} // nil gauges — should not panic
 	streamH := handler.NewStreamHandler(q, streamMetrics, newTestLogger())

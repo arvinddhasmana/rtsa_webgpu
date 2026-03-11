@@ -117,9 +117,9 @@ main() {
   log_pass "ClickHouse schema initialized"
 
   # 4. Build go test args
-  local GO_TEST_ARGS=(-v -tags e2e -timeout 15m)
+  local GO_TEST_ARGS=(-v -tags e2e -timeout 15m -count=1)
   if [ "$JSON_OUTPUT" = true ]; then
-    GO_TEST_ARGS=(-json -tags e2e -timeout 15m)
+    GO_TEST_ARGS=(-json -tags e2e -timeout 15m -count=1)
   fi
 
   # 5. Run E2E tests — tee raw -v output to log file
