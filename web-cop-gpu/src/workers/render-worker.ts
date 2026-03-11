@@ -12,23 +12,23 @@
 // Reference: docs/implementation/v4/phase1_core_rendering.md
 //            docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md
 
-import { initGPU }           from "../gpu/device";
-import { allocateBuffers, destroyBuffers } from "../gpu/buffers";
-import { createPipelines }   from "../gpu/pipelines";
-import { createBindGroups }  from "../gpu/bind-groups";
-import { createPickResources, destroyPickResources, readPickPixel } from "../gpu/pick";
 import { createAtlasTextures, destroyAtlasTextures } from "../gpu/atlas";
-import { renderFrame, type RenderState } from "../gpu/renderer";
-import { initMockTracks, writeMockTracksToSAB, tickMockTracks, MOCK_TRACK_COUNT } from "../gpu/mock-data";
+import { createBindGroups } from "../gpu/bind-groups";
+import { allocateBuffers, destroyBuffers } from "../gpu/buffers";
+import { initGPU } from "../gpu/device";
 import { FrameTimer } from "../gpu/frame-timer";
+import { initMockTracks, MOCK_TRACK_COUNT, tickMockTracks, writeMockTracksToSAB } from "../gpu/mock-data";
+import { createPickResources, destroyPickResources, readPickPixel } from "../gpu/pick";
+import { createPipelines } from "../gpu/pipelines";
 import {
-  makeErrorStatus,
-  computeFps,
-  shouldFlushStats,
-  RENDER_INTERVAL_MS,
-  RENDER_ERROR_THRESHOLD,
-  type RenderStatusMessage,
+    computeFps,
+    makeErrorStatus,
+    RENDER_ERROR_THRESHOLD,
+    RENDER_INTERVAL_MS,
+    shouldFlushStats,
+    type RenderStatusMessage,
 } from "../gpu/render-logic";
+import { renderFrame, type RenderState } from "../gpu/renderer";
 import type { RenderStatsMessage } from "./shared-protocol";
 
 /** Messages accepted by the Render Worker */
@@ -41,6 +41,8 @@ interface InitMessage {
    * The Render Worker must NOT call mock-data functions in this mode.
    */
   dataWorkerActive?: boolean;
+  testTrackCount?: number;
+  testCameraScale?: number;
 }
 
 interface ResizeMessage {
@@ -106,7 +108,13 @@ function teardown(): void {
  * Initialise the full WebGPU rendering stack.
  * On device loss this is called again with the same canvas and SAB.
  */
-async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataWorkerActive: boolean): Promise<void> {
+async function init(
+  offscreen: OffscreenCanvas,
+  sabBuf: SharedArrayBuffer,
+  dataWorkerActive: boolean,
+  testTrackCount?: number,
+  testCameraScale?: number
+): Promise<void> {
   activeCanvas = offscreen;
   activeSab    = sabBuf;
   activeDataWorker = dataWorkerActive;
@@ -149,11 +157,13 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   const pipelines  = createPipelines(device, format);
   const bindGroups = createBindGroups(device, pipelines, buffers, atlas, pick);
 
+  const initialTrackCount = testTrackCount ?? MOCK_TRACK_COUNT;
+
   // Seed SAB with mock data only when no Data Worker is providing data.
   // When activeDataWorker is true, the Data Worker is the sole SAB writer.
   if (!activeDataWorker) {
-    initMockTracks(MOCK_TRACK_COUNT);
-    writeMockTracksToSAB(sabBuf, MOCK_TRACK_COUNT);
+    initMockTracks(initialTrackCount);
+    writeMockTracksToSAB(sabBuf, initialTrackCount);
   }
 
   renderState = {
@@ -167,11 +177,11 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
     pick,
     sab: sabBuf,
     canvas: offscreen,
-    trackCount: MOCK_TRACK_COUNT,
+    trackCount: initialTrackCount,
     camera: {
       centerLon: 0,
       centerLat: 0,
-      scale:     2.0,
+      scale:     testCameraScale ?? 2.0,
     },
     lastFrameTime: performance.now(),
     frameTimer,
@@ -185,7 +195,7 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   if (import.meta.env.DEV) {
     console.log(
       `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
-      `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
+      `tracks: ${initialTrackCount}, format: ${format}`,
     );
   }
 }
@@ -208,8 +218,8 @@ function startRenderLoop(): void {
     // must only read from the SAB.
     if (!activeDataWorker) {
       tickMockTracks(dt);
-      if (activeSab) {
-        writeMockTracksToSAB(activeSab, MOCK_TRACK_COUNT);
+      if (activeSab && renderState) {
+        writeMockTracksToSAB(activeSab, renderState.trackCount);
       }
     }
 
@@ -270,7 +280,13 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 
   switch (msg.type) {
     case "init": {
-      init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false).catch((err: unknown) => {
+      init(
+        msg.canvas,
+        msg.sab,
+        msg.dataWorkerActive ?? false,
+        msg.testTrackCount,
+        msg.testCameraScale
+      ).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error("[RenderWorker] Init failed:", err);
         }

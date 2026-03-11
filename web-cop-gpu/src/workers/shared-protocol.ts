@@ -47,6 +47,8 @@ export interface RenderInitMessage {
    * The Render Worker must NOT write mock data to the SAB when this flag is set.
    */
   dataWorkerActive?: boolean;
+  testTrackCount?: number;
+  testCameraScale?: number;
 }
 
 export interface RenderResizeMessage {
