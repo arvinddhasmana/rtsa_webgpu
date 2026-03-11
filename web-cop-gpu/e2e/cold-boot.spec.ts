@@ -4,8 +4,8 @@
 // Workflow: App loads → capability check → WebTransport connects → tracks render
 // Reference: docs/implementation/v4/phase4_hardening_cutover.md H4-4
 
-import { test, expect } from "@playwright/test";
-import { gotoApp, waitForClassificationBanner, waitForConnectionIndicator, assertSecurityHeaders } from "./helpers";
+import { expect, test } from "@playwright/test";
+import { assertSecurityHeaders, gotoApp, waitForClassificationBanner, waitForConnectionIndicator } from "./helpers";
 
 test.describe("Cold Boot Workflow", () => {
   test("page loads without uncaught errors", async ({ page }) => {
@@ -23,7 +23,7 @@ test.describe("Cold Boot Workflow", () => {
     await gotoApp(page);
     await waitForClassificationBanner(page);
 
-    const banner = page.locator('[data-testid="classification-banner-top"]');
+    const banner = page.locator('[data-testid="classification-banner-top"]').first();
     await expect(banner).toBeVisible();
     await expect(banner).toContainText("UNCLASSIFIED");
   });

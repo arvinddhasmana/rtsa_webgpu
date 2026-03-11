@@ -1,0 +1,999 @@
+{
+  "config": {
+    "configFile": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/playwright.config.ts",
+    "rootDir": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "playwright-report"
+        }
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "playwright-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 11,
+    "webServer": {
+      "command": "npm run dev",
+      "url": "http://localhost:5174",
+      "reuseExistingServer": true,
+      "timeout": 90000
+    }
+  },
+  "suites": [
+    {
+      "title": "security-audit.spec.ts",
+      "file": "security-audit.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "Security Audit — ITSG-33 Controls",
+          "file": "security-audit.spec.ts",
+          "line": 15,
+          "column": 6,
+          "specs": [
+            {
+              "title": "COOP header is set to same-origin",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 247,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:29.629Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-429b03d446ccceb9c5b3",
+              "file": "security-audit.spec.ts",
+              "line": 16,
+              "column": 7
+            },
+            {
+              "title": "COEP header is set to require-corp",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 183,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:30.005Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-6fe4947f1cbe9a068e81",
+              "file": "security-audit.spec.ts",
+              "line": 22,
+              "column": 7
+            },
+            {
+              "title": "Content-Security-Policy header is present",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 180,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:30.197Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-f1f1aef03da6abe270ee",
+              "file": "security-audit.spec.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "CSP does not allow unsafe-inline scripts",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 184,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:30.389Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-48c2ddc8626c4c894e2c",
+              "file": "security-audit.spec.ts",
+              "line": 40,
+              "column": 7
+            },
+            {
+              "title": "X-Content-Type-Options is nosniff",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 158,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:30.580Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-445af6571ce89dcf9136",
+              "file": "security-audit.spec.ts",
+              "line": 49,
+              "column": 7
+            },
+            {
+              "title": "X-Frame-Options is DENY",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 176,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:30.744Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-2e2c5951e5fe0b958fe5",
+              "file": "security-audit.spec.ts",
+              "line": 55,
+              "column": 7
+            },
+            {
+              "title": "no PII or classified data in console logs on startup",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 22259,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:30.927Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-4e84c0b406951e5ff775",
+              "file": "security-audit.spec.ts",
+              "line": 61,
+              "column": 7
+            },
+            {
+              "title": "no inline event handlers found in the DOM",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 224,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:70:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:70:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:53.199Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-51bac-t-handlers-found-in-the-DOM-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-51bac-t-handlers-found-in-the-DOM-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-51bac-t-handlers-found-in-the-DOM-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    },
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 301,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:70:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:70:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-03-11T03:18:54.301Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-51bac-t-handlers-found-in-the-DOM-chromium-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-51bac-t-handlers-found-in-the-DOM-chromium-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-51bac-t-handlers-found-in-the-DOM-chromium-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-51bac-t-handlers-found-in-the-DOM-chromium-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-fe11b9080575082077b8",
+              "file": "security-audit.spec.ts",
+              "line": 69,
+              "column": 7
+            },
+            {
+              "title": "app does not expose sensitive data in window globals",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 2,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 296,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:87:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:87:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:55.758Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-99b28-tive-data-in-window-globals-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-99b28-tive-data-in-window-globals-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-99b28-tive-data-in-window-globals-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    },
+                    {
+                      "workerIndex": 3,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 306,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:87:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:87:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-03-11T03:18:57.109Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-99b28-tive-data-in-window-globals-chromium-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-99b28-tive-data-in-window-globals-chromium-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-99b28-tive-data-in-window-globals-chromium-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-99b28-tive-data-in-window-globals-chromium-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-2458be5caa9115d3d3bb",
+              "file": "security-audit.spec.ts",
+              "line": 86,
+              "column": 7
+            },
+            {
+              "title": "no eval() or new Function() calls in the JavaScript bundle",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 4,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 275,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:114:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:114:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:18:58.506Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-0d721-ls-in-the-JavaScript-bundle-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-0d721-ls-in-the-JavaScript-bundle-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-0d721-ls-in-the-JavaScript-bundle-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    },
+                    {
+                      "workerIndex": 5,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 312,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:114:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:114:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-03-11T03:18:59.843Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-0d721-ls-in-the-JavaScript-bundle-chromium-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-0d721-ls-in-the-JavaScript-bundle-chromium-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-0d721-ls-in-the-JavaScript-bundle-chromium-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-0d721-ls-in-the-JavaScript-bundle-chromium-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-5223cc9702c7cc5828cf",
+              "file": "security-audit.spec.ts",
+              "line": 100,
+              "column": 7
+            },
+            {
+              "title": "no hardcoded external http:// URLs in the JavaScript bundle",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 6,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 312,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:136:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:136:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:19:01.257Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-f7e1a-Ls-in-the-JavaScript-bundle-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-f7e1a-Ls-in-the-JavaScript-bundle-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-f7e1a-Ls-in-the-JavaScript-bundle-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    },
+                    {
+                      "workerIndex": 7,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 344,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:136:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:136:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-03-11T03:19:02.627Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-f7e1a-Ls-in-the-JavaScript-bundle-chromium-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-f7e1a-Ls-in-the-JavaScript-bundle-chromium-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-f7e1a-Ls-in-the-JavaScript-bundle-chromium-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-f7e1a-Ls-in-the-JavaScript-bundle-chromium-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-3206817c44b91baf7bb8",
+              "file": "security-audit.spec.ts",
+              "line": 123,
+              "column": 7
+            },
+            {
+              "title": "Wasm script tags include SRI integrity attribute when present",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 60000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 8,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 271,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:149:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:149:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-03-11T03:19:04.055Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-b8a8e-rity-attribute-when-present-chromium/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-b8a8e-rity-attribute-when-present-chromium/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-b8a8e-rity-attribute-when-present-chromium/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    },
+                    {
+                      "workerIndex": 9,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 312,
+                      "error": {
+                        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n",
+                        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:149:18",
+                        "location": {
+                          "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                          "column": 14,
+                          "line": 14
+                        },
+                        "snippet": "\u001b[90m   at \u001b[39mhelpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                            "column": 14,
+                            "line": 14
+                          },
+                          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5174/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:5174/\", waiting until \"load\"\u001b[22m\n\n\n   at helpers.ts:14\n\n  12 |  */\n  13 | export async function gotoApp(page: Page): Promise<void> {\n> 14 |   await page.goto(\"/\");\n     |              ^\n  15 |   await page.waitForLoadState(\"domcontentloaded\");\n  16 | }\n  17 |\n    at gotoApp (/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts:14:14)\n    at /home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/security-audit.spec.ts:149:18"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 1,
+                      "startTime": "2026-03-11T03:19:05.389Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "screenshot",
+                          "contentType": "image/png",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-b8a8e-rity-attribute-when-present-chromium-retry1/test-failed-1.png"
+                        },
+                        {
+                          "name": "video",
+                          "contentType": "video/webm",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-b8a8e-rity-attribute-when-present-chromium-retry1/video.webm"
+                        },
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-b8a8e-rity-attribute-when-present-chromium-retry1/error-context.md"
+                        },
+                        {
+                          "name": "trace",
+                          "contentType": "application/zip",
+                          "path": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results/security-audit-Security-Au-b8a8e-rity-attribute-when-present-chromium-retry1/trace.zip"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e/helpers.ts",
+                        "column": 14,
+                        "line": 14
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "23b3bf561920a839d2d5-836261a39199e5c1e76b",
+              "file": "security-audit.spec.ts",
+              "line": 148,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-03-11T03:18:28.728Z",
+    "duration": 37084.156,
+    "expected": 7,
+    "skipped": 0,
+    "unexpected": 5,
+    "flaky": 0
+  }
+}

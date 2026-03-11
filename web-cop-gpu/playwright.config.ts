@@ -42,12 +42,12 @@ export default defineConfig({
     },
   ],
   // webServer block is commented out — run `npm run dev` separately before tests.
-  // webServer: {
-  //   command: "npm run dev",
-  //   url: "http://localhost:5174",
-  //   reuseExistingServer: !process.env.CI,
-  //   timeout: 90_000,
-  // },
+  webServer: {
+    command: "npm run dev",
+    url: "http://localhost:5174",
+    reuseExistingServer: !process.env.CI,
+    timeout: 90_000,
+  },
   snapshotDir: "./e2e/snapshots",
   expect: {
     // Allow up to 2% pixel difference for visual regression (anti-aliasing, subpixel)

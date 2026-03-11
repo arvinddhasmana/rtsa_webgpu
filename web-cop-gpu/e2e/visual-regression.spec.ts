@@ -10,7 +10,7 @@
 // Reference: docs/implementation/v4/phase4_hardening_cutover.md H4-5
 // CI: Blocks merge on visual regression (> 2% pixel diff).
 
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { gotoApp } from "./helpers";
 
 /** Viewport size for all visual regression captures. */
@@ -85,7 +85,7 @@ test.describe("Visual Regression Suite", () => {
     await gotoApp(page);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
-    const banner = page.locator('[data-testid="classification-banner-top"]');
+    const banner = page.locator('[data-testid="classification-banner-top"]').first();
     const isVisible = await banner.isVisible().catch(() => false);
 
     if (isVisible) {

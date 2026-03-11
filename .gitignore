@@ -78,7 +78,11 @@ models/
 logs/
 *.pid
 .test-results/
-
+web-cop-gpu/playwright-report/
+web-cop-gpu/test-results/
+web-cop-gpu/e2e-report/
+web-cop-gpu/e2e/snapshot/
+web-cop-gpu/e2e/snapshots/visual-regression/
 # ─────────────────────────────────────────────────────────────
 # Terraform / IaC state
 # ─────────────────────────────────────────────────────────────
@@ -88,3 +92,4 @@ logs/
 go1.22.4.linux-amd64.tar.gz
 go.work.sum
 coverage.out
+gen/node_modules
