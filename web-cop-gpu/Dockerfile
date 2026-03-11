@@ -45,6 +45,11 @@ COPY gen/ts/ /gen/ts/
 # Rollup walks up from /gen/ts/ looking for node_modules — symlink so it finds /app/node_modules
 RUN ln -s /app/node_modules /gen/node_modules
 
+ARG VITE_API_GATEWAY_URL
+ENV VITE_API_GATEWAY_URL=${VITE_API_GATEWAY_URL}
+ARG VITE_WEBTRANSPORT_URL
+ENV VITE_WEBTRANSPORT_URL=${VITE_WEBTRANSPORT_URL}
+
 RUN pnpm build
 
 # ── Stage 3: Nginx runtime ──────────────────────────────────

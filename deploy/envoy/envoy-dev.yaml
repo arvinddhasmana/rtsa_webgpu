@@ -146,14 +146,14 @@ static_resources:
                                 key: "Content-Type"
                                 value: "application/json"
                 http_filters:
-                  # gRPC-Web to gRPC translation — MUST be before router
-                  - name: envoy.filters.http.grpc_web
-                    typed_config:
-                      "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
                   # CORS support
                   - name: envoy.filters.http.cors
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors
+                  # gRPC-Web to gRPC translation — MUST be before router
+                  - name: envoy.filters.http.grpc_web
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
                   # Router — MUST be last
                   - name: envoy.filters.http.router
                     typed_config:

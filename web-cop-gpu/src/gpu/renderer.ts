@@ -15,16 +15,16 @@
 //
 // Reference: docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md §5.1
 
-import { GPUBuffers, MAX_TRACKS } from "./buffers";
-import { BindGroups } from "./bind-groups";
-import { AllPipelines } from "./pipelines";
-import { PickResources } from "./pick";
+import { RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 import { AtlasTextures } from "./atlas";
-import { renderBackground } from "./map-tiles";
-import { writeUniforms, makeViewProjection } from "./uniforms";
-import { TRACK_DATA_OFFSET, RECORD_SIZE } from "../services/sab";
-import { computeLod } from "./lod";
+import { BindGroups } from "./bind-groups";
+import { GPUBuffers, MAX_TRACKS } from "./buffers";
 import { FrameTimer } from "./frame-timer";
+import { computeLod } from "./lod";
+import { renderBackground } from "./map-tiles";
+import { PickResources } from "./pick";
+import { AllPipelines } from "./pipelines";
+import { makeViewProjection, writeUniforms } from "./uniforms";
 
 /** Pre-allocated draw args reset data — zero per-frame heap alloc.
  *  vertex_count=4 for quad-strip icons, halos, pick; instance_count reset to 0 before culling. */
@@ -86,8 +86,6 @@ export function renderFrame(state: RenderState): void {
   );
   state.trackCount = trackCount;
 
-  if (trackCount === 0) return; // Nothing to render
-
   // Compute LOD flags for this frame based on camera scale and track count.
   // Must happen before render pass dispatch so conditional passes are skipped correctly.
   const lod = computeLod(state.camera.scale, trackCount);
@@ -133,7 +131,7 @@ export function renderFrame(state: RenderState): void {
   const encoder = device.createCommandEncoder({ label: "frame-encoder" });
 
   // 3. Compute: Interpolation
-  {
+  if (trackCount > 0) {
     const workgroups = Math.ceil(trackCount / 256);
     const pass = encoder.beginComputePass({ label: "interpolation-pass" });
     pass.setPipeline(pipelines.compute.interpolation);
@@ -144,7 +142,7 @@ export function renderFrame(state: RenderState): void {
   }
 
   // 4. Compute: Culling (writes visible_indices and draw_args.instance_count)
-  {
+  if (trackCount > 0) {
     const workgroups = Math.ceil(trackCount / 256);
     const pass = encoder.beginComputePass({ label: "culling-pass" });
     pass.setPipeline(pipelines.compute.culling);
@@ -176,7 +174,7 @@ export function renderFrame(state: RenderState): void {
   }
 
   // 7. Render: track icons
-  {
+  if (trackCount > 0) {
     const pass = encoder.beginRenderPass({
       label: "icons-pass",
       colorAttachments: [{

@@ -5,13 +5,14 @@
 // ConnectRPC routed through the Envoy proxy.
 // Reference: docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md §6
 
-import { createConnectTransport } from "@connectrpc/connect-web";
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 
 /**
  * Shared ConnectRPC transport instance.
  * Base URL is injected via Vite environment variable at build time.
  * Fallback to localhost for development.
  */
-export const transport = createConnectTransport({
+export const transport = createGrpcWebTransport({
   baseUrl: import.meta.env.VITE_API_GATEWAY_URL ?? "http://localhost:8080",
+  useBinaryFormat: true,
 });
