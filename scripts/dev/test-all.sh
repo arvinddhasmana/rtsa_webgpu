@@ -70,13 +70,13 @@ start_time=$SECONDS
 read_counts() {
   local file="$1" var_t="$2" var_p="$3" var_f="$4"
   if [ -f "$file" ]; then
-    local t p f
-    t="$(grep -oP 'TOTAL=\K[0-9]+' "$file" 2>/dev/null || echo 0)"
-    p="$(grep -oP 'PASSED=\K[0-9]+' "$file" 2>/dev/null || echo 0)"
-    f="$(grep -oP 'FAILED=\K[0-9]+' "$file" 2>/dev/null || echo 0)"
-    printf -v "$var_t" '%d' "${t:-0}"
-    printf -v "$var_p" '%d' "${p:-0}"
-    printf -v "$var_f" '%d' "${f:-0}"
+    local _t _p _f
+    _t="$(grep -m 1 -oP '\bTOTAL=\K[0-9]+' "$file" 2>/dev/null || echo 0)"
+    _p="$(grep -m 1 -oP '\bPASSED=\K[0-9]+' "$file" 2>/dev/null || echo 0)"
+    _f="$(grep -m 1 -oP '\bFAILED=\K[0-9]+' "$file" 2>/dev/null || echo 0)"
+    printf -v "$var_t" '%d' "${_t:-0}"
+    printf -v "$var_p" '%d' "${_p:-0}"
+    printf -v "$var_f" '%d' "${_f:-0}"
   else
     printf -v "$var_t" '0'; printf -v "$var_p" '0'; printf -v "$var_f" '0'
   fi
@@ -154,8 +154,8 @@ run_frontend() {
 
   # Vitest/Jest: lines with ✓/✔ = pass; ✗/×/✕ or 'FAIL ' prefix = fail
   local fp ff ft
-  fp="$(grep -cE '✓|✔|PASS ' "${fe_log}" 2>/dev/null || echo 0)"
-  ff="$(grep -cE '✗|×|✕|FAIL ' "${fe_log}" 2>/dev/null || echo 0)"
+  fp="$(grep -cE '✓|✔|PASS ' "${fe_log}" 2>/dev/null || true)"
+  ff="$(grep -cE '✗|×|✕|FAIL ' "${fe_log}" 2>/dev/null || true)"
   ft=$(( fp + ff ))
 
   grep -E '✗|×|✕' "${fe_log}" 2>/dev/null \

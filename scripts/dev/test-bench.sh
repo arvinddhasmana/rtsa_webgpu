@@ -144,14 +144,14 @@ run_benchmarks() {
   # Go benchmarks don't emit --- PASS:/--- FAIL: lines.
   # Use suite exit code to determine overall pass/fail.
   local bt
-  bt="$(grep -cE '^Benchmark[A-Za-z0-9_]+-[0-9]+' "${BENCH_LOG}" 2>/dev/null || echo 0)"
+  bt="$(grep -cE '^Benchmark[A-Za-z0-9_]+-[0-9]+' "${BENCH_LOG}" 2>/dev/null || true)"
   bt="${bt//[[:space:]]/}"; bt="${bt:-0}"
   local bf
   if [ "$bench_ok" = true ]; then
     bf=0
   else
     # Count threshold violations as failures; fall back to marking all as failed
-    bf="$(grep -cE 'THRESHOLD EXCEEDED' "${BENCH_LOG}" 2>/dev/null || echo 0)"
+    bf="$(grep -cE 'THRESHOLD EXCEEDED' "${BENCH_LOG}" 2>/dev/null || true)"
     bf="${bf//[[:space:]]/}"; bf="${bf:-0}"
     [ "$bf" -eq 0 ] && bf="$bt"
   fi

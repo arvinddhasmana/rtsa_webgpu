@@ -31,7 +31,7 @@ func newAlertStack(t *testing.T) (*domain.AlertQueue, *handler.AlertServer) {
 	streamH := handler.NewStreamHandler(q, nil, logger)
 	ackH := handler.NewAcknowledgeHandler(acknowledger, logger)
 	detailsH := handler.NewDetailsHandler(q, logger)
-	assignH := handler.NewAssignHandler(assigner, logger)
+	assignH := handler.NewAssignHandler(assigner, nil, logger)
 
 	srv := handler.NewAlertServer(streamH, ackH, detailsH, assignH)
 	return q, srv
