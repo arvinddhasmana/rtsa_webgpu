@@ -215,15 +215,11 @@ export default function App() {
     // Transfer OffscreenCanvas to Render Worker
     if (canvasRef) {
       const offscreen = canvasRef.transferControlToOffscreen();
-      const w = window as any;
-      const isTestContext = w.__RTSA_TEST_TRACK_COUNT__ !== undefined;
       const initMsg: RenderInitMessage = {
         type: "init",
         canvas: offscreen,
         sab,
-        dataWorkerActive: !isTestContext,
-        testTrackCount: w.__RTSA_TEST_TRACK_COUNT__,
-        testCameraScale: w.__RTSA_TEST_SCALE__,
+        dataWorkerActive: true,
       };
       // Transfer OffscreenCanvas only — SAB is shared, not transferred
       renderWorker.postMessage(initMsg, [offscreen]);
@@ -256,17 +252,8 @@ export default function App() {
       setupResizeObserver(canvasRef);
     }
 
-    // Start gRPC alert stream or inject mocks for E2E visual tests
-    const w = window as any;
-    if (w.__RTSA_TEST_TRACK_COUNT__ !== undefined) {
-      updateAlerts([
-        { alertId: "alert-1", trackId: "1", severity: "CRITICAL", description: "Mock Hostile Incursion", detectedAtMs: Date.now() - 5000, acknowledged: false },
-        { alertId: "alert-2", trackId: "2", severity: "ELEVATED", description: "Mock Speed Anomaly", detectedAtMs: Date.now() - 15000, acknowledged: false },
-        { alertId: "alert-3", trackId: "3", severity: "WATCH", description: "Mock Route Deviation", detectedAtMs: Date.now() - 45000, acknowledged: false },
-      ]);
-    } else {
-      alertStreamController = startAlertStream();
-    }
+    // Start gRPC alert stream
+    alertStreamController = startAlertStream();
   }
 
   onMount(async () => {
@@ -314,36 +301,17 @@ export default function App() {
             </>
           }
           canvas={
-            <div style={{ position: "relative", width: "100%", height: "100%", "background-color": "#0a0f1a" }}>
-              {/* Temporary raster map background for Phase 3 E2E test visualization */}
-              <img
-                src="https://a.tile.openstreetmap.org/0/0/0.png"
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%) scale(4)",
-                  opacity: 0.15,
-                  "pointer-events": "none",
-                  filter: "invert(1) hue-rotate(180deg)", /* dark mode styling */
-                }}
-                alt="map-background"
-              />
-              <canvas
-                ref={canvasRef}
-                id="gpu-canvas"
-                onClick={handleCanvasClick}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  display: "block",
-                  cursor: "crosshair",
-                }}
-              />
-            </div>
+            <canvas
+              ref={canvasRef}
+              id="gpu-canvas"
+              onClick={handleCanvasClick}
+              style={{
+                width: "100%",
+                height: "100%",
+                display: "block",
+                cursor: "crosshair",
+              }}
+            />
           }
           rightPanel={
             <>

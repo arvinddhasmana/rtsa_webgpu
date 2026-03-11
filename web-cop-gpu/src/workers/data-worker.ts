@@ -28,11 +28,11 @@ const MOCK_BATCH_SIZE = 1_000; // records written per tick — fills 50k slots i
 const STATS_INTERVAL_MS = 1_000;
 
 import {
-  buildTransportUrl,
-  getJwtExpiryMs,
-  writeRecordToSlot as writeRecordToSlotLogic,
-  writeMockRecord as writeMockRecordLogic,
-  type WasmDecoder,
+    buildTransportUrl,
+    getJwtExpiryMs,
+    writeMockRecord as writeMockRecordLogic,
+    writeRecordToSlot as writeRecordToSlotLogic,
+    type WasmDecoder,
 } from "./data-worker-logic";
 
 // ── Message types ─────────────────────────────────────────────────────────────

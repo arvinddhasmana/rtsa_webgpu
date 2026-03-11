@@ -41,8 +41,6 @@ interface InitMessage {
    * The Render Worker must NOT call mock-data functions in this mode.
    */
   dataWorkerActive?: boolean;
-  testTrackCount?: number;
-  testCameraScale?: number;
 }
 
 interface ResizeMessage {
@@ -108,13 +106,7 @@ function teardown(): void {
  * Initialise the full WebGPU rendering stack.
  * On device loss this is called again with the same canvas and SAB.
  */
-async function init(
-  offscreen: OffscreenCanvas,
-  sabBuf: SharedArrayBuffer,
-  dataWorkerActive: boolean,
-  testTrackCount?: number,
-  testCameraScale?: number
-): Promise<void> {
+async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataWorkerActive: boolean): Promise<void> {
   activeCanvas = offscreen;
   activeSab    = sabBuf;
   activeDataWorker = dataWorkerActive;
@@ -157,13 +149,11 @@ async function init(
   const pipelines  = createPipelines(device, format);
   const bindGroups = createBindGroups(device, pipelines, buffers, atlas, pick);
 
-  const initialTrackCount = testTrackCount ?? MOCK_TRACK_COUNT;
-
   // Seed SAB with mock data only when no Data Worker is providing data.
   // When activeDataWorker is true, the Data Worker is the sole SAB writer.
   if (!activeDataWorker) {
-    initMockTracks(initialTrackCount);
-    writeMockTracksToSAB(sabBuf, initialTrackCount);
+    initMockTracks(MOCK_TRACK_COUNT);
+    writeMockTracksToSAB(sabBuf, MOCK_TRACK_COUNT);
   }
 
   renderState = {
@@ -177,11 +167,11 @@ async function init(
     pick,
     sab: sabBuf,
     canvas: offscreen,
-    trackCount: initialTrackCount,
+    trackCount: MOCK_TRACK_COUNT,
     camera: {
       centerLon: 0,
       centerLat: 0,
-      scale:     testCameraScale ?? 2.0,
+      scale:     2.0,
     },
     lastFrameTime: performance.now(),
     frameTimer,
@@ -195,7 +185,7 @@ async function init(
   if (import.meta.env.DEV) {
     console.log(
       `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
-      `tracks: ${initialTrackCount}, format: ${format}`,
+      `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
     );
   }
 }
@@ -218,8 +208,8 @@ function startRenderLoop(): void {
     // must only read from the SAB.
     if (!activeDataWorker) {
       tickMockTracks(dt);
-      if (activeSab && renderState) {
-        writeMockTracksToSAB(activeSab, renderState.trackCount);
+      if (activeSab) {
+        writeMockTracksToSAB(activeSab, MOCK_TRACK_COUNT);
       }
     }
 
@@ -280,13 +270,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 
   switch (msg.type) {
     case "init": {
-      init(
-        msg.canvas,
-        msg.sab,
-        msg.dataWorkerActive ?? false,
-        msg.testTrackCount,
-        msg.testCameraScale
-      ).catch((err: unknown) => {
+      init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error("[RenderWorker] Init failed:", err);
         }

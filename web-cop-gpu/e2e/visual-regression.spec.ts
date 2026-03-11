@@ -36,7 +36,7 @@ test.describe("Visual Regression Suite", () => {
   });
 
   test("baseline — app renders without crashes at default viewport", async ({ page }) => {
-    await gotoApp(page);
+    page.on("console", msg => console.log(msg.text())); await gotoApp(page);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
     await page.waitForTimeout(1_000);
 
@@ -61,7 +61,7 @@ test.describe("Visual Regression Suite", () => {
           { trackCount: count, cameraScale: scale },
         );
 
-        await gotoApp(page);
+        page.on("console", msg => console.log(msg.text())); await gotoApp(page);
         await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
         // Wait for the render loop to stabilise (at least 3 frames at 60 FPS ≈ 50ms)
@@ -82,7 +82,7 @@ test.describe("Visual Regression Suite", () => {
   }
 
   test("classification banner position is stable across track loads", async ({ page }) => {
-    await gotoApp(page);
+    page.on("console", msg => console.log(msg.text())); await gotoApp(page);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
     const banner = page.locator('[data-testid="classification-banner-top"]').first();
@@ -97,7 +97,7 @@ test.describe("Visual Regression Suite", () => {
   });
 
   test("toolbar layout is consistent between roles", async ({ page }) => {
-    await gotoApp(page);
+    page.on("console", msg => console.log(msg.text())); await gotoApp(page);
     await page.waitForLoadState("networkidle", { timeout: 20_000 }).catch(() => {});
 
     const toolbar = page.locator('[data-testid="app-toolbar"]');
