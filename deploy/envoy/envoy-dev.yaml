@@ -66,7 +66,54 @@ static_resources:
                             value: require-corp
                           append: false
                       routes:
-                        # Ingestion Service
+                        # Ingestion Service — type-specific routes (x-ingestion-target header)
+                        # These header-matched routes MUST precede the default radar fallback.
+                        - match:
+                            prefix: "/rtsa.ingestion.v1.IngestionService/"
+                            headers:
+                              - name: x-ingestion-target
+                                string_match:
+                                  exact: "ew"
+                          route:
+                            cluster: ew_ingestion_service
+                            timeout: 10s
+                        - match:
+                            prefix: "/rtsa.ingestion.v1.IngestionService/"
+                            headers:
+                              - name: x-ingestion-target
+                                string_match:
+                                  exact: "elint"
+                          route:
+                            cluster: elint_ingestion_service
+                            timeout: 10s
+                        - match:
+                            prefix: "/rtsa.ingestion.v1.IngestionService/"
+                            headers:
+                              - name: x-ingestion-target
+                                string_match:
+                                  exact: "isr"
+                          route:
+                            cluster: isr_ingestion_service
+                            timeout: 10s
+                        - match:
+                            prefix: "/rtsa.ingestion.v1.IngestionService/"
+                            headers:
+                              - name: x-ingestion-target
+                                string_match:
+                                  exact: "ais"
+                          route:
+                            cluster: ais_ingestion_service
+                            timeout: 10s
+                        - match:
+                            prefix: "/rtsa.ingestion.v1.IngestionService/"
+                            headers:
+                              - name: x-ingestion-target
+                                string_match:
+                                  exact: "cyber"
+                          route:
+                            cluster: cyber_ingestion_service
+                            timeout: 10s
+                        # Ingestion Service — default route (radar, no x-ingestion-target header)
                         - match:
                             prefix: "/rtsa.ingestion.v1.IngestionService/"
                           route:
@@ -285,4 +332,99 @@ static_resources:
                   address:
                     socket_address:
                       address: svc-radar-ingestion
+                      port_value: 50051
+
+    - name: ew_ingestion_service
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: ew_ingestion_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: svc-ew-ingestion
+                      port_value: 50051
+
+    - name: elint_ingestion_service
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: elint_ingestion_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: svc-elint-ingestion
+                      port_value: 50051
+
+    - name: isr_ingestion_service
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: isr_ingestion_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: svc-isr-ingestion
+                      port_value: 50051
+
+    - name: ais_ingestion_service
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: ais_ingestion_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: svc-ais-ingestion
+                      port_value: 50051
+
+    - name: cyber_ingestion_service
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: cyber_ingestion_service
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: svc-cyber-ingestion
                       port_value: 50051

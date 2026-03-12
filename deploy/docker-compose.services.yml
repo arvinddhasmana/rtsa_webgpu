@@ -28,7 +28,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -58,7 +58,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -88,7 +88,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -118,7 +118,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -148,7 +148,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -178,7 +178,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -210,7 +210,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -240,7 +240,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -273,7 +273,7 @@ services:
       clickhouse:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -303,7 +303,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -333,7 +333,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -362,7 +362,7 @@ services:
       clickhouse:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -395,7 +395,7 @@ services:
       clickhouse:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -424,7 +424,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -452,7 +452,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD", "/bin/grpc_health_probe", "-addr=:50051" ]
+      test: ["CMD", "/bin/grpc_health_probe", "-addr=:50051"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -652,7 +652,7 @@ services:
       redpanda:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "nc -zu localhost 4443 || exit 1" ]
+      test: ["CMD-SHELL", "nc -zu localhost 4443 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -671,6 +671,9 @@ services:
         # OSM tiles for dev; override with air-gapped tile server for classified environments.
         VITE_MAP_TILE_URL: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         VITE_API_GATEWAY_URL: "http://localhost:8443"
+        # Development mode: relaxes Nginx CSP connect-src to allow http://localhost:*
+        # so the Envoy gRPC-Web gateway (plain HTTP on :8443) is not blocked by the browser.
+        BUILD_ENV: "development"
     container_name: rtsa-web-cop-gpu
     ports:
       - "5173:80"

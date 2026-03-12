@@ -10,18 +10,14 @@
     "grep": {},
     "grepInvert": null,
     "maxFailures": 0,
-    "metadata": {
-      "actualWorkers": 1
-    },
+    "metadata": {},
     "preserveOutput": "always",
     "projects": [
       {
         "outputDir": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/test-results",
         "repeatEach": 1,
         "retries": 1,
-        "metadata": {
-          "actualWorkers": 1
-        },
+        "metadata": {},
         "id": "chromium",
         "name": "chromium",
         "testDir": "/home/arvind/workspace/rtsa_webgpu/web-cop-gpu/e2e",
@@ -70,204 +66,12 @@
       "timeout": 90000
     }
   },
-  "suites": [
-    {
-      "title": "sensor-health.spec.ts",
-      "file": "sensor-health.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Sensor Health Dashboard",
-          "file": "sensor-health.spec.ts",
-          "line": 9,
-          "column": 6,
-          "specs": [
-            {
-              "title": "is visible by default for sensor operator",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 697,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-03-12T00:19:25.607Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "0b8a9f2922ce9a789d5f-ef4965d6467e1e4bf2a0",
-              "file": "sensor-health.spec.ts",
-              "line": 10,
-              "column": 7
-            },
-            {
-              "title": "can filter by status",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 472,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-03-12T00:19:26.871Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "0b8a9f2922ce9a789d5f-73ea5d1cf662644e38a7",
-              "file": "sensor-health.spec.ts",
-              "line": 18,
-              "column": 7
-            },
-            {
-              "title": "sidebar can be collapsed and expanded",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 807,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-03-12T00:19:27.352Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "0b8a9f2922ce9a789d5f-8e648e094c7067151345",
-              "file": "sensor-health.spec.ts",
-              "line": 39,
-              "column": 7
-            },
-            {
-              "title": "can switch between health and map dashboards",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 538,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-03-12T00:19:28.166Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "0b8a9f2922ce9a789d5f-9258fdec1a449efb1fbd",
-              "file": "sensor-health.spec.ts",
-              "line": 54,
-              "column": 7
-            },
-            {
-              "title": "captures screenshot for proof of work",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 3465,
-                      "errors": [],
-                      "stdout": [
-                        {
-                          "text": "Screenshot saved to e2e/snapshots/sensor-health-dashboard.png\n"
-                        }
-                      ],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-03-12T00:19:28.712Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "0b8a9f2922ce9a789d5f-e06e6bcc3d272aef256b",
-              "file": "sensor-health.spec.ts",
-              "line": 71,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    }
-  ],
+  "suites": [],
   "errors": [],
   "stats": {
-    "startTime": "2026-03-12T00:19:24.563Z",
-    "duration": 7706.63,
-    "expected": 5,
+    "startTime": "2026-03-12T04:03:32.497Z",
+    "duration": 129385.768,
+    "expected": 0,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

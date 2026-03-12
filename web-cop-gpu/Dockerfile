@@ -55,11 +55,23 @@ RUN pnpm build
 # ── Stage 3: Nginx runtime ──────────────────────────────────
 FROM nginx:1.27-alpine AS runtime
 
+# Build environment selector.
+# "development" — connect-src additionally allows http://localhost:* and ws://localhost:*
+#                 so that the Envoy gRPC-Web gateway (plain HTTP on :8443) is reachable.
+# "production"  — connect-src restricted to https: and wss: only (default).
+ARG BUILD_ENV=production
+
 # Remove default config
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Custom Nginx config with SPA fallback + security headers
-COPY <<'NGINX_CONF' /etc/nginx/conf.d/rtsa-cop.conf
+# Generate Nginx config with environment-appropriate connect-src CSP directive.
+# Uses a shell RUN (not COPY<<heredoc) so that $BUILD_ENV can influence the output.
+RUN if [ "$BUILD_ENV" = "development" ]; then \
+    CONNECT_SRC="connect-src 'self' https: wss: http://localhost:* ws://localhost:*"; \
+    else \
+    CONNECT_SRC="connect-src 'self' https: wss:"; \
+    fi && \
+    cat > /etc/nginx/conf.d/rtsa-cop.conf <<NGINX_EOF
 server {
     listen       80;
     server_name  _;
@@ -75,14 +87,14 @@ server {
     add_header X-Content-Type-Options "nosniff"                 always;
     add_header X-Frame-Options        "DENY"                    always;
     add_header Referrer-Policy        "strict-origin-when-cross-origin" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; connect-src 'self' https: wss:; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; ${CONNECT_SRC}; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
 
     # ── Wasm MIME type ───────────────────────────────────────
     # A types{} block in a server{} context replaces the entire inherited
     # mime.types table, and include is invalid inside types{}.
     # Use a dedicated location with default_type instead — .wasm is absent
     # from nginx's standard mime.types so default_type applies cleanly.
-    location ~* \.wasm$ {
+    location ~* \.wasm\$ {
         default_type application/wasm;
         expires 1y;
         add_header Cache-Control "public, immutable";
@@ -92,11 +104,11 @@ server {
 
     # ── SPA fallback ─────────────────────────────────────────
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files \$uri \$uri/ /index.html;
     }
 
     # ── Cache static assets ──────────────────────────────────
-    location ~* \.(js|css|png|jpg|svg|ico|woff2?)$ {
+    location ~* \.(js|css|png|jpg|svg|ico|woff2?)\$ {
         expires 1y;
         add_header Cache-Control "public, immutable";
         # Re-add COOP/COEP on cached assets (add_header in location overrides server block)
@@ -104,7 +116,7 @@ server {
         add_header Cross-Origin-Embedder-Policy "require-corp"      always;
     }
 }
-NGINX_CONF
+NGINX_EOF
 
 COPY --from=node-builder /app/dist /usr/share/nginx/html
 

@@ -24,34 +24,73 @@ export interface SensorStatus {
 /** Maps SensorType enum to human-readable labels. */
 export function sensorTypeLabel(t: SensorType): string {
   switch (t) {
-    case SensorType.RADAR: return "RADAR";
-    case SensorType.EW_SIGINT: return "EW/SIGINT";
-    case SensorType.ELINT_COMINT: return "ELINT/COMINT";
-    case SensorType.ISR: return "ISR";
-    case SensorType.AIS_BFT: return "AIS/BFT";
-    case SensorType.CYBER: return "CYBER";
-    default: return "UNKNOWN";
+    case SensorType.RADAR:
+      return "RADAR";
+    case SensorType.EW_SIGINT:
+      return "EW/SIGINT";
+    case SensorType.ELINT_COMINT:
+      return "ELINT/COMINT";
+    case SensorType.ISR:
+      return "ISR";
+    case SensorType.AIS_BFT:
+      return "AIS/BFT";
+    case SensorType.CYBER:
+      return "CYBER";
+    default:
+      return "UNKNOWN";
   }
 }
 
+// Sensor type targets — each maps to an Envoy cluster via the x-ingestion-target header.
+// The radar ingestion service is the default (no header required).
+const INGESTION_TARGETS = [
+  undefined, // radar — default cluster (no header)
+  "ew",
+  "elint",
+  "isr",
+  "ais",
+  "cyber",
+] as const;
+
 /**
- * Fetches all known sensor statuses and applies health logic.
+ * Fetches all known sensor statuses across ALL ingestion services and applies health logic.
+ * Makes 6 parallel gRPC-Web calls (one per sensor type) routed by Envoy via the
+ * x-ingestion-target request header, then merges and returns the combined results.
+ *
  * Logic:
  *  - Green (CONNECTED): last_observation_time < 30s ago
  *  - Amber (STALE): 30s <= last_observation_time < 2m
  *  - Red (OFFLINE): last_observation_time >= 2m or s.connected = false
  */
 export async function fetchSensorStatuses(): Promise<SensorStatus[]> {
-  const response = await client.listSensorStatuses({
-    activeWithinSeconds: 0,
-    sensorTypes: [],
-  });
+  const callOpts = (target: string | undefined) =>
+    target
+      ? { headers: new Headers({ "x-ingestion-target": target }) }
+      : undefined;
+
+  const results = await Promise.all(
+    INGESTION_TARGETS.map((target) =>
+      client
+        .listSensorStatuses(
+          { activeWithinSeconds: 0, sensorTypes: [] },
+          callOpts(target),
+        )
+        .catch(() => ({
+          sensors: [] as Awaited<
+            ReturnType<typeof client.listSensorStatuses>
+          >["sensors"],
+        })),
+    ),
+  );
+
+  const response = { sensors: results.flatMap((r) => r.sensors) };
 
   const now = Date.now();
 
   return response.sensors.map((s) => {
     const lastSeenMs = s.lastObservationTime
-      ? Number(s.lastObservationTime.seconds) * 1000 + (s.lastObservationTime.nanos / 1000000)
+      ? Number(s.lastObservationTime.seconds) * 1000 +
+        s.lastObservationTime.nanos / 1000000
       : 0;
     const diffSeconds = lastSeenMs > 0 ? (now - lastSeenMs) / 1000 : Infinity;
 
@@ -66,7 +105,8 @@ export async function fetchSensorStatuses(): Promise<SensorStatus[]> {
 
     const totalReceived = Number(s.totalReceived);
     const totalAccepted = Number(s.totalAccepted);
-    const passRate = totalReceived > 0 ? (totalAccepted / totalReceived) * 100 : 0;
+    const passRate =
+      totalReceived > 0 ? (totalAccepted / totalReceived) * 100 : 0;
 
     return {
       sensorId: s.sensorId,
