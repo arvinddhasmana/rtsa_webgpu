@@ -40,6 +40,7 @@ import { fetchAuthToken } from "./services/auth";
 import { fetchTrackDetail } from "./services/query";
 
 // Components
+import { SensorHealthDashboard } from "./components/dashboard/SensorHealthDashboard";
 import { AlertSidebar } from "./components/panels/AlertSidebar";
 import { FeedbackForm } from "./components/panels/FeedbackForm";
 import { TrackDetailPanel } from "./components/panels/TrackDetailPanel";
@@ -301,25 +302,34 @@ export default function App() {
             </>
           }
           canvas={
-            <canvas
-              ref={canvasRef}
-              id="gpu-canvas"
-              onClick={handleCanvasClick}
-              style={{
-                width: "100%",
-                height: "100%",
-                display: "block",
-                cursor: "crosshair",
-              }}
-            />
+            <Show
+              when={dashboard() === "health"}
+              fallback={
+                <canvas
+                  ref={canvasRef}
+                  id="gpu-canvas"
+                  onClick={handleCanvasClick}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    display: "block",
+                    cursor: "crosshair",
+                  }}
+                />
+              }
+            >
+              <SensorHealthDashboard />
+            </Show>
           }
           rightPanel={
-            <>
-              <TrackDetailPanel />
-              <Show when={showAlerts()}>
-                <AlertSidebar />
-              </Show>
-            </>
+            dashboard() !== "health" ? (
+              <>
+                <TrackDetailPanel />
+                <Show when={showAlerts()}>
+                  <AlertSidebar />
+                </Show>
+              </>
+            ) : undefined
           }
           bottomPanel={
             <>

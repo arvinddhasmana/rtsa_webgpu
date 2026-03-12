@@ -5,13 +5,13 @@
 // (centre) → panels (right/bottom) → classification banner (bottom).
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §3 U3-1
 
-import type { JSX } from "solid-js";
+import { Show, type JSX } from "solid-js";
 import { ClassificationBanner } from "./ClassificationBanner";
 
 interface AppShellProps {
   toolbar: JSX.Element;
   canvas: JSX.Element;
-  rightPanel: JSX.Element;
+  rightPanel?: JSX.Element;
   bottomPanel: JSX.Element;
   overlay?: JSX.Element;
 }
@@ -84,19 +84,21 @@ export function AppShell(props: AppShellProps) {
         </div>
 
         {/* Right panels */}
-        <div
-          style={{
-            width: "22rem",
-            "flex-shrink": "0",
-            background: "#0d1424",
-            "border-left": "1px solid #1e2a3a",
-            display: "flex",
-            "flex-direction": "column",
-            overflow: "hidden auto",
-          }}
-        >
-          {props.rightPanel}
-        </div>
+        <Show when={props.rightPanel}>
+          <div
+            style={{
+              width: "22rem",
+              "flex-shrink": "0",
+              background: "#0d1424",
+              "border-left": "1px solid #1e2a3a",
+              display: "flex",
+              "flex-direction": "column",
+              overflow: "hidden auto",
+            }}
+          >
+            {props.rightPanel}
+          </div>
+        </Show>
 
         {/* Overlay (search, modals) */}
         {props.overlay}

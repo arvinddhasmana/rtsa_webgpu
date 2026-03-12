@@ -7,7 +7,8 @@
 import { dashboard, setDashboard, type Dashboard } from "../../signals/viewport";
 
 const DASHBOARDS: { value: Dashboard; label: string }[] = [
-  { value: "sensor", label: "Sensor" },
+  { value: "sensor", label: "Map view" },
+  { value: "health", label: "Health" },
   { value: "commander", label: "Commander" },
   { value: "analytics", label: "Analytics" },
 ];

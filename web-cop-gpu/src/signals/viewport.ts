@@ -9,13 +9,13 @@ import { createSignal } from "solid-js";
 export type Role = "sensor_operator" | "operations_commander";
 
 /** Available dashboard views. */
-export type Dashboard = "sensor" | "commander" | "analytics";
+export type Dashboard = "sensor" | "commander" | "analytics" | "health";
 
 /** Active operator role (default: sensor_operator). */
 export const [role, setRole] = createSignal<Role>("sensor_operator");
 
-/** Active dashboard view (default: sensor). */
-export const [dashboard, setDashboard] = createSignal<Dashboard>("sensor");
+/** Active dashboard view (default: health). */
+export const [dashboard, setDashboard] = createSignal<Dashboard>("health");
 
 /** Whether the search overlay is open. */
 export const [searchOpen, setSearchOpen] = createSignal(false);
