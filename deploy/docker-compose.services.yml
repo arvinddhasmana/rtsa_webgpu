@@ -670,7 +670,7 @@ services:
       args:
         # OSM tiles for dev; override with air-gapped tile server for classified environments.
         VITE_MAP_TILE_URL: "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        VITE_API_GATEWAY_URL: "https://localhost:8443"
+        VITE_API_GATEWAY_URL: "http://localhost:8443"
     container_name: rtsa-web-cop-gpu
     ports:
       - "5173:80"

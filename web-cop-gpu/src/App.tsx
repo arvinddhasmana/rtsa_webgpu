@@ -213,6 +213,10 @@ export default function App() {
     renderWorker.addEventListener("message", handleRenderMessage);
     dataWorker.addEventListener("message", handleDataMessage);
 
+    // Init Data Worker — pass URL and JWT token when available.
+    // When VITE_WEBTRANSPORT_URL is undefined (local dev), the worker falls back to mock mode.
+    const wtUrl = import.meta.env.VITE_WEBTRANSPORT_URL as string | undefined;
+
     // Transfer OffscreenCanvas to Render Worker
     if (canvasRef) {
       const offscreen = canvasRef.transferControlToOffscreen();
@@ -220,15 +224,12 @@ export default function App() {
         type: "init",
         canvas: offscreen,
         sab,
-        dataWorkerActive: true,
+        dataWorkerActive: !!wtUrl, // Re-enable mock tracks if no WT URL
       };
       // Transfer OffscreenCanvas only — SAB is shared, not transferred
       renderWorker.postMessage(initMsg, [offscreen]);
     }
 
-    // Init Data Worker — pass URL and JWT token when available.
-    // When VITE_WEBTRANSPORT_URL is undefined (local dev), the worker falls back to mock mode.
-    const wtUrl = import.meta.env.VITE_WEBTRANSPORT_URL as string | undefined;
     const token = wtUrl ? await fetchAuthToken() : undefined;
     // Decode operator identity from JWT claims; falls back to "anonymous".
     setOperatorId(operatorIdFromToken(token));

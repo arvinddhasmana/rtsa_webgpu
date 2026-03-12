@@ -2,51 +2,61 @@
 package handler
 
 import (
-"context"
-"fmt"
-"io"
-"sync/atomic"
-"time"
+	"context"
+	"fmt"
+	"io"
+	"sync"
+	"sync/atomic"
+	"time"
 
-auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/mapper"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/producer"
-"go.uber.org/zap"
-"google.golang.org/grpc/codes"
-"google.golang.org/grpc/status"
-"google.golang.org/protobuf/types/known/timestamppb"
+	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/domain"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/mapper"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/producer"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // IngestionHandler implements IngestionService for radar data.
 type IngestionHandler struct {
-ingestionv1.UnimplementedIngestionServiceServer
+	ingestionv1.UnimplementedIngestionServiceServer
 
-validator    *domain.RadarValidator
-normalizer   *domain.RadarNormalizer
-enricher     *mapper.Enricher
-prod         *producer.ObservationProducer
-dlqProd      *producer.ObservationProducer
+	validator    *domain.RadarValidator
+	normalizer   *domain.RadarNormalizer
+	enricher     *mapper.Enricher
+	prod         *producer.ObservationProducer
+	dlqProd      *producer.ObservationProducer
 	auditEmitter *audit.Emitter
 	logger       *zap.Logger
 	coverage     *ingestionv1.SensorCoverage
 
-// Statistics (atomic for thread safety)
-totalReceived atomic.Int64
-totalAccepted atomic.Int64
-totalRejected atomic.Int64
-lastObsTime   atomic.Value // stores time.Time
+	// Statistics (atomic for thread safety)
+	totalReceived atomic.Int64
+	totalAccepted atomic.Int64
+	totalRejected atomic.Int64
+	lastObsTime   atomic.Value // stores time.Time
+	startTime     time.Time
+
+	// Dynamic sensor tracking
+	sensors sync.Map // map[string]*sensorState
+}
+
+type sensorState struct {
+	totalReceived atomic.Int64
+	lastObsTime   atomic.Value // stores time.Time
 }
 
 // NewIngestionHandler creates a new radar ingestion handler.
 func NewIngestionHandler(
-validator *domain.RadarValidator,
-normalizer *domain.RadarNormalizer,
-enricher *mapper.Enricher,
+	validator *domain.RadarValidator,
+	normalizer *domain.RadarNormalizer,
+	enricher *mapper.Enricher,
 	prod *producer.ObservationProducer,
 	dlqProd *producer.ObservationProducer,
 	auditEmitter *audit.Emitter,
@@ -54,57 +64,65 @@ enricher *mapper.Enricher,
 	coverage *ingestionv1.SensorCoverage,
 ) *IngestionHandler {
 	h := &IngestionHandler{
-validator:    validator,
-normalizer:   normalizer,
-enricher:     enricher,
-prod:         prod,
-dlqProd:      dlqProd,
+		validator:    validator,
+		normalizer:   normalizer,
+		enricher:     enricher,
+		prod:         prod,
+		dlqProd:      dlqProd,
 		auditEmitter: auditEmitter,
 		logger:       logger,
 		coverage:     coverage,
+		startTime:    time.Now(),
 	}
-h.lastObsTime.Store(time.Time{})
-return h
+	h.lastObsTime.Store(time.Time{})
+	return h
 }
 
 // IngestSingleObservation handles unary radar observation ingestion.
 func (h *IngestionHandler) IngestSingleObservation(ctx context.Context,
-obs *ingestionv1.SensorObservation) (*ingestionv1.IngestionAck, error) {
+	obs *ingestionv1.SensorObservation) (*ingestionv1.IngestionAck, error) {
 
-// 1. Increment totalReceived counter
-h.totalReceived.Add(1)
+	// 1. Increment totalReceived counter
+	h.totalReceived.Add(1)
 
-// 2. Validate
-result := h.validator.Validate(obs)
-if !result.Valid {
-reason := "validation failed"
-if len(result.Errors) > 0 {
-reason = fmt.Sprintf("validation failed: %s", result.Errors[0].Message)
-}
+	// Update dynamic sensor tracking
+	sID := obs.GetSensorId()
+	actual, _ := h.sensors.LoadOrStore(sID, &sensorState{})
+	ss := actual.(*sensorState)
+	ss.totalReceived.Add(1)
+	ss.lastObsTime.Store(time.Now().UTC())
 
-h.logger.Warn("observation rejected",
-zap.String("sensor_id", obs.GetSensorId()),
-zap.String("reason", reason))
+	// 2. Validate
+	result := h.validator.Validate(obs)
+	if !result.Valid {
+		reason := "validation failed"
+		if len(result.Errors) > 0 {
+			reason = fmt.Sprintf("validation failed: %s", result.Errors[0].Message)
+		}
 
-// Produce to DLQ
-if h.dlqProd != nil {
-if dlqErr := h.dlqProd.Produce(ctx, obs); dlqErr != nil {
-h.logger.Error("failed to produce to DLQ",
-zap.String("sensor_id", obs.GetSensorId()),
-zap.Error(dlqErr))
-}
-}
+		h.logger.Warn("observation rejected",
+			zap.String("sensor_id", obs.GetSensorId()),
+			zap.String("reason", reason))
 
-h.totalRejected.Add(1)
-return &ingestionv1.IngestionAck{
-ObservationId:   obs.GetObservationId(),
-Accepted:        false,
-RejectionReason: reason,
-}, nil
-}
+		// Produce to DLQ
+		if h.dlqProd != nil {
+			if dlqErr := h.dlqProd.Produce(ctx, obs); dlqErr != nil {
+				h.logger.Error("failed to produce to DLQ",
+					zap.String("sensor_id", obs.GetSensorId()),
+					zap.Error(dlqErr))
+			}
+		}
 
-// 3. Normalize
-normalized := h.normalizer.Normalize(obs)
+		h.totalRejected.Add(1)
+		return &ingestionv1.IngestionAck{
+			ObservationId:   obs.GetObservationId(),
+			Accepted:        false,
+			RejectionReason: reason,
+		}, nil
+	}
+
+	// 3. Normalize
+	normalized := h.normalizer.Normalize(obs)
 
 // 4. Enrich (adds observation_id, checks classification ceiling)
 if err := h.enricher.Enrich(ctx, normalized); err != nil {
@@ -213,13 +231,19 @@ req *ingestionv1.GetSensorStatusRequest) (*ingestionv1.SensorStatusResponse, err
 lastTime := h.lastObsTime.Load().(time.Time)
 
 resp := &ingestionv1.SensorStatusResponse{
-SensorId:      req.GetSensorId(),
-SensorType:    commonv1.SensorType_SENSOR_TYPE_RADAR,
-Connected:     true,
-TotalReceived: h.totalReceived.Load(),
-TotalAccepted: h.totalAccepted.Load(),
-TotalRejected: h.totalRejected.Load(),
+	SensorId:      req.GetSensorId(),
+	SensorType:    commonv1.SensorType_SENSOR_TYPE_RADAR,
+	Connected:     true,
+	TotalReceived: h.totalReceived.Load(),
+	TotalAccepted: h.totalAccepted.Load(),
+	TotalRejected: h.totalRejected.Load(),
 }
+
+	// Calculate throughput (obs/s)
+	runtime := time.Since(h.startTime).Seconds()
+	if runtime > 0 {
+		resp.EventsPerSecond = float64(h.totalReceived.Load()) / runtime
+	}
 
 	if !lastTime.IsZero() {
 		resp.LastObservationTime = timestamppb.New(lastTime)
@@ -231,30 +255,51 @@ TotalRejected: h.totalRejected.Load(),
 	return resp, nil
 }
 
-// ListSensorStatuses returns a list of all active radar sensor statistics.
-func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListSensorStatusesRequest) (*ingestionv1.ListSensorStatusesResponse, error) {
-	// For now, since radar ingestion only handles its own unified stream and doesn't multiplex
-	// multiple discrete radar IDs dynamically with independent states, we report the state of the radar cluster itself
-	// or returning a predefined list if we tracked them. Currently we track unified state.
+ // ListSensorStatuses returns a list of all active radar sensor statistics.
+ func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListSensorStatusesRequest) (*ingestionv1.ListSensorStatusesResponse, error) {
+	var sensors []*ingestionv1.SensorStatusResponse
 
-	// Get the unified status
-	statusReq := &ingestionv1.GetSensorStatusRequest{
-		SensorId: "radar-cluster-01", // Or dynamic if tracked
-	}
+	h.sensors.Range(func(key, value interface{}) bool {
+		sID := key.(string)
+		ss := value.(*sensorState)
+		lastTime := ss.lastObsTime.Load().(time.Time)
 
-	resp, err := h.GetSensorStatus(ctx, statusReq)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get sensor status: %v", err)
-	}
-
-	// Filter by active within
-	if req.ActiveWithinSeconds > 0 && resp.LastObservationTime != nil {
-		if time.Since(resp.LastObservationTime.AsTime()).Seconds() > float64(req.ActiveWithinSeconds) {
-			return &ingestionv1.ListSensorStatusesResponse{Sensors: []*ingestionv1.SensorStatusResponse{}}, nil
+		// Filter by active within
+		if req.ActiveWithinSeconds > 0 && !lastTime.IsZero() {
+			if time.Since(lastTime).Seconds() > float64(req.ActiveWithinSeconds) {
+				return true // Continue
+			}
 		}
+
+		resp := &ingestionv1.SensorStatusResponse{
+			SensorId:            sID,
+			SensorType:          commonv1.SensorType_SENSOR_TYPE_RADAR,
+			Connected:           time.Since(lastTime) < 30*time.Second,
+			TotalReceived:       ss.totalReceived.Load(),
+			TotalAccepted:       ss.totalReceived.Load(), // For now
+			LastObservationTime: timestamppb.New(lastTime),
+		}
+
+		// Throughput calculation for individual sensor (rough estimate)
+		runtime := time.Since(h.startTime).Seconds()
+		if runtime > 5 {
+			resp.EventsPerSecond = float64(ss.totalReceived.Load()) / runtime
+		}
+
+		sensors = append(sensors, resp)
+		return true
+	})
+
+	// Fallback to cluster status if no sensors recorded yet
+	if len(sensors) == 0 {
+		statusReq := &ingestionv1.GetSensorStatusRequest{
+			SensorId: "radar-cluster-01",
+		}
+		resp, _ := h.GetSensorStatus(ctx, statusReq)
+		sensors = append(sensors, resp)
 	}
 
 	return &ingestionv1.ListSensorStatusesResponse{
-		Sensors: []*ingestionv1.SensorStatusResponse{resp},
+		Sensors: sensors,
 	}, nil
-}
+ }
