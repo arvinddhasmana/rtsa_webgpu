@@ -5,9 +5,10 @@ package rtsa.ingestion.v1;
 
 option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1";
 
-import "rtsa/ingestion/v1/sensor_observation.proto";
-import "rtsa/common/v1/types.proto";
 import "google/protobuf/timestamp.proto";
+
+import "rtsa/common/v1/types.proto";
+import "rtsa/ingestion/v1/sensor_observation.proto";
 
 // ──────────────────────────────────────────
 // Ingestion Service — shared by all sensor types
@@ -28,6 +29,10 @@ service IngestionService {
   // Unary: get status of all known sensors
   // Deadline: 10s
   rpc ListSensorStatuses(ListSensorStatusesRequest) returns (ListSensorStatusesResponse);
+
+  // Unary: get in-depth diagnostic data for a single sensor
+  // Deadline: 10s
+  rpc GetSensorDiagnostic(GetSensorDiagnosticRequest) returns (SensorDiagnosticResponse);
 }
 
 message IngestionAck {
@@ -86,4 +91,62 @@ message ListSensorStatusesRequest {
 
 message ListSensorStatusesResponse {
   repeated SensorStatusResponse sensors = 1;
+}
+
+// ──────────────────────────────────────────
+// Sensor Diagnostic Messages
+// ──────────────────────────────────────────
+
+message GetSensorDiagnosticRequest {
+  string sensor_id = 1;
+  int32 history_samples = 2;
+  int32 recent_events_limit = 3;
+}
+
+message ThroughputSample {
+  google.protobuf.Timestamp sampled_at = 1;
+  double events_per_second = 2;
+}
+
+message DLQReasonCount {
+  string reason = 1;
+  int64 count = 2;
+}
+
+enum SensorEventSeverity {
+  SENSOR_EVENT_SEVERITY_UNSPECIFIED = 0;
+  SENSOR_EVENT_SEVERITY_INFO = 1;
+  SENSOR_EVENT_SEVERITY_WARN = 2;
+  SENSOR_EVENT_SEVERITY_ERROR = 3;
+}
+
+message SensorEvent {
+  google.protobuf.Timestamp occurred_at = 1;
+  string event_text = 2;
+  SensorEventSeverity severity = 3;
+}
+
+message SubSensorStatus {
+  string sensor_id = 1;
+  string status = 2;
+  string location_label = 3;
+  google.protobuf.Timestamp last_seen_at = 4;
+}
+
+message SensorDiagnosticResponse {
+  string sensor_id = 1;
+  rtsa.common.v1.SensorType sensor_type = 2;
+  bool connected = 3;
+  int64 total_received = 4;
+  int64 total_accepted = 5;
+  int64 total_rejected = 6;
+  google.protobuf.Timestamp last_observation_time = 7;
+  double events_per_second = 8;
+  double latency_ms = 9;
+  double validation_pass_rate = 10;
+  repeated ThroughputSample throughput_history = 11;
+  repeated DLQReasonCount dlq_breakdown = 12;
+  repeated SensorEvent recent_events = 13;
+  repeated SubSensorStatus sub_sensors = 14;
+  optional SensorCoverage coverage = 15;
 }

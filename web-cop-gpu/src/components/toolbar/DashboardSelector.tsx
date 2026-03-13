@@ -4,7 +4,11 @@
 // Allows the operator to switch between dashboard views (Sensor / Commander / Analytics).
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §3 U3-2, U3-9
 
-import { dashboard, setDashboard, type Dashboard } from "../../signals/viewport";
+import {
+  dashboard,
+  setDashboard,
+  type Dashboard,
+} from "../../signals/viewport";
 
 const DASHBOARDS: { value: Dashboard; label: string }[] = [
   { value: "sensor", label: "Map view" },
@@ -21,16 +25,23 @@ export function DashboardSelector() {
   }
 
   return (
-    <div data-testid="dashboard-selector" style={{ padding: "0.5rem" }}>
+    <div
+      data-testid="dashboard-selector"
+      style={{
+        display: "flex",
+        "flex-direction": "row",
+        "align-items": "center",
+        gap: "6px",
+      }}
+    >
       <label
         for="dashboard-selector"
         style={{
-          display: "block",
           "font-size": "0.65rem",
           "text-transform": "uppercase",
           "letter-spacing": "0.08em",
           color: "#94a3b8",
-          "margin-bottom": "0.25rem",
+          "white-space": "nowrap",
         }}
       >
         Dashboard
@@ -40,7 +51,7 @@ export function DashboardSelector() {
         value={dashboard()}
         onChange={handleChange}
         style={{
-          width: "100%",
+          width: "auto",
           background: "#1e2a3a",
           color: "#e2e8f0",
           border: "1px solid #2d3f56",

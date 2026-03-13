@@ -14,6 +14,7 @@ import (
 	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/ingestion"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/domain"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/mapper"
 	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion/internal/producer"
@@ -44,13 +45,9 @@ type IngestionHandler struct {
 	startTime     time.Time
 
 	// Dynamic sensor tracking
-	sensors sync.Map // map[string]*sensorState
+	sensors sync.Map // map[string]*ingestion.SensorStateTracker
 }
 
-type sensorState struct {
-	totalReceived atomic.Int64
-	lastObsTime   atomic.Value // stores time.Time
-}
 
 // NewIngestionHandler creates a new radar ingestion handler.
 func NewIngestionHandler(
@@ -85,12 +82,15 @@ func (h *IngestionHandler) IngestSingleObservation(ctx context.Context,
 	// 1. Increment totalReceived counter
 	h.totalReceived.Add(1)
 
-	// Update dynamic sensor tracking
+	// Per-sensor tracker (replaces sensorState)
+	t0 := time.Now()
 	sID := obs.GetSensorId()
-	actual, _ := h.sensors.LoadOrStore(sID, &sensorState{})
-	ss := actual.(*sensorState)
-	ss.totalReceived.Add(1)
-	ss.lastObsTime.Store(time.Now().UTC())
+	newTracker := ingestion.NewSensorStateTracker()
+	rawTracker, loaded := h.sensors.LoadOrStore(sID, newTracker)
+	tracker := rawTracker.(*ingestion.SensorStateTracker)
+	if !loaded {
+		tracker.StartThroughputSampler(context.Background(), 30*time.Second)
+	}
 
 	// 2. Validate
 	result := h.validator.Validate(obs)
@@ -113,6 +113,7 @@ func (h *IngestionHandler) IngestSingleObservation(ctx context.Context,
 			}
 		}
 
+		tracker.RecordRejected(reason)
 		h.totalRejected.Add(1)
 		return &ingestionv1.IngestionAck{
 			ObservationId:   obs.GetObservationId(),
@@ -161,6 +162,7 @@ ClassificationLevel: obs.GetClassification(),
 }
 
 // 7. Increment totalAccepted
+tracker.RecordAccepted(time.Since(t0).Nanoseconds())
 h.totalAccepted.Add(1)
 h.lastObsTime.Store(time.Now().UTC())
 
@@ -255,51 +257,82 @@ resp := &ingestionv1.SensorStatusResponse{
 	return resp, nil
 }
 
- // ListSensorStatuses returns a list of all active radar sensor statistics.
- func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListSensorStatusesRequest) (*ingestionv1.ListSensorStatusesResponse, error) {
+// ListSensorStatuses returns a list of all active radar sensor statistics.
+func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListSensorStatusesRequest) (*ingestionv1.ListSensorStatusesResponse, error) {
 	var sensors []*ingestionv1.SensorStatusResponse
 
 	h.sensors.Range(func(key, value interface{}) bool {
 		sID := key.(string)
-		ss := value.(*sensorState)
-		lastTime := ss.lastObsTime.Load().(time.Time)
-
-		// Filter by active within
+		tracker := value.(*ingestion.SensorStateTracker)
+		lastTime := tracker.LastObsTime()
 		if req.ActiveWithinSeconds > 0 && !lastTime.IsZero() {
 			if time.Since(lastTime).Seconds() > float64(req.ActiveWithinSeconds) {
-				return true // Continue
+				return true
 			}
 		}
-
-		resp := &ingestionv1.SensorStatusResponse{
+		sensors = append(sensors, &ingestionv1.SensorStatusResponse{
 			SensorId:            sID,
 			SensorType:          commonv1.SensorType_SENSOR_TYPE_RADAR,
-			Connected:           time.Since(lastTime) < 30*time.Second,
-			TotalReceived:       ss.totalReceived.Load(),
-			TotalAccepted:       ss.totalReceived.Load(), // For now
+			Connected:           tracker.Connected(),
+			TotalReceived:       tracker.TotalReceived(),
+			TotalAccepted:       tracker.TotalAccepted(),
+			TotalRejected:       tracker.TotalRejected(),
+			EventsPerSecond:     tracker.EventsPerSecond(),
 			LastObservationTime: timestamppb.New(lastTime),
-		}
-
-		// Throughput calculation for individual sensor (rough estimate)
-		runtime := time.Since(h.startTime).Seconds()
-		if runtime > 5 {
-			resp.EventsPerSecond = float64(ss.totalReceived.Load()) / runtime
-		}
-
-		sensors = append(sensors, resp)
+		})
 		return true
 	})
 
-	// Fallback to cluster status if no sensors recorded yet
-	if len(sensors) == 0 {
-		statusReq := &ingestionv1.GetSensorStatusRequest{
-			SensorId: "radar-cluster-01",
+	if len(sensors) == 0 && req.ActiveWithinSeconds == 0 {
+		resp, _ := h.GetSensorStatus(ctx, &ingestionv1.GetSensorStatusRequest{SensorId: "radar-cluster-01"})
+		if resp != nil {
+			sensors = append(sensors, resp)
 		}
-		resp, _ := h.GetSensorStatus(ctx, statusReq)
-		sensors = append(sensors, resp)
 	}
 
-	return &ingestionv1.ListSensorStatusesResponse{
-		Sensors: sensors,
-	}, nil
- }
+	return &ingestionv1.ListSensorStatusesResponse{Sensors: sensors}, nil
+}
+
+// GetSensorDiagnostic returns deep diagnostic data for a specific radar sensor.
+func (h *IngestionHandler) GetSensorDiagnostic(ctx context.Context, req *ingestionv1.GetSensorDiagnosticRequest) (*ingestionv1.SensorDiagnosticResponse, error) {
+	sID := req.GetSensorId()
+	if sID == "" {
+		return nil, status.Error(codes.InvalidArgument, "sensor_id is required")
+	}
+	raw, ok := h.sensors.Load(sID)
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "sensor %q not found or has not ingested data", sID)
+	}
+	tracker := raw.(*ingestion.SensorStateTracker)
+
+	historySamples := req.GetHistorySamples()
+	if historySamples <= 0 || historySamples > 60 {
+		historySamples = 20
+	}
+	eventsLimit := req.GetRecentEventsLimit()
+	if eventsLimit <= 0 || eventsLimit > 100 {
+		eventsLimit = 20
+	}
+
+	resp := &ingestionv1.SensorDiagnosticResponse{
+		SensorId:           sID,
+		SensorType:         commonv1.SensorType_SENSOR_TYPE_RADAR,
+		Connected:          tracker.Connected(),
+		TotalReceived:      tracker.TotalReceived(),
+		TotalAccepted:      tracker.TotalAccepted(),
+		TotalRejected:      tracker.TotalRejected(),
+		EventsPerSecond:    tracker.EventsPerSecond(),
+		LatencyMs:          tracker.LatencyMs(),
+		ValidationPassRate: tracker.ValidationPassRate(),
+		ThroughputHistory:  tracker.SnapshotThroughput(int(historySamples)),
+		DlqBreakdown:       tracker.DLQBreakdown(),
+		RecentEvents:       tracker.SnapshotEvents(int(eventsLimit)),
+	}
+	if t := tracker.LastObsTime(); !t.IsZero() {
+		resp.LastObservationTime = timestamppb.New(t)
+	}
+	if h.coverage != nil {
+		resp.Coverage = h.coverage
+	}
+	return resp, nil
+}

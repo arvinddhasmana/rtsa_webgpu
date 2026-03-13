@@ -187,3 +187,90 @@ func TestRadarIngestionPipeline_Statistics_CountsAcceptedAndRejected(t *testing.
 		t.Errorf("TestRadarIngestionPipeline_Statistics_CountsAcceptedAndRejected: total_rejected=%d, want 1", resp.GetTotalRejected())
 	}
 }
+
+// TestIT_DIAG01_GetSensorDiagnosticFullStack validates the full diagnostic pipeline:
+// valid + invalid observations → per-sensor tracker → GetSensorDiagnostic response.
+// No Redpanda or external container required: handler is built in-memory.
+func TestIT_DIAG01_GetSensorDiagnosticFullStack(t *testing.T) {
+	h := newTestHandler(t, commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_SECRET)
+	ctx := context.Background()
+
+	const sensorID = "RADAR-DIAG-IT01"
+	const validCount = 12
+	const invalidCount = 4
+
+	validObs := func() *ingestionv1.SensorObservation {
+		return &ingestionv1.SensorObservation{
+			SensorId:        sensorID,
+			SensorType:      commonv1.SensorType_SENSOR_TYPE_RADAR,
+			Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
+			ObservationTime: timestamppb.New(time.Now().UTC()),
+			Position:        &commonv1.Position{Latitude: testLatMidAtlantic, Longitude: testLonMidAtlantic},
+			SensorData: &ingestionv1.SensorObservation_Radar{
+				Radar: &ingestionv1.RadarTrack{TrackNumber: "rdr-diag", RangeNm: 3.0, BearingDegrees: 90.0},
+			},
+		}
+	}
+
+	// Ingest validCount accepted observations.
+	for i := 0; i < validCount; i++ {
+		ack, err := h.IngestSingleObservation(ctx, validObs())
+		if err != nil {
+			t.Fatalf("IT_DIAG01: valid obs %d gRPC error: %v", i, err)
+		}
+		if !ack.GetAccepted() {
+			t.Fatalf("IT_DIAG01: valid obs %d rejected: %s", i, ack.GetRejectionReason())
+		}
+	}
+
+	// Ingest invalidCount observations with out-of-range latitude — soft reject, no gRPC error.
+	for i := 0; i < invalidCount; i++ {
+		obs := validObs()
+		obs.Position.Latitude = 999.0 // out-of-range
+		ack, err := h.IngestSingleObservation(ctx, obs)
+		if err != nil {
+			t.Fatalf("IT_DIAG01: invalid obs %d unexpected gRPC error: %v", i, err)
+		}
+		if ack.GetAccepted() {
+			t.Fatalf("IT_DIAG01: invalid obs %d should have been rejected", i)
+		}
+	}
+
+	req := &ingestionv1.GetSensorDiagnosticRequest{
+		SensorId:          sensorID,
+		HistorySamples:    30,
+		RecentEventsLimit: 20,
+	}
+	resp, err := h.GetSensorDiagnostic(ctx, req)
+	if err != nil {
+		t.Fatalf("IT_DIAG01: GetSensorDiagnostic error: %v", err)
+	}
+
+	total := int64(validCount + invalidCount)
+	if resp.TotalReceived != total {
+		t.Errorf("IT_DIAG01: TotalReceived=%d, want %d", resp.TotalReceived, total)
+	}
+	if resp.TotalAccepted != validCount {
+		t.Errorf("IT_DIAG01: TotalAccepted=%d, want %d", resp.TotalAccepted, validCount)
+	}
+	if resp.TotalRejected != invalidCount {
+		t.Errorf("IT_DIAG01: TotalRejected=%d, want %d", resp.TotalRejected, invalidCount)
+	}
+	if len(resp.DlqBreakdown) == 0 {
+		t.Error("IT_DIAG01: DlqBreakdown must be non-empty after invalid observations")
+	}
+	var dlqTotal int64
+	for _, entry := range resp.DlqBreakdown {
+		dlqTotal += entry.Count
+	}
+	if dlqTotal != invalidCount {
+		t.Errorf("IT_DIAG01: DLQ total count=%d, want %d", dlqTotal, invalidCount)
+	}
+	// ValidationPassRate is a percentage in [0, 100]; expect ~75% for 12 valid / 4 invalid.
+	if resp.ValidationPassRate < 50.0 || resp.ValidationPassRate > 100.0 {
+		t.Errorf("IT_DIAG01: ValidationPassRate=%.3f out of expected [50.0, 100.0]", resp.ValidationPassRate)
+	}
+
+	t.Logf("IT_DIAG01 PASS: received=%d accepted=%d rejected=%d pass_rate=%.2f%%",
+		resp.TotalReceived, resp.TotalAccepted, resp.TotalRejected, resp.ValidationPassRate)
+}

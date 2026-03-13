@@ -18,19 +18,19 @@ import { updateAlerts } from "./signals/alerts";
 import { operatorIdFromToken, setOperatorId } from "./signals/auth";
 import { setConnecting, setWtConnected } from "./signals/connection";
 import {
-    setDatagramsPerSec,
-    setDecodeErrors,
-    setFps,
-    setLatencyMs,
-    setRecordsPerSec,
-    setTrackCount,
-    setVisibleCount,
+  setDatagramsPerSec,
+  setDecodeErrors,
+  setFps,
+  setLatencyMs,
+  setRecordsPerSec,
+  setTrackCount,
+  setVisibleCount,
 } from "./signals/stats";
 import {
-    setSelectedTrack,
-    setTrackDetail,
-    setTrackDetailError,
-    setTrackDetailLoading,
+  setSelectedTrack,
+  setTrackDetail,
+  setTrackDetailError,
+  setTrackDetailLoading,
 } from "./signals/track";
 import { dashboard, role } from "./signals/viewport";
 
@@ -54,11 +54,11 @@ import { RoleSelector } from "./components/toolbar/RoleSelector";
 
 // Worker message types
 import type {
-    DataInitMessage,
-    DataToMainMessage,
-    RenderInitMessage,
-    RenderToMainMessage,
-    TokenRefreshMessage,
+  DataInitMessage,
+  DataToMainMessage,
+  RenderInitMessage,
+  RenderToMainMessage,
+  TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -98,7 +98,9 @@ export default function App() {
             setTrackDetailLoading(false);
           })
           .catch((err: unknown) => {
-            setTrackDetailError(err instanceof Error ? err.message : "Fetch failed");
+            setTrackDetailError(
+              err instanceof Error ? err.message : "Fetch failed",
+            );
             setTrackDetailLoading(false);
           });
         break;
@@ -140,15 +142,20 @@ export default function App() {
       case "token-expiring":
         // Fetch a refreshed JWT and forward it to the Data Worker.
         // Do not log the token value. (SDLC Rule 5)
-        fetchAuthToken().then((newToken) => {
-          if (newToken && dataWorker) {
-            const refreshMsg: TokenRefreshMessage = { type: "token-refresh", token: newToken };
-            dataWorker.postMessage(refreshMsg);
-          }
-        }).catch(() => {
-          // Auth refresh failed — worker will continue with the existing token
-          // until it expires and reconnection fails naturally.
-        });
+        fetchAuthToken()
+          .then((newToken) => {
+            if (newToken && dataWorker) {
+              const refreshMsg: TokenRefreshMessage = {
+                type: "token-refresh",
+                token: newToken,
+              };
+              dataWorker.postMessage(refreshMsg);
+            }
+          })
+          .catch(() => {
+            // Auth refresh failed — worker will continue with the existing token
+            // until it expires and reconnection fails naturally.
+          });
         break;
 
       default:
@@ -241,7 +248,7 @@ export default function App() {
       frameCount++;
       const now = performance.now();
       if (now - lastFpsTime >= 1000) {
-        setFps(Math.round(frameCount * 1000 / (now - lastFpsTime)));
+        setFps(Math.round((frameCount * 1000) / (now - lastFpsTime)));
         frameCount = 0;
         lastFpsTime = now;
       }
@@ -295,11 +302,30 @@ export default function App() {
         fallback={renderDegradedNotice(caps()!)}
       >
         <AppShell
-          toolbar={
+          headerBar={
             <>
-              <RoleSelector />
-              <DashboardSelector />
-              <ConnectionIndicator />
+              {/* Left group: role and dashboard controls */}
+              <div
+                style={{
+                  display: "flex",
+                  "flex-direction": "row",
+                  "align-items": "center",
+                  gap: "12px",
+                }}
+              >
+                <RoleSelector />
+                <DashboardSelector />
+              </div>
+              {/* Right group: connection indicator */}
+              <div
+                style={{
+                  display: "flex",
+                  "flex-direction": "row",
+                  "align-items": "center",
+                }}
+              >
+                <ConnectionIndicator />
+              </div>
             </>
           }
           canvas={

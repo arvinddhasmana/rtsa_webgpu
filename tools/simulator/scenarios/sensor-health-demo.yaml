@@ -77,3 +77,12 @@ operational_area:
     - name: "Coastal Exclusion"
       center: { lat: 58.5, lon: -8.0 }
       radius_nm: 5
+
+invalid_injection:
+  enabled: true
+  rate: 0.04
+  reasons:
+    invalid_timestamp: 0.40
+    coordinates_out_of_range: 0.35
+    missing_sensor_id: 0.15
+    schema_mismatch: 0.10

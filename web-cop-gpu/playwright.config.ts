@@ -33,20 +33,20 @@ export default defineConfig({
         // ensures security-header and CSP assertions run in a realistic context.
         channel: "chromium",
         launchOptions: {
-          args: [
-            "--enable-unsafe-webgpu",
-            "--enable-features=WebGPU",
-          ],
+          args: ["--enable-unsafe-webgpu", "--enable-features=WebGPU"],
         },
       },
     },
   ],
   // webServer block is commented out — run `npm run dev` separately before tests.
   webServer: {
-    command: "npm run dev",
+    command: "VITE_MOCK_SENSORS=true npm run dev",
     url: "http://localhost:5174",
     reuseExistingServer: !process.env.CI,
     timeout: 90_000,
+    env: {
+      VITE_MOCK_SENSORS: "true",
+    },
   },
   snapshotDir: "./e2e/snapshots",
   expect: {

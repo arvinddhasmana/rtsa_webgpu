@@ -6,7 +6,7 @@
 // @ts-nocheck
 
 import { SensorObservation } from "./sensor_observation_pb.js";
-import { GetSensorStatusRequest, IngestionAck, IngestSummary, ListSensorStatusesRequest, ListSensorStatusesResponse, SensorStatusResponse } from "./ingestion_service_pb.js";
+import { GetSensorDiagnosticRequest, GetSensorStatusRequest, IngestionAck, IngestSummary, ListSensorStatusesRequest, ListSensorStatusesResponse, SensorDiagnosticResponse, SensorStatusResponse } from "./ingestion_service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
@@ -65,6 +65,18 @@ export const IngestionService = {
       name: "ListSensorStatuses",
       I: ListSensorStatusesRequest,
       O: ListSensorStatusesResponse,
+      kind: MethodKind.Unary,
+    },
+    /**
+     * Unary: get in-depth diagnostic data for a single sensor
+     * Deadline: 10s
+     *
+     * @generated from rpc rtsa.ingestion.v1.IngestionService.GetSensorDiagnostic
+     */
+    getSensorDiagnostic: {
+      name: "GetSensorDiagnostic",
+      I: GetSensorDiagnosticRequest,
+      O: SensorDiagnosticResponse,
       kind: MethodKind.Unary,
     },
   }

@@ -1,15 +1,15 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/shell/AppShell.tsx
 //
-// Root layout grid: classification banner (top) → toolbar (left) → canvas
-// (centre) → panels (right/bottom) → classification banner (bottom).
+// Root layout grid: classification banner (top) → header bar → main content row
+// (canvas centre + right panels) → classification banner (bottom).
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §3 U3-1
 
 import { Show, type JSX } from "solid-js";
 import { ClassificationBanner } from "./ClassificationBanner";
 
 interface AppShellProps {
-  toolbar: JSX.Element;
+  headerBar?: JSX.Element;
   canvas: JSX.Element;
   rightPanel?: JSX.Element;
   bottomPanel: JSX.Element;
@@ -34,6 +34,26 @@ export function AppShell(props: AppShellProps) {
       {/* Top classification banner */}
       <ClassificationBanner />
 
+      {/* Full-width header strip */}
+      <Show when={props.headerBar !== undefined}>
+        <div
+          data-testid="app-header"
+          style={{
+            height: "52px",
+            "flex-shrink": "0",
+            display: "flex",
+            "flex-direction": "row",
+            "align-items": "center",
+            "justify-content": "space-between",
+            background: "#0d1424",
+            "border-bottom": "1px solid #1e2a3a",
+            padding: "0 24px",
+          }}
+        >
+          {props.headerBar}
+        </div>
+      </Show>
+
       {/* Main content row */}
       <div
         style={{
@@ -43,22 +63,6 @@ export function AppShell(props: AppShellProps) {
           position: "relative",
         }}
       >
-        {/* Left toolbar */}
-        <div
-          data-testid="app-toolbar"
-          style={{
-            width: "14rem",
-            "flex-shrink": "0",
-            background: "#0d1424",
-            "border-right": "1px solid #1e2a3a",
-            display: "flex",
-            "flex-direction": "column",
-            overflow: "hidden auto",
-          }}
-        >
-          {props.toolbar}
-        </div>
-
         {/* Centre: canvas + bottom status */}
         <div
           style={{

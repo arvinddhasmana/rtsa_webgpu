@@ -4,6 +4,7 @@ package handler_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 	"time"
@@ -199,5 +200,62 @@ func TestHandler_ListSensorStatuses(t *testing.T) {
 	}
 	if len(resp.Sensors) != 1 {
 		t.Errorf("expected 1 sensor, got %d", len(resp.Sensors))
+	}
+}
+
+// TestGetSensorDiagnostic_AfterIngestCycle verifies GetSensorDiagnostic returns
+// correct counters and DLQ breakdown after a mix of valid and invalid observations.
+func TestGetSensorDiagnostic_AfterIngestCycle(t *testing.T) {
+	h := buildHandler()
+
+	const sensorID = "DIAG-SENSOR-01"
+
+	// Ingest 10 valid observations.
+	for i := 0; i < 10; i++ {
+		obs := validCyberObservation(sensorID, fmt.Sprintf("%064x", i))
+		_, err := h.IngestSingleObservation(context.Background(), obs)
+		if err != nil {
+			t.Fatalf("valid obs failed: %v", err)
+		}
+	}
+
+	// Ingest 5 invalid observations (missing sensor_id → rejected to DLQ).
+	for i := 0; i < 5; i++ {
+		obs := validCyberObservation(sensorID, fmt.Sprintf("%064x", 100+i))
+		obs.GetSensorData().(*ingestionv1.SensorObservation_Cyber).Cyber.IocValue = "" // empty IocValue causes validation failure
+		_, err := h.IngestSingleObservation(context.Background(), obs)
+		if err != nil {
+			t.Fatalf("ingest of invalid obs returned gRPC error (expected soft reject): %v", err)
+		}
+	}
+
+	req := &ingestionv1.GetSensorDiagnosticRequest{
+		SensorId:          sensorID,
+		HistorySamples:    20,
+		RecentEventsLimit: 20,
+	}
+	resp, err := h.GetSensorDiagnostic(context.Background(), req)
+	if err != nil {
+		t.Fatalf("GetSensorDiagnostic failed: %v", err)
+	}
+
+	if resp.TotalReceived != 15 {
+		t.Errorf("expected TotalReceived=15, got %d", resp.TotalReceived)
+	}
+	if resp.TotalAccepted != 10 {
+		t.Errorf("expected TotalAccepted=10, got %d", resp.TotalAccepted)
+	}
+	if resp.TotalRejected != 5 {
+		t.Errorf("expected TotalRejected=5, got %d", resp.TotalRejected)
+	}
+	if len(resp.DlqBreakdown) == 0 {
+		t.Error("expected at least one DLQ reason entry")
+	}
+	var totalDLQ int64
+	for _, entry := range resp.DlqBreakdown {
+		totalDLQ += entry.Count
+	}
+	if totalDLQ != 5 {
+		t.Errorf("expected total DLQ count=5, got %d", totalDLQ)
 	}
 }

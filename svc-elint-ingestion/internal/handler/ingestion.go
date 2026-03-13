@@ -5,7 +5,8 @@ import (
 "context"
 "fmt"
 "io"
-"sync/atomic"
+"sync"
+	"sync/atomic"
 "time"
 
 auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
@@ -39,6 +40,8 @@ totalReceived atomic.Int64
 totalAccepted atomic.Int64
 totalRejected atomic.Int64
 lastObsTime   atomic.Value
+
+	sensors sync.Map // map[string]*ingestion.SensorStateTracker
 }
 
 // NewIngestionHandler creates a new ELINT/COMINT ingestion handler.
@@ -72,6 +75,15 @@ obs *ingestionv1.SensorObservation) (*ingestionv1.IngestionAck, error) {
 
 h.totalReceived.Add(1)
 
+	t0 := time.Now()
+	sID := obs.GetSensorId()
+	newTracker := ingestion.NewSensorStateTracker()
+	raw, loaded := h.sensors.LoadOrStore(sID, newTracker)
+	tracker := raw.(*ingestion.SensorStateTracker)
+	if !loaded {
+		tracker.StartThroughputSampler(context.Background(), 30*time.Second)
+	}
+
 result := h.validator.Validate(obs)
 if !result.Valid {
 reason := "validation failed"
@@ -91,6 +103,7 @@ zap.Error(dlqErr))
 }
 }
 
+tracker.RecordRejected(reason)
 h.totalRejected.Add(1)
 return &ingestionv1.IngestionAck{
 ObservationId:   obs.GetObservationId(),
@@ -134,6 +147,7 @@ ClassificationLevel: obs.GetClassification(),
 })
 }
 
+tracker.RecordAccepted(time.Since(t0).Nanoseconds())
 h.totalAccepted.Add(1)
 h.lastObsTime.Store(time.Now().UTC())
 
@@ -218,24 +232,83 @@ TotalRejected: h.totalRejected.Load(),
 	return resp, nil
 }
 
-// ListSensorStatuses returns a list of all active ELINT sensor statistics.
+// ListSensorStatuses returns a list of all active ELINT/COMINT sensor statistics.
 func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListSensorStatusesRequest) (*ingestionv1.ListSensorStatusesResponse, error) {
-	statusReq := &ingestionv1.GetSensorStatusRequest{
-		SensorId: "elint-cluster-01",
-	}
+	var sensors []*ingestionv1.SensorStatusResponse
 
-	resp, err := h.GetSensorStatus(ctx, statusReq)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to get sensor status: %v", err)
-	}
-
-	if req.ActiveWithinSeconds > 0 && resp.LastObservationTime != nil {
-		if time.Since(resp.LastObservationTime.AsTime()).Seconds() > float64(req.ActiveWithinSeconds) {
-			return &ingestionv1.ListSensorStatusesResponse{Sensors: []*ingestionv1.SensorStatusResponse{}}, nil
+	h.sensors.Range(func(key, value any) bool {
+		sID := key.(string)
+		tracker := value.(*ingestion.SensorStateTracker)
+		lastTime := tracker.LastObsTime()
+		if req.ActiveWithinSeconds > 0 && !lastTime.IsZero() {
+			if time.Since(lastTime).Seconds() > float64(req.ActiveWithinSeconds) {
+				return true
+			}
 		}
+		sensors = append(sensors, &ingestionv1.SensorStatusResponse{
+			SensorId:            sID,
+			SensorType:          commonv1.SensorType_SENSOR_TYPE_ELINT_COMINT,
+			Connected:           tracker.Connected(),
+			TotalReceived:       tracker.TotalReceived(),
+			TotalAccepted:       tracker.TotalAccepted(),
+			TotalRejected:       tracker.TotalRejected(),
+			EventsPerSecond:     tracker.EventsPerSecond(),
+			LastObservationTime: timestamppb.New(lastTime),
+		})
+		return true
+	})
+
+	if len(sensors) == 0 && req.ActiveWithinSeconds == 0 {
+		resp, err := h.GetSensorStatus(ctx, &ingestionv1.GetSensorStatusRequest{SensorId: "elint-cluster-01"})
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed to get sensor status: %v", err)
+		}
+		sensors = append(sensors, resp)
 	}
 
-	return &ingestionv1.ListSensorStatusesResponse{
-		Sensors: []*ingestionv1.SensorStatusResponse{resp},
-	}, nil
+	return &ingestionv1.ListSensorStatusesResponse{Sensors: sensors}, nil
+}
+
+// GetSensorDiagnostic returns deep diagnostic data for a specific ELINT/COMINT sensor.
+func (h *IngestionHandler) GetSensorDiagnostic(ctx context.Context, req *ingestionv1.GetSensorDiagnosticRequest) (*ingestionv1.SensorDiagnosticResponse, error) {
+	sID := req.GetSensorId()
+	if sID == "" {
+		return nil, status.Error(codes.InvalidArgument, "sensor_id is required")
+	}
+	raw, ok := h.sensors.Load(sID)
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "sensor %q not found or has not ingested data", sID)
+	}
+	tracker := raw.(*ingestion.SensorStateTracker)
+
+	historySamples := req.GetHistorySamples()
+	if historySamples <= 0 || historySamples > 60 {
+		historySamples = 20
+	}
+	eventsLimit := req.GetRecentEventsLimit()
+	if eventsLimit <= 0 || eventsLimit > 100 {
+		eventsLimit = 20
+	}
+
+	resp := &ingestionv1.SensorDiagnosticResponse{
+		SensorId:           sID,
+		SensorType:         commonv1.SensorType_SENSOR_TYPE_ELINT_COMINT,
+		Connected:          tracker.Connected(),
+		TotalReceived:      tracker.TotalReceived(),
+		TotalAccepted:      tracker.TotalAccepted(),
+		TotalRejected:      tracker.TotalRejected(),
+		EventsPerSecond:    tracker.EventsPerSecond(),
+		LatencyMs:          tracker.LatencyMs(),
+		ValidationPassRate: tracker.ValidationPassRate(),
+		ThroughputHistory:  tracker.SnapshotThroughput(int(historySamples)),
+		DlqBreakdown:       tracker.DLQBreakdown(),
+		RecentEvents:       tracker.SnapshotEvents(int(eventsLimit)),
+	}
+	if t := tracker.LastObsTime(); !t.IsZero() {
+		resp.LastObservationTime = timestamppb.New(t)
+	}
+	if h.coverage != nil {
+		resp.Coverage = h.coverage
+	}
+	return resp, nil
 }

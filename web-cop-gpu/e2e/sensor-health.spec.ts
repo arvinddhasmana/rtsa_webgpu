@@ -15,9 +15,33 @@ test.describe("Sensor Health Dashboard", () => {
     await expect(healthHeader).toBeVisible({ timeout: 20_000 });
   });
 
+  test("role selector is visible inside app-header", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector('[data-testid="app-header"]', {
+      timeout: 15_000,
+    });
+    const roleSelector = page.locator(
+      '[data-testid="app-header"] [data-testid="role-selector"]',
+    );
+    await expect(roleSelector).toBeVisible();
+  });
+
+  test("dashboard selector is inside app-header", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector('[data-testid="app-header"]', {
+      timeout: 15_000,
+    });
+    const dashSelector = page.locator(
+      '[data-testid="app-header"] [data-testid="dashboard-selector"] select',
+    );
+    await expect(dashSelector).toBeVisible();
+  });
+
   test("can filter by status", async ({ page }) => {
     await gotoApp(page);
-    await page.waitForSelector("text=Sensor Health Monitor", { timeout: 15_000 });
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
 
     // Click 'Offline' filter card in sidebar
     const offlineFilter = page.locator("text=Offline").first();
@@ -38,7 +62,9 @@ test.describe("Sensor Health Dashboard", () => {
 
   test("sidebar can be collapsed and expanded", async ({ page }) => {
     await gotoApp(page);
-    await page.waitForSelector("text=Sensor Health Monitor", { timeout: 15_000 });
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
 
     const toggleBtn = page.locator(".sidebar-toggle-btn");
     await toggleBtn.click();
@@ -53,10 +79,14 @@ test.describe("Sensor Health Dashboard", () => {
 
   test("can switch between health and map dashboards", async ({ page }) => {
     await gotoApp(page);
-    await page.waitForSelector("text=Sensor Health Monitor", { timeout: 15_000 });
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
 
-    // Open dashboard selector
-    const dashSelector = page.locator('[data-testid="dashboard-selector"] select');
+    // Open dashboard selector inside app-header
+    const dashSelector = page.locator(
+      '[data-testid="app-header"] [data-testid="dashboard-selector"] select',
+    );
     await dashSelector.selectOption({ label: "Map view" });
 
     // Map canvas should be visible
@@ -68,18 +98,116 @@ test.describe("Sensor Health Dashboard", () => {
     await expect(page.locator("text=Sensor Health Monitor")).toBeVisible();
   });
 
+  test("clicking first sensor card opens diagnostic view", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
+    // Wait for sensor cards to appear
+    await page.waitForSelector(".sensor-card-hover", { timeout: 15_000 });
+
+    const firstCard = page.locator(".sensor-card-hover").first();
+    await firstCard.click();
+
+    // Diagnostic view should be visible
+    await expect(
+      page.locator('[data-testid="sensor-diagnostic-view"]'),
+    ).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("clicking back button returns to sensor grid", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
+    await page.waitForSelector(".sensor-card-hover", { timeout: 15_000 });
+
+    const firstCard = page.locator(".sensor-card-hover").first();
+    await firstCard.click();
+    await expect(
+      page.locator('[data-testid="sensor-diagnostic-view"]'),
+    ).toBeVisible({ timeout: 10_000 });
+
+    // Click back button
+    await page.locator('[data-testid="diagnostic-back-btn"]').click();
+
+    // Diagnostic view should be gone, grid visible
+    await expect(
+      page.locator('[data-testid="sensor-diagnostic-view"]'),
+    ).not.toBeVisible();
+    await expect(page.locator("text=Sensor Health Monitor")).toBeVisible();
+  });
+
+  test("captures screenshot: sensor health with header", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
+    // Wait for data to load and animations to settle
+    await page.waitForTimeout(3000);
+
+    await page.screenshot({
+      path: "e2e/snapshots/sensor-health-with-header.png",
+      fullPage: true,
+    });
+  });
+
   test("captures screenshot for proof of work", async ({ page }) => {
     await gotoApp(page);
-    await page.waitForSelector("text=Sensor Health Monitor", { timeout: 15_000 });
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
     // Wait for data to load and animations to settle
     await page.waitForTimeout(3000);
 
     // Ensure the snapshots directory exists (handled by Playwright usually, but let's be safe)
     await page.screenshot({
-        path: "e2e/snapshots/sensor-health-dashboard.png",
-        fullPage: true
+      path: "e2e/snapshots/sensor-health-dashboard.png",
+      fullPage: true,
     });
 
-    console.log("Screenshot saved to e2e/snapshots/sensor-health-dashboard.png");
+    console.log(
+      "Screenshot saved to e2e/snapshots/sensor-health-dashboard.png",
+    );
+  });
+
+  test("view toggle is visible next to Sensor Health Monitor heading", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector("text=Sensor Health Monitor", { timeout: 15_000 });
+    await expect(page.locator('[data-testid="view-toggle-full"]')).toBeVisible();
+    await expect(page.locator('[data-testid="view-toggle-compact"]')).toBeVisible();
+  });
+
+  test("toggle to compact view renders compact cards (data-view=compact)", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector(".sensor-card-hover", { timeout: 15_000 });
+    await page.locator('[data-testid="view-toggle-compact"]').click();
+    const cards = page.locator('[data-view="compact"]');
+    await expect(cards.first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("toggle back to full view renders full cards (data-view=full)", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector(".sensor-card-hover", { timeout: 15_000 });
+    await page.locator('[data-testid="view-toggle-compact"]').click();
+    await page.locator('[data-testid="view-toggle-full"]').click();
+    const cards = page.locator('[data-view="full"]');
+    await expect(cards.first()).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("captures screenshot: compact card view", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector(".sensor-card-hover", { timeout: 15_000 });
+    await page.locator('[data-testid="view-toggle-compact"]').click();
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: "e2e/snapshots/sensor-health-compact-view.png", fullPage: true });
+  });
+
+  test("captures screenshot: full card view", async ({ page }) => {
+    await gotoApp(page);
+    await page.waitForSelector(".sensor-card-hover", { timeout: 15_000 });
+    await page.locator('[data-testid="view-toggle-full"]').click();
+    await page.waitForTimeout(1000);
+    await page.screenshot({ path: "e2e/snapshots/sensor-health-full-view.png", fullPage: true });
   });
 });

@@ -2,10 +2,10 @@
 package scenario
 
 import (
-"fmt"
-"os"
+	"fmt"
+	"os"
 
-"gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 )
 
 // Scenario defines a complete simulation configuration loaded from YAML.
@@ -16,8 +16,9 @@ Seed        int64       `yaml:"seed"`
 DurationMin int         `yaml:"duration_minutes"`
 Entities    EntityConfig `yaml:"entities"`
 Sensors     SensorConfig `yaml:"sensors"`
-Anomalies   AnomalyConfig `yaml:"anomalies"`
-OperationalArea OperationalArea `yaml:"operational_area"`
+Anomalies        AnomalyConfig        `yaml:"anomalies"`
+	InvalidInjection InvalidInjectionConfig `yaml:"invalid_injection"`
+	OperationalArea  OperationalArea        `yaml:"operational_area"`
 }
 
 // EntityConfig groups entity configuration by domain.
@@ -68,6 +69,14 @@ IOCRate          int `yaml:"ioc_rate"`
 type AnomalyConfig struct {
 InjectionRate float64            `yaml:"injection_rate"`
 Types         map[string]float64 `yaml:"types"`
+}
+
+// InvalidInjectionConfig controls deliberate corruption of observations
+// to exercise ingestion DLQ paths and the GetSensorDiagnostic endpoint.
+type InvalidInjectionConfig struct {
+	Enabled bool               `yaml:"enabled"`
+	Rate    float64            `yaml:"rate"`
+	Reasons map[string]float64 `yaml:"reasons"`
 }
 
 // OperationalArea defines the geographic bounds of the simulation.

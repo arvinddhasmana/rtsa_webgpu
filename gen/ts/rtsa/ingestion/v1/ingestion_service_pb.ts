@@ -10,6 +10,38 @@ import { Message, proto3, protoInt64, Timestamp } from "@bufbuild/protobuf";
 import { Position, SensorType } from "../../common/v1/types_pb.js";
 
 /**
+ * @generated from enum rtsa.ingestion.v1.SensorEventSeverity
+ */
+export enum SensorEventSeverity {
+  /**
+   * @generated from enum value: SENSOR_EVENT_SEVERITY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: SENSOR_EVENT_SEVERITY_INFO = 1;
+   */
+  INFO = 1,
+
+  /**
+   * @generated from enum value: SENSOR_EVENT_SEVERITY_WARN = 2;
+   */
+  WARN = 2,
+
+  /**
+   * @generated from enum value: SENSOR_EVENT_SEVERITY_ERROR = 3;
+   */
+  ERROR = 3,
+}
+// Retrieve enum metadata with: proto3.getEnumType(SensorEventSeverity)
+proto3.util.setEnumType(SensorEventSeverity, "rtsa.ingestion.v1.SensorEventSeverity", [
+  { no: 0, name: "SENSOR_EVENT_SEVERITY_UNSPECIFIED" },
+  { no: 1, name: "SENSOR_EVENT_SEVERITY_INFO" },
+  { no: 2, name: "SENSOR_EVENT_SEVERITY_WARN" },
+  { no: 3, name: "SENSOR_EVENT_SEVERITY_ERROR" },
+]);
+
+/**
  * @generated from message rtsa.ingestion.v1.IngestionAck
  */
 export class IngestionAck extends Message<IngestionAck> {
@@ -430,6 +462,366 @@ export class ListSensorStatusesResponse extends Message<ListSensorStatusesRespon
 
   static equals(a: ListSensorStatusesResponse | PlainMessage<ListSensorStatusesResponse> | undefined, b: ListSensorStatusesResponse | PlainMessage<ListSensorStatusesResponse> | undefined): boolean {
     return proto3.util.equals(ListSensorStatusesResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message rtsa.ingestion.v1.GetSensorDiagnosticRequest
+ */
+export class GetSensorDiagnosticRequest extends Message<GetSensorDiagnosticRequest> {
+  /**
+   * @generated from field: string sensor_id = 1;
+   */
+  sensorId = "";
+
+  /**
+   * @generated from field: int32 history_samples = 2;
+   */
+  historySamples = 0;
+
+  /**
+   * @generated from field: int32 recent_events_limit = 3;
+   */
+  recentEventsLimit = 0;
+
+  constructor(data?: PartialMessage<GetSensorDiagnosticRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "rtsa.ingestion.v1.GetSensorDiagnosticRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sensor_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "history_samples", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+    { no: 3, name: "recent_events_limit", kind: "scalar", T: 5 /* ScalarType.INT32 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): GetSensorDiagnosticRequest {
+    return new GetSensorDiagnosticRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): GetSensorDiagnosticRequest {
+    return new GetSensorDiagnosticRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): GetSensorDiagnosticRequest {
+    return new GetSensorDiagnosticRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: GetSensorDiagnosticRequest | PlainMessage<GetSensorDiagnosticRequest> | undefined, b: GetSensorDiagnosticRequest | PlainMessage<GetSensorDiagnosticRequest> | undefined): boolean {
+    return proto3.util.equals(GetSensorDiagnosticRequest, a, b);
+  }
+}
+
+/**
+ * @generated from message rtsa.ingestion.v1.ThroughputSample
+ */
+export class ThroughputSample extends Message<ThroughputSample> {
+  /**
+   * @generated from field: google.protobuf.Timestamp sampled_at = 1;
+   */
+  sampledAt?: Timestamp;
+
+  /**
+   * @generated from field: double events_per_second = 2;
+   */
+  eventsPerSecond = 0;
+
+  constructor(data?: PartialMessage<ThroughputSample>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "rtsa.ingestion.v1.ThroughputSample";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sampled_at", kind: "message", T: Timestamp },
+    { no: 2, name: "events_per_second", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ThroughputSample {
+    return new ThroughputSample().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ThroughputSample {
+    return new ThroughputSample().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ThroughputSample {
+    return new ThroughputSample().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ThroughputSample | PlainMessage<ThroughputSample> | undefined, b: ThroughputSample | PlainMessage<ThroughputSample> | undefined): boolean {
+    return proto3.util.equals(ThroughputSample, a, b);
+  }
+}
+
+/**
+ * @generated from message rtsa.ingestion.v1.DLQReasonCount
+ */
+export class DLQReasonCount extends Message<DLQReasonCount> {
+  /**
+   * @generated from field: string reason = 1;
+   */
+  reason = "";
+
+  /**
+   * @generated from field: int64 count = 2;
+   */
+  count = protoInt64.zero;
+
+  constructor(data?: PartialMessage<DLQReasonCount>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "rtsa.ingestion.v1.DLQReasonCount";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "count", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): DLQReasonCount {
+    return new DLQReasonCount().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): DLQReasonCount {
+    return new DLQReasonCount().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): DLQReasonCount {
+    return new DLQReasonCount().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: DLQReasonCount | PlainMessage<DLQReasonCount> | undefined, b: DLQReasonCount | PlainMessage<DLQReasonCount> | undefined): boolean {
+    return proto3.util.equals(DLQReasonCount, a, b);
+  }
+}
+
+/**
+ * @generated from message rtsa.ingestion.v1.SensorEvent
+ */
+export class SensorEvent extends Message<SensorEvent> {
+  /**
+   * @generated from field: google.protobuf.Timestamp occurred_at = 1;
+   */
+  occurredAt?: Timestamp;
+
+  /**
+   * @generated from field: string event_text = 2;
+   */
+  eventText = "";
+
+  /**
+   * @generated from field: rtsa.ingestion.v1.SensorEventSeverity severity = 3;
+   */
+  severity = SensorEventSeverity.UNSPECIFIED;
+
+  constructor(data?: PartialMessage<SensorEvent>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "rtsa.ingestion.v1.SensorEvent";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "occurred_at", kind: "message", T: Timestamp },
+    { no: 2, name: "event_text", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "severity", kind: "enum", T: proto3.getEnumType(SensorEventSeverity) },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SensorEvent {
+    return new SensorEvent().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SensorEvent {
+    return new SensorEvent().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SensorEvent {
+    return new SensorEvent().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SensorEvent | PlainMessage<SensorEvent> | undefined, b: SensorEvent | PlainMessage<SensorEvent> | undefined): boolean {
+    return proto3.util.equals(SensorEvent, a, b);
+  }
+}
+
+/**
+ * @generated from message rtsa.ingestion.v1.SubSensorStatus
+ */
+export class SubSensorStatus extends Message<SubSensorStatus> {
+  /**
+   * @generated from field: string sensor_id = 1;
+   */
+  sensorId = "";
+
+  /**
+   * @generated from field: string status = 2;
+   */
+  status = "";
+
+  /**
+   * @generated from field: string location_label = 3;
+   */
+  locationLabel = "";
+
+  /**
+   * @generated from field: google.protobuf.Timestamp last_seen_at = 4;
+   */
+  lastSeenAt?: Timestamp;
+
+  constructor(data?: PartialMessage<SubSensorStatus>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "rtsa.ingestion.v1.SubSensorStatus";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sensor_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "status", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 3, name: "location_label", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "last_seen_at", kind: "message", T: Timestamp },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SubSensorStatus {
+    return new SubSensorStatus().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SubSensorStatus {
+    return new SubSensorStatus().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SubSensorStatus {
+    return new SubSensorStatus().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SubSensorStatus | PlainMessage<SubSensorStatus> | undefined, b: SubSensorStatus | PlainMessage<SubSensorStatus> | undefined): boolean {
+    return proto3.util.equals(SubSensorStatus, a, b);
+  }
+}
+
+/**
+ * @generated from message rtsa.ingestion.v1.SensorDiagnosticResponse
+ */
+export class SensorDiagnosticResponse extends Message<SensorDiagnosticResponse> {
+  /**
+   * @generated from field: string sensor_id = 1;
+   */
+  sensorId = "";
+
+  /**
+   * @generated from field: rtsa.common.v1.SensorType sensor_type = 2;
+   */
+  sensorType = SensorType.UNSPECIFIED;
+
+  /**
+   * @generated from field: bool connected = 3;
+   */
+  connected = false;
+
+  /**
+   * @generated from field: int64 total_received = 4;
+   */
+  totalReceived = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 total_accepted = 5;
+   */
+  totalAccepted = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 total_rejected = 6;
+   */
+  totalRejected = protoInt64.zero;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp last_observation_time = 7;
+   */
+  lastObservationTime?: Timestamp;
+
+  /**
+   * @generated from field: double events_per_second = 8;
+   */
+  eventsPerSecond = 0;
+
+  /**
+   * @generated from field: double latency_ms = 9;
+   */
+  latencyMs = 0;
+
+  /**
+   * @generated from field: double validation_pass_rate = 10;
+   */
+  validationPassRate = 0;
+
+  /**
+   * @generated from field: repeated rtsa.ingestion.v1.ThroughputSample throughput_history = 11;
+   */
+  throughputHistory: ThroughputSample[] = [];
+
+  /**
+   * @generated from field: repeated rtsa.ingestion.v1.DLQReasonCount dlq_breakdown = 12;
+   */
+  dlqBreakdown: DLQReasonCount[] = [];
+
+  /**
+   * @generated from field: repeated rtsa.ingestion.v1.SensorEvent recent_events = 13;
+   */
+  recentEvents: SensorEvent[] = [];
+
+  /**
+   * @generated from field: repeated rtsa.ingestion.v1.SubSensorStatus sub_sensors = 14;
+   */
+  subSensors: SubSensorStatus[] = [];
+
+  /**
+   * @generated from field: optional rtsa.ingestion.v1.SensorCoverage coverage = 15;
+   */
+  coverage?: SensorCoverage;
+
+  constructor(data?: PartialMessage<SensorDiagnosticResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "rtsa.ingestion.v1.SensorDiagnosticResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "sensor_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "sensor_type", kind: "enum", T: proto3.getEnumType(SensorType) },
+    { no: 3, name: "connected", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
+    { no: 4, name: "total_received", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 5, name: "total_accepted", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 6, name: "total_rejected", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 7, name: "last_observation_time", kind: "message", T: Timestamp },
+    { no: 8, name: "events_per_second", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 9, name: "latency_ms", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 10, name: "validation_pass_rate", kind: "scalar", T: 1 /* ScalarType.DOUBLE */ },
+    { no: 11, name: "throughput_history", kind: "message", T: ThroughputSample, repeated: true },
+    { no: 12, name: "dlq_breakdown", kind: "message", T: DLQReasonCount, repeated: true },
+    { no: 13, name: "recent_events", kind: "message", T: SensorEvent, repeated: true },
+    { no: 14, name: "sub_sensors", kind: "message", T: SubSensorStatus, repeated: true },
+    { no: 15, name: "coverage", kind: "message", T: SensorCoverage, opt: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): SensorDiagnosticResponse {
+    return new SensorDiagnosticResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): SensorDiagnosticResponse {
+    return new SensorDiagnosticResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): SensorDiagnosticResponse {
+    return new SensorDiagnosticResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: SensorDiagnosticResponse | PlainMessage<SensorDiagnosticResponse> | undefined, b: SensorDiagnosticResponse | PlainMessage<SensorDiagnosticResponse> | undefined): boolean {
+    return proto3.util.equals(SensorDiagnosticResponse, a, b);
   }
 }
 

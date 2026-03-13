@@ -58,14 +58,20 @@ scenarioPath := cfg.ScenarioFile
 if *scenarioFile != "" {
 scenarioPath = *scenarioFile
 }
+var invalidInjectCfg generator.InvalidInjectionConfig
 if scenarioPath != "" {
-sc, loadErr := scenario.LoadFromFile(scenarioPath)
-if loadErr != nil {
-slog.Error("failed to load scenario", "path", scenarioPath, "error", loadErr)
-os.Exit(1)
-}
-slog.Info("loaded scenario", "name", sc.Name, "description", sc.Description)
-applyScenarioToConfig(cfg, sc)
+	sc, loadErr := scenario.LoadFromFile(scenarioPath)
+	if loadErr != nil {
+		slog.Error("failed to load scenario", "path", scenarioPath, "error", loadErr)
+		os.Exit(1)
+	}
+	slog.Info("loaded scenario", "name", sc.Name, "description", sc.Description)
+	applyScenarioToConfig(cfg, sc)
+	invalidInjectCfg = generator.InvalidInjectionConfig{
+		Enabled: sc.InvalidInjection.Enabled,
+		Rate:    sc.InvalidInjection.Rate,
+		Reasons: sc.InvalidInjection.Reasons,
+	}
 }
 
 // ── CLI flag overrides (highest priority) ─────────────────────────────────
@@ -96,6 +102,9 @@ simRNG = rand.New(rand.NewSource(time.Now().UnixNano())) //nolint:gosec
 simRNG = rand.New(rand.NewSource(cfg.RandomSeed))
 }
 sensor.SetRNG(simRNG)
+
+	// ── Invalid observation injector ─────────────────────────────────────────────
+	invalidInj := generator.NewInvalidObservationInjector(invalidInjectCfg, simRNG)
 
 // ── Entity manager ────────────────────────────────────────────────────────
 mgr := generator.NewEntityManager(cfg, simRNG)
@@ -150,13 +159,13 @@ slog.Info("simulator stopping", "reason", ctx.Err())
 return
 case <-ticker.C:
 mgr.Tick(cfg.UpdateInterval)
-runTick(ctx, mgr, sender, simRNG)
+runTick(ctx, mgr, sender, simRNG, invalidInj)
 }
 }
 }
 
 // runTick generates and dispatches sensor observations for one simulation tick.
-func runTick(ctx context.Context, mgr *generator.EntityManager, sender client.ObservationSender, r *rand.Rand) {
+func runTick(ctx context.Context, mgr *generator.EntityManager, sender client.ObservationSender, r *rand.Rand, inj *generator.InvalidObservationInjector) {
 	entities := mgr.Entities()
 	sent := 0
 	failed := 0
@@ -169,7 +178,7 @@ func runTick(ctx context.Context, mgr *generator.EntityManager, sender client.Ob
 		if e.EntityType == commonv1.EntityType_ENTITY_TYPE_SURFACE ||
 			e.EntityType == commonv1.EntityType_ENTITY_TYPE_AIR {
 			rid := radarIDs[r.Intn(len(radarIDs))]
-			sendObs(ctx, sensor.GenerateRadarObservation(e, rid), client.SensorTypeRadar, sender, &sent, &failed)
+			sendObs(ctx, inj.MaybeCorrupt(sensor.GenerateRadarObservation(e, rid)), client.SensorTypeRadar, sender, &sent, &failed)
 		}
 
 		// AIS: surface entities only. AIS manipulation generates both radar AND ais.
@@ -179,29 +188,29 @@ func runTick(ctx context.Context, mgr *generator.EntityManager, sender client.Ob
 				p := e.AISOffset
 				manipPos = &p
 			}
-			sendObs(ctx, sensor.GenerateAISObservation(e, manipPos), client.SensorTypeAIS, sender, &sent, &failed)
+			sendObs(ctx, inj.MaybeCorrupt(sensor.GenerateAISObservation(e, manipPos)), client.SensorTypeAIS, sender, &sent, &failed)
 		}
 
 		// EW: 50% probability per entity per tick.
 		if r.Float64() < 0.5 {
 			ewID := ewIDs[r.Intn(len(ewIDs))]
-			sendObs(ctx, sensor.GenerateEWObservation(e, ewID), client.SensorTypeEW, sender, &sent, &failed)
+			sendObs(ctx, inj.MaybeCorrupt(sensor.GenerateEWObservation(e, ewID)), client.SensorTypeEW, sender, &sent, &failed)
 		}
 
 		// ELINT: 30% probability.
 		if r.Float64() < 0.3 {
-			sendObs(ctx, sensor.GenerateELINTObservation(e, "ELINT-SIM-001"), client.SensorTypeELINT, sender, &sent, &failed)
+			sendObs(ctx, inj.MaybeCorrupt(sensor.GenerateELINTObservation(e, "ELINT-SIM-001")), client.SensorTypeELINT, sender, &sent, &failed)
 		}
 
 		// ISR: 20% probability.
 		if r.Float64() < 0.2 {
-			sendObs(ctx, sensor.GenerateISRObservation(e, "ISR-SIM-001"), client.SensorTypeISR, sender, &sent, &failed)
+			sendObs(ctx, inj.MaybeCorrupt(sensor.GenerateISRObservation(e, "ISR-SIM-001")), client.SensorTypeISR, sender, &sent, &failed)
 		}
 	}
 
 	// Cyber: 1-3 IOCs per tick, independent of entities.
 	for i := 0; i < 1+r.Intn(3); i++ {
-		sendObs(ctx, sensor.GenerateCyberObservation(r), client.SensorTypeCyber, sender, &sent, &failed)
+		sendObs(ctx, inj.MaybeCorrupt(sensor.GenerateCyberObservation(r)), client.SensorTypeCyber, sender, &sent, &failed)
 	}
 
 	if failed > 0 {

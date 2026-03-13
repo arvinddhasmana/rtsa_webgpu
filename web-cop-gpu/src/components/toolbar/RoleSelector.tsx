@@ -27,16 +27,23 @@ export function RoleSelector(props: RoleSelectorProps) {
   }
 
   return (
-    <div data-testid="role-selector" style={{ padding: "0.5rem" }}>
+    <div
+      data-testid="role-selector"
+      style={{
+        display: "flex",
+        "flex-direction": "row",
+        "align-items": "center",
+        gap: "6px",
+      }}
+    >
       <label
         for="role-selector"
         style={{
-          display: "block",
           "font-size": "0.65rem",
           "text-transform": "uppercase",
           "letter-spacing": "0.08em",
           color: "#94a3b8",
-          "margin-bottom": "0.25rem",
+          "white-space": "nowrap",
         }}
       >
         Role
@@ -46,7 +53,7 @@ export function RoleSelector(props: RoleSelectorProps) {
         value={role()}
         onChange={handleChange}
         style={{
-          width: "100%",
+          width: "auto",
           background: "#1e2a3a",
           color: "#e2e8f0",
           border: "1px solid #2d3f56",
