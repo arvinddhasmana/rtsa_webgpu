@@ -15,6 +15,7 @@ const DASHBOARDS: { value: Dashboard; label: string }[] = [
   { value: "health", label: "Health" },
   { value: "commander", label: "Commander" },
   { value: "analytics", label: "Analytics" },
+  { value: "coverage", label: "Coverage" },
 ];
 
 /** Never destructure props — breaks SolidJS reactivity. */

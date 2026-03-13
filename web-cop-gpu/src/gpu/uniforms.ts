@@ -66,7 +66,7 @@ export function writeUniforms(
   canvasHeight: number,
   currentTimeMs: number,
   trackCount: number,
-  dashboardMode: "sensor" | "commander" | "analytics" | "health",
+  dashboardMode: "sensor" | "commander" | "analytics" | "health" | "coverage",
 ): void {
   // mat4x4<f32> at offset 0 (16 floats × 4 bytes = 64 bytes)
   _f32.set(viewProj, 0);
@@ -82,7 +82,7 @@ export function writeUniforms(
   _u32[19] = trackCount >>> 0;
 
   // u32 dashboard_mode at offset 80 bytes = uint32 index 20
-  const modeMap = { sensor: 0, commander: 1, analytics: 2, health: 3 };
+  const modeMap = { sensor: 0, commander: 1, analytics: 2, health: 3, coverage: 4 };
   _u32[20] = modeMap[dashboardMode] ?? 0;
 
   device.queue.writeBuffer(uniformBuffer, 0, _uniformData);

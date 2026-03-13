@@ -83,10 +83,11 @@ SensorType:      commonv1.SensorType_SENSOR_TYPE_CYBER,
 ObservationTime: timestamppb.New(time.Now()),
 Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
 		Metadata: map[string]string{
-			"sim_generated":               "true",
-			"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 10.0), // Nominal circle for logical sensor
-			"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", 58.0),
-			"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", -10.0),
+			"sim_generated":             "true",
+			"rtsa.coverage.zone_id":     "CYBER-ZONE-ALPHA", // Logical monitoring zone (not geographic)
+			"rtsa.coverage.range_nm":    fmt.Sprintf("%.1f", 10.0), // Nominal circle for logical sensor
+			"rtsa.coverage.center_lat":  fmt.Sprintf("%.6f", 58.0),
+			"rtsa.coverage.center_lon":  fmt.Sprintf("%.6f", -10.0),
 		},
 SensorData: &ingestionv1.SensorObservation_Cyber{
 Cyber: &ingestionv1.CyberIOC{

@@ -52,7 +52,7 @@ export interface RenderState {
   trackCount: number;
 
   /** Current active dashboard mode */
-  dashboard: "sensor" | "commander" | "analytics" | "health";
+  dashboard: "sensor" | "commander" | "analytics" | "health" | "coverage";
 
   /** Camera state for view-projection matrix */
   camera: {

@@ -9,7 +9,7 @@ import { createSignal } from "solid-js";
 export type Role = "sensor_operator" | "operations_commander";
 
 /** Available dashboard views. */
-export type Dashboard = "sensor" | "commander" | "analytics" | "health";
+export type Dashboard = "sensor" | "commander" | "analytics" | "health" | "coverage";
 
 /** Active operator role (default: sensor_operator). */
 export const [role, setRole] = createSignal<Role>("sensor_operator");

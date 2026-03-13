@@ -63,7 +63,7 @@ export interface SelectTrackMessage {
 
 export interface SetDashboardMessage {
   type: "set_dashboard";
-  dashboard: "sensor" | "commander" | "analytics" | "health";
+  dashboard: "sensor" | "commander" | "analytics" | "health" | "coverage";
 }
 
 export interface SetCoverageMessage {

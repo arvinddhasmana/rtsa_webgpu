@@ -34,6 +34,9 @@ import {
 } from "./signals/track";
 import { dashboard, role } from "./signals/viewport";
 
+// Spatial alert signals (Level 3 navigation)
+import { setSpatialAlerts } from "./signals/spatial-alerts";
+
 // Services
 import { startAlertStream } from "./services/alerts";
 import { fetchAuthToken } from "./services/auth";
@@ -41,6 +44,7 @@ import { fetchTrackDetail } from "./services/query";
 import { fetchSensorStatuses } from "./services/sensor-health";
 
 // Components
+import { CoverageMapDashboard } from "./components/dashboard/CoverageMapDashboard";
 import { SensorHealthDashboard } from "./components/dashboard/SensorHealthDashboard";
 import { AlertSidebar } from "./components/panels/AlertSidebar";
 import { FeedbackForm } from "./components/panels/FeedbackForm";
@@ -138,6 +142,29 @@ export default function App() {
 
       case "alerts_updated":
         updateAlerts(msg.alerts);
+        // Route coverage-gap alerts (description contains "gap") to the spatial alerts signal
+        // so Level 3 navigation can highlight the affected sector.
+        // Phase A: AlertPayload.trackId repurposed as the affected sensor ID for gap alerts
+        // since gap alerts originate from sensors, not tracks.
+        setSpatialAlerts(
+          msg.alerts
+            .filter((a) => a.description.toLowerCase().includes("gap"))
+            .map((a) => ({
+              alertId: a.alertId,
+              // trackId carries the sensor ID for gap alerts emitted by the Coverage Analyzer
+              affectedSensorId: a.trackId || "UNKNOWN",
+              // Sector ID is encoded in the alert ID suffix (gap-<sectorId>-<timestamp>)
+              // or falls back to the alert ID itself for Phase A.
+              sectorId: a.alertId.startsWith("gap-") ? a.alertId.split("-")[1] ?? a.alertId : a.alertId,
+              severity: (a.severity === "CRITICAL" || a.severity === "ELEVATED" || a.severity === "WATCH")
+                ? a.severity
+                : "WATCH" as const,
+              description: a.description,
+              lastContactUtc: new Date(a.detectedAtMs).toISOString(),
+              acknowledged: a.acknowledged,
+              areaPolygon: [],
+            })),
+        );
         break;
 
       case "token-expiring":
@@ -382,24 +409,31 @@ export default function App() {
             <Show
               when={dashboard() === "health"}
               fallback={
-                <canvas
-                  ref={canvasRef}
-                  id="gpu-canvas"
-                  onClick={handleCanvasClick}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    display: "block",
-                    cursor: "crosshair",
-                  }}
-                />
+                <Show
+                  when={dashboard() === "coverage"}
+                  fallback={
+                    <canvas
+                      ref={canvasRef}
+                      id="gpu-canvas"
+                      onClick={handleCanvasClick}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        display: "block",
+                        cursor: "crosshair",
+                      }}
+                    />
+                  }
+                >
+                  <CoverageMapDashboard />
+                </Show>
               }
             >
               <SensorHealthDashboard />
             </Show>
           }
           rightPanel={
-            dashboard() !== "health" ? (
+            dashboard() !== "health" && dashboard() !== "coverage" ? (
               <>
                 <TrackDetailPanel />
                 <Show when={showAlerts()}>

@@ -68,8 +68,8 @@ Metadata: map[string]string{
 "rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 150.0), // Simulated 150NM range
 "rtsa.coverage.bearing_start":  fmt.Sprintf("%.1f", 0.0),   // Full 360 scan for now
 "rtsa.coverage.bearing_end":    fmt.Sprintf("%.1f", 360.0),
-"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", radarSensorPos.Lat),
-"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", radarSensorPos.Lon),
+"rtsa.coverage.center_lat":     fmt.Sprintf("%.6f", radarSensorPos.Lat),
+"rtsa.coverage.center_lon":     fmt.Sprintf("%.6f", radarSensorPos.Lon),
 },
 SensorData: &ingestionv1.SensorObservation_Radar{
 Radar: &ingestionv1.RadarTrack{

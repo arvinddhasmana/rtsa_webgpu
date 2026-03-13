@@ -80,8 +80,16 @@ Longitude: entity.Position.Lon,
 			"sim_entity_type":             entity.EntityType.String(),
 			"sim_hostile_class":           entity.HostileClass.String(),
 			"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 30.0), // Narrow swath for ISR
-			"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", entity.Position.Lat),
-			"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", entity.Position.Lon),
+			"rtsa.coverage.center_lat":    fmt.Sprintf("%.6f", entity.Position.Lat),
+			"rtsa.coverage.center_lon":    fmt.Sprintf("%.6f", entity.Position.Lon),
+			// Swath polygon: 4-vertex box ±halfDeg around entity position
+			"rtsa.coverage.swath_polygon": fmt.Sprintf(
+				`[{"lat":%.4f,"lon":%.4f},{"lat":%.4f,"lon":%.4f},{"lat":%.4f,"lon":%.4f},{"lat":%.4f,"lon":%.4f}]`,
+				entity.Position.Lat-halfDeg, entity.Position.Lon-halfDeg,
+				entity.Position.Lat+halfDeg, entity.Position.Lon-halfDeg,
+				entity.Position.Lat+halfDeg, entity.Position.Lon+halfDeg,
+				entity.Position.Lat-halfDeg, entity.Position.Lon+halfDeg,
+			),
 		},
 SensorData: &ingestionv1.SensorObservation_Isr{
 Isr: &ingestionv1.ISRObservation{
