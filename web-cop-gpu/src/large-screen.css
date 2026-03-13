@@ -1,0 +1,28 @@
+/* CLASSIFICATION: UNCLASSIFIED */
+/* src/large-screen.css — Large-screen scaling for 120-inch / 4K+ displays
+ * Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §B12
+ */
+
+/* Default scale properties */
+:root {
+  --scale-ui: 1.0;
+  --card-min-width: 300px;
+  --font-scale: 1.0;
+}
+
+/* 120-inch displays @ 4K: ~130 DPI → typically ≥ 3840px width */
+@media (min-width: 3000px) {
+  :root {
+    --scale-ui: 1.5;
+    --card-min-width: 480px;
+    --font-scale: 1.4;
+  }
+}
+
+@media (min-width: 5000px) {
+  :root {
+    --scale-ui: 2.0;
+    --card-min-width: 600px;
+    --font-scale: 1.8;
+  }
+}

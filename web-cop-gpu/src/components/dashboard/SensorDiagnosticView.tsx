@@ -10,7 +10,11 @@ import {
     type SensorStatus,
 } from "../../services/sensor-health";
 import { setSelectedSensor } from "../../signals/sensor-filters";
+import { CoverageAreaMap } from "./CoverageAreaMap";
+import { ConnectivityTimeline } from "./ConnectivityTimeline";
+import { DlqBreakdownChart } from "./DlqBreakdownChart";
 import { MiniCoverageMap } from "./MiniCoverageMap";
+import { ObsPerSecChart } from "./ObsPerSecChart";
 
 interface SensorDiagnosticViewProps {
   sensor: SensorStatus;
@@ -270,8 +274,8 @@ export function SensorDiagnosticView(props: SensorDiagnosticViewProps) {
               bearingStart={props.sensor.coverage!.bearingStart}
               bearingEnd={props.sensor.coverage!.bearingEnd}
               alertLevel={props.sensor.dlqCount > 100 ? 2 : props.sensor.dlqCount > 50 ? 1 : 0}
-              width={64}
-              height={64}
+              width={56}
+              height={56}
             />
           </Show>
           <div
@@ -1276,6 +1280,49 @@ export function SensorDiagnosticView(props: SensorDiagnosticViewProps) {
             </For>
           </div>
         </div>
+
+        {/* ── B8: Coverage Area Map (L2) — right column full-height ─────── */}
+        <Show when={props.sensor.coverage}>
+          <div style={cardStyle}>
+            <div style={secHead}>Coverage Area Map</div>
+            <CoverageAreaMap
+              sensors={[props.sensor]}
+              focusSensorId={props.sensor.sensorId}
+              showLabels
+              showGapHatching
+              showRangeRings={props.sensor.sensorType === "RADAR"}
+              showSweepAnimation={props.sensor.sensorType === "RADAR" && props.sensor.status === "CONNECTED"}
+              height="260px"
+            />
+          </div>
+        </Show>
+
+        {/* ── B8: OPS Per Second Chart ─────────────────────────────────── */}
+        <Show when={data()!.obsPerSecHistory && data()!.obsPerSecHistory.length > 0}>
+          <div style={cardStyle}>
+            <div style={secHead}>Observations Per Second (60 samples)</div>
+            <ObsPerSecChart
+              history={data()!.obsPerSecHistory}
+              height={80}
+            />
+          </div>
+        </Show>
+
+        {/* ── B8: DLQ Reason Breakdown Chart ──────────────────────────── */}
+        <Show when={data()!.dlqReasons && data()!.dlqReasons.length > 0}>
+          <div style={cardStyle}>
+            <div style={secHead}>DLQ Rejection Reasons</div>
+            <DlqBreakdownChart reasons={data()!.dlqReasons} />
+          </div>
+        </Show>
+
+        {/* ── B8: Connectivity Events Timeline ────────────────────────── */}
+        <Show when={data()!.connectivityEvents && data()!.connectivityEvents.length > 0}>
+          <div style={cardStyle}>
+            <div style={secHead}>Connectivity Events</div>
+            <ConnectivityTimeline events={data()!.connectivityEvents} />
+          </div>
+        </Show>
       </Show>
     </div>
   );
