@@ -267,6 +267,18 @@ export async function fetchSensorStatuses(): Promise<SensorStatus[]> {
 // Sensor Diagnostic Deep Dive
 // ──────────────────────────────────────────────────────────────────────────────
 
+export interface DlqReasonBreakdown {
+  reason: string;
+  percentage: number;
+  count: number;
+}
+
+export interface ConnectivityEvent {
+  timestamp: string;
+  description: string;
+  eventType: "NB" | "EY" | "R" | string;
+}
+
 export interface SensorDiagnosticDetail extends SensorStatus {
   dlqBreakdown: { reason: string; count: number }[];
   recentEvents: {
@@ -299,6 +311,11 @@ export interface SensorDiagnosticDetail extends SensorStatus {
   bearingEnd: number | null;
   scanRateRpm: number | null; // revolutions per minute (RADAR)
   frequencyBandGhz: number | null; // operating frequency
+  // Phase B additions
+  dlqReasons: DlqReasonBreakdown[];
+  connectivityEvents: ConnectivityEvent[];
+  uptimePercent: number;
+  obsPerSecHistory: number[]; // last 60 samples
 }
 
 /**
@@ -318,14 +335,14 @@ async function fetchSensorDiagnosticMock(
     return Math.max(0, Math.round(base * (0.7 + rng(i) * 0.6)));
   });
 
-  const dlqReasons = [
+  const dlqLegacyReasons = [
     "invalid_timestamp",
     "coordinates_out_of_range",
     "missing_sensor_id",
     "schema_mismatch",
     "invalid_speed",
   ];
-  const dlqBreakdown = dlqReasons
+  const dlqBreakdown = dlqLegacyReasons
     .map((reason, i) => ({
       reason,
       count: Math.round(rng(i + 10) * sensor.dlqCount * 0.6),
@@ -457,6 +474,49 @@ async function fetchSensorDiagnosticMock(
         ? Math.round((0.1 + rng(seed + 800) * 5.0) * 10) / 10
         : null;
 
+  // Phase B: DLQ reason breakdown
+  const dlqReasonLabels = ["Schema Mismatch", "CRC Error", "Rate Limit", "Unknown"];
+  const rawCounts = dlqReasonLabels.map((_, i) => Math.round(rng(i + 200) * sensor.dlqCount * 0.5));
+  const totalDlq = rawCounts.reduce((a, b) => a + b, 0) || 1;
+  const dlqReasons: DlqReasonBreakdown[] = dlqReasonLabels
+    .map((reason, i) => ({
+      reason,
+      count: rawCounts[i],
+      percentage: Math.round((rawCounts[i] / totalDlq) * 1000) / 10,
+    }))
+    .filter((d) => d.count > 0);
+
+  // Phase B: Connectivity events
+  const eventDescriptions = [
+    "Initial connection established",
+    "Heartbeat acknowledged",
+    "Authentication refreshed",
+    "Reconnected after timeout",
+    "Latency spike detected",
+    "Observation stream resumed",
+    "TLS certificate renewed",
+  ];
+  const eventTypes: Array<"NB" | "EY" | "R"> = ["NB", "NB", "NB", "R", "EY", "NB", "NB"];
+  const connectivityEvents: ConnectivityEvent[] = Array.from({ length: 5 }, (_, i) => {
+    const idx = Math.floor(rng(seed + 300 + i) * eventDescriptions.length);
+    const minsAgo = Math.round(rng(seed + 310 + i) * 30);
+    const ts = minsAgo === 0 ? "NOW" : `${minsAgo} min ago`;
+    return {
+      timestamp: ts,
+      description: eventDescriptions[idx],
+      eventType: eventTypes[idx],
+    };
+  });
+
+  // Phase B: OPS per-second history (60 samples)
+  const obsPerSecHistory = Array.from({ length: 60 }, (_, i) => {
+    const base = sensor.eventsPerSecond > 0 ? sensor.eventsPerSecond : 0;
+    return Math.max(0, Math.round(base * (0.6 + rng(seed + 400 + i) * 0.8)));
+  });
+
+  // uptimePercent — same as connectionUptimePct for now
+  const uptimePercent = connectionUptimePct;
+
   return {
     ...sensor,
     latencyMs: avgLatencyMs,
@@ -477,6 +537,10 @@ async function fetchSensorDiagnosticMock(
     bearingEnd,
     scanRateRpm,
     frequencyBandGhz,
+    dlqReasons,
+    connectivityEvents,
+    uptimePercent,
+    obsPerSecHistory,
   };
 }
 

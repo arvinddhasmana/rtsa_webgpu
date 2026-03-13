@@ -247,6 +247,8 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     position: "relative" as const,
     overflow: "hidden",
     cursor: "pointer",
+    "min-width": props.compact ? "clamp(220px, 20vw, 300px)" : "clamp(300px, 24vw, 360px)",
+    "font-size": "clamp(0.7rem, 0.8vw, 0.85rem)",
   });
 
   const Glow = () => (
@@ -284,9 +286,10 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
       }}
     >
       <span
+        class={props.sensor.status === "CONNECTED" ? "status-connected-dot" : ""}
         style={{
-          width: "6px",
-          height: "6px",
+          width: "8px",
+          height: "8px",
           "border-radius": "50%",
           background: statusColor(),
           display: "inline-block",
@@ -397,7 +400,9 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     </div>
   );
 
-  const hoverStyle = `.sensor-card-hover:hover{transform:translateY(-4px);border-color:rgba(255,255,255,0.2);box-shadow:0 12px 30px rgba(0,0,0,0.5);background:rgba(15,23,42,0.85);}`;
+  const hoverStyle = `.sensor-card-hover:hover{transform:translateY(-4px);border-color:rgba(255,255,255,0.2);box-shadow:0 12px 30px rgba(0,0,0,0.5);background:rgba(15,23,42,0.85);}
+@keyframes connected-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,0.6);}70%{box-shadow:0 0 0 8px rgba(74,222,128,0);}100%{box-shadow:0 0 0 0 rgba(74,222,128,0);}}
+.status-connected-dot{animation:connected-pulse 2s infinite;}`;
 
   return (
     <Show
@@ -839,23 +844,28 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             );
           })()}
 
-          {/* Footer: Last Seen */}
+          {/* Footer: Last Seen + UTC Clock */}
           <div
             style={{
               display: "flex",
-              "justify-content": "flex-end",
+              "justify-content": "space-between",
               "align-items": "center",
               "font-size": "0.75rem",
               "padding-top": "0.5rem",
               "border-top": "1px solid rgba(255,255,255,0.05)",
             }}
           >
-            <span style={{ color: "#64748b", "margin-right": "6px" }}>
-              Last Seen
+            <span style={{ color: "#334155", "font-size": "0.65rem", "font-family": "monospace" }}>
+              {new Date().toUTCString().slice(17, 25)} UTC
             </span>
-            <span style={{ color: "#cbd5e1" }}>
-              {formatLastSeen(props.sensor.lastSeenSeconds)}
-            </span>
+            <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
+              <span style={{ color: "#64748b", "margin-right": "6px" }}>
+                Last Seen
+              </span>
+              <span style={{ color: "#cbd5e1" }}>
+                {formatLastSeen(props.sensor.lastSeenSeconds)}
+              </span>
+            </div>
           </div>
           <style>{hoverStyle}</style>
         </div>
