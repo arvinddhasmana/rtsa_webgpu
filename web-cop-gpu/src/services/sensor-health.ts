@@ -253,6 +253,23 @@ export interface SensorDiagnosticDetail extends SensorStatus {
   }[];
   latencyMs: number;
   throughputHistory: number[]; // 20 data points
+  // Extended diagnostic fields (v5)
+  healthScore: number; // 0-100 composite health
+  connectionUptimePct: number; // % uptime in last hour
+  peakThroughput: number; // max obs/s seen
+  avgLatencyMs: number; // same as latencyMs, alias for clarity
+  minLatencyMs: number;
+  maxLatencyMs: number;
+  statusHistory: Array<{
+    timeUtc: string;
+    status: "CONNECTED" | "STALE" | "OFFLINE";
+  }>; // 12 samples, oldest first
+  rangeNm: number | null; // coverage range (NM)
+  position: { lat: number; lon: number } | null;
+  bearingStart: number | null; // degrees (RADAR only)
+  bearingEnd: number | null;
+  scanRateRpm: number | null; // revolutions per minute (RADAR)
+  frequencyBandGhz: number | null; // operating frequency
 }
 
 /**
@@ -296,6 +313,9 @@ async function fetchSensorDiagnosticMock(
     "Latency elevated > 500ms",
     "Sensor reconnected",
     "Validation pass rate dropped below 90%",
+    "Sub-sensor handover initiated",
+    "Authentication certificate renewed",
+    "Coverage geometry updated",
   ];
   const recentEvents = Array.from({ length: 8 }, (_, i) => ({
     timeUtc: new Date(
@@ -311,6 +331,7 @@ async function fetchSensorDiagnosticMock(
     "Eastern array",
     "West coast",
     "Offshore platform",
+    "Central hub",
   ];
   const subSensors = Array.from(
     { length: Math.floor(rng(seed) * 3) + 1 },
@@ -324,13 +345,109 @@ async function fetchSensorDiagnosticMock(
     }),
   );
 
+  // Extended diagnostic fields
+  const avgLatencyMs = Math.round(30 + rng(seed + 1) * 470);
+  const minLatencyMs = Math.max(
+    5,
+    Math.round(avgLatencyMs * (0.25 + rng(seed + 901) * 0.4)),
+  );
+  const maxLatencyMs = Math.round(avgLatencyMs * (1.4 + rng(seed + 902) * 2.0));
+  const peakThroughput = Math.round(
+    Math.max(...throughputHistory, sensor.eventsPerSecond) *
+      (1.1 + rng(seed + 1100) * 0.4),
+  );
+  const connectionUptimePct =
+    sensor.status === "OFFLINE"
+      ? Math.round(rng(seed + 1000) * 40 * 10) / 10
+      : Math.round((80 + rng(seed + 1000) * 20) * 10) / 10;
+
+  const latencyScore =
+    avgLatencyMs < 100 ? 100 : Math.max(0, 100 - (avgLatencyMs - 100) / 5);
+  const healthScore = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(
+        sensor.validationPassRate * 0.5 +
+          connectionUptimePct * 0.3 +
+          latencyScore * 0.2,
+      ),
+    ),
+  );
+
+  const statusHistory: Array<{
+    timeUtc: string;
+    status: "CONNECTED" | "STALE" | "OFFLINE";
+  }> = Array.from({ length: 12 }, (_, i) => {
+    const r = rng(seed + 200 + i);
+    let s: "CONNECTED" | "STALE" | "OFFLINE" = sensor.status;
+    if (r < 0.07) s = "STALE";
+    if (r < 0.02) s = "OFFLINE";
+    return {
+      timeUtc: new Date(Date.now() - (11 - i) * 60_000).toISOString(),
+      status: s,
+    };
+  });
+
+  // Sensor parameters by type
+  const rangeByType: Record<string, number> = {
+    RADAR: 100 + Math.round(rng(seed + 400) * 100),
+    "EW/SIGINT": 150 + Math.round(rng(seed + 400) * 100),
+    "ELINT/COMINT": 200 + Math.round(rng(seed + 400) * 150),
+    ISR: 30 + Math.round(rng(seed + 400) * 30),
+    "AIS/BFT": 20 + Math.round(rng(seed + 400) * 30),
+  };
+  const rangeNm = rangeByType[sensor.sensorType] ?? null;
+
+  const knownPositions = [
+    { lat: 60.5, lon: -8.2 },
+    { lat: 55.3, lon: -12.1 },
+    { lat: 58.4, lon: -7.6 },
+    { lat: 56.7, lon: -11.3 },
+    { lat: 59.1, lon: -9.8 },
+    { lat: 61.0, lon: -10.5 },
+    { lat: 54.9, lon: -13.0 },
+    { lat: 57.8, lon: -10.1 },
+  ];
+  const position =
+    knownPositions[Math.floor(rng(seed + 500) * knownPositions.length)];
+
+  const bearingStart =
+    sensor.sensorType === "RADAR" ? Math.round(rng(seed + 600) * 270) : null;
+  const bearingEnd =
+    bearingStart !== null
+      ? (bearingStart + 90 + Math.round(rng(seed + 601) * 90)) % 360
+      : null;
+  const scanRateRpm =
+    sensor.sensorType === "RADAR" ? Math.round(3 + rng(seed + 700) * 9) : null;
+  const frequencyBandGhz =
+    sensor.sensorType === "RADAR"
+      ? Math.round((3.0 + rng(seed + 800) * 12.0) * 10) / 10
+      : sensor.sensorType === "EW/SIGINT" ||
+          sensor.sensorType === "ELINT/COMINT"
+        ? Math.round((0.1 + rng(seed + 800) * 5.0) * 10) / 10
+        : null;
+
   return {
     ...sensor,
-    latencyMs: Math.round(30 + rng(seed + 1) * 470),
+    latencyMs: avgLatencyMs,
     throughputHistory,
     dlqBreakdown,
     recentEvents,
     subSensors,
+    healthScore,
+    connectionUptimePct,
+    peakThroughput,
+    avgLatencyMs,
+    minLatencyMs,
+    maxLatencyMs,
+    statusHistory,
+    rangeNm,
+    position,
+    bearingStart,
+    bearingEnd,
+    scanRateRpm,
+    frequencyBandGhz,
   };
 }
 

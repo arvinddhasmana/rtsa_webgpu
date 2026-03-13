@@ -42,6 +42,8 @@ const mockSensor: SensorStatus = {
   dlqCount: 35,
 };
 
+const LOAD_TIMEOUT = 3000;
+
 describe("SensorDiagnosticView", () => {
   it("renders sensor ID in the header breadcrumb", async () => {
     render(() => <SensorDiagnosticView sensor={mockSensor} />);
@@ -52,7 +54,6 @@ describe("SensorDiagnosticView", () => {
 
   it("renders sensor type badge", async () => {
     render(() => <SensorDiagnosticView sensor={mockSensor} />);
-    // Sensor type badge text
     const badges = screen.getAllByText("RADAR");
     expect(badges.length).toBeGreaterThan(0);
   });
@@ -80,7 +81,7 @@ describe("SensorDiagnosticView", () => {
     render(() => <SensorDiagnosticView sensor={mockSensor} />);
     await waitFor(
       () => expect(screen.getByText(/DLQ Breakdown/i)).toBeDefined(),
-      { timeout: 3000 },
+      { timeout: LOAD_TIMEOUT },
     );
   });
 
@@ -88,7 +89,63 @@ describe("SensorDiagnosticView", () => {
     render(() => <SensorDiagnosticView sensor={mockSensor} />);
     await waitFor(
       () => expect(screen.getByText(/Recent Events/i)).toBeDefined(),
-      { timeout: 3000 },
+      { timeout: LOAD_TIMEOUT },
     );
+  });
+
+  it("shows Overall Health Score section after data loads", async () => {
+    render(() => <SensorDiagnosticView sensor={mockSensor} />);
+    await waitFor(
+      () => expect(screen.getByText(/Overall Health Score/i)).toBeDefined(),
+      { timeout: LOAD_TIMEOUT },
+    );
+  });
+
+  it("shows Sensor Parameters section after data loads", async () => {
+    render(() => <SensorDiagnosticView sensor={mockSensor} />);
+    await waitFor(
+      () => expect(screen.getByText(/Sensor Parameters/i)).toBeDefined(),
+      { timeout: LOAD_TIMEOUT },
+    );
+  });
+
+  it("shows Status History section after data loads", async () => {
+    render(() => <SensorDiagnosticView sensor={mockSensor} />);
+    await waitFor(
+      () => expect(screen.getByText(/Status History/i)).toBeDefined(),
+      { timeout: LOAD_TIMEOUT },
+    );
+  });
+
+  it("shows Latency Distribution section after data loads", async () => {
+    render(() => <SensorDiagnosticView sensor={mockSensor} />);
+    await waitFor(
+      () => expect(screen.getByText(/Latency Distribution/i)).toBeDefined(),
+      { timeout: LOAD_TIMEOUT },
+    );
+  });
+
+  it("shows Throughput History section after data loads", async () => {
+    render(() => <SensorDiagnosticView sensor={mockSensor} />);
+    await waitFor(
+      () => expect(screen.getByText(/Throughput History/i)).toBeDefined(),
+      { timeout: LOAD_TIMEOUT },
+    );
+  });
+
+  it("shows Connection Uptime section after data loads", async () => {
+    render(() => <SensorDiagnosticView sensor={mockSensor} />);
+    await waitFor(
+      () => expect(screen.getByText(/Connection Uptime/i)).toBeDefined(),
+      { timeout: LOAD_TIMEOUT },
+    );
+  });
+
+  it("shows quick stats in header (obs/s and DLQ)", async () => {
+    render(() => <SensorDiagnosticView sensor={mockSensor} />);
+    await waitFor(() => {
+      expect(screen.getByText(/obs\/s/i)).toBeDefined();
+      expect(screen.getByText(/DLQ/i)).toBeDefined();
+    });
   });
 });
