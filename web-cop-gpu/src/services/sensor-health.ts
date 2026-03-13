@@ -19,6 +19,13 @@ export interface SensorStatus {
   lastSeenSeconds: number;
   validationPassRate: number;
   dlqCount: number;
+  coverage?: {
+    rangeNm: number;
+    bearingStart: number;
+    bearingEnd: number;
+    centerLon: number;
+    centerLat: number;
+  };
 }
 
 /** Maps SensorType enum to human-readable labels. */
@@ -64,6 +71,7 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 2,
       validationPassRate: 98.7,
       dlqCount: 47,
+      coverage: { rangeNm: 120, bearingStart: 315, bearingEnd: 45, centerLon: -63.5, centerLat: 44.6 }
     },
     {
       sensorId: "RADAR-SOUTH-02",
@@ -74,6 +82,7 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 65,
       validationPassRate: 88.3,
       dlqCount: 213,
+      coverage: { rangeNm: 80, bearingStart: 135, bearingEnd: 225, centerLon: -63.6, centerLat: 44.4 }
     },
     {
       sensorId: "RADAR-EAST-03",
@@ -230,6 +239,13 @@ export async function fetchSensorStatuses(): Promise<SensorStatus[]> {
       lastSeenSeconds: diffSeconds === Infinity ? -1 : Math.floor(diffSeconds),
       validationPassRate: Math.round(passRate * 10) / 10,
       dlqCount: Number(s.totalRejected),
+      coverage: s.coverage ? {
+        rangeNm: s.coverage.rangeNm || 0,
+        bearingStart: s.coverage.bearingStartDegrees || 0,
+        bearingEnd: s.coverage.bearingEndDegrees || 0,
+        centerLon: s.coverage.sensorPosition?.longitude || 0,
+        centerLat: s.coverage.sensorPosition?.latitude || 0,
+      } : undefined,
     };
   });
 }

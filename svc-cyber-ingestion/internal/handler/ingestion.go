@@ -2,25 +2,25 @@
 package handler
 
 import (
-"context"
-"fmt"
-"io"
-"sync"
+	"context"
+	"fmt"
+	"io"
+	"sync"
 	"sync/atomic"
-"time"
+	"time"
 
-auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/ingestion"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/mapper"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/producer"
-"go.uber.org/zap"
-"google.golang.org/grpc/codes"
-"google.golang.org/grpc/status"
-"google.golang.org/protobuf/types/known/timestamppb"
+	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/ingestion"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/mapper"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/producer"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // IngestionHandler implements IngestionService for Cyber IOC data.
@@ -157,10 +157,13 @@ zap.String("observation_id", obs.ObservationId),
 zap.String("sensor_type", "CYBER"),
 zap.String("classification", classification.LevelToString(obs.GetClassification())))
 
-return &ingestionv1.IngestionAck{
-ObservationId: obs.ObservationId,
-Accepted:      true,
-}, nil
+	// Extract coverage if present in metadata
+	tracker.ExtractCoverage(obs.GetMetadata())
+
+	return &ingestionv1.IngestionAck{
+		ObservationId: obs.ObservationId,
+		Accepted:      true,
+	}, nil
 }
 
 // IngestSensorData handles client-streaming Cyber observation ingestion.
@@ -254,6 +257,7 @@ func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestio
 			TotalRejected:       tracker.TotalRejected(),
 			EventsPerSecond:     tracker.EventsPerSecond(),
 			LastObservationTime: timestamppb.New(lastTime),
+			Coverage:            tracker.Coverage(),
 		})
 		return true
 	})
@@ -303,6 +307,7 @@ func (h *IngestionHandler) GetSensorDiagnostic(ctx context.Context, req *ingesti
 		ThroughputHistory:  tracker.SnapshotThroughput(int(historySamples)),
 		DlqBreakdown:       tracker.DLQBreakdown(),
 		RecentEvents:       tracker.SnapshotEvents(int(eventsLimit)),
+		Coverage:           tracker.Coverage(),
 	}
 	if t := tracker.LastObsTime(); !t.IsZero() {
 		resp.LastObservationTime = timestamppb.New(t)

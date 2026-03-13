@@ -1,0 +1,44 @@
+// CLASSIFICATION: UNCLASSIFIED
+syntax = "proto3";
+
+package rtsa.inference.v1;
+
+option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1";
+
+import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+
+// ──────────────────────────────────────────
+// Spatial Alert — area-based anomaly detection
+// ──────────────────────────────────────────
+message SpatialAlert {
+  // UUID v7 (time-ordered)
+  string alert_id = 1;
+
+  // Area defining the alert (e.g., coverage gap boundary)
+  repeated rtsa.common.v1.Position area_polygon = 2;
+
+  // Type of spatial anomaly
+  rtsa.common.v1.AnomalyType anomaly_type = 3;
+
+  // Severity level
+  rtsa.common.v1.AlertSeverity severity = 4;
+
+  // Confidence score (0.0 to 1.0)
+  double confidence_score = 5;
+
+  // Human-readable explanation
+  string explanation = 6;
+
+  // Data classification
+  rtsa.common.v1.ClassificationLevel classification = 7;
+
+  // Time of detection
+  google.protobuf.Timestamp detected_at = 8;
+
+  // Model version
+  string model_version = 9;
+
+  // Whether this alert has been acknowledged
+  bool acknowledged = 10;
+}

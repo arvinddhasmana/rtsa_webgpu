@@ -161,10 +161,15 @@ ClassificationLevel: obs.GetClassification(),
 })
 }
 
-// 7. Increment totalAccepted
-tracker.RecordAccepted(time.Since(t0).Nanoseconds())
-h.totalAccepted.Add(1)
-h.lastObsTime.Store(time.Now().UTC())
+	// 7. Increment totalAccepted
+	tracker.RecordAccepted(time.Since(t0).Nanoseconds())
+	h.totalAccepted.Add(1)
+	h.lastObsTime.Store(time.Now().UTC())
+
+	// 7.5 Extract and update coverage if present in metadata
+	tracker.ExtractCoverage(obs.GetMetadata())
+
+	h.lastObsTime.Store(time.Now().UTC())
 
 h.logger.Info("observation accepted",
 zap.String("sensor_id", obs.GetSensorId()),
@@ -279,6 +284,7 @@ func (h *IngestionHandler) ListSensorStatuses(ctx context.Context, req *ingestio
 			TotalRejected:       tracker.TotalRejected(),
 			EventsPerSecond:     tracker.EventsPerSecond(),
 			LastObservationTime: timestamppb.New(lastTime),
+			Coverage:            tracker.Coverage(),
 		})
 		return true
 	})
@@ -327,6 +333,7 @@ func (h *IngestionHandler) GetSensorDiagnostic(ctx context.Context, req *ingesti
 		ThroughputHistory:  tracker.SnapshotThroughput(int(historySamples)),
 		DlqBreakdown:       tracker.DLQBreakdown(),
 		RecentEvents:       tracker.SnapshotEvents(int(eventsLimit)),
+		Coverage:           tracker.Coverage(),
 	}
 	if t := tracker.LastObsTime(); !t.IsZero() {
 		resp.LastObservationTime = timestamppb.New(t)

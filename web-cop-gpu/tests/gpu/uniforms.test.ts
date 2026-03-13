@@ -6,7 +6,7 @@
 //
 // Reference: docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md §6
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { makeViewProjection, UNIFORM_BYTES, writeUniforms } from "../../src/gpu/uniforms";
 
 describe("makeViewProjection", () => {
@@ -74,7 +74,7 @@ describe("writeUniforms", () => {
     const mockBuffer  = {} as GPUBuffer;
     const vp          = makeViewProjection(1920, 1080, 0, 0, 2);
 
-    writeUniforms(mockDevice, mockBuffer, vp, 1920, 1080, 1000, 500);
+    writeUniforms(mockDevice, mockBuffer, vp, 1920, 1080, 1000, 500, "sensor");
 
     expect(writeBuffer).toHaveBeenCalledOnce();
     const [buf, offset, data] = writeBuffer.mock.calls[0] as [GPUBuffer, number, ArrayBuffer];
@@ -89,7 +89,7 @@ describe("writeUniforms", () => {
     const mockBuffer  = {} as GPUBuffer;
     const vp          = makeViewProjection(1920, 1080, 0, 0, 2);
 
-    writeUniforms(mockDevice, mockBuffer, vp, 1920, 1080, 0, 12345);
+    writeUniforms(mockDevice, mockBuffer, vp, 1920, 1080, 0, 12345, "sensor");
 
     const [, , data] = writeBuffer.mock.calls[0] as [GPUBuffer, number, ArrayBuffer];
     const u32View    = new Uint32Array(data);
@@ -102,7 +102,7 @@ describe("writeUniforms", () => {
     const mockBuffer  = {} as GPUBuffer;
     const vp          = makeViewProjection(800, 600, 0, 0, 1);
 
-    writeUniforms(mockDevice, mockBuffer, vp, 800, 600, 0, 0);
+    writeUniforms(mockDevice, mockBuffer, vp, 800, 600, 0, 0, "sensor");
 
     const [, , data] = writeBuffer.mock.calls[0] as [GPUBuffer, number, ArrayBuffer];
     const f32View    = new Float32Array(data);

@@ -7,14 +7,16 @@
 package ingestion
 
 import (
-"context"
-"math"
-"sync"
-"sync/atomic"
-"time"
+	"context"
+	"math"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"time"
 
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // ewmaAlpha controls the decay rate of the exponentially-weighted moving average.
@@ -49,6 +51,9 @@ eventHead  int
 
 // Track start time for EPS computation fallback.
 startTime time.Time
+
+// Sensor coverage geometry (stores *ingestionv1.SensorCoverage)
+coverage atomic.Value
 }
 
 type throughputEntry struct {
@@ -202,6 +207,55 @@ return time.Since(last) < 30*time.Second
 // LastObsTime returns the last observation timestamp.
 func (t *SensorStateTracker) LastObsTime() time.Time {
 return t.lastObsTime.Load().(time.Time)
+}
+
+// UpdateCoverage updates the sensor's coverage geometry.
+func (t *SensorStateTracker) UpdateCoverage(coverage *ingestionv1.SensorCoverage) {
+	t.coverage.Store(coverage)
+}
+
+// ExtractCoverage parses coverage metadata from an observation and updates the tracker.
+func (t *SensorStateTracker) ExtractCoverage(meta map[string]string) {
+	if meta == nil {
+		return
+	}
+	cov := &ingestionv1.SensorCoverage{}
+	hasData := false
+
+	if val, err := strconv.ParseFloat(meta["rtsa.coverage.range_nm"], 64); err == nil {
+		cov.RangeNm = &val
+		hasData = true
+	}
+	if val, err := strconv.ParseFloat(meta["rtsa.coverage.bearing_start"], 64); err == nil {
+		cov.BearingStartDegrees = &val
+		hasData = true
+	}
+	if val, err := strconv.ParseFloat(meta["rtsa.coverage.bearing_end"], 64); err == nil {
+		cov.BearingEndDegrees = &val
+		hasData = true
+	}
+	if lat, er1 := strconv.ParseFloat(meta["rtsa.coverage.sensor_lat"], 64); er1 == nil {
+		if lon, er2 := strconv.ParseFloat(meta["rtsa.coverage.sensor_lon"], 64); er2 == nil {
+			cov.SensorPosition = &commonv1.Position{
+				Latitude:  lat,
+				Longitude: lon,
+			}
+			hasData = true
+		}
+	}
+
+	if hasData {
+		t.UpdateCoverage(cov)
+	}
+}
+
+// Coverage returns the current sensor coverage geometry.
+func (t *SensorStateTracker) Coverage() *ingestionv1.SensorCoverage {
+	val := t.coverage.Load()
+	if val == nil {
+		return nil
+	}
+	return val.(*ingestionv1.SensorCoverage)
 }
 
 // TotalReceived returns the total received observation count.

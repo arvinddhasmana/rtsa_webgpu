@@ -2,28 +2,30 @@
 package ingestion
 
 import (
-"context"
-"fmt"
-"sync"
-"sync/atomic"
-"time"
+	"context"
+	"fmt"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/google/uuid"
-"go.uber.org/zap"
-"google.golang.org/grpc/codes"
-"google.golang.org/grpc/status"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // sensorStats holds per-sensor statistics.
 type sensorStats struct {
-totalReceived int64
-totalAccepted int64
-totalRejected int64
-lastSeen      time.Time
-mu            sync.Mutex
+	totalReceived int64
+	totalAccepted int64
+	totalRejected int64
+	lastSeen      time.Time
+	coverage      atomic.Value // stores *ingestionv1.SensorCoverage
+	mu            sync.Mutex
 }
 
 // Handler implements ingestionv1.IngestionServiceServer.
@@ -52,67 +54,101 @@ cfg:         cfg,
 
 // IngestSingleObservation handles a single observation ingestion request.
 func (h *Handler) IngestSingleObservation(ctx context.Context, obs *ingestionv1.SensorObservation) (*ingestionv1.IngestionAck, error) {
-if obs == nil {
-return nil, status.Error(codes.InvalidArgument, "observation must not be nil")
-}
+	if obs == nil {
+		return nil, status.Error(codes.InvalidArgument, "observation must not be nil")
+	}
 
-// Check classification ceiling
-if obs.GetClassification() > h.cfg.MaxClassification {
-return nil, status.Errorf(codes.PermissionDenied,
-"classification: data level %s exceeds service ceiling %s",
-obs.GetClassification().String(), h.cfg.MaxClassification.String())
-}
+	// Check classification ceiling
+	if obs.GetClassification() > h.cfg.MaxClassification {
+		return nil, status.Errorf(codes.PermissionDenied,
+			"classification: data level %s exceeds service ceiling %s",
+			obs.GetClassification().String(), h.cfg.MaxClassification.String())
+	}
 
-// Assign observation ID
-if obs.ObservationId == "" {
-obs.ObservationId = uuid.New().String()
-}
+	// Assign observation ID
+	if obs.ObservationId == "" {
+		obs.ObservationId = uuid.New().String()
+	}
 
-// Normalize
-h.normalizer.Normalize(obs)
+	// Normalize
+	h.normalizer.Normalize(obs)
 
-// Validate
-result := h.validator.Validate(obs)
+	// Validate
+	result := h.validator.Validate(obs)
 
-h.updateStats(obs.GetSensorId(), result.Valid)
+	h.updateStats(obs.GetSensorId(), result.Valid)
 
-if !result.Valid {
-reason := "validation failed"
-if len(result.Errors) > 0 {
-reason = fmt.Sprintf("validation failed: %s", result.Errors[0].Message)
-}
-h.logger.Warn("observation rejected",
-zap.String("service", h.cfg.ServiceName),
-zap.String("sensor_id", obs.GetSensorId()),
-zap.String("observation_id", obs.GetObservationId()),
-zap.String("reason", reason),
-)
-if err := h.dlqProducer.Produce(ctx, obs); err != nil {
-h.logger.Error("dlq produce failed", zap.Error(err))
-}
-return &ingestionv1.IngestionAck{
-ObservationId:   obs.GetObservationId(),
-Accepted:        false,
-RejectionReason: reason,
-}, nil
-}
+	if !result.Valid {
+		reason := "validation failed"
+		if len(result.Errors) > 0 {
+			reason = fmt.Sprintf("validation failed: %s", result.Errors[0].Message)
+		}
+		h.logger.Warn("observation rejected",
+			zap.String("service", h.cfg.ServiceName),
+			zap.String("sensor_id", obs.GetSensorId()),
+			zap.String("observation_id", obs.GetObservationId()),
+			zap.String("reason", reason),
+		)
+		if err := h.dlqProducer.Produce(ctx, obs); err != nil {
+			h.logger.Error("dlq produce failed", zap.Error(err))
+		}
+		return &ingestionv1.IngestionAck{
+			ObservationId:   obs.GetObservationId(),
+			Accepted:        false,
+			RejectionReason: reason,
+		}, nil
+	}
 
-// Produce to output topic
-if err := h.producer.Produce(ctx, obs); err != nil {
-return nil, status.Errorf(codes.Internal,
-"ingestion: failed to produce observation %s: %v", obs.GetObservationId(), err)
-}
+	// Produce to output topic
+	if err := h.producer.Produce(ctx, obs); err != nil {
+		return nil, status.Errorf(codes.Internal,
+			"ingestion: failed to produce observation %s: %v", obs.GetObservationId(), err)
+	}
 
-h.logger.Info("observation accepted",
-zap.String("service", h.cfg.ServiceName),
-zap.String("sensor_id", obs.GetSensorId()),
-zap.String("observation_id", obs.GetObservationId()),
-)
+	h.logger.Info("observation accepted",
+		zap.String("service", h.cfg.ServiceName),
+		zap.String("sensor_id", obs.GetSensorId()),
+		zap.String("observation_id", obs.GetObservationId()),
+	)
 
-return &ingestionv1.IngestionAck{
-ObservationId: obs.GetObservationId(),
-Accepted:      true,
-}, nil
+	// Extract coverage if present
+	if meta := obs.GetMetadata(); meta != nil {
+		if v, ok := h.stats.Load(obs.GetSensorId()); ok {
+			s := v.(*sensorStats)
+			cov := &ingestionv1.SensorCoverage{}
+			hasData := false
+
+			if val, err := strconv.ParseFloat(meta["rtsa.coverage.range_nm"], 64); err == nil {
+				cov.RangeNm = &val
+				hasData = true
+			}
+			if val, err := strconv.ParseFloat(meta["rtsa.coverage.bearing_start"], 64); err == nil {
+				cov.BearingStartDegrees = &val
+				hasData = true
+			}
+			if val, err := strconv.ParseFloat(meta["rtsa.coverage.bearing_end"], 64); err == nil {
+				cov.BearingEndDegrees = &val
+				hasData = true
+			}
+			if lat, er1 := strconv.ParseFloat(meta["rtsa.coverage.sensor_lat"], 64); er1 == nil {
+				if lon, er2 := strconv.ParseFloat(meta["rtsa.coverage.sensor_lon"], 64); er2 == nil {
+					cov.SensorPosition = &commonv1.Position{
+						Latitude:  lat,
+						Longitude: lon,
+					}
+					hasData = true
+				}
+			}
+			if hasData {
+				s.coverage.Store(cov)
+			}
+		}
+	}
+
+	return &ingestionv1.IngestionAck{
+		ObservationId: obs.GetObservationId(),
+		Accepted:      true,
+	}, nil
 }
 
 // IngestSensorData handles client-streaming ingestion.
@@ -175,7 +211,9 @@ func (h *Handler) GetSensorStatus(ctx context.Context, req *ingestionv1.GetSenso
 		LastObservationTime: timestamppb.New(lastSeen),
 	}
 
-	if h.cfg.Coverage != nil {
+	if covVal := s.coverage.Load(); covVal != nil {
+		resp.Coverage = covVal.(*ingestionv1.SensorCoverage)
+	} else if h.cfg.Coverage != nil {
 		resp.Coverage = h.cfg.Coverage
 	}
 
@@ -226,7 +264,9 @@ func (h *Handler) ListSensorStatuses(ctx context.Context, req *ingestionv1.ListS
 			LastObservationTime: timestamppb.New(lastSeen),
 		}
 
-		if h.cfg.Coverage != nil {
+		if covVal := s.coverage.Load(); covVal != nil {
+			statusResponse.Coverage = covVal.(*ingestionv1.SensorCoverage)
+		} else if h.cfg.Coverage != nil {
 			statusResponse.Coverage = h.cfg.Coverage
 		}
 

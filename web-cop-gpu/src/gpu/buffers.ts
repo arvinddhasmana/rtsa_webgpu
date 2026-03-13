@@ -22,13 +22,19 @@ export const INDEX_ENTRY_BYTES = 4;
 export const DRAW_ARGS_BYTES = 16;
 
 /** Uniform buffer size in bytes (matches Uniforms struct in all shaders). */
-export const UNIFORM_BYTES = 80;
+export const UNIFORM_BYTES = 96;
 
 /** Number of glyph instances pre-allocated for SDF labels. */
 export const MAX_GLYPH_INSTANCES = MAX_TRACKS * 8; // up to 8 chars per callsign
 
 /** Bytes per GlyphInstance struct (40 bytes, 8 fields × 4 bytes + 1 pad). */
 export const GLYPH_INSTANCE_BYTES = 40;
+
+/** Maximum number of coverage records (sectors + gaps). */
+export const MAX_COVERAGE_RECORDS = 1024;
+
+/** Bytes per CoverageRecord struct (32 bytes). */
+export const COVERAGE_RECORD_BYTES = 32;
 
 export interface GPUBuffers {
   /** Track records uploaded from the SAB each frame — STORAGE | COPY_DST */
@@ -43,6 +49,8 @@ export interface GPUBuffers {
   uniform: GPUBuffer;
   /** SDF glyph instances written per-frame (CPU) — STORAGE | COPY_DST */
   glyphInstances: GPUBuffer;
+  /** Coverage records (sectors/gaps) written per-frame (CPU) — STORAGE | COPY_DST */
+  coverageStorage: GPUBuffer;
 }
 
 /**
@@ -88,6 +96,12 @@ export function allocateBuffers(device: GPUDevice): GPUBuffers {
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
 
+  const coverageStorage = device.createBuffer({
+    label: "coverage-storage",
+    size: MAX_COVERAGE_RECORDS * COVERAGE_RECORD_BYTES,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+
   return {
     trackStorage,
     positions,
@@ -95,6 +109,7 @@ export function allocateBuffers(device: GPUDevice): GPUBuffers {
     drawArgs,
     uniform,
     glyphInstances,
+    coverageStorage,
   };
 }
 
@@ -108,4 +123,5 @@ export function destroyBuffers(buffers: GPUBuffers): void {
   buffers.drawArgs.destroy();
   buffers.uniform.destroy();
   buffers.glyphInstances.destroy();
+  buffers.coverageStorage.destroy();
 }

@@ -11,7 +11,7 @@
 // Reference: docs/implementation/v4/phase1_core_rendering.md R1-10
 
 /** Tile configuration */
-export const MAP_BACKGROUND_COLOR: GPUColorDict = { r: 0.04, g: 0.06, b: 0.10, a: 1.0 };
+export const MAP_BACKGROUND_COLOR: GPUColorDict = { r: 0.10, g: 0.15, b: 0.20, a: 1.0 };
 
 /**
  * Create the render pass descriptor for the background (map tile) layer.

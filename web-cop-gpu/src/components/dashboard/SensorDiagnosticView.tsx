@@ -6,10 +6,11 @@
 
 import { createResource, For, Show } from "solid-js";
 import {
-  fetchSensorDiagnostic,
-  type SensorStatus,
+    fetchSensorDiagnostic,
+    type SensorStatus,
 } from "../../services/sensor-health";
 import { setSelectedSensor } from "../../signals/sensor-filters";
+import { MiniCoverageMap } from "./MiniCoverageMap";
 
 interface SensorDiagnosticViewProps {
   sensor: SensorStatus;
@@ -258,15 +259,33 @@ export function SensorDiagnosticView(props: SensorDiagnosticViewProps) {
         <div
           style={{
             "margin-left": "auto",
-            color: "#334155",
-            "font-size": "0.67rem",
+            display: "flex",
+            "align-items": "center",
+            gap: "12px",
           }}
         >
-          {new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          })}
+          <Show when={props.sensor.coverage}>
+            <MiniCoverageMap
+              rangeNm={props.sensor.coverage!.rangeNm}
+              bearingStart={props.sensor.coverage!.bearingStart}
+              bearingEnd={props.sensor.coverage!.bearingEnd}
+              alertLevel={props.sensor.dlqCount > 100 ? 2 : props.sensor.dlqCount > 50 ? 1 : 0}
+              width={64}
+              height={64}
+            />
+          </Show>
+          <div
+            style={{
+              color: "#334155",
+              "font-size": "0.67rem",
+            }}
+          >
+            {new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })}
+          </div>
         </div>
       </div>
 
@@ -490,6 +509,16 @@ export function SensorDiagnosticView(props: SensorDiagnosticViewProps) {
                     data()!.bearingStart !== null && data()!.bearingEnd !== null
                   }
                 >
+                  <div style={{ "margin-top": "16px", "margin-bottom": "8px", display: "flex", "justify-content": "center" }}>
+                    <MiniCoverageMap
+                      rangeNm={data()!.rangeNm || 120}
+                      bearingStart={data()!.bearingStart!}
+                      bearingEnd={data()!.bearingEnd!}
+                      alertLevel={data()!.dlqCount > 100 ? 2 : data()!.dlqCount > 50 ? 1 : 0}
+                      width={180}
+                      height={180}
+                    />
+                  </div>
                   <div>
                     <div style={{ color: "#475569", "font-size": "0.62rem" }}>
                       Bearing Sector

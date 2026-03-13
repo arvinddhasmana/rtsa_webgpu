@@ -19,6 +19,7 @@ import { RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 import { AtlasTextures } from "./atlas";
 import { BindGroups } from "./bind-groups";
 import { GPUBuffers, MAX_TRACKS } from "./buffers";
+import { CoverageManager } from "./coverage";
 import { FrameTimer } from "./frame-timer";
 import { computeLod } from "./lod";
 import { renderBackground } from "./map-tiles";
@@ -50,6 +51,9 @@ export interface RenderState {
   /** Current number of live tracks (read from SAB header each frame). */
   trackCount: number;
 
+  /** Current active dashboard mode */
+  dashboard: "sensor" | "commander" | "analytics" | "health";
+
   /** Camera state for view-projection matrix */
   camera: {
     centerLon: number;
@@ -62,6 +66,9 @@ export interface RenderState {
 
   /** Frame timer for GPU timestamp queries and JS wall-clock measurement. */
   frameTimer: FrameTimer;
+
+  /** Sensor coverage and gap renderer */
+  coverage: CoverageManager;
 }
 
 /**
@@ -118,6 +125,7 @@ export function renderFrame(state: RenderState): void {
     state.canvas.height,
     now,
     trackCount,
+    state.dashboard,
   );
 
   // Reset indirect draw args (instance_count = 0) before culling
@@ -154,6 +162,21 @@ export function renderFrame(state: RenderState): void {
 
   // 5. Render: background (map tiles — loadOp: clear)
   renderBackground(encoder, colorView);
+
+  // 5.1 Render: Sensor Coverage (loadOp: load)
+  {
+    const pass = encoder.beginRenderPass({
+      label: "coverage-pass",
+      colorAttachments: [{
+        view: colorView,
+        loadOp: "load",
+        storeOp: "store",
+      }],
+    });
+    // Use the global uniform bind group (set 0)
+    state.coverage.draw(pass, bindGroups.trackIcons.g0);
+    pass.end();
+  }
 
   // 6. Render: trail lines (loadOp: load — composites on top of background)
   if (lod.renderTrails) {

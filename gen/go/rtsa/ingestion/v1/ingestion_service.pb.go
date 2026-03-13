@@ -1040,7 +1040,7 @@ var File_rtsa_ingestion_v1_ingestion_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_ingestion_v1_ingestion_service_proto_rawDesc = "" +
 	"\n" +
-	")rtsa/ingestion/v1/ingestion_service.proto\x12\x11rtsa.ingestion.v1\x1a*rtsa/ingestion/v1/sensor_observation.proto\x1a\x1artsa/common/v1/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"|\n" +
+	")rtsa/ingestion/v1/ingestion_service.proto\x12\x11rtsa.ingestion.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1artsa/common/v1/types.proto\x1a*rtsa/ingestion/v1/sensor_observation.proto\"|\n" +
 	"\fIngestionAck\x12%\n" +
 	"\x0eobservation_id\x18\x01 \x01(\tR\robservationId\x12\x1a\n" +
 	"\baccepted\x18\x02 \x01(\bR\baccepted\x12)\n" +

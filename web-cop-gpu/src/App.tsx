@@ -8,7 +8,7 @@
 //
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §4 Signal Architecture
 
-import { createSignal, onCleanup, onMount, Show } from "solid-js";
+import { createEffect, createSignal, onCleanup, onMount, Show } from "solid-js";
 import { renderDegradedNotice } from "./components/DegradedNotice";
 import { checkCapabilities, type Capabilities } from "./services/capabilities";
 import { allocateSAB } from "./services/sab";
@@ -18,19 +18,19 @@ import { updateAlerts } from "./signals/alerts";
 import { operatorIdFromToken, setOperatorId } from "./signals/auth";
 import { setConnecting, setWtConnected } from "./signals/connection";
 import {
-  setDatagramsPerSec,
-  setDecodeErrors,
-  setFps,
-  setLatencyMs,
-  setRecordsPerSec,
-  setTrackCount,
-  setVisibleCount,
+    setDatagramsPerSec,
+    setDecodeErrors,
+    setFps,
+    setLatencyMs,
+    setRecordsPerSec,
+    setTrackCount,
+    setVisibleCount,
 } from "./signals/stats";
 import {
-  setSelectedTrack,
-  setTrackDetail,
-  setTrackDetailError,
-  setTrackDetailLoading,
+    setSelectedTrack,
+    setTrackDetail,
+    setTrackDetailError,
+    setTrackDetailLoading,
 } from "./signals/track";
 import { dashboard, role } from "./signals/viewport";
 
@@ -38,6 +38,7 @@ import { dashboard, role } from "./signals/viewport";
 import { startAlertStream } from "./services/alerts";
 import { fetchAuthToken } from "./services/auth";
 import { fetchTrackDetail } from "./services/query";
+import { fetchSensorStatuses } from "./services/sensor-health";
 
 // Components
 import { SensorHealthDashboard } from "./components/dashboard/SensorHealthDashboard";
@@ -54,11 +55,11 @@ import { RoleSelector } from "./components/toolbar/RoleSelector";
 
 // Worker message types
 import type {
-  DataInitMessage,
-  DataToMainMessage,
-  RenderInitMessage,
-  RenderToMainMessage,
-  TokenRefreshMessage,
+    DataInitMessage,
+    DataToMainMessage,
+    RenderInitMessage,
+    RenderToMainMessage,
+    TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -264,6 +265,55 @@ export default function App() {
     // Start gRPC alert stream
     alertStreamController = startAlertStream();
   }
+
+  // Sync dashboard signal to Render Worker
+  onMount(() => {
+    import("./signals/viewport").then(({ dashboard, viewport }) => {
+      createEffect(() => {
+        const current = dashboard();
+        renderWorker?.postMessage({ type: "set_dashboard", dashboard: current });
+      });
+
+      createEffect(() => {
+        const vp = viewport();
+        renderWorker?.postMessage({
+          type: "set_viewport",
+          centerLat: vp.centerLat,
+          centerLon: vp.centerLon,
+          zoom: vp.zoom,
+        });
+      });
+    });
+  });
+
+  // Level 3: Strategic View — Sync live coverage to WebGPU
+  onMount(() => {
+    const syncCoverage = async () => {
+      if (!renderWorker) return;
+      try {
+        const statuses = await fetchSensorStatuses();
+        const records = statuses
+          .filter((s) => s.coverage)
+          .map((s) => ({
+            centerLon: s.coverage!.centerLon,
+            centerLat: s.coverage!.centerLat,
+            rangeNm: s.coverage!.rangeNm,
+            bearingStart: s.coverage!.bearingStart,
+            bearingEnd: s.coverage!.bearingEnd,
+            recordType: 0, // Sector
+            alertLevel:
+              s.dlqCount > 100 ? 2 : s.dlqCount > 50 ? 1 : 0,
+          }));
+        renderWorker.postMessage({ type: "set_coverage", records });
+      } catch (e) {
+        // Silent fail for background sync
+      }
+    };
+
+    const timer = setInterval(syncCoverage, 10000);
+    syncCoverage();
+    onCleanup(() => clearInterval(timer));
+  });
 
   onMount(async () => {
     const detected = await checkCapabilities();

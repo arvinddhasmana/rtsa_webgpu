@@ -61,10 +61,38 @@ export interface SelectTrackMessage {
   y: number;
 }
 
+export interface SetDashboardMessage {
+  type: "set_dashboard";
+  dashboard: "sensor" | "commander" | "analytics" | "health";
+}
+
+export interface SetCoverageMessage {
+  type: "set_coverage";
+  records: {
+    centerLon:    number;
+    centerLat:    number;
+    rangeNm:      number;
+    bearingStart: number;
+    bearingEnd:   number;
+    recordType:   number; // 0 = Sector, 1 = Gap Polygon
+    alertLevel:   number; // 0 = Normal, 1 = Warning, 2 = Critical
+  }[];
+}
+
+export interface SetViewportMessage {
+  type:      "set_viewport";
+  centerLat: number;
+  centerLon: number;
+  zoom:      number;
+}
+
 export type MainToRenderMessage =
   | RenderInitMessage
   | RenderResizeMessage
-  | SelectTrackMessage;
+  | SelectTrackMessage
+  | SetDashboardMessage
+  | SetCoverageMessage
+  | SetViewportMessage;
 
 // ── Data Worker → Main Thread ──────────────────────────────────────────────────
 

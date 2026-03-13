@@ -9,12 +9,14 @@
 //   viewport_size:   vec2<f32>,    // offset 64, size 8
 //   current_time_ms: u32,          // offset 72, size 4
 //   track_count:     u32,          // offset 76, size 4
-//   // Total: 80 bytes
+//   dashboard_mode:  u32,          // offset 80, size 4
+//   padding:         vec3<u32>,    // offset 84, size 12
+//   // Total: 96 bytes
 // }
 //
 // Reference: docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md §6
 
-export const UNIFORM_BYTES = 80;
+export const UNIFORM_BYTES = 96;
 
 // Pre-allocated reusable ArrayBuffer — zero per-frame allocation
 const _uniformData = new ArrayBuffer(UNIFORM_BYTES);
@@ -64,6 +66,7 @@ export function writeUniforms(
   canvasHeight: number,
   currentTimeMs: number,
   trackCount: number,
+  dashboardMode: "sensor" | "commander" | "analytics" | "health",
 ): void {
   // mat4x4<f32> at offset 0 (16 floats × 4 bytes = 64 bytes)
   _f32.set(viewProj, 0);
@@ -77,6 +80,10 @@ export function writeUniforms(
 
   // u32 track_count at offset 76 bytes = uint32 index 19
   _u32[19] = trackCount >>> 0;
+
+  // u32 dashboard_mode at offset 80 bytes = uint32 index 20
+  const modeMap = { sensor: 0, commander: 1, analytics: 2, health: 3 };
+  _u32[20] = modeMap[dashboardMode] ?? 0;
 
   device.queue.writeBuffer(uniformBuffer, 0, _uniformData);
 }

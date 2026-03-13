@@ -6,6 +6,7 @@
 
 import { JSX, Show } from "solid-js";
 import { SensorStatus } from "../../services/sensor-health";
+import { MiniCoverageMap } from "./MiniCoverageMap";
 
 export interface SensorStatusCardProps {
   sensor: SensorStatus;
@@ -380,7 +381,19 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
           </div>
         </div>
       </div>
-      <Badge />
+      <div style={{ display: "flex", "align-items": "center", gap: "1rem" }}>
+        <Show when={props.sensor.coverage}>
+          <MiniCoverageMap
+            rangeNm={props.sensor.coverage!.rangeNm}
+            bearingStart={props.sensor.coverage!.bearingStart}
+            bearingEnd={props.sensor.coverage!.bearingEnd}
+            alertLevel={props.sensor.dlqCount > 100 ? 2 : props.sensor.dlqCount > 50 ? 1 : 0}
+            width={48}
+            height={48}
+          />
+        </Show>
+        <Badge />
+      </div>
     </div>
   );
 

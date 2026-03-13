@@ -2,15 +2,15 @@
 package sensor
 
 import (
-"crypto/sha256"
-"fmt"
-"math/rand"
-"time"
+	"crypto/sha256"
+	"fmt"
+	"math/rand"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/google/uuid"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // cyberIOCTypes lists the valid IOC types accepted by the Cyber validator.
@@ -82,9 +82,12 @@ SensorId:        "CYBER-SIM-001",
 SensorType:      commonv1.SensorType_SENSOR_TYPE_CYBER,
 ObservationTime: timestamppb.New(time.Now()),
 Classification:  commonv1.ClassificationLevel_CLASSIFICATION_LEVEL_UNCLASSIFIED,
-Metadata: map[string]string{
-"sim_generated": "true",
-},
+		Metadata: map[string]string{
+			"sim_generated":               "true",
+			"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 10.0), // Nominal circle for logical sensor
+			"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", 58.0),
+			"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", -10.0),
+		},
 SensorData: &ingestionv1.SensorObservation_Cyber{
 Cyber: &ingestionv1.CyberIOC{
 StixId:         stixID,

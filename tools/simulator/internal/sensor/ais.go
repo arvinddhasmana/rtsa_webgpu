@@ -2,14 +2,14 @@
 package sensor
 
 import (
-"fmt"
-"time"
+	"fmt"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
-"github.com/google/uuid"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // vesselNames provides synthetic vessel name pool.
@@ -84,11 +84,14 @@ Longitude:      pos.Lon,
 SpeedKnots:     &speedKn,
 HeadingDegrees: &heading,
 },
-Metadata: map[string]string{
-"sim_entity_id":     entity.ID,
-"sim_entity_type":   entity.EntityType.String(),
-"sim_hostile_class": entity.HostileClass.String(),
-},
+		Metadata: map[string]string{
+			"sim_entity_id":               entity.ID,
+			"sim_entity_type":             entity.EntityType.String(),
+			"sim_hostile_class":           entity.HostileClass.String(),
+			"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 40.0), // Short range for coastal AIS
+			"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", pos.Lat),
+			"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", pos.Lon),
+		},
 SensorData: &ingestionv1.SensorObservation_AisBft{
 AisBft: &ingestionv1.AISPosition{
 Mmsi:           mmsi,

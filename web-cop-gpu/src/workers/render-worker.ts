@@ -15,6 +15,7 @@
 import { createAtlasTextures, destroyAtlasTextures } from "../gpu/atlas";
 import { createBindGroups } from "../gpu/bind-groups";
 import { allocateBuffers, destroyBuffers } from "../gpu/buffers";
+import { CoverageManager } from "../gpu/coverage";
 import { initGPU } from "../gpu/device";
 import { FrameTimer } from "../gpu/frame-timer";
 import { initMockTracks, MOCK_TRACK_COUNT, tickMockTracks, writeMockTracksToSAB } from "../gpu/mock-data";
@@ -29,7 +30,12 @@ import {
     type RenderStatusMessage,
 } from "../gpu/render-logic";
 import { renderFrame, type RenderState } from "../gpu/renderer";
-import type { RenderStatsMessage } from "./shared-protocol";
+import {
+    RenderStatsMessage,
+    SetCoverageMessage,
+    SetDashboardMessage,
+    SetViewportMessage
+} from "./shared-protocol";
 
 /** Messages accepted by the Render Worker */
 interface InitMessage {
@@ -67,7 +73,7 @@ interface PickedMessage {
 // Use the imported type alias for all status message creation.
 type StatusMessage = RenderStatusMessage;
 
-type InboundMessage = InitMessage | ResizeMessage | SelectTrackMessage;
+type InboundMessage = InitMessage | ResizeMessage | SelectTrackMessage | SetDashboardMessage | SetCoverageMessage | SetViewportMessage;
 
 // RENDER_INTERVAL_MS and RENDER_ERROR_THRESHOLD are imported from render-logic.ts.
 
@@ -148,6 +154,7 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
   const pick       = createPickResources(device, offscreen.width, offscreen.height);
   const pipelines  = createPipelines(device, format);
   const bindGroups = createBindGroups(device, pipelines, buffers, atlas, pick);
+  const coverage   = new CoverageManager(device, buffers, pipelines);
 
   // Seed SAB with mock data only when no Data Worker is providing data.
   // When activeDataWorker is true, the Data Worker is the sole SAB writer.
@@ -168,6 +175,8 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
     sab: sabBuf,
     canvas: offscreen,
     trackCount: MOCK_TRACK_COUNT,
+    coverage,
+    dashboard: "health", // Default
     camera: {
       centerLon: 0,
       centerLat: 0,
@@ -211,6 +220,18 @@ function startRenderLoop(): void {
       if (activeSab) {
         writeMockTracksToSAB(activeSab, MOCK_TRACK_COUNT);
       }
+
+      // Mock coverage data (Phase 1)
+      renderState.coverage.reset();
+      renderState.coverage.addRecord({
+        centerLon: -63.5, centerLat: 44.6, rangeNm: 50, bearingStart: 0, bearingEnd: 360,
+        recordType: 0, alertLevel: 0
+      });
+      renderState.coverage.addRecord({
+        centerLon: -63.6, centerLat: 44.7, rangeNm: 20, bearingStart: 0, bearingEnd: 360,
+        recordType: 1, alertLevel: 2
+      });
+      renderState.coverage.upload();
     }
 
     try {
@@ -327,6 +348,34 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
               `Pick readback failed: ${err instanceof Error ? err.message : String(err)}`,
             ));
           });
+      }
+      break;
+    }
+
+    case "set_dashboard": {
+      if (renderState) {
+        renderState.dashboard = msg.dashboard;
+      }
+      break;
+    }
+
+    case "set_coverage": {
+      if (renderState) {
+        renderState.coverage.reset();
+        for (const rec of msg.records) {
+          renderState.coverage.addRecord(rec);
+        }
+        renderState.coverage.upload();
+      }
+      break;
+    }
+
+    case "set_viewport": {
+      if (renderState) {
+        renderState.camera.centerLat = msg.centerLat;
+        renderState.camera.centerLon = msg.centerLon;
+        // Simple mapping: zoom level 2 maps to scale 1.0; each increment doubles scale.
+        renderState.camera.scale = Math.pow(2, msg.zoom - 2);
       }
       break;
     }

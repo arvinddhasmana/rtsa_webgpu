@@ -6,15 +6,16 @@
 import { createEffect, createResource, onCleanup, Show } from "solid-js";
 import { fetchSensorStatuses } from "../../services/sensor-health";
 import {
-  cardView,
-  selectedSensor,
-  setCardView,
-  setSelectedSensor,
+    cardView,
+    selectedSensor,
+    setCardView,
+    setSelectedSensor,
 } from "../../signals/sensor-filters";
 import { dashboard } from "../../signals/viewport";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { SensorDiagnosticView } from "./SensorDiagnosticView";
 import { SensorGrid } from "./SensorGrid";
+import { SensorOverviewMap } from "./SensorOverviewMap";
 
 /**
  * Sensor Health Monitoring Dashboard.
@@ -201,11 +202,55 @@ export function SensorHealthDashboard() {
           <Show
             when={selectedSensor() !== null}
             fallback={
-              <SensorGrid
-                sensors={sensors() || []}
-                cardView={cardView()}
-                onSensorSelect={setSelectedSensor}
-              />
+              <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+                <SensorGrid
+                  sensors={sensors() || []}
+                  cardView={cardView()}
+                  onSensorSelect={setSelectedSensor}
+                />
+
+                {/* Level 1: Strategic Overview Sidebar */}
+                <div
+                  style={{
+                    width: "440px",
+                    padding: "24px",
+                    "border-left": "1px solid rgba(255,255,255,0.05)",
+                    background: "rgba(13, 20, 36, 0.2)",
+                    display: "flex",
+                    "flex-direction": "column",
+                    gap: "24px",
+                    overflow: "auto"
+                  }}
+                >
+                  <SensorOverviewMap sensors={sensors() || []} width={392} height={300} />
+
+                  {/* Coverage Statistics Panel */}
+                  <div style={{
+                    padding: "20px",
+                    background: "rgba(255,255,255,0.03)",
+                    "border-radius": "12px",
+                    border: "1px solid rgba(255,255,255,0.05)"
+                  }}>
+                    <h3 style={{ "font-size": "0.8rem", color: "#94a3b8", "margin-top": 0, "margin-bottom": "16px", "text-transform": "uppercase", "letter-spacing": "0.05em" }}>
+                      Fleet Coverage Health
+                    </h3>
+                    <div style={{ display: "flex", "flex-direction": "column", gap: "12px" }}>
+                      <div style={{ display: "flex", "justify-content": "space-between" }}>
+                        <span style={{ color: "#4b5563", "font-size": "0.8rem" }}>Active Volume</span>
+                        <span style={{ color: "#f8fafc", "font-weight": "600" }}>3.2M NM³</span>
+                      </div>
+                      <div style={{ display: "flex", "justify-content": "space-between" }}>
+                        <span style={{ color: "#4b5563", "font-size": "0.8rem" }}>Redundancy Ratio</span>
+                        <span style={{ color: "#4ade80", "font-weight": "600" }}>2.4×</span>
+                      </div>
+                      <div style={{ display: "flex", "justify-content": "space-between" }}>
+                        <span style={{ color: "#4b5563", "font-size": "0.8rem" }}>Gap Probability</span>
+                        <span style={{ color: "#f87171", "font-weight": "600" }}>LOW</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             }
           >
             <SensorDiagnosticView sensor={selectedSensor()!} />

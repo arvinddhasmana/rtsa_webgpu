@@ -6,13 +6,15 @@
 // Reference: docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md §5.4
 
 // Import WGSL shader source — Vite bundles these as strings
+import coverageWGSL from "../shaders/coverage.wgsl?raw";
+import cullingWGSL from "../shaders/culling.wgsl?raw";
+import halosWGSL from "../shaders/halos.wgsl?raw";
 import interpolationWGSL from "../shaders/interpolation.wgsl?raw";
-import cullingWGSL       from "../shaders/culling.wgsl?raw";
-import trackIconsWGSL    from "../shaders/track-icons.wgsl?raw";
-import trailWGSL         from "../shaders/trail.wgsl?raw";
-import halosWGSL         from "../shaders/halos.wgsl?raw";
-import labelsWGSL        from "../shaders/labels.wgsl?raw";
-import pickWGSL          from "../shaders/pick.wgsl?raw";
+import labelsWGSL from "../shaders/labels.wgsl?raw";
+import pickWGSL from "../shaders/pick.wgsl?raw";
+import trackIconsWGSL from "../shaders/track-icons.wgsl?raw";
+import trailWGSL from "../shaders/trail.wgsl?raw";
+
 
 export interface ComputePipelines {
   interpolation: GPUComputePipeline;
@@ -25,6 +27,7 @@ export interface RenderPipelines {
   halos:      GPURenderPipeline;
   labels:     GPURenderPipeline;
   pick:       GPURenderPipeline;
+  coverage:   GPURenderPipeline;
 }
 
 export interface AllPipelines {
@@ -176,6 +179,30 @@ export function createPipelines(
     primitive: { topology: "triangle-strip" },
   });
 
+  // Coverage pipeline: footprint and gaps (triangle list)
+  const coveragePipeline = device.createRenderPipeline({
+    label:  "coverage",
+    layout: "auto",
+    vertex: {
+      module:     device.createShaderModule({ label: "coverage-vs", code: coverageWGSL }),
+      entryPoint: "vs_main",
+    },
+    fragment: {
+      module:     device.createShaderModule({ label: "coverage-fs", code: coverageWGSL }),
+      entryPoint: "fs_main",
+      targets: [
+        {
+          format: swapChainFormat,
+          blend: {
+            color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+            alpha: { srcFactor: "one",       dstFactor: "one-minus-src-alpha", operation: "add" },
+          },
+        },
+      ],
+    },
+    primitive: { topology: "triangle-list" },
+  });
+
   return {
     compute: {
       interpolation: interpolationPipeline,
@@ -187,6 +214,7 @@ export function createPipelines(
       halos:      halosPipeline,
       labels:     labelsPipeline,
       pick:       pickPipeline,
+      coverage:   coveragePipeline,
     },
   };
 }

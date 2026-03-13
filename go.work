@@ -9,6 +9,7 @@ use (
 	./svc-ais-ingestion
 	./svc-alert
 	./svc-anomaly-detection
+	./svc-coverage-analyzer
 	./svc-audit
 	./svc-cyber-ingestion
 	./svc-elint-ingestion

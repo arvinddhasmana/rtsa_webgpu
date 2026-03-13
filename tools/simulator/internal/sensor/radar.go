@@ -2,19 +2,19 @@
 package sensor
 
 import (
-"fmt"
-"math"
-"time"
+	"fmt"
+	"math"
+	"time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
-"github.com/google/uuid"
-"google.golang.org/protobuf/types/known/timestamppb"
+	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// radarSensorPos is the fixed position of the simulated radar sensor (Halifax area).
-var radarSensorPos = generator.Position{Lat: 44.65, Lon: -63.57}
+// radarSensorPos is the fixed position of the simulated radar sensor (North Atlantic).
+var radarSensorPos = generator.Position{Lat: 58.0, Lon: -10.0}
 
 // trackCounters holds per-sensor sequential track counters.
 var trackCounters = make(map[string]int)
@@ -65,6 +65,11 @@ Metadata: map[string]string{
 "sim_entity_id":      entity.ID,
 "sim_entity_type":    entity.EntityType.String(),
 "sim_hostile_class":  entity.HostileClass.String(),
+"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 150.0), // Simulated 150NM range
+"rtsa.coverage.bearing_start":  fmt.Sprintf("%.1f", 0.0),   // Full 360 scan for now
+"rtsa.coverage.bearing_end":    fmt.Sprintf("%.1f", 360.0),
+"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", radarSensorPos.Lat),
+"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", radarSensorPos.Lon),
 },
 SensorData: &ingestionv1.SensorObservation_Radar{
 Radar: &ingestionv1.RadarTrack{
