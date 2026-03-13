@@ -5,20 +5,13 @@
 
 import { createResource, JSX, Show } from "solid-js";
 import { fetchSensorDiagnostic, SensorStatus } from "../../services/sensor-health";
+import { statusColor } from "./dashboard-utils";
 import { MiniCoverageMap } from "./MiniCoverageMap";
 import { ObsPerSecChart } from "./ObsPerSecChart";
 
 export interface SensorDetailHoverPanelProps {
   sensor: SensorStatus | null;
   width?: string;
-}
-
-function statusColor(s: string): string {
-  switch (s) {
-    case "CONNECTED": return "#4ade80";
-    case "STALE": return "#fbbf24";
-    default: return "#f87171";
-  }
 }
 
 function sensorTypeBadgeColor(t: string): string {

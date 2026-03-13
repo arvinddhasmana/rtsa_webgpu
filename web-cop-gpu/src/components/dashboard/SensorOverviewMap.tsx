@@ -9,6 +9,7 @@
 import { createSignal, For, JSX, Show } from "solid-js";
 import { SensorStatus } from "../../services/sensor-health";
 import { SpatialAlertPayload } from "../../signals/spatial-alerts";
+import { statusColor } from "./dashboard-utils";
 
 export interface SensorOverviewMapProps {
   sensors: SensorStatus[];
@@ -20,14 +21,6 @@ export interface SensorOverviewMapProps {
 }
 
 const DEFAULT_BOUNDS = { minLat: 54, maxLat: 62, minLon: -15, maxLon: -5 };
-
-function statusColor(status: string): string {
-  switch (status) {
-    case "CONNECTED": return "#4ade80";
-    case "STALE": return "#fbbf24";
-    default: return "#f87171";
-  }
-}
 
 function polarToCartesian(cx: number, cy: number, r: number, deg: number) {
   const rad = ((deg - 90) * Math.PI) / 180;

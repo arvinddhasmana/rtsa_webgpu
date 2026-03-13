@@ -3,7 +3,7 @@
 //
 // Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §B9
 
-import { JSX, Show } from "solid-js";
+import { createUniqueId, JSX, Show } from "solid-js";
 
 export interface ObsPerSecChartProps {
   history: number[];
@@ -15,6 +15,7 @@ export interface ObsPerSecChartProps {
 
 /** Pure SVG area/line chart for OPS history — B9 */
 export function ObsPerSecChart(props: ObsPerSecChartProps): JSX.Element {
+  const gradId = createUniqueId();
   const svgW = props.width ?? 300;
   const svgH = props.height ?? 80;
   const padL = 4;
@@ -122,7 +123,7 @@ export function ObsPerSecChart(props: ObsPerSecChartProps): JSX.Element {
           style={{ display: "block" }}
         >
           <defs>
-            <linearGradient id="ops-gradient" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.35" />
               <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.03" />
             </linearGradient>
@@ -130,7 +131,7 @@ export function ObsPerSecChart(props: ObsPerSecChartProps): JSX.Element {
           {/* Area fill */}
           <polygon
             points={areaPoints()}
-            fill="url(#ops-gradient)"
+            fill={`url(#${gradId})`}
           />
           {/* Line */}
           <polyline

@@ -6,6 +6,7 @@
 import { createEffect, createSignal, For, JSX, onCleanup, Show } from "solid-js";
 import { SensorStatus } from "../../services/sensor-health";
 import { SpatialAlertPayload } from "../../signals/spatial-alerts";
+import { statusColor } from "./dashboard-utils";
 
 export interface CoverageAreaMapBounds {
   minLat: number;
@@ -38,14 +39,6 @@ const DEFAULT_BOUNDS: CoverageAreaMapBounds = {
   minLon: -15,
   maxLon: -5,
 };
-
-function statusColor(status: string): string {
-  switch (status) {
-    case "CONNECTED": return "#4ade80";
-    case "STALE": return "#fbbf24";
-    default: return "#f87171";
-  }
-}
 
 function sensorLabel(sensor: SensorStatus): string {
   const id = sensor.sensorId;
@@ -142,14 +135,19 @@ export function CoverageAreaMap(props: CoverageAreaMapProps): JSX.Element {
         animFrame = requestAnimationFrame(animate);
       };
       animFrame = requestAnimationFrame(animate);
+      // Cancel the frame when showSweepAnimation toggles off or component unmounts
+      onCleanup(() => {
+        if (animFrame !== null) {
+          cancelAnimationFrame(animFrame);
+          animFrame = null;
+        }
+      });
+    } else {
+      if (animFrame !== null) {
+        cancelAnimationFrame(animFrame);
+        animFrame = null;
+      }
     }
-    return () => {
-      if (animFrame !== null) cancelAnimationFrame(animFrame);
-    };
-  });
-
-  onCleanup(() => {
-    if (animFrame !== null) cancelAnimationFrame(animFrame);
   });
 
   const offlineSensors = () =>
@@ -377,44 +375,36 @@ export function CoverageAreaMap(props: CoverageAreaMapProps): JSX.Element {
 
           {/* ── Range rings for focused sensor (L2) ── */}
           <Show when={props.showRangeRings && focusedSensor() && focusedSensor()!.coverage}>
-            {(() => {
-              const s = focusedSensor()!;
-              const cx = lonToX(s.coverage!.centerLon);
-              const cy = latToY(s.coverage!.centerLat);
-              const fullR = nmToPx(s.coverage!.rangeNm);
-              return (
-                <g style={{ "pointer-events": "none" }}>
-                  <For each={[0.25, 0.5, 0.75, 1.0]}>
-                    {(pct) => {
-                      const ring_r = fullR * pct;
-                      const nm = Math.round(s.coverage!.rangeNm * pct);
-                      return (
-                        <g>
-                          <circle cx={cx} cy={cy} r={ring_r} fill="none" stroke="rgba(96,165,250,0.2)" stroke-width="0.75" stroke-dasharray="3,3" />
-                          <text x={cx + ring_r + 2} y={cy} fill="rgba(96,165,250,0.5)" font-size="7" font-family="monospace">{nm}nm</text>
-                        </g>
-                      );
-                    }}
-                  </For>
-                </g>
-              );
-            })()}
+            <g style={{ "pointer-events": "none" }}>
+              <For each={[0.25, 0.5, 0.75, 1.0]}>
+                {(pct) => {
+                  const cx = () => lonToX(focusedSensor()!.coverage!.centerLon);
+                  const cy = () => latToY(focusedSensor()!.coverage!.centerLat);
+                  const ring_r = () => nmToPx(focusedSensor()!.coverage!.rangeNm) * pct;
+                  const nm = () => Math.round(focusedSensor()!.coverage!.rangeNm * pct);
+                  return (
+                    <g>
+                      <circle cx={cx()} cy={cy()} r={ring_r()} fill="none" stroke="rgba(96,165,250,0.2)" stroke-width="0.75" stroke-dasharray="3,3" />
+                      <text x={cx() + ring_r() + 2} y={cy()} fill="rgba(96,165,250,0.5)" font-size="7" font-family="monospace">{nm()}nm</text>
+                    </g>
+                  );
+                }}
+              </For>
+            </g>
           </Show>
 
           {/* ── Radar sweep animation (L2 RADAR) ── */}
           <Show when={props.showSweepAnimation && focusedSensor()?.sensorType === "RADAR" && focusedSensor()!.coverage}>
             {(() => {
-              const s = focusedSensor()!;
-              const cx = lonToX(s.coverage!.centerLon);
-              const cy = latToY(s.coverage!.centerLat);
-              const r = nmToPx(s.coverage!.rangeNm);
-              const angle = sweepAngle();
-              const tip = polarToCartesian(cx, cy, r, angle);
+              const cx = () => lonToX(focusedSensor()!.coverage!.centerLon);
+              const cy = () => latToY(focusedSensor()!.coverage!.centerLat);
+              const r = () => nmToPx(focusedSensor()!.coverage!.rangeNm);
+              const tip = () => polarToCartesian(cx(), cy(), r(), sweepAngle());
               return (
                 <line
                   data-testid="radar-sweep-line"
-                  x1={cx} y1={cy}
-                  x2={tip.x} y2={tip.y}
+                  x1={cx()} y1={cy()}
+                  x2={tip().x} y2={tip().y}
                   stroke="rgba(96,165,250,0.6)"
                   stroke-width="1.5"
                 />

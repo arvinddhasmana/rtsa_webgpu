@@ -4,7 +4,7 @@
 // Reference: docs/business/usecases/UC017_sensor_health_monitoring.md
 // Reference: docs/implementation/v5/ui_images/dashboard_main.png
 
-import { JSX, Show } from "solid-js";
+import { createSignal, JSX, onCleanup, Show } from "solid-js";
 import { SensorStatus } from "../../services/sensor-health";
 import { MiniCoverageMap } from "./MiniCoverageMap";
 
@@ -178,6 +178,11 @@ function SensorIcon(iconProps: { type: string }): JSX.Element {
  * Never destructure props — breaks SolidJS reactivity.
  */
 export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
+  // Reactive UTC clock — updates every second
+  const [utcTime, setUtcTime] = createSignal(new Date().toUTCString().slice(17, 25));
+  const clockTimer = setInterval(() => setUtcTime(new Date().toUTCString().slice(17, 25)), 1000);
+  onCleanup(() => clearInterval(clockTimer));
+
   const statusColor = () => {
     switch (props.sensor.status) {
       case "CONNECTED":
@@ -856,7 +861,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             }}
           >
             <span style={{ color: "#334155", "font-size": "0.65rem", "font-family": "monospace" }}>
-              {new Date().toUTCString().slice(17, 25)} UTC
+              {utcTime()} UTC
             </span>
             <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
               <span style={{ color: "#64748b", "margin-right": "6px" }}>

@@ -5,6 +5,7 @@
 
 import { For, JSX, Show } from "solid-js";
 import { SensorStatus } from "../../services/sensor-health";
+import { statusColor } from "./dashboard-utils";
 
 export interface SensorFleetListProps {
   sensors: SensorStatus[];
@@ -13,14 +14,6 @@ export interface SensorFleetListProps {
   onSensorHover?: (sensor: SensorStatus | null) => void;
   compact?: boolean;
   maxHeight?: string;
-}
-
-function statusDotColor(status: string): string {
-  switch (status) {
-    case "CONNECTED": return "#4ade80";
-    case "STALE": return "#fbbf24";
-    default: return "#f87171";
-  }
 }
 
 function TypeIcon(iconProps: { type: string; size?: number }): JSX.Element {
@@ -76,7 +69,7 @@ function TypeIcon(iconProps: { type: string; size?: number }): JSX.Element {
 }
 
 function StatusBadge(badgeProps: { status: string; compact?: boolean }): JSX.Element {
-  const color = statusDotColor(badgeProps.status);
+  const color = statusColor(badgeProps.status);
   if (badgeProps.compact) {
     return (
       <div style={{
@@ -122,7 +115,7 @@ export function SensorFleetList(props: SensorFleetListProps): JSX.Element {
       <For each={props.sensors}>
         {(sensor) => {
           const isSelected = () => props.selectedSensorId === sensor.sensorId;
-          const dotColor = statusDotColor(sensor.status);
+          const dotColor = statusColor(sensor.status);
 
           return (
             <div
