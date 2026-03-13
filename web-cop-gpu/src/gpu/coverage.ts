@@ -26,6 +26,7 @@ export class CoverageManager {
   private cpuBuffer: ArrayBuffer;
   private f32View: Float32Array;
   private u32View: Uint32Array;
+  private recordsBindGroup: GPUBindGroup;
 
   constructor(device: GPUDevice, buffers: GPUBuffers, pipelines: AllPipelines) {
     this.device = device;
@@ -35,6 +36,18 @@ export class CoverageManager {
     this.cpuBuffer = new ArrayBuffer(MAX_COVERAGE_RECORDS * COVERAGE_RECORD_BYTES);
     this.f32View = new Float32Array(this.cpuBuffer);
     this.u32View = new Uint32Array(this.cpuBuffer);
+
+    // Pre-allocate bind group once in constructor (webgpu_guidelines.md — no per-frame GPU object creation)
+    this.recordsBindGroup = this.device.createBindGroup({
+      label: "coverage-records-bind-group",
+      layout: this.pipelines.render.coverage.getBindGroupLayout(1),
+      entries: [
+        {
+          binding: 0,
+          resource: { buffer: this.buffers.coverageStorage }
+        }
+      ]
+    });
   }
 
   /**
@@ -88,22 +101,7 @@ export class CoverageManager {
 
     passEncoder.setPipeline(this.pipelines.render.coverage);
     passEncoder.setBindGroup(0, uniformBindGroup);
-
-    // Bind group 1 for records (Storage Buffer)
-    // In a full implementation, this bind group would be created in bind-groups.ts
-    // For now, we'll create a transient one or assume it's pre-created.
-    const bindGroup = this.device.createBindGroup({
-      label: "coverage-records-bind-group",
-      layout: this.pipelines.render.coverage.getBindGroupLayout(1),
-      entries: [
-        {
-          binding: 0,
-          resource: { buffer: this.buffers.coverageStorage }
-        }
-      ]
-    });
-
-    passEncoder.setBindGroup(1, bindGroup);
+    passEncoder.setBindGroup(1, this.recordsBindGroup);
     passEncoder.draw(6, this.recordCount, 0, 0);
   }
 }

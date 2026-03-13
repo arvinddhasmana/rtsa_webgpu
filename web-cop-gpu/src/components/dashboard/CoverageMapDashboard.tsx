@@ -4,228 +4,257 @@
 // Strategic view of the entire sensor network coverage footprint.
 // Highlights geographic gaps and active spatial alerts.
 //
-// Phase A: Routing stub — wires signals and navigation; full WebGPU rendering
-// is added in Phase B.
-//
-// Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §L3
+// Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §C1
 
-import { For, Show } from "solid-js";
+import { createResource, createSignal, onMount, Show } from "solid-js";
 import {
   activeSpatialAlertId,
   setActiveSpatialAlertId,
   spatialAlerts,
-  type SpatialAlertPayload,
 } from "../../signals/spatial-alerts";
-
-const SEVERITY_COLOR: Record<SpatialAlertPayload["severity"], string> = {
-  CRITICAL: "#ef4444",
-  ELEVATED: "#f97316",
-  WATCH: "#f59e0b",
-};
+import { fetchSensorStatuses, type SensorStatus } from "../../services/sensor-health";
+import { CoverageAreaMap, type CoverageAreaMapBounds } from "./CoverageAreaMap";
+import { SensorFleetList } from "./SensorFleetList";
+import { CriticalAlertsPanel } from "./CriticalAlertsPanel";
+import { SensorDetailHoverPanel } from "./SensorDetailHoverPanel";
+import { SpatialAlertBanner } from "./SpatialAlertBanner";
 
 /** Level 3 — Full Coverage Map Dashboard. */
 export function CoverageMapDashboard() {
+  const [sensors] = createResource(fetchSensorStatuses);
+  const [hoveredSensor, setHoveredSensor] = createSignal<SensorStatus | null>(null);
+  const [selectedSensorId, setSelectedSensorId] = createSignal<string | undefined>(undefined);
+  const [mapBounds, setMapBounds] = createSignal<CoverageAreaMapBounds | undefined>(undefined);
+
+  // Auto-zoom to active alert polygon when navigated via activeSpatialAlertId
+  onMount(() => {
+    const alertId = activeSpatialAlertId();
+    if (alertId) {
+      const alert = spatialAlerts().find((a) => a.alertId === alertId);
+      if (alert && alert.areaPolygon.length > 0) {
+        // Compute bounding box from area polygon
+        const lats = alert.areaPolygon.map((p) => p.lat);
+        const lons = alert.areaPolygon.map((p) => p.lon);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+        const minLon = Math.min(...lons);
+        const maxLon = Math.max(...lons);
+        const padding = 0.5; // degrees
+        setMapBounds({
+          minLat: minLat - padding,
+          maxLat: maxLat + padding,
+          minLon: minLon - padding,
+          maxLon: maxLon + padding,
+        });
+        // Highlight affected sensor
+        setSelectedSensorId(alert.affectedSensorId);
+      }
+    }
+  });
+
+  const handleSensorSelect = (sensor: SensorStatus) => {
+    setSelectedSensorId(sensor.sensorId);
+    setHoveredSensor(sensor);
+  };
+
+  const handleAlertClick = (alertId: string) => {
+    setActiveSpatialAlertId(alertId);
+    const alert = spatialAlerts().find((a) => a.alertId === alertId);
+    if (alert) {
+      // Auto-zoom to alert area
+      if (alert.areaPolygon.length > 0) {
+        const lats = alert.areaPolygon.map((p) => p.lat);
+        const lons = alert.areaPolygon.map((p) => p.lon);
+        const minLat = Math.min(...lats);
+        const maxLat = Math.max(...lats);
+        const minLon = Math.min(...lons);
+        const maxLon = Math.max(...lons);
+        const padding = 0.5;
+        setMapBounds({
+          minLat: minLat - padding,
+          maxLat: maxLat + padding,
+          minLon: minLon - padding,
+          maxLon: maxLon + padding,
+        });
+      }
+      setSelectedSensorId(alert.affectedSensorId);
+    }
+  };
+
+  const handleResolveAlert = (alertId: string) => {
+    // In a real implementation, this would call a gRPC service to acknowledge the alert
+    // For now, we just clear the active alert ID
+    console.log(`[CoverageMapDashboard] Resolving alert: ${alertId}`);
+    setActiveSpatialAlertId(null);
+  };
+
+  const activeGapCount = () => spatialAlerts().filter((a) => !a.acknowledged).length;
+
+  const currentStatus = () => {
+    const gaps = activeGapCount();
+    if (gaps === 0) return { text: "NOMINAL", color: "#10b981" };
+    return { text: `ACTIVE GAPS (${gaps})`, color: "#ef4444" };
+  };
+
   return (
     <div
       data-testid="coverage-map-dashboard"
       style={{
         display: "flex",
+        "flex-direction": "column",
         height: "100%",
         width: "100%",
-        background:
-          "radial-gradient(circle at 0% 0%, rgba(30, 58, 138, 0.15) 0%, transparent 50%), " +
-          "radial-gradient(circle at 100% 100%, rgba(88, 28, 135, 0.15) 0%, transparent 50%)",
+        background: "#0a0f1a",
         overflow: "hidden",
       }}
     >
-      {/* ── Main map area (Phase B: WebGPU coverage layer) ── */}
+      {/* Header status bar */}
       <div
         style={{
-          flex: 1,
           display: "flex",
-          "flex-direction": "column",
           "align-items": "center",
-          "justify-content": "center",
-          position: "relative",
-          overflow: "hidden",
+          "justify-content": "space-between",
+          padding: "12px 20px",
+          "border-bottom": "1px solid rgba(255,255,255,0.05)",
+          background: "rgba(13, 20, 36, 0.6)",
+          "flex-shrink": "0",
         }}
       >
-        <div
-          style={{
-            "text-align": "center",
-            color: "#4b5563",
-          }}
-        >
-          <div
+        <div style={{ display: "flex", "align-items": "center", gap: "16px" }}>
+          <span
             style={{
-              "font-size": "2rem",
-              "margin-bottom": "0.5rem",
+              "font-size": "0.95rem",
+              "font-weight": "700",
+              color: "#cbd5e1",
+              "text-transform": "uppercase",
+              "letter-spacing": "0.05em",
             }}
           >
-            ◎
-          </div>
-          <div style={{ "font-size": "0.9rem", "font-weight": "600", color: "#64748b" }}>
-            Coverage Map
-          </div>
-          <div style={{ "font-size": "0.75rem", color: "#374151", "margin-top": "0.4rem" }}>
-            WebGPU sensor footprint rendering — Phase B
-          </div>
+            Global Situational Awareness | Sensor Coverage Overlay
+          </span>
         </div>
-
-        {/* Active alert highlight banner */}
-        <Show when={activeSpatialAlertId() !== null}>
-          <div
-            style={{
-              position: "absolute",
-              bottom: "0",
-              left: "0",
-              right: "0",
-              background: "rgba(239,68,68,0.12)",
-              border: "1px solid rgba(239,68,68,0.3)",
-              padding: "10px 16px",
-              display: "flex",
-              "align-items": "center",
-              "justify-content": "space-between",
-            }}
-          >
-            <span style={{ "font-size": "0.8rem", color: "#fca5a5" }}>
-              Inspecting alert:{" "}
-              <strong style={{ "font-family": "monospace" }}>{activeSpatialAlertId()}</strong>
-            </span>
-            <button
-              onClick={() => setActiveSpatialAlertId(null)}
-              style={{
-                background: "transparent",
-                border: "1px solid rgba(239,68,68,0.4)",
-                color: "#fca5a5",
-                "border-radius": "4px",
-                padding: "2px 8px",
-                "font-size": "0.7rem",
-                cursor: "pointer",
-              }}
-            >
-              Dismiss
-            </button>
-          </div>
-        </Show>
-      </div>
-
-      {/* ── Right panel: spatial alert list ── */}
-      <div
-        style={{
-          width: "320px",
-          "border-left": "1px solid rgba(255,255,255,0.05)",
-          background: "rgba(13, 20, 36, 0.4)",
-          display: "flex",
-          "flex-direction": "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Panel header */}
-        <div
-          style={{
-            padding: "12px 16px",
-            "border-bottom": "1px solid rgba(255,255,255,0.05)",
-            display: "flex",
-            "align-items": "center",
-            "justify-content": "space-between",
-            "flex-shrink": "0",
-          }}
-        >
-          <span style={{ "font-size": "0.75rem", "font-weight": "700", color: "#ef4444" }}>
-            COVERAGE GAPS
+        <div style={{ display: "flex", "align-items": "center", gap: "12px" }}>
+          <span style={{ "font-size": "0.75rem", color: "#64748b", "text-transform": "uppercase" }}>
+            Current Status:
           </span>
           <span
             style={{
-              "font-size": "0.65rem",
-              background: "rgba(239,68,68,0.15)",
-              color: "#ef4444",
-              padding: "0 0.4rem",
-              "border-radius": "3px",
+              "font-size": "0.8rem",
+              "font-weight": "700",
+              color: currentStatus().color,
+              "text-transform": "uppercase",
+              "letter-spacing": "0.05em",
             }}
           >
-            {spatialAlerts().length}
+            {currentStatus().text}
           </span>
         </div>
+      </div>
 
-        {/* Alert list */}
-        <div style={{ flex: "1", "overflow-y": "auto" }}>
-          <Show
-            when={spatialAlerts().length > 0}
-            fallback={
-              <div
-                style={{
-                  padding: "1rem",
-                  color: "#64748b",
-                  "font-size": "0.75rem",
-                  "text-align": "center",
-                }}
-              >
-                No active coverage gaps
-              </div>
-            }
+      {/* Main content area */}
+      <div
+        style={{
+          display: "flex",
+          flex: "1",
+          "min-height": "0",
+          overflow: "hidden",
+        }}
+      >
+        {/* Left panel: Sensor fleet list + Critical alerts panel */}
+        <div
+          style={{
+            width: "240px",
+            display: "flex",
+            "flex-direction": "column",
+            "border-right": "1px solid rgba(255,255,255,0.05)",
+            background: "rgba(13, 20, 36, 0.4)",
+            overflow: "hidden",
+            "flex-shrink": "0",
+          }}
+        >
+          {/* Sensor Fleet List */}
+          <div
+            style={{
+              flex: "1",
+              "min-height": "0",
+              "border-bottom": "1px solid rgba(255,255,255,0.05)",
+            }}
           >
-            <For each={spatialAlerts()}>
-              {(alert) => (
-                <div
-                  style={{
-                    padding: "0.6rem 0.75rem",
-                    "border-bottom": "1px solid rgba(255,255,255,0.04)",
-                    background:
-                      activeSpatialAlertId() === alert.alertId
-                        ? "rgba(239,68,68,0.08)"
-                        : "transparent",
-                    opacity: alert.acknowledged ? "0.5" : "1",
-                    cursor: "pointer",
-                  }}
-                  onClick={() =>
-                    setActiveSpatialAlertId(
-                      activeSpatialAlertId() === alert.alertId ? null : alert.alertId,
-                    )
-                  }
-                  aria-label={`Spatial alert: ${alert.description}`}
-                >
-                  <div style={{ display: "flex", gap: "0.4rem", "align-items": "flex-start" }}>
-                    <div
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        "border-radius": "50%",
-                        background: SEVERITY_COLOR[alert.severity],
-                        "flex-shrink": "0",
-                        "margin-top": "0.3rem",
-                      }}
-                    />
-                    <div style={{ flex: "1", "min-width": "0" }}>
-                      <div
-                        style={{
-                          "font-size": "0.7rem",
-                          "font-weight": "bold",
-                          color: SEVERITY_COLOR[alert.severity],
-                        }}
-                      >
-                        {alert.severity}
-                      </div>
-                      <div style={{ "font-size": "0.75rem", "word-break": "break-word" }}>
-                        {alert.description}
-                      </div>
-                      <div
-                        style={{
-                          "font-size": "0.65rem",
-                          color: "#64748b",
-                          "margin-top": "0.2rem",
-                        }}
-                      >
-                        Sector: {alert.sectorId} · Sensor: {alert.affectedSensorId}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <Show when={sensors()}>
+              {(sensorData) => (
+                <SensorFleetList
+                  sensors={sensorData()}
+                  selectedSensorId={selectedSensorId()}
+                  onSensorSelect={handleSensorSelect}
+                  onSensorHover={setHoveredSensor}
+                  compact={false}
+                  maxHeight="100%"
+                />
               )}
-            </For>
+            </Show>
+          </div>
+
+          {/* Critical Alerts Panel */}
+          <div
+            style={{
+              "flex-shrink": "0",
+              "max-height": "280px",
+            }}
+          >
+            <CriticalAlertsPanel
+              spatialAlerts={spatialAlerts()}
+              onAlertClick={handleAlertClick}
+              maxHeight="280px"
+              title="Critical Alerts"
+            />
+          </div>
+        </div>
+
+        {/* Center: Coverage map */}
+        <div
+          style={{
+            flex: "1",
+            display: "flex",
+            position: "relative",
+            overflow: "hidden",
+            "min-width": "0",
+          }}
+        >
+          <Show when={sensors()}>
+            {(sensorData) => (
+              <CoverageAreaMap
+                sensors={sensorData()}
+                spatialAlerts={spatialAlerts()}
+                bounds={mapBounds()}
+                showLabels={true}
+                showGapHatching={true}
+                showRangeRings={false}
+                showSweepAnimation={false}
+                onSensorClick={handleSensorSelect}
+                onGapAlertClick={handleAlertClick}
+                width="100%"
+                height="100%"
+              />
+            )}
           </Show>
         </div>
+
+        {/* Right panel: Sensor detail hover panel */}
+        <div
+          style={{
+            width: "280px",
+            "border-left": "1px solid rgba(255,255,255,0.05)",
+            background: "rgba(13, 20, 36, 0.4)",
+            overflow: "hidden",
+            "flex-shrink": "0",
+          }}
+        >
+          <SensorDetailHoverPanel sensor={hoveredSensor()} width="280px" />
+        </div>
       </div>
+
+      {/* Bottom: Spatial Alert Banner */}
+      <SpatialAlertBanner alerts={spatialAlerts()} onResolve={handleResolveAlert} />
     </div>
   );
 }
