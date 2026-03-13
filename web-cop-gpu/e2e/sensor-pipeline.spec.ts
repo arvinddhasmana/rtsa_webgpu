@@ -12,22 +12,25 @@ test.describe("Sensor Coverage Pipeline", () => {
   test("Level 3: Full map view shows coverage footprints and tactical gaps", async ({ page }) => {
     await gotoApp(page);
 
-    // 1. Switch to Map Dashboard (Strategic View)
+    // 1. Switch to Coverage Dashboard (Level 3 Strategic View)
     const dashSelector = page.locator('[data-testid="app-header"] [data-testid="dashboard-selector"] select');
-    await dashSelector.selectOption({ label: "Map view" });
+    await dashSelector.selectOption({ value: "coverage" });
 
-    // 2. Verify WebGPU Canvas is active
-    const canvas = page.locator("#gpu-canvas");
-    await expect(canvas).toBeVisible();
+    // 2. Verify Coverage Map Dashboard is active
+    const coverageDashboard = page.locator('[data-testid="coverage-map-dashboard"]');
+    await expect(coverageDashboard).toBeVisible({ timeout: 15_000 });
 
-    // 3. Inject a mock coverage Gap alert (simulating data-worker to main-thread flow)
-    // We can use page.evaluate to push a message into the app's internal stream if we had a test hook,
-    // or just rely on the simulator providing real data if backend is up.
-    // For this proof-of-work, we verify the UI focal point.
+    // 3. Verify header text (replaces "Coverage Optimization" check)
+    const sensorHeader = page.locator("text=Sensor Coverage Overlay");
+    await expect(sensorHeader).toBeVisible({ timeout: 10_000 });
 
-    const sensorHeader = page.locator("text=Coverage Optimization").first();
-    // This text is only shown in the Strategic overlay in Level 3
-    await expect(sensorHeader).toBeVisible({ timeout: 15_000 });
+    // 4. Verify fleet list visible
+    const fleetList = page.locator('[data-testid="sensor-fleet-list"]');
+    await expect(fleetList).toBeVisible({ timeout: 5_000 });
+
+    // 5. Verify coverage area map visible
+    const coverageMap = page.locator('[data-testid="coverage-area-map"]');
+    await expect(coverageMap).toBeVisible({ timeout: 5_000 });
 
     await page.screenshot({ path: "e2e/snapshots/level3-full-coverage-map.png" });
   });
@@ -47,14 +50,18 @@ test.describe("Sensor Coverage Pipeline", () => {
     await page.screenshot({ path: "e2e/snapshots/level2-diagnostic-minimap.png" });
   });
 
-  test("Level 1: Dashboard cards show miniature coverage patterns", async ({ page }) => {
+  test("Level 1: Dashboard overview map shows coverage patterns", async ({ page }) => {
     await gotoApp(page);
 
-    // Verify that each sensor card has a mini-map overlay or area
-    const cardMiniMaps = page.locator(".sensor-card-hover [data-testid='mini-coverage-map']");
-    const count = await cardMiniMaps.count();
-    expect(count).toBeGreaterThan(0);
+    // Wait for health dashboard to load
+    await page.waitForSelector("text=Sensor Health Monitor", {
+      timeout: 15_000,
+    });
 
-    await page.screenshot({ path: "e2e/snapshots/level1-dashboard-mini-maps.png" });
+    // Verify that sensor overview map is visible in the sidebar
+    const overviewMap = page.locator('[data-testid="sensor-overview-map"]');
+    await expect(overviewMap).toBeVisible({ timeout: 10_000 });
+
+    await page.screenshot({ path: "e2e/snapshots/level1-dashboard-overview-map.png" });
   });
 });
