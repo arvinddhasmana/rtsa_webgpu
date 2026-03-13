@@ -3,6 +3,7 @@
 //
 // Displays real-time alerts from the Data Worker / gRPC stream.
 // Operators can acknowledge alerts via the gRPC AlertService.
+// Coverage-gap alerts surface a "View on Map" button that navigates to Level 3.
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §3 U3-4
 
 import { For, Show, createSignal } from "solid-js";
@@ -10,6 +11,8 @@ import { alerts } from "../../signals/alerts";
 import { acknowledgeAlert } from "../../services/alerts";
 import type { AlertPayload } from "../../workers/shared-protocol";
 import { operatorId } from "../../signals/auth";
+import { setDashboard } from "../../signals/viewport";
+import { setActiveSpatialAlertId } from "../../signals/spatial-alerts";
 
 const SEVERITY_COLORS: Record<AlertPayload["severity"], string> = {
   CRITICAL: "#ef4444",
@@ -18,6 +21,11 @@ const SEVERITY_COLORS: Record<AlertPayload["severity"], string> = {
   NORMAL: "#22c55e",
   UNSPECIFIED: "#64748b",
 };
+
+/** Returns true when the alert description indicates a coverage gap. */
+function isCoverageGapAlert(alert: AlertPayload): boolean {
+  return alert.description.toLowerCase().includes("gap");
+}
 
 interface AlertItemProps {
   alert: AlertPayload;
@@ -78,6 +86,30 @@ function AlertItem(props: AlertItemProps) {
           <div style={{ "font-size": "0.65rem", color: "#64748b", "margin-top": "0.2rem" }}>
             Track: {props.alert.trackId.slice(0, 8)}…
           </div>
+
+          {/* View on Map — only shown for coverage gap alerts */}
+          <Show when={isCoverageGapAlert(props.alert)}>
+            <button
+              onClick={() => {
+                setActiveSpatialAlertId(props.alert.alertId);
+                setDashboard("coverage");
+              }}
+              style={{
+                "margin-top": "0.4rem",
+                background: "rgba(239,68,68,0.1)",
+                border: "1px solid rgba(239,68,68,0.3)",
+                color: "#fca5a5",
+                "border-radius": "3px",
+                padding: "0.15rem 0.5rem",
+                "font-size": "0.65rem",
+                cursor: "pointer",
+                "white-space": "nowrap",
+              }}
+              aria-label="View coverage gap on map"
+            >
+              View on Map
+            </button>
+          </Show>
         </div>
 
         {/* Acknowledge button */}

@@ -1,0 +1,91 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Coverage Gap Demo — exercises Level 3 Coverage Map and SpatialAlert pipeline
+#
+# Scenario:
+#   5 radars + 1 AEW sensor patrol the North Atlantic operational area.
+#   At minute 2, RADAR-07 goes offline, forcing a gap in sector NW-4.
+#   The Coverage Analyzer emits a CRITICAL SpatialAlert routed to `alerts.spatial.gaps`.
+#   At minute 8, RADAR-07 recovers and the gap is resolved.
+#
+# Use cases:
+#   UC017 (Sensor Health Monitoring), UC012 (Situational Awareness UI)
+#
+# Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §A7
+
+name: "Coverage Gap Demo — Tactical Gap Detection"
+seed: 20260313
+duration_minutes: 15
+
+entities:
+  surface:
+    count: 12
+    hostile_ratio: 0.10
+    friendly_ratio: 0.50
+    neutral_ratio: 0.25
+    unknown_ratio: 0.15
+    speed_range: [6, 18]
+    patterns:
+      straight_line: 0.55
+      patrol: 0.25
+      loitering: 0.10
+      random: 0.10
+  air:
+    count: 6
+    hostile_ratio: 0.10
+    friendly_ratio: 0.55
+    neutral_ratio: 0.20
+    unknown_ratio: 0.15
+    speed_range: [250, 500]
+    altitude_range: [3000, 10000]
+    patterns:
+      straight_line: 0.65
+      patrol: 0.25
+      random: 0.10
+
+sensors:
+  radar:
+    count: 5
+    sensor_ids:
+      ["RADAR-02", "RADAR-05", "RADAR-07", "RADAR-SONAR-A", "RADAR-SONAR-B"]
+    update_interval_ms: 1000
+    coverage_nm: 150
+  ew:
+    count: 1
+    sensor_ids: ["AEW-1"]
+    update_interval_ms: 2500
+
+degradation_events:
+  - at_minute: 2
+    sensor_id: "RADAR-07"
+    event: offline            # Forces gap in sector NW-4
+    inject_gap_alert: true
+    gap_sector_id: "NW-4"
+    gap_alert_severity: CRITICAL
+  - at_minute: 8
+    sensor_id: "RADAR-07"
+    event: recovery
+
+anomalies:
+  injection_rate: 0.05
+  types:
+    speed: 0.30
+    route_deviation: 0.30
+    ais_manipulation: 0.20
+    behavioral: 0.20
+
+operational_area:
+  center: { lat: 51.5, lon: -5.0 }
+  radius_nm: 250
+  exclusion_zones:
+    - name: "Coastal Exclusion"
+      center: { lat: 52.0, lon: -4.0 }
+      radius_nm: 5
+
+invalid_injection:
+  enabled: true
+  rate: 0.03
+  reasons:
+    invalid_timestamp: 0.40
+    coordinates_out_of_range: 0.35
+    missing_sensor_id: 0.15
+    schema_mismatch: 0.10

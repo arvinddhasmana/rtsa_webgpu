@@ -68,8 +68,10 @@ HeadingDegrees: &heading,
 			"sim_entity_type":             entity.EntityType.String(),
 			"sim_hostile_class":           entity.HostileClass.String(),
 			"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 300.0), // Very long range for ELINT
-			"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", 58.4),
-			"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", -7.6),
+			"rtsa.coverage.bearing_start": fmt.Sprintf("%.1f", 200.0), // Directional (SW sector)
+			"rtsa.coverage.bearing_end":   fmt.Sprintf("%.1f", 290.0),
+			"rtsa.coverage.center_lat":    fmt.Sprintf("%.6f", 58.4),
+			"rtsa.coverage.center_lon":    fmt.Sprintf("%.6f", -7.6),
 		},
 SensorData: &ingestionv1.SensorObservation_ElintComint{
 ElintComint: &ingestionv1.ELINTDetection{

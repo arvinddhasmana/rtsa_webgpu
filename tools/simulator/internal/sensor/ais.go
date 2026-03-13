@@ -89,8 +89,10 @@ HeadingDegrees: &heading,
 			"sim_entity_type":             entity.EntityType.String(),
 			"sim_hostile_class":           entity.HostileClass.String(),
 			"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 40.0), // Short range for coastal AIS
-			"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", pos.Lat),
-			"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", pos.Lon),
+			"rtsa.coverage.bearing_start": fmt.Sprintf("%.1f", 0.0),  // Omnidirectional
+			"rtsa.coverage.bearing_end":   fmt.Sprintf("%.1f", 360.0),
+			"rtsa.coverage.center_lat":    fmt.Sprintf("%.6f", pos.Lat),
+			"rtsa.coverage.center_lon":    fmt.Sprintf("%.6f", pos.Lon),
 		},
 SensorData: &ingestionv1.SensorObservation_AisBft{
 AisBft: &ingestionv1.AISPosition{

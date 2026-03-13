@@ -73,8 +73,10 @@ func GenerateEWObservation(entity *generator.SimEntity, sensorID string) *ingest
 			"sim_entity_type":             entity.EntityType.String(),
 			"sim_hostile_class":           entity.HostileClass.String(),
 			"rtsa.coverage.range_nm":      fmt.Sprintf("%.1f", 180.0), // Long range for EW
-			"rtsa.coverage.sensor_lat":     fmt.Sprintf("%.6f", sensorPos.Lat),
-			"rtsa.coverage.sensor_lon":     fmt.Sprintf("%.6f", sensorPos.Lon),
+			"rtsa.coverage.bearing_start": fmt.Sprintf("%.1f", 0.0),   // Omnidirectional
+			"rtsa.coverage.bearing_end":   fmt.Sprintf("%.1f", 360.0),
+			"rtsa.coverage.center_lat":    fmt.Sprintf("%.6f", sensorPos.Lat),
+			"rtsa.coverage.center_lon":    fmt.Sprintf("%.6f", sensorPos.Lon),
 		},
 SensorData: &ingestionv1.SensorObservation_EwSigint{
 EwSigint: &ingestionv1.EWIntercept{

@@ -71,7 +71,7 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 2,
       validationPassRate: 98.7,
       dlqCount: 47,
-      coverage: { rangeNm: 120, bearingStart: 315, bearingEnd: 45, centerLon: -63.5, centerLat: 44.6 }
+      coverage: { rangeNm: 150, bearingStart: 315, bearingEnd: 45, centerLon: -10.0, centerLat: 60.5 }
     },
     {
       sensorId: "RADAR-SOUTH-02",
@@ -82,7 +82,7 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 65,
       validationPassRate: 88.3,
       dlqCount: 213,
-      coverage: { rangeNm: 80, bearingStart: 135, bearingEnd: 225, centerLon: -63.6, centerLat: 44.4 }
+      coverage: { rangeNm: 120, bearingStart: 135, bearingEnd: 225, centerLon: -10.0, centerLat: 55.5 }
     },
     {
       sensorId: "RADAR-EAST-03",
@@ -93,6 +93,7 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 8,
       validationPassRate: 95.1,
       dlqCount: 112,
+      coverage: { rangeNm: 120, bearingStart: 45, bearingEnd: 135, centerLon: -7.5, centerLat: 58.0 }
     },
     {
       sensorId: "RADAR-WEST-04",
@@ -103,6 +104,8 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 320,
       validationPassRate: 0,
       dlqCount: 0,
+      // Offline sensor with coverage data — simulates a gap in the NW sector
+      coverage: { rangeNm: 100, bearingStart: 270, bearingEnd: 360, centerLon: -13.0, centerLat: 58.0 }
     },
     {
       sensorId: "AIS-PORT-01",
@@ -113,6 +116,8 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 5,
       validationPassRate: 99.1,
       dlqCount: 12,
+      // Omnidirectional (full 360°)
+      coverage: { rangeNm: 40, bearingStart: 0, bearingEnd: 360, centerLon: -9.8, centerLat: 59.1 }
     },
     {
       sensorId: "AIS-COAST-02",
@@ -123,6 +128,7 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 11,
       validationPassRate: 97.3,
       dlqCount: 31,
+      coverage: { rangeNm: 40, bearingStart: 0, bearingEnd: 360, centerLon: -11.3, centerLat: 56.7 }
     },
     {
       sensorId: "EW-NORTH-01",
@@ -133,6 +139,8 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 88,
       validationPassRate: 82.6,
       dlqCount: 387,
+      // EW is omnidirectional
+      coverage: { rangeNm: 180, bearingStart: 0, bearingEnd: 360, centerLon: -11.0, centerLat: 58.5 }
     },
     {
       sensorId: "EW-SOUTH-02",
@@ -143,6 +151,7 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 3,
       validationPassRate: 93.8,
       dlqCount: 98,
+      coverage: { rangeNm: 180, bearingStart: 0, bearingEnd: 360, centerLon: -9.0, centerLat: 57.5 }
     },
     {
       sensorId: "ELINT-01",
@@ -153,6 +162,8 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 7,
       validationPassRate: 96.4,
       dlqCount: 44,
+      // ELINT is directional
+      coverage: { rangeNm: 300, bearingStart: 200, bearingEnd: 290, centerLon: -7.6, centerLat: 58.4 }
     },
     {
       sensorId: "ISR-01",
@@ -163,6 +174,8 @@ function mockSensorStatuses(): SensorStatus[] {
       lastSeenSeconds: 450,
       validationPassRate: 0,
       dlqCount: 0,
+      // ISR narrow-swath coverage
+      coverage: { rangeNm: 30, bearingStart: 0, bearingEnd: 360, centerLon: -10.5, centerLat: 61.0 }
     },
   ];
   return sensors;
