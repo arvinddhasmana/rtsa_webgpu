@@ -895,7 +895,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
         {/* Divider */}
         <div style={{ "border-top": "1px solid rgba(255,255,255,0.05)" }} />
 
-        {/* Metrics row: Status indicator | Data Rate | Latency | DLQ Count */}
+        {/* Metrics row: Validation | Data Rate | Latency | DLQ Count */}
         <div
           style={{
             display: "grid",
@@ -903,7 +903,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             gap: "6px",
           }}
         >
-          {/* Status */}
+          {/* Validation */}
           <div
             style={{ display: "flex", "flex-direction": "column", gap: "2px" }}
           >
@@ -915,36 +915,19 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
                 "letter-spacing": "0.06em",
               }}
             >
-              Status
+              Validation
             </div>
             <div
-              style={{ display: "flex", "align-items": "center", gap: "4px" }}
+              style={{
+                "font-size": "0.8rem",
+                "font-weight": "700",
+                "font-family": "monospace",
+                color: qualityColor(),
+              }}
             >
-              <span
-                class={
-                  props.sensor.status === "CONNECTED"
-                    ? "status-connected-dot"
-                    : ""
-                }
-                style={{
-                  width: "6px",
-                  height: "6px",
-                  "border-radius": "50%",
-                  background: statusColor(),
-                  "flex-shrink": 0,
-                  "box-shadow": `0 0 5px ${statusColor()}`,
-                }}
-              />
-              <span
-                style={{
-                  "font-size": "0.62rem",
-                  color: statusColor(),
-                  "font-weight": "600",
-                  "text-transform": "uppercase",
-                }}
-              >
-                {statusLabel()}
-              </span>
+              {props.sensor.status === "OFFLINE"
+                ? "N/A"
+                : `${props.sensor.validationPassRate}%`}
             </div>
           </div>
 
@@ -1074,6 +1057,25 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
               {props.sensor.dlqCount}
             </div>
           </div>
+        </div>
+
+        {/* Footer: Last Seen */}
+        <div
+          style={{
+            display: "flex",
+            "justify-content": "space-between",
+            "align-items": "center",
+            "padding-top": "0.4rem",
+            "border-top": "1px solid rgba(255,255,255,0.05)",
+            "font-size": "0.6rem",
+          }}
+        >
+          <span style={{ color: "#4b5563", "font-family": "monospace" }}>
+            Last Seen
+          </span>
+          <span style={{ color: "#94a3b8" }}>
+            {formatLastSeen(props.sensor.lastSeenSeconds)}
+          </span>
         </div>
 
         <style>{hoverStyle}</style>

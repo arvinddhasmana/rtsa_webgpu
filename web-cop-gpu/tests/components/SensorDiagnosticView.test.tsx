@@ -6,6 +6,45 @@ import { describe, expect, it, vi } from "vitest";
 import { SensorDiagnosticView } from "../../src/components/dashboard/SensorDiagnosticView";
 import type { SensorStatus } from "../../src/services/sensor-health";
 
+// Mock the gRPC-dependent sensor-health module
+vi.mock("../../src/services/sensor-health", async () => {
+  return {
+    fetchSensorStatuses: vi.fn(async () => []),
+    fetchSensorDiagnostic: vi.fn(async (sensor: SensorStatus) => ({
+      ...sensor,
+      latencyMs: 120,
+      throughputHistory: Array.from({ length: 20 }, (_, i) => 40 + i),
+      dlqBreakdown: [{ reason: "schema_mismatch", count: 10 }],
+      recentEvents: [
+        { timeUtc: new Date().toISOString(), event: "Connected", severity: "info" },
+      ],
+      subSensors: [],
+      healthScore: 90,
+      connectionUptimePct: 97.5,
+      peakThroughput: 60,
+      avgLatencyMs: 120,
+      minLatencyMs: 80,
+      maxLatencyMs: 300,
+      statusHistory: [
+        { timeUtc: new Date().toISOString(), status: "CONNECTED" },
+      ],
+      rangeNm: 150,
+      position: { lat: 60.5, lon: -10.0 },
+      bearingStart: 315,
+      bearingEnd: 45,
+      scanRateRpm: 6,
+      frequencyBandGhz: 9.4,
+      dlqReasons: [{ reason: "Schema Mismatch", count: 10, percentage: 100 }],
+      connectivityEvents: [
+        { timestamp: "NOW", description: "Connected", eventType: "NB" },
+      ],
+      uptimePercent: 97.5,
+      obsPerSecHistory: Array.from({ length: 60 }, () => 48),
+    })),
+    sensorTypeLabel: vi.fn((t: unknown) => String(t)),
+  };
+});
+
 // Mock the sensor-filters module so we can spy on setSelectedSensor
 vi.mock("../../src/signals/sensor-filters", async () => {
   const { createSignal } = await import("solid-js");

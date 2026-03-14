@@ -13,6 +13,7 @@ import {
 import { fetchSensorStatuses } from "../../services/sensor-health";
 import {
     cardView,
+    selectedSensor,
     setSelectedSensor
 } from "../../signals/sensor-filters";
 import { spatialAlerts } from "../../signals/spatial-alerts";
@@ -20,6 +21,7 @@ import { dashboard } from "../../signals/viewport";
 import { CriticalAlertsPanel } from "./CriticalAlertsPanel";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { SensorDetailHoverPanel } from "./SensorDetailHoverPanel";
+import { SensorDiagnosticView } from "./SensorDiagnosticView";
 import { SensorFleetList } from "./SensorFleetList";
 import { SensorGrid } from "./SensorGrid";
 import { SensorOverviewMap } from "./SensorOverviewMap";
@@ -77,7 +79,13 @@ export function SensorHealthDashboard() {
             </div>
           }
         >
-          {/* Level 1 Dashboard is always visible now; interaction updates the side panel */}
+          {/* Level 2: Sensor Diagnostic Detail — replaces dashboard when sensor selected */}
+          <Show when={selectedSensor() !== null}>
+            <SensorDiagnosticView sensor={selectedSensor()!} />
+          </Show>
+
+          {/* Level 1 Dashboard — visible when no sensor selected */}
+          <Show when={selectedSensor() === null}>
           <div
             style={{
               display: "flex",
@@ -127,6 +135,7 @@ export function SensorHealthDashboard() {
                 onSensorSelect={(s) => {
                   setHoveredSensorId(s.sensorId);
                   setHoveredSensor(s);
+                  setSelectedSensor(s);
                 }}
               />
             </div>
@@ -337,6 +346,7 @@ export function SensorHealthDashboard() {
               </div>
             </div>
           </div>
+          </Show>
         </Show>
       </div>
 
