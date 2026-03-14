@@ -28,8 +28,6 @@ export function SensorGrid(props: SensorGridProps) {
     ),
   );
 
-  // Full view needs wider minimum to accommodate 4 metric tiles + dual-line chart.
-  const minCardWidth = () => (props.cardView === "compact" ? "280px" : "320px");
 
   return (
     <div
@@ -79,14 +77,16 @@ export function SensorGrid(props: SensorGridProps) {
         <div
           style={{
             display: "grid",
-            "grid-template-columns": `repeat(auto-fill, minmax(${minCardWidth()}, 1fr))`,
+            "grid-template-columns": "repeat(4, 1fr)",
+            "grid-template-rows": "repeat(2, 1fr)",
             gap: "24px",
             "align-content": "start",
-            overflow: "auto",
-            "padding-bottom": "40px",
+            overflow: "hidden",
+            "padding-bottom": "20px",
+            flex: 1,
           }}
         >
-          <For each={filteredSensors()}>
+          <For each={filteredSensors().slice(0, 8)}>
             {(sensor) => (
               <SensorStatusCard
                 sensor={sensor}

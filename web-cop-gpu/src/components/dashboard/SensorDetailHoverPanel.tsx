@@ -53,59 +53,65 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
       <div
         data-testid="sensor-detail-hover-panel"
         style={{
-          width: props.width ?? "260px",
+          width: props.width ?? "280px",
           "flex-shrink": 0,
-          background: "rgba(13, 20, 40, 0.65)",
-          "backdrop-filter": "blur(12px)",
+          background: "linear-gradient(180deg, rgba(13, 20, 36, 0.4) 0%, rgba(13, 20, 36, 0.7) 100%)",
+          "backdrop-filter": "blur(25px)",
+          "-webkit-backdrop-filter": "blur(25px)",
           border: "1px solid rgba(255,255,255,0.08)",
-          "border-radius": "10px",
-          padding: "14px 16px",
+          "border-radius": "12px",
+          padding: "16px",
           display: "flex",
           "flex-direction": "column",
-          gap: "14px",
+          gap: "18px",
           overflow: "auto",
+          "box-shadow": "0 10px 40px rgba(0,0,0,0.4)",
         }}
       >
+        {/* ── Title ── */}
+        <div
+          style={{
+            "font-size": "0.65rem",
+            color: "#64748b",
+            "text-transform": "uppercase",
+            "letter-spacing": "0.12em",
+            "font-family": "monospace",
+            "border-bottom": "1px solid rgba(255,255,255,0.05)",
+            "padding-bottom": "8px",
+          }}
+        >
+          SENSOR DETAIL:
+        </div>
+
         {/* ── Header ── */}
-        <div style={{ display: "flex", "align-items": "flex-start", gap: "8px" }}>
-          <div style={{ flex: 1, "min-width": 0 }}>
-            <div style={{
-              color: "#e2e8f0",
-              "font-size": "0.78rem",
+        <div style={{ display: "flex", "flex-direction": "column", gap: "4px" }}>
+          <div style={{
+            color: "#f1f5f9",
+            "font-size": "1rem",
+            "font-weight": "700",
+            overflow: "hidden",
+            "text-overflow": "ellipsis",
+            "white-space": "nowrap",
+          }}>
+            {sensor()!.sensorId}
+          </div>
+          <div style={{ display: "flex", gap: "8px", "align-items": "center" }}>
+            <span style={{
+              color: sensorTypeBadgeColor(sensor()!.sensorType),
+              "font-size": "0.7rem",
               "font-weight": "600",
-              "font-family": "monospace",
-              overflow: "hidden",
-              "text-overflow": "ellipsis",
-              "white-space": "nowrap",
             }}>
-              {sensor()!.sensorId}
-            </div>
-            <div style={{ display: "flex", gap: "6px", "margin-top": "4px" }}>
-              <span style={{
-                background: `${sensorTypeBadgeColor(sensor()!.sensorType)}18`,
-                color: sensorTypeBadgeColor(sensor()!.sensorType),
-                border: `1px solid ${sensorTypeBadgeColor(sensor()!.sensorType)}35`,
-                padding: "1px 7px",
-                "border-radius": "10px",
-                "font-size": "0.58rem",
-                "text-transform": "uppercase",
-                "letter-spacing": "0.06em",
-              }}>
-                {sensor()!.sensorType}
-              </span>
-              <span style={{
-                background: `${statusColor(sensor()!.status)}12`,
-                color: statusColor(sensor()!.status),
-                border: `1px solid ${statusColor(sensor()!.status)}28`,
-                padding: "1px 7px",
-                "border-radius": "10px",
-                "font-size": "0.58rem",
-                "text-transform": "uppercase",
-                "letter-spacing": "0.06em",
-              }}>
-                {sensor()!.status}
-              </span>
-            </div>
+              {sensor()!.sensorType}
+            </span>
+            <div style={{ width: "4px", height: "4px", background: "#334155", "border-radius": "50%" }} />
+            <span style={{
+              color: statusColor(sensor()!.status),
+              "font-size": "0.7rem",
+              "font-weight": "600",
+              "text-transform": "uppercase",
+            }}>
+              {sensor()!.status}
+            </span>
           </div>
         </div>
 
@@ -115,33 +121,45 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
             "font-size": "0.6rem",
             "text-transform": "uppercase",
             "letter-spacing": "0.1em",
-            color: "#475569",
+            color: "#64748b",
             "font-family": "monospace",
-            "margin-bottom": "6px",
+            "margin-bottom": "8px",
           }}>
-            Obs/s Trend
+            HEALTH GRAPH
           </div>
-          <Show
-            when={diag() && (diag()! as NonNullable<Awaited<ReturnType<typeof fetchSensorDiagnostic>>>).throughputHistory.length > 0}
-            fallback={
-              <ObsPerSecChart history={Array(10).fill(0)} height={50} />
-            }
-          >
-            <ObsPerSecChart
-              history={(diag()! as NonNullable<Awaited<ReturnType<typeof fetchSensorDiagnostic>>>).throughputHistory}
-              height={50}
-            />
-          </Show>
+          <div style={{ background: "rgba(0,0,0,0.2)", "border-radius": "8px", padding: "8px", border: "1px solid rgba(255,255,255,0.03)" }}>
+            <Show
+              when={diag() && (diag()! as NonNullable<Awaited<ReturnType<typeof fetchSensorDiagnostic>>>).throughputHistory.length > 0}
+              fallback={
+                <ObsPerSecChart history={Array(15).fill(0)} height={60} />
+              }
+            >
+              <ObsPerSecChart
+                history={(diag()! as NonNullable<Awaited<ReturnType<typeof fetchSensorDiagnostic>>>).throughputHistory}
+                height={60}
+              />
+            </Show>
+          </div>
         </div>
 
         {/* ── Connection Uptime ── */}
         <Show when={diag()}>
-          <div>
+          <div style={{ display: "flex", "flex-direction": "column", gap: "8px" }}>
+            <div style={{
+              "font-size": "0.6rem",
+              "text-transform": "uppercase",
+              "letter-spacing": "0.1em",
+              color: "#64748b",
+              "font-family": "monospace",
+            }}>
+              UPTIME
+            </div>
+            <UptimeBar pct={(diag()! as NonNullable<Awaited<ReturnType<typeof fetchSensorDiagnostic>>>).connectionUptimePct} />
             <div style={{
               display: "flex",
               "justify-content": "space-between",
-              "align-items": "center",
-              "margin-bottom": "6px",
+              "align-items": "baseline",
+              "margin-top": "4px",
             }}>
               <div style={{
                 "font-size": "0.6rem",
@@ -150,18 +168,17 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
                 color: "#475569",
                 "font-family": "monospace",
               }}>
-                Connection Uptime
+                CONNECTION UPTIME
               </div>
               <div style={{
-                color: "#e2e8f0",
-                "font-size": "0.95rem",
-                "font-weight": "700",
+                color: "#4ade80",
+                "font-size": "1.2rem",
+                "font-weight": "800",
                 "font-family": "monospace",
               }}>
                 {(diag()! as NonNullable<Awaited<ReturnType<typeof fetchSensorDiagnostic>>>).connectionUptimePct.toFixed(1)}%
               </div>
             </div>
-            <UptimeBar pct={(diag()! as NonNullable<Awaited<ReturnType<typeof fetchSensorDiagnostic>>>).connectionUptimePct} />
           </div>
         </Show>
 
@@ -172,20 +189,27 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
               "font-size": "0.6rem",
               "text-transform": "uppercase",
               "letter-spacing": "0.1em",
-              color: "#475569",
+              color: "#64748b",
               "font-family": "monospace",
-              "margin-bottom": "6px",
+              "margin-bottom": "8px",
             }}>
-              Coverage Zone
+              COVERAGE HEATMAP
             </div>
-            <div style={{ display: "flex", "justify-content": "center" }}>
+            <div style={{
+              display: "flex",
+              "justify-content": "center",
+              background: "rgba(0,0,0,0.3)",
+              "border-radius": "10px",
+              padding: "12px",
+              border: "1px solid rgba(255,255,255,0.03)",
+            }}>
               <MiniCoverageMap
                 rangeNm={sensor()!.coverage!.rangeNm}
                 bearingStart={sensor()!.coverage!.bearingStart}
                 bearingEnd={sensor()!.coverage!.bearingEnd}
                 alertLevel={sensor()!.dlqCount > 100 ? 2 : sensor()!.dlqCount > 50 ? 1 : 0}
-                width={100}
-                height={100}
+                width={140}
+                height={140}
               />
             </div>
           </div>
@@ -194,7 +218,7 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
         {/* ── Loading state ── */}
         <Show when={diag.loading}>
           <div style={{ color: "#475569", "font-size": "0.68rem", "font-family": "monospace", "text-align": "center" }}>
-            Loading…
+            Updating Diagnostics…
           </div>
         </Show>
       </div>

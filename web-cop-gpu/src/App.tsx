@@ -123,6 +123,17 @@ export default function App() {
     }
   }
 
+  // ── UTC Clock for Header ────────────────────────────────────────────────
+  const [headerTime, setHeaderTime] = createSignal(
+    new Date().toISOString().slice(11, 19),
+  );
+  onMount(() => {
+    const timer = setInterval(() => {
+      setHeaderTime(new Date().toISOString().slice(11, 19));
+    }, 1000);
+    onCleanup(() => clearInterval(timer));
+  });
+
   // ── Data Worker message handler ────────────────────────────────────────────
 
   function handleDataMessage(event: MessageEvent<DataToMainMessage>) {
@@ -381,26 +392,71 @@ export default function App() {
         <AppShell
           headerBar={
             <>
-              {/* Left group: role and dashboard controls */}
+              {/* Left group: role and dashboard controls + Health Dashboard Title */}
               <div
                 style={{
                   display: "flex",
                   "flex-direction": "row",
                   "align-items": "center",
-                  gap: "12px",
+                  gap: "16px",
+                  flex: 1,
                 }}
               >
-                <RoleSelector />
-                <DashboardSelector />
+                <div style={{ display: "flex", "align-items": "center", gap: "12px" }}>
+                  <RoleSelector />
+                  <DashboardSelector />
+                </div>
+
+                <Show when={dashboard() === "health"}>
+                  <div
+                    style={{
+                      padding: "0 16px",
+                      "border-left": "1px solid rgba(255,255,255,0.1)",
+                      display: "flex",
+                      "align-items": "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <h1
+                      style={{
+                        "font-size": "1.1rem",
+                        "font-weight": "600",
+                        color: "#f8fafc",
+                        margin: 0,
+                        "letter-spacing": "0.02em",
+                      }}
+                    >
+                      Sensor Health Dashboard
+                    </h1>
+                  </div>
+                </Show>
               </div>
-              {/* Right group: connection indicator */}
+
+              {/* Right group: Connection and Time */}
               <div
                 style={{
                   display: "flex",
                   "flex-direction": "row",
                   "align-items": "center",
+                  gap: "20px",
                 }}
               >
+                <Show when={dashboard() === "health"}>
+                  <div
+                    style={{
+                      "font-family": "monospace",
+                      "font-size": "0.85rem",
+                      color: "#94a3b8",
+                      background: "rgba(0,0,0,0.2)",
+                      padding: "4px 10px",
+                      "border-radius": "4px",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <span style={{ color: "#64748b", "margin-right": "6px" }}>UTC</span>
+                    <span style={{ color: "#e2e8f0" }}>{headerTime()}</span>
+                  </div>
+                </Show>
                 <ConnectionIndicator />
               </div>
             </>

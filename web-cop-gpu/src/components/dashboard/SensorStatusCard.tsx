@@ -179,8 +179,13 @@ function SensorIcon(iconProps: { type: string }): JSX.Element {
  */
 export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
   // Reactive UTC clock — updates every second
-  const [utcTime, setUtcTime] = createSignal(new Date().toUTCString().slice(17, 25));
-  const clockTimer = setInterval(() => setUtcTime(new Date().toUTCString().slice(17, 25)), 1000);
+  const [utcTime, setUtcTime] = createSignal(
+    new Date().toUTCString().slice(17, 25),
+  );
+  const clockTimer = setInterval(
+    () => setUtcTime(new Date().toUTCString().slice(17, 25)),
+    1000,
+  );
   onCleanup(() => clearInterval(clockTimer));
 
   const statusColor = () => {
@@ -209,26 +214,6 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     }
   };
 
-  /** Deterministic sparkline path — stable per sensor ID + offset so the two sparklines differ. */
-  const sparklinePoints = (seedOffset = 0) => {
-    const seed =
-      props.sensor.sensorId
-        .split("")
-        .reduce((acc, c) => acc + c.charCodeAt(0), 0) + seedOffset;
-    const base = props.sensor.eventsPerSecond > 0 ? 25 : 35;
-    const pts: string[] = [];
-    for (let i = 0; i <= 14; i++) {
-      const x = (i / 14) * 100;
-      if (props.sensor.status === "OFFLINE") {
-        pts.push(`${x},38`);
-        continue;
-      }
-      const y = Math.max(2, Math.min(38, base + Math.sin(seed + i * 0.8) * 10));
-      pts.push(`${x},${y}`);
-    }
-    return `M ${pts.join(" L ")}`;
-  };
-
   const qualityColor = () => {
     if (props.sensor.status === "OFFLINE") return "#64748b";
     if (props.sensor.validationPassRate >= 95) return "#4ade80";
@@ -237,23 +222,26 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
   };
 
   const cardStyle = () => ({
-    background: "rgba(15, 23, 42, 0.6)",
-    "backdrop-filter": "blur(12px)",
+    background: "linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)",
+    "backdrop-filter": "blur(20px)",
+    "-webkit-backdrop-filter": "blur(20px)",
     border: "1px solid rgba(255, 255, 255, 0.08)",
-    "border-top": `2px solid ${statusColor()}`,
+    "border-top": `1px solid ${statusColor()}`,
     "border-radius": "12px",
-    padding: "1.25rem",
+    padding: "clamp(1rem, 1.25vw, 1.5rem)",
     display: "flex",
     "flex-direction": "column" as const,
     gap: "0.75rem",
     color: "#f1f5f9",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    "box-shadow": "0 4px 20px rgba(0, 0, 0, 0.3)",
+    transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+    "box-shadow": "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
     position: "relative" as const,
     overflow: "hidden",
     cursor: "pointer",
-    "min-width": props.compact ? "clamp(220px, 20vw, 300px)" : "clamp(300px, 24vw, 360px)",
-    "font-size": "clamp(0.7rem, 0.8vw, 0.85rem)",
+    "min-width": props.compact
+      ? "clamp(220px, 20vw, 300px)"
+      : "clamp(300px, 24vw, 360px)",
+    "font-size": "clamp(0.75rem, 0.85vw, 0.9rem)",
   });
 
   const Glow = () => (
@@ -291,7 +279,9 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
       }}
     >
       <span
-        class={props.sensor.status === "CONNECTED" ? "status-connected-dot" : ""}
+        class={
+          props.sensor.status === "CONNECTED" ? "status-connected-dot" : ""
+        }
         style={{
           width: "8px",
           height: "8px",
@@ -320,40 +310,6 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     >
       <SensorIcon type={props.sensor.sensorType} />
     </div>
-  );
-
-  const SparklineSvg = (svgProps: { pts: string; gradId: string }) => (
-    <svg
-      width="100%"
-      height="40"
-      viewBox="0 0 100 40"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <linearGradient id={svgProps.gradId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop
-            offset="0%"
-            style={{ "stop-color": statusColor(), "stop-opacity": 0.4 }}
-          />
-          <stop
-            offset="100%"
-            style={{ "stop-color": statusColor(), "stop-opacity": 0 }}
-          />
-        </linearGradient>
-      </defs>
-      <path
-        d={svgProps.pts}
-        fill="none"
-        stroke={statusColor()}
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      />
-      <path
-        d={`${svgProps.pts} V 40 H 0 Z`}
-        fill={`url(#${svgProps.gradId})`}
-      />
-    </svg>
   );
 
   const CardHeader = () => (
@@ -395,7 +351,13 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             rangeNm={props.sensor.coverage!.rangeNm}
             bearingStart={props.sensor.coverage!.bearingStart}
             bearingEnd={props.sensor.coverage!.bearingEnd}
-            alertLevel={props.sensor.dlqCount > 100 ? 2 : props.sensor.dlqCount > 50 ? 1 : 0}
+            alertLevel={
+              props.sensor.dlqCount > 100
+                ? 2
+                : props.sensor.dlqCount > 50
+                  ? 1
+                  : 0
+            }
             width={48}
             height={48}
           />
@@ -860,10 +822,18 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
               "border-top": "1px solid rgba(255,255,255,0.05)",
             }}
           >
-            <span style={{ color: "#334155", "font-size": "0.65rem", "font-family": "monospace" }}>
+            <span
+              style={{
+                color: "#334155",
+                "font-size": "0.65rem",
+                "font-family": "monospace",
+              }}
+            >
               {utcTime()} UTC
             </span>
-            <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
+            <div
+              style={{ display: "flex", "align-items": "center", gap: "6px" }}
+            >
               <span style={{ color: "#64748b", "margin-right": "6px" }}>
                 Last Seen
               </span>
@@ -881,148 +851,231 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
         data-testid={`sensor-card-${props.sensor.sensorId}`}
         data-view="compact"
         onClick={() => props.onSelect?.(props.sensor)}
-        style={cardStyle()}
+        style={{
+          ...cardStyle(),
+          "min-width": "clamp(240px, 18vw, 320px)",
+          gap: "0.5rem",
+          padding: "0.85rem 1rem",
+        }}
         class="sensor-card-hover"
       >
         <Glow />
-        <CardHeader />
 
-        {/* Metrics grid */}
+        {/* Header: icon + name + location + status badge */}
         <div
-          style={{
-            display: "grid",
-            "grid-template-columns": "1.2fr 1fr",
-            gap: "1rem",
-            "margin-top": "0.5rem",
-          }}
+          style={{ display: "flex", "align-items": "center", gap: "0.6rem" }}
         >
-          <div
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              padding: "0.75rem",
-              "border-radius": "8px",
-              border: "1px solid rgba(255,255,255,0.05)",
-            }}
-          >
+          <IconBox />
+          <div style={{ flex: 1, "min-width": 0 }}>
             <div
               style={{
-                color: "#64748b",
-                "font-size": "0.65rem",
-                "text-transform": "uppercase",
-                "margin-bottom": "4px",
-                "letter-spacing": "0.025em",
+                "font-weight": "600",
+                "font-size": "0.85rem",
+                "font-family": "monospace",
+                overflow: "hidden",
+                "text-overflow": "ellipsis",
+                "white-space": "nowrap",
               }}
             >
-              Throughput
+              {props.sensor.sensorId}
             </div>
             <div
               style={{
-                "font-size": "1.1rem",
+                "font-size": "0.65rem",
+                color: "#4b5563",
+                "margin-top": "1px",
+              }}
+            >
+              {derivedLocation(props.sensor.sensorId)}
+            </div>
+          </div>
+          <Badge />
+        </div>
+
+        {/* Divider */}
+        <div style={{ "border-top": "1px solid rgba(255,255,255,0.05)" }} />
+
+        {/* Metrics row: Status indicator | Data Rate | Latency | DLQ Count */}
+        <div
+          style={{
+            display: "grid",
+            "grid-template-columns": "1fr 1fr 1fr 1fr",
+            gap: "6px",
+          }}
+        >
+          {/* Status */}
+          <div
+            style={{ display: "flex", "flex-direction": "column", gap: "2px" }}
+          >
+            <div
+              style={{
+                "font-size": "0.55rem",
+                color: "#4b5563",
+                "text-transform": "uppercase",
+                "letter-spacing": "0.06em",
+              }}
+            >
+              Status
+            </div>
+            <div
+              style={{ display: "flex", "align-items": "center", gap: "4px" }}
+            >
+              <span
+                class={
+                  props.sensor.status === "CONNECTED"
+                    ? "status-connected-dot"
+                    : ""
+                }
+                style={{
+                  width: "6px",
+                  height: "6px",
+                  "border-radius": "50%",
+                  background: statusColor(),
+                  "flex-shrink": 0,
+                  "box-shadow": `0 0 5px ${statusColor()}`,
+                }}
+              />
+              <span
+                style={{
+                  "font-size": "0.62rem",
+                  color: statusColor(),
+                  "font-weight": "600",
+                  "text-transform": "uppercase",
+                }}
+              >
+                {statusLabel()}
+              </span>
+            </div>
+          </div>
+
+          {/* Data Rate */}
+          <div
+            style={{ display: "flex", "flex-direction": "column", gap: "2px" }}
+          >
+            <div
+              style={{
+                "font-size": "0.55rem",
+                color: "#4b5563",
+                "text-transform": "uppercase",
+                "letter-spacing": "0.06em",
+              }}
+            >
+              Data Rate
+            </div>
+            <div
+              style={{
+                "font-size": "0.8rem",
                 "font-weight": "700",
                 "font-family": "monospace",
-                color: "#f8fafc",
+                color: "#e2e8f0",
               }}
             >
               {props.sensor.eventsPerSecond}{" "}
               <span
                 style={{
-                  "font-size": "0.7rem",
-                  color: "#64748b",
+                  "font-size": "0.55rem",
+                  color: "#4b5563",
                   "font-weight": "normal",
                 }}
               >
-                obs/s
+                /s
               </span>
             </div>
           </div>
+
+          {/* Latency — deterministic derived from seed */}
           <div
-            style={{
-              background: "rgba(255,255,255,0.03)",
-              padding: "0.75rem",
-              "border-radius": "8px",
-              border: "1px solid rgba(255,255,255,0.05)",
-            }}
+            style={{ display: "flex", "flex-direction": "column", gap: "2px" }}
           >
             <div
               style={{
-                color: "#64748b",
-                "font-size": "0.65rem",
+                "font-size": "0.55rem",
+                color: "#4b5563",
                 "text-transform": "uppercase",
-                "margin-bottom": "4px",
-                "letter-spacing": "0.025em",
+                "letter-spacing": "0.06em",
               }}
             >
-              Validation
+              Latency
+            </div>
+            {(() => {
+              if (props.sensor.status === "OFFLINE") {
+                return (
+                  <div
+                    style={{
+                      "font-size": "0.8rem",
+                      "font-weight": "700",
+                      "font-family": "monospace",
+                      color: "#475569",
+                    }}
+                  >
+                    —
+                  </div>
+                );
+              }
+              const seed = props.sensor.sensorId
+                .split("")
+                .reduce((a, c) => a + c.charCodeAt(0), 0);
+              const base = props.sensor.status === "CONNECTED" ? 22 : 180;
+              const latMs =
+                base + Math.round(Math.abs(Math.sin(seed * 7.3 + 1.5)) * 48);
+              const latColor =
+                latMs < 100 ? "#4ade80" : latMs < 250 ? "#fbbf24" : "#f87171";
+              return (
+                <div
+                  style={{
+                    "font-size": "0.8rem",
+                    "font-weight": "700",
+                    "font-family": "monospace",
+                    color: latColor,
+                  }}
+                >
+                  {latMs}{" "}
+                  <span
+                    style={{
+                      "font-size": "0.55rem",
+                      color: "#4b5563",
+                      "font-weight": "normal",
+                    }}
+                  >
+                    ms
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* DLQ Count */}
+          <div
+            style={{ display: "flex", "flex-direction": "column", gap: "2px" }}
+          >
+            <div
+              style={{
+                "font-size": "0.55rem",
+                color: "#4b5563",
+                "text-transform": "uppercase",
+                "letter-spacing": "0.06em",
+              }}
+            >
+              DLQ Count
             </div>
             <div
               style={{
-                "font-size": "1.1rem",
+                "font-size": "0.8rem",
                 "font-weight": "700",
                 "font-family": "monospace",
-                color: "#f8fafc",
+                color:
+                  props.sensor.dlqCount > 50
+                    ? "#f87171"
+                    : props.sensor.dlqCount > 10
+                      ? "#fbbf24"
+                      : "#4ade80",
               }}
             >
-              {props.sensor.validationPassRate}
-              <span
-                style={{
-                  "font-size": "0.8rem",
-                  color: "#64748b",
-                  "font-weight": "normal",
-                }}
-              >
-                %
-              </span>
+              {props.sensor.dlqCount}
             </div>
           </div>
         </div>
 
-        {/* Single sparkline */}
-        <div
-          style={{
-            height: "45px",
-            width: "100%",
-            opacity: 0.8,
-            margin: "0.25rem 0",
-          }}
-        >
-          <SparklineSvg
-            pts={sparklinePoints(0)}
-            gradId={`grad-cmp-${props.sensor.sensorId}`}
-          />
-        </div>
-
-        {/* Footer: DLQ + Last Seen */}
-        <div
-          style={{
-            display: "flex",
-            "justify-content": "space-between",
-            "align-items": "center",
-            "font-size": "0.75rem",
-            "padding-top": "0.75rem",
-            "border-top": "1px solid rgba(255,255,255,0.05)",
-          }}
-        >
-          <div style={{ color: "#94a3b8" }}>
-            <span style={{ color: "#64748b", "margin-right": "4px" }}>
-              DLQ:
-            </span>
-            <span
-              style={{
-                color: props.sensor.dlqCount > 50 ? "#f87171" : "#f1f5f9",
-              }}
-            >
-              {props.sensor.dlqCount}
-            </span>
-          </div>
-          <div style={{ color: "#94a3b8" }}>
-            <span style={{ color: "#64748b", "margin-right": "4px" }}>
-              Seen:
-            </span>
-            <span style={{ color: "#cbd5e1" }}>
-              {formatLastSeen(props.sensor.lastSeenSeconds)}
-            </span>
-          </div>
-        </div>
         <style>{hoverStyle}</style>
       </div>
     </Show>

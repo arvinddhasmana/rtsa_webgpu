@@ -27,7 +27,13 @@ function polarToCartesian(cx: number, cy: number, r: number, deg: number) {
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function describeArc(cx: number, cy: number, r: number, start: number, end: number): string {
+function describeArc(
+  cx: number,
+  cy: number,
+  r: number,
+  start: number,
+  end: number,
+): string {
   const s = polarToCartesian(cx, cy, r, end);
   const e = polarToCartesian(cx, cy, r, start);
   const large = Math.abs(end - start) <= 180 ? "0" : "1";
@@ -104,26 +110,29 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
         "border-radius": "12px",
         overflow: "hidden",
         position: "relative",
-        width: `${w}px`,
-        "flex-shrink": 0,
+        width: "100%",
         "backdrop-filter": "blur(8px)",
       }}
     >
       {/* ── Title row ── */}
-      <div style={{
-        display: "flex",
-        "align-items": "center",
-        "justify-content": "space-between",
-        padding: "6px 10px",
-        "border-bottom": "1px solid rgba(255,255,255,0.05)",
-      }}>
-        <div style={{
-          "font-size": "0.6rem",
-          "text-transform": "uppercase",
-          "letter-spacing": "0.1em",
-          color: "#475569",
-          "font-family": "monospace",
-        }}>
+      <div
+        style={{
+          display: "flex",
+          "align-items": "center",
+          "justify-content": "space-between",
+          padding: "6px 10px",
+          "border-bottom": "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
+        <div
+          style={{
+            "font-size": "0.6rem",
+            "text-transform": "uppercase",
+            "letter-spacing": "0.1em",
+            color: "#475569",
+            "font-family": "monospace",
+          }}
+        >
           Strategic Coverage Overview
         </div>
 
@@ -148,14 +157,16 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
       </div>
 
       {/* ── Layer toolbar ── */}
-      <div style={{
-        display: "flex",
-        gap: "4px",
-        padding: "4px 8px",
-        "border-bottom": "1px solid rgba(255,255,255,0.04)",
-        "align-items": "center",
-        background: "rgba(0,0,0,0.1)",
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "4px",
+          padding: "4px 8px",
+          "border-bottom": "1px solid rgba(255,255,255,0.04)",
+          "align-items": "center",
+          background: "rgba(0,0,0,0.1)",
+        }}
+      >
         <button
           data-testid="overview-zoom-in"
           style={toolbarBtn}
@@ -172,7 +183,14 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
         >
           −
         </button>
-        <div style={{ width: "1px", height: "12px", background: "rgba(255,255,255,0.08)", margin: "0 2px" }} />
+        <div
+          style={{
+            width: "1px",
+            height: "12px",
+            background: "rgba(255,255,255,0.08)",
+            margin: "0 2px",
+          }}
+        />
         <button style={toolbarBtn}>⊞ Layers</button>
         <button style={toolbarBtn}>⚠ Alerts</button>
         <button style={toolbarBtn}>◫ Style</button>
@@ -180,34 +198,84 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
 
       {/* ── SVG map ── */}
       <svg
-        width={w}
+        width="100%"
         height={h}
         viewBox={`0 0 ${w} ${h}`}
-        style={{ background: "radial-gradient(circle at center, #0f172a 0%, #020617 100%)", display: "block" }}
+        preserveAspectRatio="none"
+        style={{
+          background:
+            "radial-gradient(circle at center, #0f172a 0%, #020617 100%)",
+          display: "block",
+        }}
       >
         <defs>
           {/* Gap hatching */}
-          <pattern id="ovmap-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-            <line x1="0" y1="0" x2="0" y2="6" stroke="#f87171" stroke-width="1.2" stroke-opacity="0.45" />
+          <pattern
+            id="ovmap-hatch"
+            patternUnits="userSpaceOnUse"
+            width="6"
+            height="6"
+            patternTransform="rotate(45)"
+          >
+            <line
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="6"
+              stroke="#f87171"
+              stroke-width="1.2"
+              stroke-opacity="0.45"
+            />
           </pattern>
         </defs>
 
         {/* Grid lines */}
         <For each={[55, 56, 57, 58, 59, 60, 61]}>
-          {(lat) => <line x1="0" y1={latToY(lat)} x2={w} y2={latToY(lat)} stroke="rgba(255,255,255,0.03)" stroke-width="0.5" />}
+          {(lat) => (
+            <line
+              x1="0"
+              y1={latToY(lat)}
+              x2={w}
+              y2={latToY(lat)}
+              stroke="rgba(255,255,255,0.03)"
+              stroke-width="0.5"
+            />
+          )}
         </For>
         <For each={[-14, -13, -12, -11, -10, -9, -8, -7, -6]}>
-          {(lon) => <line x1={lonToX(lon)} y1="0" x2={lonToX(lon)} y2={h} stroke="rgba(255,255,255,0.03)" stroke-width="0.5" />}
+          {(lon) => (
+            <line
+              x1={lonToX(lon)}
+              y1="0"
+              x2={lonToX(lon)}
+              y2={h}
+              stroke="rgba(255,255,255,0.03)"
+              stroke-width="0.5"
+            />
+          )}
         </For>
 
         {/* Simplified UK / North Atlantic coastline */}
         <polyline
           points={[
-            [-5.5, 58.5], [-5.0, 58.8], [-4.5, 59.0], [-3.8, 58.6],
-            [-3.5, 58.0], [-4.0, 57.5], [-5.0, 57.0], [-5.5, 56.5],
-            [-5.8, 55.9], [-6.5, 55.2], [-7.0, 55.0], [-7.5, 55.5],
-            [-7.8, 56.0], [-8.0, 57.5], [-8.5, 58.0], [-9.0, 58.5],
-            [-10.0, 59.0], [-10.5, 59.5],
+            [-5.5, 58.5],
+            [-5.0, 58.8],
+            [-4.5, 59.0],
+            [-3.8, 58.6],
+            [-3.5, 58.0],
+            [-4.0, 57.5],
+            [-5.0, 57.0],
+            [-5.5, 56.5],
+            [-5.8, 55.9],
+            [-6.5, 55.2],
+            [-7.0, 55.0],
+            [-7.5, 55.5],
+            [-7.8, 56.0],
+            [-8.0, 57.5],
+            [-8.5, 58.0],
+            [-9.0, 58.5],
+            [-10.0, 59.0],
+            [-10.5, 59.5],
           ]
             .map(([lon, lat]) => `${lonToX(lon)},${latToY(lat)}`)
             .join(" ")}
@@ -227,7 +295,8 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
             const isOffline = s.status === "OFFLINE";
             const isHovered = () => props.hoveredSensorId === s.sensorId;
             const isFullCircle =
-              Math.abs(s.coverage!.bearingEnd - s.coverage!.bearingStart) >= 360;
+              Math.abs(s.coverage!.bearingEnd - s.coverage!.bearingStart) >=
+              360;
 
             return (
               <g
@@ -243,14 +312,27 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
                     when={isFullCircle}
                     fallback={
                       <path
-                        d={describeArc(cx(), cy(), r(), s.coverage!.bearingStart, s.coverage!.bearingEnd)}
+                        d={describeArc(
+                          cx(),
+                          cy(),
+                          r(),
+                          s.coverage!.bearingStart,
+                          s.coverage!.bearingEnd,
+                        )}
                         fill="url(#ovmap-hatch)"
                         stroke="#f87171"
                         stroke-width="0.8"
                       />
                     }
                   >
-                    <circle cx={cx()} cy={cy()} r={r()} fill="url(#ovmap-hatch)" stroke="#f87171" stroke-width="0.8" />
+                    <circle
+                      cx={cx()}
+                      cy={cy()}
+                      r={r()}
+                      fill="url(#ovmap-hatch)"
+                      stroke="#f87171"
+                      stroke-width="0.8"
+                    />
                   </Show>
                 </Show>
 
@@ -260,20 +342,42 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
                     when={isFullCircle}
                     fallback={
                       <path
-                        d={describeArc(cx(), cy(), r(), s.coverage!.bearingStart, s.coverage!.bearingEnd)}
+                        d={describeArc(
+                          cx(),
+                          cy(),
+                          r(),
+                          s.coverage!.bearingStart,
+                          s.coverage!.bearingEnd,
+                        )}
                         fill={`${color}15`}
                         stroke={color}
                         stroke-width="0.8"
                       />
                     }
                   >
-                    <circle cx={cx()} cy={cy()} r={r()} fill={`${color}12`} stroke={color} stroke-width="0.8" />
+                    <circle
+                      cx={cx()}
+                      cy={cy()}
+                      r={r()}
+                      fill={`${color}12`}
+                      stroke={color}
+                      stroke-width="0.8"
+                    />
                   </Show>
                 </Show>
 
                 {/* Hover highlight ring */}
                 <Show when={isHovered()}>
-                  <circle cx={cx()} cy={cy()} r={r() + 3} fill="none" stroke={color} stroke-width="1.5" stroke-dasharray="4,3" stroke-opacity="0.7" />
+                  <circle
+                    cx={cx()}
+                    cy={cy()}
+                    r={r() + 3}
+                    fill="none"
+                    stroke={color}
+                    stroke-width="1.5"
+                    stroke-dasharray="4,3"
+                    stroke-opacity="0.7"
+                  />
                 </Show>
 
                 {/* Sensor dot */}
@@ -313,23 +417,46 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
       </svg>
 
       {/* ── Legend ── */}
-      <div style={{
-        display: "flex",
-        gap: "8px",
-        "font-size": "0.55rem",
-        padding: "4px 8px",
-        "border-top": "1px solid rgba(255,255,255,0.04)",
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          "font-size": "0.55rem",
+          padding: "4px 8px",
+          "border-top": "1px solid rgba(255,255,255,0.04)",
+        }}
+      >
         <div style={{ display: "flex", "align-items": "center", gap: "3px" }}>
-          <div style={{ width: "6px", height: "6px", "border-radius": "50%", background: "#4ade80" }} />
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              "border-radius": "50%",
+              background: "#4ade80",
+            }}
+          />
           <span style={{ color: "#94a3b8" }}>Connected</span>
         </div>
         <div style={{ display: "flex", "align-items": "center", gap: "3px" }}>
-          <div style={{ width: "6px", height: "6px", "border-radius": "50%", background: "#fbbf24" }} />
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              "border-radius": "50%",
+              background: "#fbbf24",
+            }}
+          />
           <span style={{ color: "#94a3b8" }}>Stale</span>
         </div>
         <div style={{ display: "flex", "align-items": "center", gap: "3px" }}>
-          <div style={{ width: "6px", height: "6px", "border-radius": "50%", background: "#f87171" }} />
+          <div
+            style={{
+              width: "6px",
+              height: "6px",
+              "border-radius": "50%",
+              background: "#f87171",
+            }}
+          />
           <span style={{ color: "#94a3b8" }}>Gap</span>
         </div>
       </div>
