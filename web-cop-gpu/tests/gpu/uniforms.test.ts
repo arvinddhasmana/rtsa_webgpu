@@ -58,8 +58,8 @@ describe("makeViewProjection", () => {
 });
 
 describe("UNIFORM_BYTES layout", () => {
-  it("is exactly 80 bytes", () => {
-    expect(UNIFORM_BYTES).toBe(80);
+  it("is exactly 96 bytes (includes dashboard_mode + 16-byte-aligned padding)", () => {
+    expect(UNIFORM_BYTES).toBe(96);
   });
 
   it("is 16-byte aligned (required by WGSL)", () => {
@@ -68,7 +68,7 @@ describe("UNIFORM_BYTES layout", () => {
 });
 
 describe("writeUniforms", () => {
-  it("calls device.queue.writeBuffer with 80-byte data", () => {
+  it("calls device.queue.writeBuffer with 96-byte data", () => {
     const writeBuffer = vi.fn();
     const mockDevice  = { queue: { writeBuffer } } as unknown as GPUDevice;
     const mockBuffer  = {} as GPUBuffer;

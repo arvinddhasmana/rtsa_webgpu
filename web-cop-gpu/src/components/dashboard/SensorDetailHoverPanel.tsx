@@ -125,7 +125,7 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
             "font-family": "monospace",
             "margin-bottom": "8px",
           }}>
-            HEALTH GRAPH
+            Obs/s Trend
           </div>
           <div style={{ background: "rgba(0,0,0,0.2)", "border-radius": "8px", padding: "8px", border: "1px solid rgba(255,255,255,0.03)" }}>
             <Show
@@ -168,7 +168,7 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
                 color: "#475569",
                 "font-family": "monospace",
               }}>
-                CONNECTION UPTIME
+                Connection Uptime
               </div>
               <div style={{
                 color: "#4ade80",
@@ -193,7 +193,7 @@ export function SensorDetailHoverPanel(props: SensorDetailHoverPanelProps): JSX.
               "font-family": "monospace",
               "margin-bottom": "8px",
             }}>
-              COVERAGE HEATMAP
+            Coverage Zone
             </div>
             <div style={{
               display: "flex",

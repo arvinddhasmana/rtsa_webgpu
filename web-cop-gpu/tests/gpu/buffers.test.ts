@@ -39,9 +39,9 @@ describe("GPU buffer size constants", () => {
     expect(DRAW_ARGS_BYTES).toBe(16);
   });
 
-  it("UNIFORM_BYTES is 80 (matches WGSL Uniforms struct)", () => {
-    // mat4x4<f32>=64 + vec2<f32>=8 + u32=4 + u32=4 = 80
-    expect(UNIFORM_BYTES).toBe(80);
+  it("UNIFORM_BYTES is 96 (matches WGSL Uniforms struct + dashboard_mode + padding)", () => {
+    // mat4x4<f32>=64 + vec2<f32>=8 + u32=4 + u32=4 + u32=4 + vec3<u32>=12 (padding) = 96
+    expect(UNIFORM_BYTES).toBe(96);
   });
 
   it("GLYPH_INSTANCE_BYTES is 40", () => {
