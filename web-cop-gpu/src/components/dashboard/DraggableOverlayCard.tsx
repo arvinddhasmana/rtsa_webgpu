@@ -3,13 +3,14 @@
 //
 // Reference: docs/business/usecases/UC017_sensor_health_monitoring.md
 
-import { createSignal, JSX, onCleanup, Show } from "solid-js";
+import { createEffect, createSignal, JSX, onCleanup, Show } from "solid-js";
 
 export interface DraggableOverlayCardProps {
   title: string;
   icon?: JSX.Element;
   initialX?: number;
   initialY?: number;
+  position?: { x: number; y: number };
   width?: string;
   minWidth?: string;
   maxHeight?: string;
@@ -18,6 +19,8 @@ export interface DraggableOverlayCardProps {
   accentColor?: string;
   /** Unique key for CSS scrollbar scoping */
   scrollKey?: string;
+  onPositionChange?: (pos: { x: number; y: number }) => void;
+  onClose?: () => void;
 }
 
 /**
@@ -44,12 +47,24 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
 
   function onMouseMove(e: MouseEvent) {
     if (!dragging()) return;
-    setPos({ x: e.clientX - dragOffset().dx, y: e.clientY - dragOffset().dy });
+    const next = { x: e.clientX - dragOffset().dx, y: e.clientY - dragOffset().dy };
+    setPos(next);
+    props.onPositionChange?.(next);
   }
 
   function onMouseUp() {
     setDragging(false);
   }
+
+  // Sync externally provided position (used by auto-arrange) without disrupting active drag
+  createEffect(() => {
+    const external = props.position;
+    if (!external || dragging()) return;
+    const current = pos();
+    if (current.x !== external.x || current.y !== external.y) {
+      setPos(external);
+    }
+  });
 
   window.addEventListener("mousemove", onMouseMove);
   window.addEventListener("mouseup", onMouseUp);
@@ -137,28 +152,57 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
             <div style={{ width: "12px", height: "1px", background: "#94a3b8" }} />
           </div>
 
-          {/* Minimize / restore button */}
-          <button
-            data-testid={`overlay-minimize-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
-            onClick={() => setMinimized((m) => !m)}
-            title={minimized() ? "Restore panel" : "Minimize panel"}
-            style={{
-              background: minimized() ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              "border-radius": "5px",
-              cursor: "pointer",
-              color: minimized() ? "#60a5fa" : "#64748b",
-              padding: "2px 6px",
-              "font-size": "0.65rem",
-              "line-height": 1.2,
-              display: "flex",
-              "align-items": "center",
-              "flex-shrink": 0,
-              transition: "all 0.15s ease",
-            }}
-          >
-            {minimized() ? "▲" : "▼"}
-          </button>
+          <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
+            {/* Minimize / restore button */}
+            <button
+              data-testid={`overlay-minimize-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+              onClick={() => setMinimized((m) => !m)}
+              title={minimized() ? "Restore panel" : "Minimize panel"}
+              style={{
+                background: minimized() ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.04)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                "border-radius": "5px",
+                cursor: "pointer",
+                color: minimized() ? "#60a5fa" : "#64748b",
+                padding: "2px 6px",
+                "font-size": "0.65rem",
+                "line-height": 1.2,
+                display: "flex",
+                "align-items": "center",
+                "flex-shrink": 0,
+                transition: "all 0.15s ease",
+              }}
+            >
+              {minimized() ? "▲" : "▼"}
+            </button>
+
+            <Show when={props.onClose}>
+              <button
+                data-testid={`overlay-close-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+                title="Close panel"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  props.onClose?.();
+                }}
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  "border-radius": "5px",
+                  cursor: "pointer",
+                  color: "#f87171",
+                  padding: "2px 6px",
+                  "font-size": "0.65rem",
+                  "line-height": 1.2,
+                  display: "flex",
+                  "align-items": "center",
+                  "flex-shrink": 0,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                ✕
+              </button>
+            </Show>
+          </div>
         </div>
 
         {/* ── Body ── */}

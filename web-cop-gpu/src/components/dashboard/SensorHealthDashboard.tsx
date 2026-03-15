@@ -7,10 +7,11 @@ import {
     createEffect,
     createResource,
     createSignal,
+    For,
     onCleanup,
     Show,
 } from "solid-js";
-import { fetchSensorStatuses } from "../../services/sensor-health";
+import { fetchSensorStatuses, SensorStatus } from "../../services/sensor-health";
 import {
     cardView,
     selectedSensor,
@@ -25,6 +26,9 @@ import { SensorFleetList } from "./SensorFleetList";
 import { SensorGrid } from "./SensorGrid";
 import { SensorOverviewMap } from "./SensorOverviewMap";
 import { CriticalAlertsPanel } from "./CriticalAlertsPanel";
+import { SensorHealthDiagnosticCard } from "./SensorHealthDiagnosticCard";
+import { DraggableOverlayCard } from "./DraggableOverlayCard";
+import { statusColor } from "./dashboard-utils";
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 
@@ -90,6 +94,61 @@ export function SensorHealthDashboard() {
   const [swapped, setSwapped] = createSignal(false);
   /** Which pane is fullscreen (null = neither) */
   const [fullscreen, setFullscreen] = createSignal<null | "a" | "b">(null);
+  /** Open diagnostic overlays keyed by sensor */
+  const [openDiagnostics, setOpenDiagnostics] = createSignal<SensorStatus[]>([]);
+  const [overlayPositions, setOverlayPositions] = createSignal<Record<string, { x: number; y: number }>>({});
+
+  const basePosition = (index: number) => ({
+    x: 24 + index * 28,
+    y: 24 + index * 18,
+  });
+
+  function openDiagnosticCard(sensor: SensorStatus) {
+    setOpenDiagnostics((curr) => {
+      if (curr.some((s) => s.sensorId === sensor.sensorId)) {
+        return curr;
+      }
+      setOverlayPositions((prev) => ({
+        ...prev,
+        [sensor.sensorId]: prev[sensor.sensorId] ?? basePosition(curr.length),
+      }));
+      return [...curr, sensor];
+    });
+  }
+
+  function closeDiagnosticCard(sensorId: string) {
+    setOpenDiagnostics((curr) => curr.filter((s) => s.sensorId !== sensorId));
+  }
+
+  function closeAllDiagnostics() {
+    setOpenDiagnostics([]);
+  }
+
+  function updateOverlayPosition(sensorId: string, pos: { x: number; y: number }) {
+    setOverlayPositions((prev) => ({ ...prev, [sensorId]: pos }));
+  }
+
+  function autoArrangeDiagnostics() {
+    const container = document.getElementById("health-split-container");
+    const items = openDiagnostics();
+    if (!container || items.length === 0) return;
+    const rect = container.getBoundingClientRect();
+    const gap = 14;
+    const cardW = 380;
+    const cardH = 430;
+    const columns = Math.max(1, Math.floor((rect.width + gap) / (cardW + gap)));
+
+    const arranged: Record<string, { x: number; y: number }> = {};
+    items.forEach((sensor, idx) => {
+      const col = idx % columns;
+      const row = Math.floor(idx / columns);
+      arranged[sensor.sensorId] = {
+        x: 16 + col * (cardW + gap),
+        y: 16 + row * (cardH + gap),
+      };
+    });
+    setOverlayPositions((prev) => ({ ...prev, ...arranged }));
+  }
 
   // ── Divider drag ──
   const [draggingDivider, setDraggingDivider] = createSignal(false);
@@ -117,8 +176,16 @@ export function SensorHealthDashboard() {
     setDraggingDivider(false);
   }
 
+  function onKeyDown(e: KeyboardEvent) {
+    if (e.key === "Escape" && openDiagnostics().length > 0) {
+      e.preventDefault();
+      closeAllDiagnostics();
+    }
+  }
+
   window.addEventListener("mousemove", onMouseMove);
   window.addEventListener("mouseup", onMouseUp);
+  window.addEventListener("keydown", onKeyDown);
 
   // Auto-refresh every 10 seconds as per requirements
   const timer = setInterval(refetch, 10000);
@@ -126,12 +193,15 @@ export function SensorHealthDashboard() {
     clearInterval(timer);
     window.removeEventListener("mousemove", onMouseMove);
     window.removeEventListener("mouseup", onMouseUp);
+    window.removeEventListener("keydown", onKeyDown);
   });
 
   // Clear the selected sensor when dashboard changes
   createEffect(() => {
     void dashboard();
     setSelectedSensor(null);
+    closeAllDiagnostics();
+    setOverlayPositions({});
   });
 
   // ── Computed pane sizes ──
@@ -215,6 +285,7 @@ export function SensorHealthDashboard() {
             setHoveredSensor(s);
             setSelectedSensor(s);
           }}
+          onOpenDiagnostic={(s) => openDiagnosticCard(s)}
         />
       </div>
     </div>
@@ -346,6 +417,7 @@ export function SensorHealthDashboard() {
           "flex-direction": "column",
           overflow: "hidden",
           "min-width": 0,
+          position: "relative",
         }}
       >
         <Show
@@ -533,6 +605,67 @@ export function SensorHealthDashboard() {
           </Show>
         </Show>
       </div>
+
+      <Show when={openDiagnostics().length > 0}>
+        <div
+          data-testid="diagnostic-overlay-layer"
+          style={{
+            position: "absolute",
+            inset: 0,
+            "pointer-events": "none",
+            "z-index": 120,
+          }}
+        >
+          <Show when={openDiagnostics().length > 1}>
+            <button
+              data-testid="diagnostic-auto-arrange"
+              onClick={() => autoArrangeDiagnostics()}
+              title="Auto-arrange diagnostic cards"
+              style={{
+                position: "absolute",
+                top: "12px",
+                right: "12px",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "#94a3b8",
+                padding: "6px 10px",
+                "border-radius": "8px",
+                "font-size": "0.65rem",
+                "font-family": "monospace",
+                cursor: "pointer",
+                "pointer-events": "auto",
+                "box-shadow": "0 10px 30px rgba(0,0,0,0.35)",
+              }}
+            >
+              ⤢ Auto arrange
+            </button>
+          </Show>
+
+          <For each={openDiagnostics()}>
+            {(sensor, idx) => {
+              const pos = overlayPositions()[sensor.sensorId] ?? basePosition(idx());
+              return (
+                <DraggableOverlayCard
+                  title={`Diag · ${sensor.sensorId}`}
+                  position={pos}
+                  onPositionChange={(p) => updateOverlayPosition(sensor.sensorId, p)}
+                  onClose={() => closeDiagnosticCard(sensor.sensorId)}
+                  width="380px"
+                  minWidth="320px"
+                  maxHeight="520px"
+                  accentColor={statusColor(sensor.status)}
+                  zIndex={200 + idx()}
+                >
+                  <SensorHealthDiagnosticCard
+                    sensor={sensor}
+                    onClose={() => closeDiagnosticCard(sensor.sensorId)}
+                  />
+                </DraggableOverlayCard>
+              );
+            }}
+          </For>
+        </div>
+      </Show>
 
       <style>{`
         .refresh-btn:hover {
