@@ -13,6 +13,8 @@ export interface SensorStatusCardProps {
   /** compact=true → condensed metric-box layout; default (false) → full dual-sparkline layout */
   compact?: boolean;
   onSelect?: (sensor: SensorStatus) => void;
+  /** Triggers the diagnostic overlay for this sensor */
+  onDiagnose?: (sensor: SensorStatus) => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -201,6 +203,8 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     }
   };
 
+  const [diagBtnHovered, setDiagBtnHovered] = createSignal(false);
+
   const statusLabel = () => {
     switch (props.sensor.status) {
       case "CONNECTED":
@@ -222,11 +226,13 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
   };
 
   const cardStyle = () => ({
-    background: "linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)",
+    background:
+      "linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)",
     "backdrop-filter": "blur(20px)",
     "-webkit-backdrop-filter": "blur(20px)",
     border: "1px solid rgba(255, 255, 255, 0.08)",
     "border-top": `1px solid ${statusColor()}`,
+    "border-left": `3px solid ${statusColor()}`,
     "border-radius": "12px",
     padding: "clamp(1rem, 1.25vw, 1.5rem)",
     display: "flex",
@@ -312,6 +318,58 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     </div>
   );
 
+  /** Small crosshair button that triggers the health diagnostic overlay */
+  const ScopeButton = () => (
+    <Show when={props.onDiagnose !== undefined}>
+      <button
+        title="Health Diagnostics"
+        onClick={(e) => {
+          e.stopPropagation();
+          props.onDiagnose?.(props.sensor);
+        }}
+        onMouseEnter={() => setDiagBtnHovered(true)}
+        onMouseLeave={() => setDiagBtnHovered(false)}
+        style={{
+          background: diagBtnHovered()
+            ? `${statusColor()}25`
+            : "rgba(255,255,255,0.05)",
+          border: `1px solid ${diagBtnHovered() ? statusColor() + "70" : "rgba(255,255,255,0.1)"}`,
+          color: diagBtnHovered() ? statusColor() : "#475569",
+          cursor: "pointer",
+          "border-radius": "6px",
+          width: "26px",
+          height: "26px",
+          display: "flex",
+          "align-items": "center",
+          "justify-content": "center",
+          padding: "0",
+          transition: "all 0.2s",
+          "flex-shrink": "0",
+          "box-shadow": diagBtnHovered()
+            ? `0 0 10px ${statusColor()}30`
+            : "none",
+        }}
+      >
+        {/* Crosshair / scope icon */}
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <circle cx="12" cy="12" r="3" />
+          <line x1="12" y1="2" x2="12" y2="6" />
+          <line x1="12" y1="18" x2="12" y2="22" />
+          <line x1="2" y1="12" x2="6" y2="12" />
+          <line x1="18" y1="12" x2="22" y2="12" />
+        </svg>
+      </button>
+    </Show>
+  );
+
   const CardHeader = () => (
     <div
       style={{
@@ -345,7 +403,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
           </div>
         </div>
       </div>
-      <div style={{ display: "flex", "align-items": "center", gap: "1rem" }}>
+      <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
         <Show when={props.sensor.coverage}>
           <MiniCoverageMap
             rangeNm={props.sensor.coverage!.rangeNm}
@@ -363,6 +421,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
           />
         </Show>
         <Badge />
+        <ScopeButton />
       </div>
     </div>
   );
@@ -890,6 +949,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             </div>
           </div>
           <Badge />
+          <ScopeButton />
         </div>
 
         {/* Divider */}
