@@ -226,28 +226,27 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
   };
 
   const cardStyle = () => ({
-    background:
-      "linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.7) 100%)",
-    "backdrop-filter": "blur(20px)",
-    "-webkit-backdrop-filter": "blur(20px)",
-    border: "1px solid rgba(255, 255, 255, 0.08)",
-    "border-top": `1px solid ${statusColor()}`,
+    background: "linear-gradient(135deg, rgba(10, 15, 26, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%)",
+    "backdrop-filter": "blur(16px)",
+    "-webkit-backdrop-filter": "blur(16px)",
+    border: "1px solid rgba(255, 255, 255, 0.07)",
+    "border-top": `2px solid ${statusColor()}`,
     "border-left": `3px solid ${statusColor()}`,
-    "border-radius": "12px",
-    padding: "clamp(1rem, 1.25vw, 1.5rem)",
+    "border-radius": "8px",
+    padding: "10px 12px 10px 10px",
     display: "flex",
     "flex-direction": "column" as const,
-    gap: "0.75rem",
+    gap: "6px",
     color: "#f1f5f9",
-    transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-    "box-shadow": "0 8px 32px 0 rgba(0, 0, 0, 0.37)",
+    transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+    "box-shadow": `0 4px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04)`,
     position: "relative" as const,
     overflow: "hidden",
     cursor: "pointer",
     "min-width": props.compact
-      ? "clamp(220px, 20vw, 300px)"
-      : "clamp(300px, 24vw, 360px)",
-    "font-size": "clamp(0.75rem, 0.85vw, 0.9rem)",
+      ? "clamp(200px, 17vw, 270px)"
+      : "clamp(240px, 20vw, 310px)",
+    "font-size": "0.75rem",
   });
 
   const Glow = () => (
@@ -378,25 +377,26 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
         "align-items": "flex-start",
       }}
     >
-      <div style={{ display: "flex", "align-items": "center", gap: "0.75rem" }}>
+      <div style={{ display: "flex", "align-items": "center", gap: "8px" }}>
         <IconBox />
         <div>
           <div
             style={{
-              "font-weight": "600",
-              "font-size": "1rem",
-              "letter-spacing": "0.025em",
+              "font-weight": "700",
+              "font-size": "0.82rem",
+              "letter-spacing": "0.03em",
+              "font-family": "monospace",
             }}
           >
             {props.sensor.sensorId}
           </div>
           <div
             style={{
-              "font-size": "0.7rem",
+              "font-size": "0.58rem",
               color: "#64748b",
               "text-transform": "uppercase",
-              "letter-spacing": "0.05em",
-              "margin-top": "2px",
+              "letter-spacing": "0.06em",
+              "margin-top": "1px",
             }}
           >
             {props.sensor.sensorType}
@@ -450,19 +450,19 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             style={{
               display: "grid",
               "grid-template-columns": "auto 1fr",
-              "column-gap": "12px",
-              "row-gap": "3px",
-              "font-size": "0.75rem",
-              padding: "6px 0",
+              "column-gap": "8px",
+              "row-gap": "2px",
+              "font-size": "0.65rem",
+              padding: "4px 0",
               "border-top": "1px solid rgba(255,255,255,0.05)",
               "border-bottom": "1px solid rgba(255,255,255,0.05)",
             }}
           >
-            <span style={{ color: "#64748b" }}>Type</span>
+            <span style={{ color: "#475569" }}>Type</span>
             <span style={{ color: "#94a3b8", "text-align": "right" }}>
               {sensorMode(props.sensor.sensorType)}
             </span>
-            <span style={{ color: "#64748b" }}>Location</span>
+            <span style={{ color: "#475569" }}>Location</span>
             <span style={{ color: "#94a3b8", "text-align": "right" }}>
               {derivedLocation(props.sensor.sensorId)}
             </span>
@@ -473,13 +473,13 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             style={{
               display: "grid",
               "grid-template-columns": "1fr 1fr",
-              gap: "8px",
+              gap: "6px",
             }}
           >
             <div
               style={{
                 background: "rgba(255,255,255,0.03)",
-                padding: "8px 10px",
+                padding: "5px 8px",
                 "border-radius": "8px",
                 border: "1px solid rgba(255,255,255,0.06)",
               }}
@@ -497,7 +497,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
               </div>
               <div
                 style={{
-                  "font-size": "1rem",
+                  "font-size": "0.88rem",
                   "font-weight": "700",
                   "font-family": "monospace",
                   color: "#f8fafc",
@@ -518,7 +518,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             <div
               style={{
                 background: "rgba(255,255,255,0.03)",
-                padding: "8px 10px",
+                padding: "5px 8px",
                 "border-radius": "8px",
                 border: "1px solid rgba(255,255,255,0.06)",
               }}
@@ -536,7 +536,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
               </div>
               <div
                 style={{
-                  "font-size": "1rem",
+                  "font-size": "0.88rem",
                   "font-weight": "700",
                   "font-family": "monospace",
                   color: "#f8fafc",
@@ -548,7 +548,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             <div
               style={{
                 background: "rgba(255,255,255,0.03)",
-                padding: "8px 10px",
+                padding: "5px 8px",
                 "border-radius": "8px",
                 border: "1px solid rgba(255,255,255,0.06)",
               }}
@@ -566,7 +566,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
               </div>
               <div
                 style={{
-                  "font-size": "1rem",
+                  "font-size": "0.88rem",
                   "font-weight": "700",
                   "font-family": "monospace",
                   color:
@@ -592,7 +592,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
             <div
               style={{
                 background: "rgba(255,255,255,0.03)",
-                padding: "8px 10px",
+                padding: "5px 8px",
                 "border-radius": "8px",
                 border: "1px solid rgba(255,255,255,0.06)",
               }}
@@ -610,7 +610,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
               </div>
               <div
                 style={{
-                  "font-size": "1rem",
+                  "font-size": "0.88rem",
                   "font-weight": "700",
                   "font-family": "monospace",
                   color: qualityColor(),
@@ -912,7 +912,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
         onClick={() => props.onSelect?.(props.sensor)}
         style={{
           ...cardStyle(),
-          "min-width": "clamp(240px, 18vw, 320px)",
+          "min-width": "clamp(200px, 16vw, 270px)",
           gap: "0.5rem",
           padding: "0.85rem 1rem",
         }}

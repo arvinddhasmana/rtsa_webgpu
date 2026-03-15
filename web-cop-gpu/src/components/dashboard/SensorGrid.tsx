@@ -43,8 +43,8 @@ export function SensorGrid(props: SensorGridProps) {
 
   const cardMinWidth = () =>
     props.cardView === "compact"
-      ? "clamp(240px, 18vw, 310px)"
-      : "clamp(280px, 22vw, 355px)";
+      ? "clamp(200px, 16vw, 270px)"
+      : "clamp(240px, 20vw, 310px)";
 
   return (
     <div
@@ -200,20 +200,22 @@ export function SensorGrid(props: SensorGridProps) {
             "min-height": 0,
             "overflow-x": "auto",
             "overflow-y": "hidden",
-            padding: "16px 24px 20px",
+            padding: "10px 16px 12px",
           }}
         >
-          {/* Grid — column-flow so cards fill top→bottom then left→right */}
+          {/* Grid — column-flow so cards fill top→bottom then left→right.
+              Use auto row height (not 1fr) to prevent overflow/overlap when
+              the parent height is not explicitly defined. */}
           <div
             style={{
               display: "grid",
-              "grid-template-rows": `repeat(${rows()}, 1fr)`,
+              "grid-template-rows": `repeat(${rows()}, minmax(140px, auto))`,
               "grid-auto-flow": "column",
               "grid-auto-columns": cardMinWidth(),
-              gap: "14px",
-              height: "100%",
+              gap: "10px",
               width: "max-content",
               "min-width": "100%",
+              "align-items": "start",
             }}
           >
             <For each={filteredSensors()}>
