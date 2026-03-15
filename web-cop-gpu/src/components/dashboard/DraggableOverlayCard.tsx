@@ -1,0 +1,188 @@
+// CLASSIFICATION: UNCLASSIFIED
+// src/components/dashboard/DraggableOverlayCard.tsx — Draggable, minimisable glassmorphic overlay card
+//
+// Reference: docs/business/usecases/UC017_sensor_health_monitoring.md
+
+import { createSignal, JSX, onCleanup, Show } from "solid-js";
+
+export interface DraggableOverlayCardProps {
+  title: string;
+  icon?: JSX.Element;
+  initialX?: number;
+  initialY?: number;
+  width?: string;
+  minWidth?: string;
+  maxHeight?: string;
+  children: JSX.Element;
+  zIndex?: number;
+  accentColor?: string;
+  /** Unique key for CSS scrollbar scoping */
+  scrollKey?: string;
+}
+
+/**
+ * Floating, draggable, minimisable glassmorphic overlay card.
+ * Intended for use over a map or canvas area.
+ * Never destructure props — breaks SolidJS reactivity.
+ */
+export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Element {
+  const [minimized, setMinimized] = createSignal(false);
+  const [pos, setPos] = createSignal({ x: props.initialX ?? 16, y: props.initialY ?? 16 });
+  const [dragging, setDragging] = createSignal(false);
+  const [dragOffset, setDragOffset] = createSignal({ dx: 0, dy: 0 });
+
+  const color = () => props.accentColor ?? "rgba(59,130,246,0.55)";
+  const scrollKey = props.scrollKey ?? "overlay";
+
+  function onMouseDown(e: MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (target.tagName === "BUTTON" || target.closest("button")) return;
+    setDragging(true);
+    setDragOffset({ dx: e.clientX - pos().x, dy: e.clientY - pos().y });
+    e.preventDefault();
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (!dragging()) return;
+    setPos({ x: e.clientX - dragOffset().dx, y: e.clientY - dragOffset().dy });
+  }
+
+  function onMouseUp() {
+    setDragging(false);
+  }
+
+  window.addEventListener("mousemove", onMouseMove);
+  window.addEventListener("mouseup", onMouseUp);
+  onCleanup(() => {
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp);
+  });
+
+  return (
+    <div
+      data-testid={`overlay-card-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+      style={{
+        position: "absolute",
+        left: `${pos().x}px`,
+        top: `${pos().y}px`,
+        width: props.width ?? "220px",
+        "min-width": props.minWidth ?? "180px",
+        "z-index": props.zIndex ?? 10,
+        "user-select": dragging() ? "none" : "auto",
+        "pointer-events": "auto",
+      }}
+    >
+      <div
+        style={{
+          background: "rgba(8, 14, 26, 0.88)",
+          "backdrop-filter": "blur(28px)",
+          "-webkit-backdrop-filter": "blur(28px)",
+          border: `1px solid ${color()}`,
+          "border-radius": "10px",
+          "box-shadow": `0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06)`,
+          overflow: "hidden",
+          transition: "box-shadow 0.2s ease",
+        }}
+      >
+        {/* ── Header / drag handle ── */}
+        <div
+          onMouseDown={onMouseDown}
+          style={{
+            display: "flex",
+            "align-items": "center",
+            gap: "6px",
+            padding: "6px 8px 6px 10px",
+            background: "rgba(255,255,255,0.025)",
+            "border-bottom": minimized() ? "none" : "1px solid rgba(255,255,255,0.07)",
+            cursor: dragging() ? "grabbing" : "grab",
+            "border-radius": minimized() ? "10px" : "10px 10px 0 0",
+          }}
+        >
+          <Show when={props.icon}>
+            <div style={{ color: "#64748b", "line-height": 0, "flex-shrink": 0 }}>
+              {props.icon}
+            </div>
+          </Show>
+
+          <span
+            style={{
+              flex: 1,
+              "font-size": "0.58rem",
+              "font-weight": "700",
+              "text-transform": "uppercase",
+              "letter-spacing": "0.12em",
+              color: "#94a3b8",
+              "font-family": "monospace",
+              "white-space": "nowrap",
+              overflow: "hidden",
+              "text-overflow": "ellipsis",
+            }}
+          >
+            {props.title}
+          </span>
+
+          {/* Drag indicator */}
+          <div
+            style={{
+              display: "flex",
+              "flex-direction": "column",
+              gap: "2px",
+              "flex-shrink": 0,
+              opacity: 0.3,
+              "pointer-events": "none",
+            }}
+          >
+            <div style={{ width: "12px", height: "1px", background: "#94a3b8" }} />
+            <div style={{ width: "12px", height: "1px", background: "#94a3b8" }} />
+            <div style={{ width: "12px", height: "1px", background: "#94a3b8" }} />
+          </div>
+
+          {/* Minimize / restore button */}
+          <button
+            data-testid={`overlay-minimize-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+            onClick={() => setMinimized((m) => !m)}
+            title={minimized() ? "Restore panel" : "Minimize panel"}
+            style={{
+              background: minimized() ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              "border-radius": "5px",
+              cursor: "pointer",
+              color: minimized() ? "#60a5fa" : "#64748b",
+              padding: "2px 6px",
+              "font-size": "0.65rem",
+              "line-height": 1.2,
+              display: "flex",
+              "align-items": "center",
+              "flex-shrink": 0,
+              transition: "all 0.15s ease",
+            }}
+          >
+            {minimized() ? "▲" : "▼"}
+          </button>
+        </div>
+
+        {/* ── Body ── */}
+        <Show when={!minimized()}>
+          <div
+            class={`overlay-scroll-${scrollKey}`}
+            style={{
+              "max-height": props.maxHeight ?? "280px",
+              "overflow-y": "auto",
+              "overflow-x": "hidden",
+              padding: "8px",
+            }}
+          >
+            {props.children}
+          </div>
+        </Show>
+      </div>
+
+      <style>{`
+        .overlay-scroll-${scrollKey}::-webkit-scrollbar { width: 4px; }
+        .overlay-scroll-${scrollKey}::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 2px; }
+        .overlay-scroll-${scrollKey}::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+        .overlay-scroll-${scrollKey}::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+      `}</style>
+    </div>
+  );
+}

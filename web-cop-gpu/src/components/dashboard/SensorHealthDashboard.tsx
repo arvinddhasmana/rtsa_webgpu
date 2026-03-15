@@ -18,35 +18,313 @@ import {
 } from "../../signals/sensor-filters";
 import { spatialAlerts } from "../../signals/spatial-alerts";
 import { dashboard } from "../../signals/viewport";
-import { CriticalAlertsPanel } from "./CriticalAlertsPanel";
 import { DashboardSidebar } from "./DashboardSidebar";
 import { SensorDetailHoverPanel } from "./SensorDetailHoverPanel";
 import { SensorDiagnosticView } from "./SensorDiagnosticView";
 import { SensorFleetList } from "./SensorFleetList";
 import { SensorGrid } from "./SensorGrid";
 import { SensorOverviewMap } from "./SensorOverviewMap";
+import { CriticalAlertsPanel } from "./CriticalAlertsPanel";
+
+// ── Icons ──────────────────────────────────────────────────────────────────
+
+function IconLayoutV() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="18" height="8" rx="1" />
+      <rect x="3" y="13" width="18" height="8" rx="1" />
+    </svg>
+  );
+}
+
+function IconLayoutH() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="8" height="18" rx="1" />
+      <rect x="13" y="3" width="8" height="18" rx="1" />
+    </svg>
+  );
+}
+
+function IconMaximize() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+    </svg>
+  );
+}
+
+function IconMinimize() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+    </svg>
+  );
+}
+
+function IconSwap() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M7 16V4m0 0L3 8m4-4l4 4"/>
+      <path d="M17 8v12m0 0l4-4m-4 4l-4-4"/>
+    </svg>
+  );
+}
 
 /**
  * Sensor Health Monitoring Dashboard.
- * Orchestrates data fetching, top-level layout, and filtering.
+ * Orchestrates data fetching, resizable split layout, and filtering.
  */
 export function SensorHealthDashboard() {
   const [sensors, { refetch }] = createResource(fetchSensorStatuses);
-  const [hoveredSensorId, setHoveredSensorId] = createSignal<
-    string | undefined
-  >(undefined);
+  const [hoveredSensorId, setHoveredSensorId] = createSignal<string | undefined>(undefined);
   const [hoveredSensor, setHoveredSensor] =
     createSignal<Parameters<typeof SensorDetailHoverPanel>[0]["sensor"]>(null);
 
+  // ── Layout state ──
+  /** Split ratio 0-100: percentage size of pane A */
+  const [splitRatio, setSplitRatio] = createSignal(40);
+  /** "vertical" = top/bottom split; "horizontal" = left/right split */
+  const [layout, setLayout] = createSignal<"vertical" | "horizontal">("vertical");
+  /** Whether pane A (status cards) and pane B (coverage) are swapped */
+  const [swapped, setSwapped] = createSignal(false);
+  /** Which pane is fullscreen (null = neither) */
+  const [fullscreen, setFullscreen] = createSignal<null | "a" | "b">(null);
+
+  // ── Divider drag ──
+  const [draggingDivider, setDraggingDivider] = createSignal(false);
+
+  function onDividerMouseDown(e: MouseEvent) {
+    setDraggingDivider(true);
+    e.preventDefault();
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (!draggingDivider()) return;
+    const container = document.getElementById("health-split-container");
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    if (layout() === "vertical") {
+      const ratio = ((e.clientY - rect.top) / rect.height) * 100;
+      setSplitRatio(Math.min(Math.max(ratio, 15), 80));
+    } else {
+      const ratio = ((e.clientX - rect.left) / rect.width) * 100;
+      setSplitRatio(Math.min(Math.max(ratio, 15), 80));
+    }
+  }
+
+  function onMouseUp() {
+    setDraggingDivider(false);
+  }
+
+  window.addEventListener("mousemove", onMouseMove);
+  window.addEventListener("mouseup", onMouseUp);
+
   // Auto-refresh every 10 seconds as per requirements
   const timer = setInterval(refetch, 10000);
-  onCleanup(() => clearInterval(timer));
+  onCleanup(() => {
+    clearInterval(timer);
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp);
+  });
 
   // Clear the selected sensor when dashboard changes
   createEffect(() => {
     void dashboard();
     setSelectedSensor(null);
   });
+
+  // ── Computed pane sizes ──
+  const paneASize = () => {
+    if (fullscreen() === "a") return "100%";
+    if (fullscreen() === "b") return "0%";
+    return `${splitRatio()}%`;
+  };
+
+  // ── Toolbar button style ──
+  const tbBtn = (active?: boolean) => ({
+    display: "inline-flex",
+    "align-items": "center",
+    gap: "4px",
+    background: active ? "rgba(59,130,246,0.18)" : "rgba(255,255,255,0.04)",
+    border: active ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.1)",
+    "border-radius": "6px",
+    color: active ? "#60a5fa" : "#64748b",
+    padding: "3px 8px",
+    cursor: "pointer",
+    "font-size": "0.58rem",
+    "font-family": "monospace",
+    "letter-spacing": "0.05em",
+    transition: "all 0.15s ease",
+  });
+
+  // ── Pane panels ──
+
+  const StatusCardsPane = () => (
+    <div
+      style={{
+        display: "flex",
+        "flex-direction": "column",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
+      {/* Pane header */}
+      <div
+        style={{
+          padding: "4px 14px",
+          "border-bottom": "1px solid rgba(255,255,255,0.04)",
+          display: "flex",
+          "align-items": "center",
+          gap: "6px",
+          "flex-shrink": 0,
+          background: "rgba(0,0,0,0.1)",
+        }}
+      >
+        <span style={{
+          "font-size": "0.58rem",
+          "font-weight": "700",
+          "text-transform": "uppercase",
+          "letter-spacing": "0.1em",
+          color: "#475569",
+        }}>
+          Sensor Status
+        </span>
+        <span style={{ "font-size": "0.55rem", color: "#1e3a5f" }}>
+          Real-time health overview
+        </span>
+        <div style={{ flex: 1 }} />
+        {/* Fullscreen toggle for this pane */}
+        <button
+          title={fullscreen() === (swapped() ? "b" : "a") ? "Restore" : "Fullscreen"}
+          onClick={() => setFullscreen((f) => (f === (swapped() ? "b" : "a") ? null : (swapped() ? "b" : "a")))}
+          style={tbBtn(fullscreen() === (swapped() ? "b" : "a"))}
+        >
+          <Show when={fullscreen() === (swapped() ? "b" : "a")} fallback={<IconMaximize />}>
+            <IconMinimize />
+          </Show>
+        </button>
+      </div>
+
+      <div style={{ flex: 1, overflow: "hidden", "min-height": 0 }}>
+        <SensorGrid
+          sensors={sensors() || []}
+          cardView={cardView()}
+          onSensorSelect={(s) => {
+            setHoveredSensorId(s.sensorId);
+            setHoveredSensor(s);
+            setSelectedSensor(s);
+          }}
+        />
+      </div>
+    </div>
+  );
+
+  const CoveragePane = () => (
+    <div
+      style={{
+        display: "flex",
+        "flex-direction": "column",
+        height: "100%",
+        overflow: "hidden",
+        background: "rgba(10, 15, 28, 0.45)",
+        "backdrop-filter": "blur(20px)",
+      }}
+    >
+      {/* Pane header */}
+      <div
+        style={{
+          padding: "4px 14px",
+          "border-bottom": "1px solid rgba(255,255,255,0.04)",
+          display: "flex",
+          "align-items": "center",
+          gap: "6px",
+          "flex-shrink": 0,
+          background: "rgba(0,0,0,0.1)",
+        }}
+      >
+        <span style={{
+          "font-size": "0.58rem",
+          "font-weight": "700",
+          "text-transform": "uppercase",
+          "letter-spacing": "0.1em",
+          color: "#475569",
+        }}>
+          Sensor Coverage Map
+        </span>
+        <div style={{ flex: 1 }} />
+        {/* Fullscreen toggle for this pane */}
+        <button
+          title={fullscreen() === (swapped() ? "a" : "b") ? "Restore" : "Fullscreen"}
+          onClick={() => setFullscreen((f) => (f === (swapped() ? "a" : "b") ? null : (swapped() ? "a" : "b")))}
+          style={tbBtn(fullscreen() === (swapped() ? "a" : "b"))}
+        >
+          <Show when={fullscreen() === (swapped() ? "a" : "b")} fallback={<IconMaximize />}>
+            <IconMinimize />
+          </Show>
+        </button>
+      </div>
+
+      <div style={{ flex: 1, overflow: "hidden", "min-height": 0, padding: "8px" }}>
+        <SensorOverviewMap
+          sensors={sensors() || []}
+          spatialAlerts={spatialAlerts()}
+          hoveredSensorId={hoveredSensorId()}
+          onSensorClick={(s) => {
+            setHoveredSensorId(s.sensorId);
+            setHoveredSensor(s);
+          }}
+          height={400}
+          fleetListPanel={
+            <SensorFleetList
+              sensors={sensors() || []}
+              selectedSensorId={hoveredSensorId()}
+              onSensorSelect={(s) => {
+                setHoveredSensorId(s.sensorId);
+                setHoveredSensor(s);
+              }}
+              onSensorHover={(s) => {
+                if (s) {
+                  setHoveredSensorId(s.sensorId);
+                  setHoveredSensor(s);
+                }
+              }}
+              maxHeight="240px"
+            />
+          }
+          criticalAlertsPanel={
+            <CriticalAlertsPanel
+              spatialAlerts={spatialAlerts()}
+              maxHeight="180px"
+            />
+          }
+          sensorDetailPanel={
+            <Show
+              when={hoveredSensor() !== null}
+              fallback={
+                <div style={{
+                  padding: "16px 8px",
+                  color: "#334155",
+                  "font-size": "0.68rem",
+                  "font-family": "monospace",
+                  "text-align": "center",
+                  "line-height": "1.6",
+                }}>
+                  Select a sensor from the fleet list or click a footprint on the map.
+                </div>
+              }
+            >
+              <SensorDetailHoverPanel sensor={hoveredSensor()} width="100%" />
+            </Show>
+          }
+        />
+      </div>
+    </div>
+  );
+
+  // Determine pane order based on swapped state
+  const PaneA = () => (swapped() ? <CoveragePane /> : <StatusCardsPane />);
+  const PaneB = () => (swapped() ? <StatusCardsPane /> : <CoveragePane />);
 
   return (
     <div
@@ -67,10 +345,9 @@ export function SensorHealthDashboard() {
           display: "flex",
           "flex-direction": "column",
           overflow: "hidden",
+          "min-width": 0,
         }}
       >
-        {/* Header removed — now in global AppShell header */}
-
         <Show
           when={!sensors.error}
           fallback={
@@ -86,266 +363,173 @@ export function SensorHealthDashboard() {
 
           {/* Level 1 Dashboard — visible when no sensor selected */}
           <Show when={selectedSensor() === null}>
-          <div
-            style={{
-              display: "flex",
-              "flex-direction": "column",
-              flex: 1,
-              overflow: "hidden",
-              "min-height": 0,
-            }}
-          >
-            {/* ── TOP: Sensor Status Cards ── */}
             <div
               style={{
-                flex: "0 0 auto",
-                "max-height": "42%",
-                overflow: "hidden",
                 display: "flex",
                 "flex-direction": "column",
+                flex: 1,
+                overflow: "hidden",
+                "min-height": 0,
               }}
             >
+              {/* ── Split layout toolbar ── */}
               <div
                 style={{
-                  padding: "6px 24px 4px",
-                  "border-bottom": "1px solid rgba(255,255,255,0.04)",
                   display: "flex",
                   "align-items": "center",
-                  gap: "8px",
+                  gap: "6px",
+                  padding: "4px 12px",
+                  "border-bottom": "1px solid rgba(255,255,255,0.05)",
+                  "flex-shrink": 0,
+                  background: "rgba(0,0,0,0.15)",
                 }}
               >
-                <span
-                  style={{
-                    "font-size": "0.65rem",
-                    "font-weight": "600",
-                    "text-transform": "uppercase",
-                    "letter-spacing": "0.08em",
-                    color: "#64748b",
-                  }}
-                >
-                  Sensor Status Cards
+                <span style={{
+                  "font-size": "0.55rem",
+                  color: "#334155",
+                  "text-transform": "uppercase",
+                  "letter-spacing": "0.08em",
+                  "font-family": "monospace",
+                }}>
+                  Layout
                 </span>
-                <span style={{ "font-size": "0.6rem", color: "#334155" }}>
-                  Real-time health overview of active sensor fleet.
+
+                {/* Toggle layout direction */}
+                <button
+                  data-testid="layout-toggle-vertical"
+                  title="Top / Bottom split"
+                  onClick={() => { setLayout("vertical"); setFullscreen(null); }}
+                  style={tbBtn(layout() === "vertical")}
+                >
+                  <IconLayoutV />
+                  T/B
+                </button>
+                <button
+                  data-testid="layout-toggle-horizontal"
+                  title="Left / Right split"
+                  onClick={() => { setLayout("horizontal"); setFullscreen(null); }}
+                  style={tbBtn(layout() === "horizontal")}
+                >
+                  <IconLayoutH />
+                  L/R
+                </button>
+
+                <div style={{ width: "1px", height: "14px", background: "rgba(255,255,255,0.06)" }} />
+
+                {/* Swap panes */}
+                <button
+                  data-testid="layout-swap"
+                  title="Swap panes"
+                  onClick={() => { setSwapped((s) => !s); setFullscreen(null); }}
+                  style={tbBtn(swapped())}
+                >
+                  <IconSwap />
+                  Swap
+                </button>
+
+                <div style={{ width: "1px", height: "14px", background: "rgba(255,255,255,0.06)" }} />
+
+                {/* Restore from fullscreen */}
+                <Show when={fullscreen() !== null}>
+                  <button
+                    data-testid="layout-restore"
+                    title="Restore split view"
+                    onClick={() => setFullscreen(null)}
+                    style={tbBtn(false)}
+                  >
+                    <IconMinimize />
+                    Restore Split
+                  </button>
+                </Show>
+
+                <div style={{ flex: 1 }} />
+
+                <span style={{
+                  "font-size": "0.52rem",
+                  color: "#1e3a5f",
+                  "font-family": "monospace",
+                }}>
+                  Drag divider to resize · ⤢ for fullscreen
                 </span>
               </div>
-              <SensorGrid
-                sensors={sensors() || []}
-                cardView={cardView()}
-                onSensorSelect={(s) => {
-                  setHoveredSensorId(s.sensorId);
-                  setHoveredSensor(s);
-                  setSelectedSensor(s);
-                }}
-              />
-            </div>
 
-            {/* ── BOTTOM: Sensor Coverage ── */}
-            <div
-              style={{
-                flex: 1,
-                "min-height": "480px",
-                "flex-shrink": 0,
-                "border-top": "1px solid rgba(255,255,255,0.07)",
-                background: "rgba(10, 15, 28, 0.45)",
-                "backdrop-filter": "blur(20px)",
-                display: "flex",
-                overflow: "hidden",
-              }}
-            >
-              {/* Section label overlay */}
+              {/* ── Split container ── */}
               <div
+                id="health-split-container"
                 style={{
-                  display: "flex",
-                  "flex-direction": "column",
                   flex: 1,
-                  "min-width": 0,
+                  display: "flex",
+                  "flex-direction": layout() === "vertical" ? "column" : "row",
                   overflow: "hidden",
+                  "min-height": 0,
+                  "user-select": draggingDivider() ? "none" : "auto",
                 }}
               >
+                {/* ── Pane A ── */}
                 <div
                   style={{
-                    padding: "6px 14px",
-                    "border-bottom": "1px solid rgba(255,255,255,0.04)",
-                    display: "flex",
-                    "align-items": "center",
-                    "justify-content": "space-between",
+                    [layout() === "vertical" ? "height" : "width"]: paneASize(),
                     "flex-shrink": 0,
+                    overflow: "hidden",
+                    transition: draggingDivider() ? "none" : "width 0.15s ease, height 0.15s ease",
+                    display: fullscreen() === "b" ? "none" : "flex",
+                    "flex-direction": "column",
                   }}
                 >
-                  <span
-                    style={{
-                      "font-size": "0.65rem",
-                      "font-weight": "600",
-                      "text-transform": "uppercase",
-                      "letter-spacing": "0.08em",
-                      color: "#64748b",
-                    }}
-                  >
-                    Sensor Coverage
-                  </span>
+                  <PaneA />
                 </div>
 
+                {/* ── Resizable divider ── */}
+                <Show when={fullscreen() === null}>
+                  <div
+                    data-testid="split-divider"
+                    onMouseDown={onDividerMouseDown}
+                    style={{
+                      [layout() === "vertical" ? "height" : "width"]: "5px",
+                      "flex-shrink": 0,
+                      background: draggingDivider()
+                        ? "rgba(59,130,246,0.6)"
+                        : "rgba(255,255,255,0.06)",
+                      cursor: layout() === "vertical" ? "row-resize" : "col-resize",
+                      position: "relative",
+                      transition: "background 0.15s ease",
+                      display: "flex",
+                      "align-items": "center",
+                      "justify-content": "center",
+                    }}
+                  >
+                    {/* Grip dots */}
+                    <div
+                      style={{
+                        display: "flex",
+                        "flex-direction": layout() === "vertical" ? "row" : "column",
+                        gap: "3px",
+                        opacity: 0.4,
+                        "pointer-events": "none",
+                      }}
+                    >
+                      <div style={{ width: "3px", height: "3px", "border-radius": "50%", background: "#94a3b8" }} />
+                      <div style={{ width: "3px", height: "3px", "border-radius": "50%", background: "#94a3b8" }} />
+                      <div style={{ width: "3px", height: "3px", "border-radius": "50%", background: "#94a3b8" }} />
+                    </div>
+                  </div>
+                </Show>
+
+                {/* ── Pane B ── */}
                 <div
                   style={{
-                    display: "flex",
                     flex: 1,
                     overflow: "hidden",
                     "min-height": 0,
+                    "min-width": 0,
+                    display: fullscreen() === "a" ? "none" : "flex",
+                    "flex-direction": "column",
                   }}
                 >
-                  {/* LEFT: fleet list + critical alerts (220px) */}
-                  <div
-                    style={{
-                      width: "220px",
-                      "flex-shrink": 0,
-                      display: "flex",
-                      "flex-direction": "column",
-                      "border-right": "1px solid rgba(255,255,255,0.05)",
-                      overflow: "hidden",
-                      background: "rgba(0,0,0,0.2)",
-                    }}
-                  >
-                    <div
-                      style={{
-                        padding: "8px 12px",
-                        "font-size": "0.6rem",
-                        "text-transform": "uppercase",
-                        "letter-spacing": "0.1em",
-                        color: "#475569",
-                        "font-family": "monospace",
-                        "border-bottom": "1px solid rgba(255,255,255,0.04)",
-                        "flex-shrink": 0,
-                      }}
-                    >
-                      Sensor Fleet
-                    </div>
-                    <div
-                      style={{
-                        flex: 1,
-                        "overflow-y": "auto",
-                        padding: "4px 6px",
-                      }}
-                    >
-                      <SensorFleetList
-                        sensors={sensors() || []}
-                        selectedSensorId={hoveredSensorId()}
-                        onSensorSelect={(s) => {
-                          setHoveredSensorId(s.sensorId);
-                          setHoveredSensor(s);
-                        }}
-                        onSensorHover={(s) => {
-                          // Keep it persistent on click, but update on hover
-                          if (s) {
-                            setHoveredSensorId(s.sensorId);
-                            setHoveredSensor(s);
-                          }
-                        }}
-                        maxHeight="none"
-                      />
-                    </div>
-                    <div
-                      style={{
-                        "border-top": "1px solid rgba(255,255,255,0.05)",
-                        "overflow-y": "auto",
-                        "max-height": "180px",
-                        "flex-shrink": 0,
-                        background: "rgba(255,0,0,0.02)",
-                      }}
-                    >
-                      <CriticalAlertsPanel
-                        spatialAlerts={spatialAlerts()}
-                        maxHeight="170px"
-                      />
-                    </div>
-                  </div>
-
-                  {/* CENTER: overview map — fills remaining width */}
-                  <div
-                    style={{
-                      flex: 1,
-                      "min-width": 0,
-                      overflow: "hidden",
-                      padding: "12px",
-                      position: "relative",
-                    }}
-                  >
-                    <SensorOverviewMap
-                      sensors={sensors() || []}
-                      spatialAlerts={spatialAlerts()}
-                      hoveredSensorId={hoveredSensorId()}
-                      onSensorClick={(s) => {
-                        setHoveredSensorId(s.sensorId);
-                        setHoveredSensor(s);
-                      }}
-                      height={400}
-                    />
-                  </div>
-
-                  {/* RIGHT: sensor detail panel (280px) */}
-                  <div
-                    style={{
-                      width: "280px",
-                      "flex-shrink": 0,
-                      "border-left": "1px solid rgba(255,255,255,0.05)",
-                      padding: "12px",
-                      overflow: "hidden",
-                      display: "flex",
-                      "flex-direction": "column",
-                      gap: "12px",
-                      background: "rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <Show when={hoveredSensor() !== null}>
-                      <div style={{ flex: 1, "overflow-y": "auto" }}>
-                        <SensorDetailHoverPanel
-                          sensor={hoveredSensor()}
-                          width="100%"
-                        />
-                      </div>
-                    </Show>
-
-                    <Show when={hoveredSensor() === null}>
-                      <div
-                        style={{
-                          padding: "16px",
-                          background: "rgba(255,255,255,0.02)",
-                          "border-radius": "10px",
-                          border: "1px solid rgba(255,255,255,0.05)",
-                          "margin-top": "4px",
-                          "backdrop-filter": "blur(10px)",
-                        }}
-                      >
-                        <div
-                          style={{
-                            "font-size": "0.6rem",
-                            color: "#475569",
-                            "text-transform": "uppercase",
-                            "letter-spacing": "0.1em",
-                            "margin-bottom": "14px",
-                            "font-family": "monospace",
-                          }}
-                        >
-                          SENSOR DETAIL
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            "flex-direction": "column",
-                            gap: "12px",
-                          }}
-                        >
-                          <div style={{ color: "#334155", "font-size": "0.75rem", "text-align": "center", padding: "20px 0" }}>
-                            Select a sensor from the fleet or cards to view real-time diagnostics.
-                          </div>
-                        </div>
-                      </div>
-                    </Show>
-                  </div>
+                  <PaneB />
                 </div>
               </div>
             </div>
-          </div>
           </Show>
         </Show>
       </div>

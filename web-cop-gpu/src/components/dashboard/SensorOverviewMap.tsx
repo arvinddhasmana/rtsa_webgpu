@@ -3,6 +3,7 @@
 //
 // Renders all sensor footprints on a single miniature map with gap hatching,
 // coastline overlay, toolbar, sensor labels, and fleet-list integration.
+// Floating glassmorphic overlay cards host the fleet list, critical alerts, and sensor detail.
 //
 // Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §B5
 
@@ -10,6 +11,7 @@ import { createSignal, For, JSX, Show } from "solid-js";
 import { SensorStatus } from "../../services/sensor-health";
 import { SpatialAlertPayload } from "../../signals/spatial-alerts";
 import { statusColor } from "./dashboard-utils";
+import { DraggableOverlayCard } from "./DraggableOverlayCard";
 
 export interface SensorOverviewMapProps {
   sensors: SensorStatus[];
@@ -18,6 +20,13 @@ export interface SensorOverviewMapProps {
   onSensorClick?: (sensor: SensorStatus) => void;
   width?: number;
   height?: number;
+  /**
+   * Optional JSX slots for the three glassmorphic overlay panels.
+   * When provided, each is rendered inside a DraggableOverlayCard on the map.
+   */
+  fleetListPanel?: JSX.Element;
+  criticalAlertsPanel?: JSX.Element;
+  sensorDetailPanel?: JSX.Element;
 }
 
 const DEFAULT_BOUNDS = { minLat: 54, maxLat: 62, minLon: -15, maxLon: -5 };
@@ -111,7 +120,10 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
         overflow: "hidden",
         position: "relative",
         width: "100%",
+        height: "100%",
         "backdrop-filter": "blur(8px)",
+        display: "flex",
+        "flex-direction": "column",
       }}
     >
       {/* ── Title row ── */}
@@ -122,6 +134,7 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
           "justify-content": "space-between",
           padding: "6px 10px",
           "border-bottom": "1px solid rgba(255,255,255,0.05)",
+          "flex-shrink": 0,
         }}
       >
         <div
@@ -165,6 +178,7 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
           "border-bottom": "1px solid rgba(255,255,255,0.04)",
           "align-items": "center",
           background: "rgba(0,0,0,0.1)",
+          "flex-shrink": 0,
         }}
       >
         <button
@@ -194,227 +208,314 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
         <button style={toolbarBtn}>⊞ Layers</button>
         <button style={toolbarBtn}>⚠ Alerts</button>
         <button style={toolbarBtn}>◫ Style</button>
+        <div style={{ flex: 1 }} />
+        <span style={{ "font-size": "0.55rem", color: "#334155", "font-family": "monospace" }}>
+          Drag panels to reposition · ▼ to minimise
+        </span>
       </div>
 
-      {/* ── SVG map ── */}
-      <svg
-        width="100%"
-        height={h}
-        viewBox={`0 0 ${w} ${h}`}
-        preserveAspectRatio="none"
+      {/* ── Map area (SVG + floating overlays) ── */}
+      <div
         style={{
-          background:
-            "radial-gradient(circle at center, #0f172a 0%, #020617 100%)",
-          display: "block",
+          flex: 1,
+          position: "relative",
+          "min-height": 0,
+          overflow: "hidden",
         }}
       >
-        <defs>
-          {/* Gap hatching */}
-          <pattern
-            id="ovmap-hatch"
-            patternUnits="userSpaceOnUse"
-            width="6"
-            height="6"
-            patternTransform="rotate(45)"
-          >
-            <line
-              x1="0"
-              y1="0"
-              x2="0"
-              y2="6"
-              stroke="#f87171"
-              stroke-width="1.2"
-              stroke-opacity="0.45"
-            />
-          </pattern>
-        </defs>
+        {/* SVG map fills the area */}
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${w} ${h}`}
+          preserveAspectRatio="none"
+          style={{
+            background:
+              "radial-gradient(circle at center, #0f172a 0%, #020617 100%)",
+            display: "block",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <defs>
+            {/* Gap hatching */}
+            <pattern
+              id="ovmap-hatch"
+              patternUnits="userSpaceOnUse"
+              width="6"
+              height="6"
+              patternTransform="rotate(45)"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="6"
+                stroke="#f87171"
+                stroke-width="1.2"
+                stroke-opacity="0.45"
+              />
+            </pattern>
+          </defs>
 
-        {/* Grid lines */}
-        <For each={[55, 56, 57, 58, 59, 60, 61]}>
-          {(lat) => (
-            <line
-              x1="0"
-              y1={latToY(lat)}
-              x2={w}
-              y2={latToY(lat)}
-              stroke="rgba(255,255,255,0.03)"
-              stroke-width="0.5"
-            />
-          )}
-        </For>
-        <For each={[-14, -13, -12, -11, -10, -9, -8, -7, -6]}>
-          {(lon) => (
-            <line
-              x1={lonToX(lon)}
-              y1="0"
-              x2={lonToX(lon)}
-              y2={h}
-              stroke="rgba(255,255,255,0.03)"
-              stroke-width="0.5"
-            />
-          )}
-        </For>
+          {/* Grid lines */}
+          <For each={[55, 56, 57, 58, 59, 60, 61]}>
+            {(lat) => (
+              <line
+                x1="0"
+                y1={latToY(lat)}
+                x2={w}
+                y2={latToY(lat)}
+                stroke="rgba(255,255,255,0.03)"
+                stroke-width="0.5"
+              />
+            )}
+          </For>
+          <For each={[-14, -13, -12, -11, -10, -9, -8, -7, -6]}>
+            {(lon) => (
+              <line
+                x1={lonToX(lon)}
+                y1="0"
+                x2={lonToX(lon)}
+                y2={h}
+                stroke="rgba(255,255,255,0.03)"
+                stroke-width="0.5"
+              />
+            )}
+          </For>
 
-        {/* Simplified UK / North Atlantic coastline */}
-        <polyline
-          points={[
-            [-5.5, 58.5],
-            [-5.0, 58.8],
-            [-4.5, 59.0],
-            [-3.8, 58.6],
-            [-3.5, 58.0],
-            [-4.0, 57.5],
-            [-5.0, 57.0],
-            [-5.5, 56.5],
-            [-5.8, 55.9],
-            [-6.5, 55.2],
-            [-7.0, 55.0],
-            [-7.5, 55.5],
-            [-7.8, 56.0],
-            [-8.0, 57.5],
-            [-8.5, 58.0],
-            [-9.0, 58.5],
-            [-10.0, 59.0],
-            [-10.5, 59.5],
-          ]
-            .map(([lon, lat]) => `${lonToX(lon)},${latToY(lat)}`)
-            .join(" ")}
-          fill="none"
-          stroke="rgba(148,163,184,0.15)"
-          stroke-width="1.2"
-          stroke-linejoin="round"
-        />
+          {/* Simplified UK / North Atlantic coastline */}
+          <polyline
+            points={[
+              [-5.5, 58.5],
+              [-5.0, 58.8],
+              [-4.5, 59.0],
+              [-3.8, 58.6],
+              [-3.5, 58.0],
+              [-4.0, 57.5],
+              [-5.0, 57.0],
+              [-5.5, 56.5],
+              [-5.8, 55.9],
+              [-6.5, 55.2],
+              [-7.0, 55.0],
+              [-7.5, 55.5],
+              [-7.8, 56.0],
+              [-8.0, 57.5],
+              [-8.5, 58.0],
+              [-9.0, 58.5],
+              [-10.0, 59.0],
+              [-10.5, 59.5],
+            ]
+              .map(([lon, lat]) => `${lonToX(lon)},${latToY(lat)}`)
+              .join(" ")}
+            fill="none"
+            stroke="rgba(148,163,184,0.15)"
+            stroke-width="1.2"
+            stroke-linejoin="round"
+          />
 
-        {/* Coverage footprints */}
-        <For each={props.sensors.filter((s) => s.coverage)}>
-          {(s) => {
-            const cx = () => lonToX(s.coverage!.centerLon);
-            const cy = () => latToY(s.coverage!.centerLat);
-            const r = () => nmToPx(s.coverage!.rangeNm);
-            const color = statusColor(s.status);
-            const isOffline = s.status === "OFFLINE";
-            const isHovered = () => props.hoveredSensorId === s.sensorId;
-            const isFullCircle =
-              Math.abs(s.coverage!.bearingEnd - s.coverage!.bearingStart) >=
-              360;
+          {/* Coverage footprints */}
+          <For each={props.sensors.filter((s) => s.coverage)}>
+            {(s) => {
+              const cx = () => lonToX(s.coverage!.centerLon);
+              const cy = () => latToY(s.coverage!.centerLat);
+              const r = () => nmToPx(s.coverage!.rangeNm);
+              const color = statusColor(s.status);
+              const isOffline = s.status === "OFFLINE";
+              const isHovered = () => props.hoveredSensorId === s.sensorId;
+              const isFullCircle =
+                Math.abs(s.coverage!.bearingEnd - s.coverage!.bearingStart) >=
+                360;
 
-            return (
-              <g
-                style={{
-                  opacity: isOffline ? 0.8 : isHovered() ? 1 : 0.45,
-                  cursor: props.onSensorClick ? "pointer" : "default",
-                }}
-                onClick={() => props.onSensorClick?.(s)}
-              >
-                {/* Hatch for offline */}
-                <Show when={isOffline}>
-                  <Show
-                    when={isFullCircle}
-                    fallback={
-                      <path
-                        d={describeArc(
-                          cx(),
-                          cy(),
-                          r(),
-                          s.coverage!.bearingStart,
-                          s.coverage!.bearingEnd,
-                        )}
+              return (
+                <g
+                  style={{
+                    opacity: isOffline ? 0.8 : isHovered() ? 1 : 0.45,
+                    cursor: props.onSensorClick ? "pointer" : "default",
+                  }}
+                  onClick={() => props.onSensorClick?.(s)}
+                >
+                  {/* Hatch for offline */}
+                  <Show when={isOffline}>
+                    <Show
+                      when={isFullCircle}
+                      fallback={
+                        <path
+                          d={describeArc(
+                            cx(),
+                            cy(),
+                            r(),
+                            s.coverage!.bearingStart,
+                            s.coverage!.bearingEnd,
+                          )}
+                          fill="url(#ovmap-hatch)"
+                          stroke="#f87171"
+                          stroke-width="0.8"
+                        />
+                      }
+                    >
+                      <circle
+                        cx={cx()}
+                        cy={cy()}
+                        r={r()}
                         fill="url(#ovmap-hatch)"
                         stroke="#f87171"
                         stroke-width="0.8"
                       />
-                    }
-                  >
-                    <circle
-                      cx={cx()}
-                      cy={cy()}
-                      r={r()}
-                      fill="url(#ovmap-hatch)"
-                      stroke="#f87171"
-                      stroke-width="0.8"
-                    />
+                    </Show>
                   </Show>
-                </Show>
 
-                {/* Normal footprint */}
-                <Show when={!isOffline}>
-                  <Show
-                    when={isFullCircle}
-                    fallback={
-                      <path
-                        d={describeArc(
-                          cx(),
-                          cy(),
-                          r(),
-                          s.coverage!.bearingStart,
-                          s.coverage!.bearingEnd,
-                        )}
-                        fill={`${color}15`}
+                  {/* Normal footprint */}
+                  <Show when={!isOffline}>
+                    <Show
+                      when={isFullCircle}
+                      fallback={
+                        <path
+                          d={describeArc(
+                            cx(),
+                            cy(),
+                            r(),
+                            s.coverage!.bearingStart,
+                            s.coverage!.bearingEnd,
+                          )}
+                          fill={`${color}15`}
+                          stroke={color}
+                          stroke-width="0.8"
+                        />
+                      }
+                    >
+                      <circle
+                        cx={cx()}
+                        cy={cy()}
+                        r={r()}
+                        fill={`${color}12`}
                         stroke={color}
                         stroke-width="0.8"
                       />
-                    }
-                  >
+                    </Show>
+                  </Show>
+
+                  {/* Hover highlight ring */}
+                  <Show when={isHovered()}>
                     <circle
                       cx={cx()}
                       cy={cy()}
-                      r={r()}
-                      fill={`${color}12`}
+                      r={r() + 3}
+                      fill="none"
                       stroke={color}
-                      stroke-width="0.8"
+                      stroke-width="1.5"
+                      stroke-dasharray="4,3"
+                      stroke-opacity="0.7"
                     />
                   </Show>
-                </Show>
 
-                {/* Hover highlight ring */}
-                <Show when={isHovered()}>
-                  <circle
-                    cx={cx()}
-                    cy={cy()}
-                    r={r() + 3}
-                    fill="none"
-                    stroke={color}
-                    stroke-width="1.5"
-                    stroke-dasharray="4,3"
-                    stroke-opacity="0.7"
-                  />
-                </Show>
+                  {/* Sensor dot */}
+                  <circle cx={cx()} cy={cy()} r="2" fill={color} />
 
-                {/* Sensor dot */}
-                <circle cx={cx()} cy={cy()} r="2" fill={color} />
-
-                {/* Sensor label callout */}
-                <text
-                  x={cx() + 4}
-                  y={cy() - 4}
-                  fill={isOffline ? "#f87171" : "#94a3b8"}
-                  font-size="7"
-                  font-family="monospace"
-                  style={{ "pointer-events": "none" }}
-                >
-                  {sensorShortLabel(s)}
-                </text>
-
-                {/* GAP DETECTED annotation */}
-                <Show when={isOffline}>
+                  {/* Sensor label callout */}
                   <text
-                    x={cx()}
-                    y={cy() + 4}
-                    text-anchor="middle"
-                    fill="#f87171"
+                    x={cx() + 4}
+                    y={cy() - 4}
+                    fill={isOffline ? "#f87171" : "#94a3b8"}
                     font-size="7"
                     font-family="monospace"
-                    font-weight="bold"
-                    style={{ opacity: 0.85 }}
+                    style={{ "pointer-events": "none" }}
                   >
-                    GAP DETECTED
+                    {sensorShortLabel(s)}
                   </text>
-                </Show>
-              </g>
-            );
-          }}
-        </For>
-      </svg>
+
+                  {/* GAP DETECTED annotation */}
+                  <Show when={isOffline}>
+                    <text
+                      x={cx()}
+                      y={cy() + 4}
+                      text-anchor="middle"
+                      fill="#f87171"
+                      font-size="7"
+                      font-family="monospace"
+                      font-weight="bold"
+                      style={{ opacity: 0.85 }}
+                    >
+                      GAP DETECTED
+                    </text>
+                  </Show>
+                </g>
+              );
+            }}
+          </For>
+        </svg>
+
+        {/* ── Floating glassmorphic overlay cards ── */}
+
+        {/* Fleet list overlay — top-left */}
+        <Show when={props.fleetListPanel !== undefined}>
+          <DraggableOverlayCard
+            title="Sensor Fleet"
+            scrollKey="fleet"
+            initialX={12}
+            initialY={12}
+            width="210px"
+            maxHeight="260px"
+            accentColor="rgba(59,130,246,0.5)"
+            zIndex={10}
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19.07 4.93a10 10 0 0 0-14.14 0" />
+                <path d="M16.24 7.76a6 6 0 0 0-8.48 0" />
+                <circle cx="12" cy="12" r="2" />
+              </svg>
+            }
+          >
+            {props.fleetListPanel}
+          </DraggableOverlayCard>
+        </Show>
+
+        {/* Critical alerts overlay — bottom-left */}
+        <Show when={props.criticalAlertsPanel !== undefined}>
+          <DraggableOverlayCard
+            title="Critical Alerts"
+            scrollKey="alerts"
+            initialX={12}
+            initialY={310}
+            width="210px"
+            maxHeight="200px"
+            accentColor="rgba(248,113,113,0.5)"
+            zIndex={11}
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            }
+          >
+            {props.criticalAlertsPanel}
+          </DraggableOverlayCard>
+        </Show>
+
+        {/* Sensor detail overlay — top-right */}
+        <Show when={props.sensorDetailPanel !== undefined}>
+          <DraggableOverlayCard
+            title="Sensor Detail"
+            scrollKey="detail"
+            initialX={240}
+            initialY={12}
+            width="260px"
+            minWidth="220px"
+            maxHeight="340px"
+            accentColor="rgba(20,184,166,0.5)"
+            zIndex={12}
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            }
+          >
+            {props.sensorDetailPanel}
+          </DraggableOverlayCard>
+        </Show>
+      </div>
 
       {/* ── Legend ── */}
       <div
@@ -424,6 +525,7 @@ export function SensorOverviewMap(props: SensorOverviewMapProps): JSX.Element {
           "font-size": "0.55rem",
           padding: "4px 8px",
           "border-top": "1px solid rgba(255,255,255,0.04)",
+          "flex-shrink": 0,
         }}
       >
         <div style={{ display: "flex", "align-items": "center", gap: "3px" }}>
