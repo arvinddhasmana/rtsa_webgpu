@@ -39,8 +39,8 @@ export function SensorGrid(props: SensorGridProps) {
 
   const cardMinWidth = () =>
     props.cardView === "compact"
-      ? "clamp(200px, 16vw, 270px)"
-      : "clamp(240px, 20vw, 310px)";
+      ? "clamp(240px, 20vw, 310px)"
+      : "clamp(300px, 24vw, 360px)";
 
   return (
     <div

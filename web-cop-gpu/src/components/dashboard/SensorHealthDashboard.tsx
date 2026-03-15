@@ -195,29 +195,30 @@ export function SensorHealthDashboard() {
     const rootR = root.getBoundingClientRect();
     const paneR = pane.getBoundingClientRect();
 
-    // Calculate offset relative to the dashboard root
     const offX = Math.max(0, paneR.left - rootR.left);
     const offY = Math.max(0, paneR.top - rootR.top);
     const w = paneR.width;
     const h = paneR.height;
     if (w <= 0 || h <= 0) return;
 
-    const gap = 16;
-    const cardW = 440; // Use a fixed width for consistent arrangement
-    const cardH = 580; // Estimated height
+    const gap = 20;
+    const cardW = 440;
+    const cardH = 580;
 
-    const columns = Math.max(1, Math.floor((w - 20) / (cardW + gap)));
+    const columns = Math.max(1, Math.floor((w - 40) / (cardW + gap)));
     const arranged: Record<string, { x: number; y: number }> = {};
 
     items.forEach((sensor, idx) => {
       const col = idx % columns;
       const row = Math.floor(idx / columns);
       arranged[sensor.sensorId] = {
-        x: offX + 10 + col * (cardW + gap),
-        y: offY + 10 + row * (cardH + gap),
+        x: offX + 20 + col * (cardW + gap),
+        y: offY + 20 + row * (cardH + gap),
       };
     });
-    setOverlayPositions(arranged);
+
+    // Explicitly set a new object to trigger reactivity in children
+    setOverlayPositions({ ...arranged });
   }
 
   function syncOverlayFrame() {

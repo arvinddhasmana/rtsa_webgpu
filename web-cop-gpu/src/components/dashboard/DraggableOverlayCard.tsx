@@ -52,51 +52,41 @@ export function DraggableOverlayCard(
     e.preventDefault();
   }
 
-  function onMouseMove(e: MouseEvent) {
-    if (!dragging()) return;
-    let next = {
-      x: e.clientX - dragOffset().dx,
-      y: e.clientY - dragOffset().dy,
-    };
-    if (props.constrainToParent && rootEl?.parentElement) {
-      const parent = rootEl.parentElement;
-      const parentW = parent.clientWidth;
-      const parentH = parent.clientHeight;
-      const cardW = rootEl.offsetWidth;
-      const cardH = rootEl.offsetHeight;
-      const pad = 8;
-      next = {
-        x: Math.min(
-          Math.max(next.x, pad),
-          Math.max(pad, parentW - cardW - pad),
-        ),
-        y: Math.min(
-          Math.max(next.y, pad),
-          Math.max(pad, parentH - cardH - pad),
-        ),
-      };
-    }
-    setPos(next);
-    props.onPositionChange?.(next);
-  }
-
-  function onMouseUp() {
-    setDragging(false);
-  }
-
   // Sync externally provided position (used by auto-arrange) without disrupting active drag
   createEffect(() => {
     const external = props.position;
-    if (!external || dragging()) return;
-    const current = pos();
-    if (current.x !== external.x || current.y !== external.y) {
+    if (external && !dragging()) {
       setPos(external);
     }
   });
 
   createEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => onMouseMove(e);
-    const handleMouseUp = () => onMouseUp();
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragging()) return;
+
+      let next = {
+        x: e.clientX - dragOffset().dx,
+        y: e.clientY - dragOffset().dy,
+      };
+
+      if (props.constrainToParent && rootEl?.parentElement) {
+        const parent = rootEl.parentElement;
+        const parentW = parent.clientWidth;
+        const parentH = parent.clientHeight;
+        const cardW = rootEl.offsetWidth;
+        const cardH = rootEl.offsetHeight;
+        const pad = 8;
+        next = {
+          x: Math.min(Math.max(next.x, pad), Math.max(pad, parentW - cardW - pad)),
+          y: Math.min(Math.max(next.y, pad), Math.max(pad, parentH - cardH - pad)),
+        };
+      }
+
+      setPos(next);
+      props.onPositionChange?.(next);
+    };
+
+    const handleMouseUp = () => setDragging(false);
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
