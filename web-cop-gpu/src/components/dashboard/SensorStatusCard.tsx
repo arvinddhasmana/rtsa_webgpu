@@ -226,7 +226,8 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
   };
 
   const cardStyle = () => ({
-    background: "linear-gradient(135deg, rgba(10, 15, 26, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%)",
+    background:
+      "linear-gradient(135deg, rgba(10, 15, 26, 0.92) 0%, rgba(15, 23, 42, 0.82) 100%)",
     "backdrop-filter": "blur(16px)",
     "-webkit-backdrop-filter": "blur(16px)",
     border: "1px solid rgba(255, 255, 255, 0.07)",
@@ -244,8 +245,8 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     overflow: "hidden",
     cursor: "pointer",
     "min-width": props.compact
-      ? "clamp(200px, 17vw, 270px)"
-      : "clamp(240px, 20vw, 310px)",
+      ? "clamp(220px, 18vw, 290px)"
+      : "clamp(260px, 22vw, 340px)",
     "font-size": "0.75rem",
   });
 
@@ -426,7 +427,7 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     </div>
   );
 
-  const hoverStyle = `.sensor-card-hover:hover{transform:translateY(-4px);border-color:rgba(255,255,255,0.2);box-shadow:0 12px 30px rgba(0,0,0,0.5);background:rgba(15,23,42,0.85);}
+  const hoverStyle = `.sensor-card-hover:hover{transform:translateY(-1px);border-color:rgba(255,255,255,0.2);box-shadow:0 10px 24px rgba(0,0,0,0.46);background:rgba(15,23,42,0.85);}
 @keyframes connected-pulse{0%{box-shadow:0 0 0 0 rgba(74,222,128,0.6);}70%{box-shadow:0 0 0 8px rgba(74,222,128,0);}100%{box-shadow:0 0 0 0 rgba(74,222,128,0);}}
 .status-connected-dot{animation:connected-pulse 2s infinite;}`;
 
