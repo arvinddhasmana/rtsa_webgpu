@@ -809,16 +809,13 @@ export function SensorHealthDashboard() {
           </Show>
 
           <For each={openDiagnostics()}>
-            {(sensor, idx) => {
-              const pos =
-                overlayPositions()[sensor.sensorId] ?? basePosition(idx());
-              return (
-                <DraggableOverlayCard
-                  title={`Diag · ${sensor.sensorId}`}
-                  position={pos}
-                  onPositionChange={(p) =>
-                    updateOverlayPosition(sensor.sensorId, p)
-                  }
+            {(sensor, idx) => (
+              <DraggableOverlayCard
+                title={`Diag · ${sensor.sensorId}`}
+                position={overlayPositions()[sensor.sensorId] ?? basePosition(idx())}
+                onPositionChange={(p) =>
+                  updateOverlayPosition(sensor.sensorId, p)
+                }
                   onClose={() => closeDiagnosticCard(sensor.sensorId)}
                   width="clamp(380px, 30vw, 500px)"
                   minWidth="360px"
@@ -832,8 +829,7 @@ export function SensorHealthDashboard() {
                     onClose={() => closeDiagnosticCard(sensor.sensorId)}
                   />
                 </DraggableOverlayCard>
-              );
-            }}
+            )}
           </For>
         </div>
       </Show>

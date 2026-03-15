@@ -33,7 +33,7 @@ export function DraggableOverlayCard(
   props: DraggableOverlayCardProps,
 ): JSX.Element {
   const [minimized, setMinimized] = createSignal(false);
-  const [pos, setPos] = createSignal({
+  const [pos, setPos] = createSignal(props.position ?? {
     x: props.initialX ?? 16,
     y: props.initialY ?? 16,
   });
