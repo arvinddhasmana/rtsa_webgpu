@@ -84,27 +84,22 @@ describe("SensorHealthDiagnosticCard", () => {
     expect(screen.getByText("RADAR")).toBeDefined();
   });
 
-  it("shows sensor status", () => {
+  it("shows sensor status and health widgets", async () => {
     render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
     expect(screen.getByText("CONNECTED")).toBeDefined();
+    await waitFor(() => expect(screen.getByText("NOMINAL")).toBeDefined(), { timeout: 2000 });
   });
 
-  it("shows throughput metric", () => {
+  it("shows throughput metric", async () => {
     render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
-    expect(screen.getByText("Throughput")).toBeDefined();
-    expect(screen.getByText(/48\.2/)).toBeDefined();
+    expect(await screen.findByText("Throughput", {}, { timeout: 2000 })).toBeDefined();
+    await waitFor(() => expect(screen.getByText(/48\.2/)).toBeDefined(), { timeout: 2000 });
   });
 
-  it("shows validation metric", () => {
+  it("shows DLQ count metric", async () => {
     render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
-    expect(screen.getByText("Validation")).toBeDefined();
-    expect(screen.getByText(/98\.7%/)).toBeDefined();
-  });
-
-  it("shows DLQ count metric", () => {
-    render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
-    expect(screen.getByText("DLQ Count")).toBeDefined();
-    expect(screen.getByText("5")).toBeDefined();
+    expect(await screen.findByText("DLQ Count", {}, { timeout: 2000 })).toBeDefined();
+    await waitFor(() => expect(screen.getByText("5")).toBeDefined(), { timeout: 2000 });
   });
 
   it("shows health score after data loads", async () => {
@@ -121,17 +116,17 @@ describe("SensorHealthDiagnosticCard", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("has View Full Diagnostics button", () => {
+  it("has View Full Diagnostics button", async () => {
     render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
-    expect(screen.getByTestId("diagnostic-card-view-full-btn")).toBeDefined();
+    await waitFor(() => expect(screen.getByTestId("diagnostic-card-view-full-btn")).toBeDefined(), { timeout: 2000 });
   });
 
   it("clicking View Full Diagnostics calls setSelectedSensor", async () => {
     const { setSelectedSensor } = await import("../../src/signals/sensor-filters");
     render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
-    const viewBtn = screen.getByTestId("diagnostic-card-view-full-btn");
+    const viewBtn = await screen.findByTestId("diagnostic-card-view-full-btn", {}, { timeout: 2000 });
     fireEvent.click(viewBtn);
-    expect(setSelectedSensor).toHaveBeenCalledWith(sensor);
+    await waitFor(() => expect(setSelectedSensor).toHaveBeenCalledWith(sensor), { timeout: 2000 });
   });
 
   it("shows DEGRADED label for health score 70", async () => {
@@ -165,5 +160,11 @@ describe("SensorHealthDiagnosticCard", () => {
     });
     render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
     await waitFor(() => expect(screen.getByText("DEGRADED")).toBeDefined(), { timeout: 2000 });
+  });
+
+  it("renders OPS and timeline sections", async () => {
+    render(() => <SensorHealthDiagnosticCard sensor={sensor} />);
+    await waitFor(() => expect(screen.getByText(/Observation Rate/i)).toBeDefined(), { timeout: 2000 });
+    expect(screen.getByText(/Diagnostic Event Timeline/i)).toBeDefined();
   });
 });

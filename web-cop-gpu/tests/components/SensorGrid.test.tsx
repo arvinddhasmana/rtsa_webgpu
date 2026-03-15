@@ -90,6 +90,16 @@ describe("SensorGrid", () => {
     expect(card.getAttribute("data-view")).toBe("compact");
   });
 
+  it("calls onOpenDiagnostic when scope button is clicked", () => {
+    const onOpenDiagnostic = vi.fn();
+    render(() => (
+      <SensorGrid sensors={mockSensors} onOpenDiagnostic={onOpenDiagnostic} />
+    ));
+    const scopeBtn = screen.getAllByTitle("Health Diagnostics")[0];
+    fireEvent.click(scopeBtn);
+    expect(onOpenDiagnostic).toHaveBeenCalledWith(mockSensors[0]);
+  });
+
   it("renders full view cards when cardView='full'", () => {
     render(() => <SensorGrid sensors={mockSensors} cardView="full" />);
     const card = screen.getByTestId("sensor-card-RADAR-01");

@@ -4,10 +4,8 @@
 // Reference: docs/business/usecases/UC017_sensor_health_monitoring.md
 
 import { createMemo, createSignal, For, Show } from "solid-js";
-import { Portal } from "solid-js/web";
 import { SensorStatus } from "../../services/sensor-health";
 import { selectedStatuses, selectedTypes } from "../../signals/sensor-filters";
-import { SensorHealthDiagnosticCard } from "./SensorHealthDiagnosticCard";
 import { SensorStatusCard } from "./SensorStatusCard";
 
 interface SensorGridProps {
@@ -15,6 +13,7 @@ interface SensorGridProps {
   /** "full" (default) = rich dual-sparkline cards; "compact" = condensed metric cards */
   cardView?: "full" | "compact";
   onSensorSelect?: (sensor: SensorStatus) => void;
+  onOpenDiagnostic?: (sensor: SensorStatus) => void;
 }
 
 const ROW_OPTIONS = [1, 2, 3, 4] as const;
@@ -29,9 +28,6 @@ const ROW_OPTIONS = [1, 2, 3, 4] as const;
  */
 export function SensorGrid(props: SensorGridProps) {
   const [rows, setRows] = createSignal<number>(2);
-  const [diagnoseSensor, setDiagnoseSensor] = createSignal<SensorStatus | null>(
-    null,
-  );
 
   const filteredSensors = createMemo(() =>
     props.sensors.filter(
@@ -212,7 +208,7 @@ export function SensorGrid(props: SensorGridProps) {
               "grid-template-rows": `repeat(${rows()}, minmax(140px, auto))`,
               "grid-auto-flow": "column",
               "grid-auto-columns": cardMinWidth(),
-              gap: "10px",
+              gap: "12px",
               width: "max-content",
               "min-width": "100%",
               "align-items": "start",
@@ -224,40 +220,13 @@ export function SensorGrid(props: SensorGridProps) {
                   sensor={sensor}
                   compact={props.cardView === "compact"}
                   onSelect={props.onSensorSelect}
-                  onDiagnose={(s) => setDiagnoseSensor(s)}
+                  onDiagnose={(s) => props.onOpenDiagnostic?.(s)}
                 />
               )}
             </For>
           </div>
         </div>
       </Show>
-
-      {/* ── Diagnostic overlay — rendered in Portal to escape backdrop-filter ancestors ── */}
-      <Show when={diagnoseSensor() !== null}>
-        <Portal>
-          {/* Semi-transparent backdrop */}
-          <div
-            onClick={() => setDiagnoseSensor(null)}
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0, 0, 0, 0.6)",
-              "backdrop-filter": "blur(5px)",
-              "-webkit-backdrop-filter": "blur(5px)",
-              "z-index": 998,
-              animation: "sensorGridBackdropIn 0.2s ease",
-            }}
-          />
-          <SensorHealthDiagnosticCard
-            sensor={diagnoseSensor()!}
-            onClose={() => setDiagnoseSensor(null)}
-          />
-        </Portal>
-      </Show>
-
       <style>{`
         .sensor-grid-scroll::-webkit-scrollbar {
           height: 5px;
