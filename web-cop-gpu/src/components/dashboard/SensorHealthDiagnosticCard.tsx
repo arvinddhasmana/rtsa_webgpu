@@ -7,7 +7,14 @@
 // Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §B3
 // Reference: docs/business/usecases/UC017_sensor_health_monitoring.md
 
-import { createMemo, createResource, createSignal, For, JSX, Show } from "solid-js";
+import {
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  JSX,
+  Show,
+} from "solid-js";
 import {
   fetchSensorDiagnostic,
   SensorStatus,
@@ -82,7 +89,11 @@ export function SensorHealthDiagnosticCard(
     return "#4ade80";
   }
 
-  const MetricTile = (metricProps: { label: string; value: JSX.Element; accent?: string }): JSX.Element => (
+  const MetricTile = (metricProps: {
+    label: string;
+    value: JSX.Element;
+    accent?: string;
+  }): JSX.Element => (
     <div
       style={{
         background: "rgba(255,255,255,0.02)",
@@ -106,7 +117,13 @@ export function SensorHealthDiagnosticCard(
       >
         {metricProps.label}
       </span>
-      <div style={{ "font-size": "0.95rem", "font-weight": "700", color: metricProps.accent ?? "#e2e8f0" }}>
+      <div
+        style={{
+          "font-size": "0.95rem",
+          "font-weight": "700",
+          color: metricProps.accent ?? "#e2e8f0",
+        }}
+      >
         {metricProps.value}
       </div>
     </div>
@@ -134,7 +151,8 @@ export function SensorHealthDiagnosticCard(
           display: "flex",
           gap: "4px",
           "align-items": "flex-end",
-          background: "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))",
+          background:
+            "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))",
           padding: "10px",
           "border-radius": "10px",
           border: "1px solid rgba(255,255,255,0.06)",
@@ -197,7 +215,14 @@ export function SensorHealthDiagnosticCard(
           padding: "2px 0 10px",
         }}
       >
-        <div style={{ display: "flex", "align-items": "center", gap: "10px", flex: 1 }}>
+        <div
+          style={{
+            display: "flex",
+            "align-items": "center",
+            gap: "10px",
+            flex: 1,
+          }}
+        >
           <div
             style={{
               width: "36px",
@@ -225,7 +250,14 @@ export function SensorHealthDiagnosticCard(
             >
               {props.sensor.sensorId}
             </div>
-            <div style={{ display: "flex", gap: "10px", "align-items": "center", "margin-top": "2px" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "10px",
+                "align-items": "center",
+                "margin-top": "2px",
+              }}
+            >
               <span style={{ "font-size": "0.62rem", color: "#94a3b8" }}>
                 {props.sensor.sensorType}
               </span>
@@ -303,19 +335,30 @@ export function SensorHealthDiagnosticCard(
                   "align-items": "center",
                 }}
               >
-                <div style={{ position: "relative", width: "88px", height: "88px" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "88px",
+                    height: "88px",
+                  }}
+                >
                   {(() => {
                     const circumference = 2 * Math.PI * 38;
                     const pct = Math.max(0, Math.min(100, d().healthScore));
                     const offset = circumference * (1 - pct / 100);
                     return (
-                      <svg width="88" height="88" viewBox="0 0 88 88" style={{ transform: "rotate(-90deg)" }}>
+                      <svg
+                        width="88"
+                        height="88"
+                        viewBox="0 0 88 88"
+                        style={{ transform: "rotate(-90deg)" }}
+                      >
                         <circle
                           cx="44"
                           cy="44"
                           r="38"
                           stroke="rgba(255,255,255,0.08)"
-                          strokeWidth="8"
+                          stroke-width="8"
                           fill="none"
                         />
                         <circle
@@ -323,11 +366,11 @@ export function SensorHealthDiagnosticCard(
                           cy="44"
                           r="38"
                           stroke={healthColor(pct)}
-                          strokeWidth="8"
-                          strokeLinecap="round"
+                          stroke-width="8"
+                          stroke-linecap="round"
                           fill="none"
-                          strokeDasharray={`${circumference} ${circumference}`}
-                          strokeDashoffset={offset}
+                          stroke-dasharray={`${circumference} ${circumference}`}
+                          stroke-dashoffset={offset}
                         />
                       </svg>
                     );
@@ -343,19 +386,44 @@ export function SensorHealthDiagnosticCard(
                       "pointer-events": "none",
                     }}
                   >
-                    <div style={{ "font-size": "1.4rem", "font-weight": "800", color: healthColor(d().healthScore) }}>
+                    <div
+                      style={{
+                        "font-size": "1.4rem",
+                        "font-weight": "800",
+                        color: healthColor(d().healthScore),
+                      }}
+                    >
                       {d().healthScore}
                     </div>
-                    <div style={{ "font-size": "0.6rem", color: "#64748b", "letter-spacing": "0.06em" }}>
+                    <div
+                      style={{
+                        "font-size": "0.6rem",
+                        color: "#64748b",
+                        "letter-spacing": "0.06em",
+                      }}
+                    >
                       {healthLabel(d().healthScore)}
                     </div>
                   </div>
                 </div>
-                <div style={{ display: "flex", "flex-direction": "column", gap: "8px", flex: 1 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    "flex-direction": "column",
+                    gap: "8px",
+                    flex: 1,
+                  }}
+                >
                   <MetricTile
                     label="Validation"
                     value={
-                      <span style={{ color: validationColor(props.sensor.validationPassRate) }}>
+                      <span
+                        style={{
+                          color: validationColor(
+                            props.sensor.validationPassRate,
+                          ),
+                        }}
+                      >
                         {props.sensor.status === "OFFLINE"
                           ? "N/A"
                           : `${props.sensor.validationPassRate}%`}
@@ -366,44 +434,66 @@ export function SensorHealthDiagnosticCard(
                     label="Avg Latency"
                     value={
                       <span>
-                        {d().avgLatencyMs} <span style={{ color: "#475569", "font-size": "0.65rem" }}>ms</span>
+                        {d().avgLatencyMs}{" "}
+                        <span
+                          style={{ color: "#475569", "font-size": "0.65rem" }}
+                        >
+                          ms
+                        </span>
                       </span>
                     }
-                    accent={d().avgLatencyMs < 150 ? "#4ade80" : d().avgLatencyMs < 250 ? "#fbbf24" : "#f87171"}
+                    accent={
+                      d().avgLatencyMs < 150
+                        ? "#4ade80"
+                        : d().avgLatencyMs < 250
+                          ? "#fbbf24"
+                          : "#f87171"
+                    }
                   />
                 </div>
               </div>
 
-              <div style={{ display: "grid", "grid-template-columns": "1fr 1fr", gap: "8px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  "grid-template-columns": "1fr 1fr",
+                  gap: "8px",
+                }}
+              >
                 <MetricTile
                   label="Throughput"
                   value={
                     <span>
                       {props.sensor.eventsPerSecond.toFixed(1)}{" "}
-                      <span style={{ color: "#475569", "font-size": "0.6rem" }}>obs/s</span>
+                      <span style={{ color: "#475569", "font-size": "0.6rem" }}>
+                        obs/s
+                      </span>
                     </span>
                   }
                   accent="#60a5fa"
                 />
                 <MetricTile
                   label="Uptime"
-                  value={
-                    <span>
-                      {d().connectionUptimePct.toFixed(1)}%
-                    </span>
-                  }
+                  value={<span>{d().connectionUptimePct.toFixed(1)}%</span>}
                   accent={d().connectionUptimePct >= 95 ? "#4ade80" : "#fbbf24"}
                 />
                 <MetricTile
                   label="DLQ Count"
-                  value={<span style={{ color: dlqColor(props.sensor.dlqCount) }}>{props.sensor.dlqCount}</span>}
+                  value={
+                    <span style={{ color: dlqColor(props.sensor.dlqCount) }}>
+                      {props.sensor.dlqCount}
+                    </span>
+                  }
                   accent={dlqColor(props.sensor.dlqCount)}
                 />
                 <MetricTile
                   label="Peak Tput"
                   value={
                     <span>
-                      {d().peakThroughput} <span style={{ color: "#475569", "font-size": "0.6rem" }}>obs/s</span>
+                      {d().peakThroughput}{" "}
+                      <span style={{ color: "#475569", "font-size": "0.6rem" }}>
+                        obs/s
+                      </span>
                     </span>
                   }
                   accent="#c084fc"
@@ -430,17 +520,42 @@ export function SensorHealthDiagnosticCard(
                   gap: "8px",
                 }}
               >
-                <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center" }}>
-                  <span style={{ "font-size": "0.72rem", "text-transform": "uppercase", color: "#94a3b8", "letter-spacing": "0.08em" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    "justify-content": "space-between",
+                    "align-items": "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      "font-size": "0.72rem",
+                      "text-transform": "uppercase",
+                      color: "#94a3b8",
+                      "letter-spacing": "0.08em",
+                    }}
+                  >
                     Diagnostic Event Timeline
                   </span>
-                  <span style={{ "font-size": "0.6rem", color: "#475569" }}>Recent</span>
+                  <span style={{ "font-size": "0.6rem", color: "#475569" }}>
+                    Recent
+                  </span>
                 </div>
                 <Show
                   when={timeline().length > 0}
-                  fallback={<div style={{ color: "#334155", "font-size": "0.65rem" }}>No recent events</div>}
+                  fallback={
+                    <div style={{ color: "#334155", "font-size": "0.65rem" }}>
+                      No recent events
+                    </div>
+                  }
                 >
-                  <div style={{ display: "flex", "flex-direction": "column", gap: "8px" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      "flex-direction": "column",
+                      gap: "8px",
+                    }}
+                  >
                     <For each={timeline()}>
                       {(evt) => (
                         <div
@@ -454,14 +569,38 @@ export function SensorHealthDiagnosticCard(
                             "border-radius": "10px",
                           }}
                         >
-                          <span style={{ color: "#64748b", "font-size": "0.62rem" }}>
-                            {new Date(evt.timeUtc).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                          <span
+                            style={{ color: "#64748b", "font-size": "0.62rem" }}
+                          >
+                            {new Date(evt.timeUtc).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              second: "2-digit",
+                            })}
                           </span>
-                          <div style={{ display: "flex", "flex-direction": "column", gap: "4px" }}>
-                            <span style={{ color: severityColor(evt.severity), "font-weight": "700", "font-size": "0.72rem" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              "flex-direction": "column",
+                              gap: "4px",
+                            }}
+                          >
+                            <span
+                              style={{
+                                color: severityColor(evt.severity),
+                                "font-weight": "700",
+                                "font-size": "0.72rem",
+                              }}
+                            >
                               {evt.severity.toUpperCase()}
                             </span>
-                            <span style={{ color: "#e2e8f0", "font-size": "0.75rem", "line-height": "1.4" }}>
+                            <span
+                              style={{
+                                color: "#e2e8f0",
+                                "font-size": "0.75rem",
+                                "line-height": "1.4",
+                              }}
+                            >
                               {evt.event}
                             </span>
                           </div>
@@ -483,8 +622,21 @@ export function SensorHealthDiagnosticCard(
                   gap: "8px",
                 }}
               >
-                <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center" }}>
-                  <span style={{ "font-size": "0.72rem", "text-transform": "uppercase", color: "#94a3b8", "letter-spacing": "0.08em" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    "justify-content": "space-between",
+                    "align-items": "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      "font-size": "0.72rem",
+                      "text-transform": "uppercase",
+                      color: "#94a3b8",
+                      "letter-spacing": "0.08em",
+                    }}
+                  >
                     DLQ Rejection Reasons
                   </span>
                   <span style={{ "font-size": "0.6rem", color: "#475569" }}>
@@ -494,9 +646,19 @@ export function SensorHealthDiagnosticCard(
 
                 <Show
                   when={dlqSegments().length > 0}
-                  fallback={<div style={{ color: "#334155", "font-size": "0.65rem" }}>No DLQ entries</div>}
+                  fallback={
+                    <div style={{ color: "#334155", "font-size": "0.65rem" }}>
+                      No DLQ entries
+                    </div>
+                  }
                 >
-                  <div style={{ display: "flex", gap: "12px", "align-items": "center" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "12px",
+                      "align-items": "center",
+                    }}
+                  >
                     <svg width="160" height="160" viewBox="0 0 160 160">
                       {(() => {
                         const radius = 60;
@@ -507,28 +669,70 @@ export function SensorHealthDiagnosticCard(
                             cy="80"
                             r={radius}
                             fill="none"
-                            stroke={seg.reason.includes("timestamp") ? "#22d3ee" : seg.reason.includes("id") ? "#60a5fa" : "#f59e0b"}
-                            strokeWidth="18"
-                            strokeDasharray={`${(seg.pct / 100) * circumference} ${circumference}`}
-                            strokeDashoffset={-(seg.start / 100) * circumference}
-                            strokeLinecap="butt"
+                            stroke={
+                              seg.reason.includes("timestamp")
+                                ? "#22d3ee"
+                                : seg.reason.includes("id")
+                                  ? "#60a5fa"
+                                  : "#f59e0b"
+                            }
+                            stroke-width="18"
+                            stroke-dasharray={`${(seg.pct / 100) * circumference} ${circumference}`}
+                            stroke-dashoffset={
+                              -(seg.start / 100) * circumference
+                            }
+                            stroke-linecap="butt"
                           />
                         ));
                       })()}
-                      <circle cx="80" cy="80" r="40" fill="rgba(8,12,24,0.96)" />
-                      <text x="80" y="78" textAnchor="middle" fill="#e2e8f0" fontSize="14" fontWeight="700">
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="40"
+                        fill="rgba(8,12,24,0.96)"
+                      />
+                      <text
+                        x="80"
+                        y="78"
+                        text-anchor="middle"
+                        fill="#e2e8f0"
+                        font-size="14"
+                        font-weight="700"
+                      >
                         Total
                       </text>
-                      <text x="80" y="98" textAnchor="middle" fill="#94a3b8" fontSize="12">
+                      <text
+                        x="80"
+                        y="98"
+                        text-anchor="middle"
+                        fill="#94a3b8"
+                        font-size="12"
+                      >
                         {dlqSegments().reduce((a, b) => a + b.count, 0)} rejects
                       </text>
                     </svg>
-                    <div style={{ display: "flex", "flex-direction": "column", gap: "6px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        "flex-direction": "column",
+                        gap: "6px",
+                      }}
+                    >
                       <For each={dlqSegments()}>
                         {(seg) => (
-                          <div style={{ display: "flex", "justify-content": "space-between", gap: "10px", "font-size": "0.68rem", color: "#e2e8f0" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              "justify-content": "space-between",
+                              gap: "10px",
+                              "font-size": "0.68rem",
+                              color: "#e2e8f0",
+                            }}
+                          >
                             <span>{seg.reason}</span>
-                            <span style={{ color: "#94a3b8" }}>{seg.pct.toFixed(1)}%</span>
+                            <span style={{ color: "#94a3b8" }}>
+                              {seg.pct.toFixed(1)}%
+                            </span>
                           </div>
                         )}
                       </For>
@@ -557,8 +761,21 @@ export function SensorHealthDiagnosticCard(
                   gap: "8px",
                 }}
               >
-                <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center" }}>
-                  <span style={{ "font-size": "0.72rem", color: "#94a3b8", "letter-spacing": "0.08em", "text-transform": "uppercase" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    "justify-content": "space-between",
+                    "align-items": "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      "font-size": "0.72rem",
+                      color: "#94a3b8",
+                      "letter-spacing": "0.08em",
+                      "text-transform": "uppercase",
+                    }}
+                  >
                     Throughput vs Expected
                   </span>
                   <span style={{ "font-size": "0.6rem", color: "#475569" }}>
@@ -566,7 +783,9 @@ export function SensorHealthDiagnosticCard(
                   </span>
                 </div>
                 {throughputBars() ?? (
-                  <div style={{ color: "#334155", "font-size": "0.65rem" }}>No throughput history</div>
+                  <div style={{ color: "#334155", "font-size": "0.65rem" }}>
+                    No throughput history
+                  </div>
                 )}
               </div>
 
@@ -581,11 +800,26 @@ export function SensorHealthDiagnosticCard(
                   gap: "8px",
                 }}
               >
-                <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center" }}>
-                  <span style={{ "font-size": "0.72rem", color: "#94a3b8", "letter-spacing": "0.08em", "text-transform": "uppercase" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    "justify-content": "space-between",
+                    "align-items": "center",
+                  }}
+                >
+                  <span
+                    style={{
+                      "font-size": "0.72rem",
+                      color: "#94a3b8",
+                      "letter-spacing": "0.08em",
+                      "text-transform": "uppercase",
+                    }}
+                  >
                     Observation Rate — last 15 min
                   </span>
-                  <span style={{ "font-size": "0.6rem", color: "#475569" }}>OPS</span>
+                  <span style={{ "font-size": "0.6rem", color: "#475569" }}>
+                    OPS
+                  </span>
                 </div>
                 <ObsPerSecChart history={opsHistory()} height={100} />
               </div>
@@ -626,7 +860,7 @@ export function SensorHealthDiagnosticCard(
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.5"
+                stroke-width="2.5"
               >
                 <polyline points="9 18 15 12 9 6" />
               </svg>
