@@ -245,8 +245,8 @@ export function SensorStatusCard(props: SensorStatusCardProps): JSX.Element {
     overflow: "hidden",
     cursor: "pointer",
     "min-width": props.compact
-      ? "clamp(200px, 17vw, 270px)"
-      : "clamp(240px, 20vw, 310px)",
+      ? "clamp(220px, 18vw, 290px)"
+      : "clamp(260px, 22vw, 340px)",
     "font-size": "0.75rem",
   });
 

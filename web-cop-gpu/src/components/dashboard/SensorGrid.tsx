@@ -208,7 +208,7 @@ export function SensorGrid(props: SensorGridProps) {
               "grid-template-rows": `repeat(${rows()}, minmax(140px, auto))`,
               "grid-auto-flow": "column",
               "grid-auto-columns": cardMinWidth(),
-              gap: "10px",
+              gap: "16px",
               width: "max-content",
               "min-width": "100%",
               "align-items": "start",

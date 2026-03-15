@@ -94,11 +94,17 @@ export function DraggableOverlayCard(
     }
   });
 
-  window.addEventListener("mousemove", onMouseMove);
-  window.addEventListener("mouseup", onMouseUp);
-  onCleanup(() => {
-    window.removeEventListener("mousemove", onMouseMove);
-    window.removeEventListener("mouseup", onMouseUp);
+  createEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => onMouseMove(e);
+    const handleMouseUp = () => onMouseUp();
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    onCleanup(() => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    });
   });
 
   return (

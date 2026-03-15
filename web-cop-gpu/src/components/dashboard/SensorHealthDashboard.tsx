@@ -4,21 +4,21 @@
 // Reference: docs/business/usecases/UC017_sensor_health_monitoring.md
 
 import {
-  createEffect,
-  createResource,
-  createSignal,
-  For,
-  onCleanup,
-  Show,
+    createEffect,
+    createResource,
+    createSignal,
+    For,
+    onCleanup,
+    Show,
 } from "solid-js";
 import {
-  fetchSensorStatuses,
-  SensorStatus,
+    fetchSensorStatuses,
+    SensorStatus,
 } from "../../services/sensor-health";
 import {
-  cardView,
-  selectedSensor,
-  setSelectedSensor,
+    cardView,
+    selectedSensor,
+    setSelectedSensor,
 } from "../../signals/sensor-filters";
 import { spatialAlerts } from "../../signals/spatial-alerts";
 import { dashboard } from "../../signals/viewport";
@@ -191,18 +191,24 @@ export function SensorHealthDashboard() {
     const pane = document.getElementById("health-split-container");
     const items = openDiagnostics();
     if (!root || !pane || items.length === 0) return;
+
     const rootR = root.getBoundingClientRect();
     const paneR = pane.getBoundingClientRect();
+
+    // Calculate offset relative to the dashboard root
     const offX = Math.max(0, paneR.left - rootR.left);
     const offY = Math.max(0, paneR.top - rootR.top);
     const w = paneR.width;
     const h = paneR.height;
     if (w <= 0 || h <= 0) return;
-    const gap = 12;
-    const cardW = Math.min(500, Math.max(360, w * 0.32));
-    const cardH = Math.min(640, Math.max(520, h * 0.72));
-    const columns = Math.max(1, Math.floor((w + gap) / (cardW + gap)));
+
+    const gap = 16;
+    const cardW = 440; // Use a fixed width for consistent arrangement
+    const cardH = 580; // Estimated height
+
+    const columns = Math.max(1, Math.floor((w - 20) / (cardW + gap)));
     const arranged: Record<string, { x: number; y: number }> = {};
+
     items.forEach((sensor, idx) => {
       const col = idx % columns;
       const row = Math.floor(idx / columns);
@@ -211,7 +217,7 @@ export function SensorHealthDashboard() {
         y: offY + 10 + row * (cardH + gap),
       };
     });
-    setOverlayPositions((prev) => ({ ...prev, ...arranged }));
+    setOverlayPositions(arranged);
   }
 
   function syncOverlayFrame() {

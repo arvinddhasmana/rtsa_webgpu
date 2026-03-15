@@ -8,16 +8,16 @@
 // Reference: docs/business/usecases/UC017_sensor_health_monitoring.md
 
 import {
-  createMemo,
-  createResource,
-  createSignal,
-  For,
-  JSX,
-  Show,
+    createMemo,
+    createResource,
+    createSignal,
+    For,
+    JSX,
+    Show,
 } from "solid-js";
 import {
-  fetchSensorDiagnostic,
-  SensorStatus,
+    fetchSensorDiagnostic,
+    SensorStatus,
 } from "../../services/sensor-health";
 import { setSelectedSensor } from "../../signals/sensor-filters";
 import { statusColor } from "./dashboard-utils";
@@ -388,30 +388,39 @@ export function SensorHealthDiagnosticCard(
       >
         <span
           style={{
-            "font-size": "clamp(0.78rem, 0.68rem + 0.25vw, 0.96rem)",
+            "font-size": "clamp(0.85rem, 0.75rem + 0.3vw, 1.1rem)",
             "font-weight": "800",
             color: "#dbeafe",
             "text-transform": "uppercase",
-            "letter-spacing": "0.08em",
+            "letter-spacing": "0.12em",
           }}
         >
-          Sensor Diagnostic Deep-Dive
+          SENSOR DIAGNOSTIC DEEP-DIVE
         </span>
-        <span
-          style={{
-            "font-size": "clamp(0.64rem, 0.58rem + 0.12vw, 0.74rem)",
-            color: sColor(),
-            "font-weight": "700",
-            "text-transform": "uppercase",
-            "letter-spacing": "0.08em",
-            background: `${sColor()}15`,
-            border: `1px solid ${sColor()}35`,
-            padding: "2px 8px",
-            "border-radius": "999px",
-          }}
-        >
-          Health: {props.sensor.status}
-        </span>
+        <div style={{ display: "flex", "align-items": "center", gap: "10px" }}>
+          <span style={{ "font-size": "0.65rem", color: "#94a3b8" }}>Health:</span>
+          <span
+            style={{
+              "font-size": "clamp(0.64rem, 0.58rem + 0.12vw, 0.74rem)",
+              color: sColor(),
+              "font-weight": "700",
+              "text-transform": "uppercase",
+              "letter-spacing": "0.08em",
+              background: `${sColor()}25`,
+              border: `1px solid ${sColor()}45`,
+              padding: "2px 10px",
+              "border-radius": "4px",
+              display: "flex",
+              "align-items": "center",
+              gap: "4px"
+            }}
+          >
+            {props.sensor.status}
+            <Show when={props.sensor.status !== 'CONNECTED'}>
+              <span style={{ "font-size": "0.8rem" }}>⚠</span>
+            </Show>
+          </span>
+        </div>
       </div>
 
       <div
@@ -1161,18 +1170,23 @@ export function SensorHealthDiagnosticCard(
                   "align-items": "center",
                 }}
               >
-                <span
-                  style={{
-                    "font-size": "clamp(0.72rem, 0.65rem + 0.12vw, 0.8rem)",
-                    color: "#94a3b8",
-                    "letter-spacing": "0.08em",
-                    "text-transform": "uppercase",
-                  }}
-                >
-                  Observation Rate — Last 15 Min
-                </span>
+                <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
+                  <span
+                    style={{
+                      "font-size": "clamp(0.72rem, 0.65rem + 0.12vw, 0.8rem)",
+                      color: "#94a3b8",
+                      "letter-spacing": "0.08em",
+                      "text-transform": "uppercase",
+                    }}
+                  >
+                    Observation Rate — Last 15 Min
+                  </span>
+                  <div style={{
+                    width: "8px", height: "8px", background: "#3b82f6", "border-radius": "1px"
+                  }} />
+                </div>
                 <span style={{ "font-size": "0.6rem", color: "#475569" }}>
-                  OPS
+                  OBS / SEC
                 </span>
               </div>
               <ObsPerSecChart history={opsHistory()} height={90} />
