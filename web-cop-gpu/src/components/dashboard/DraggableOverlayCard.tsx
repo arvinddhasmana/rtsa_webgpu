@@ -21,6 +21,7 @@ export interface DraggableOverlayCardProps {
   scrollKey?: string;
   onPositionChange?: (pos: { x: number; y: number }) => void;
   onClose?: () => void;
+  constrainToParent?: boolean;
 }
 
 /**
@@ -28,11 +29,17 @@ export interface DraggableOverlayCardProps {
  * Intended for use over a map or canvas area.
  * Never destructure props — breaks SolidJS reactivity.
  */
-export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Element {
+export function DraggableOverlayCard(
+  props: DraggableOverlayCardProps,
+): JSX.Element {
   const [minimized, setMinimized] = createSignal(false);
-  const [pos, setPos] = createSignal({ x: props.initialX ?? 16, y: props.initialY ?? 16 });
+  const [pos, setPos] = createSignal({
+    x: props.initialX ?? 16,
+    y: props.initialY ?? 16,
+  });
   const [dragging, setDragging] = createSignal(false);
   const [dragOffset, setDragOffset] = createSignal({ dx: 0, dy: 0 });
+  let rootEl: HTMLDivElement | undefined;
 
   const color = () => props.accentColor ?? "rgba(59,130,246,0.55)";
   const scrollKey = props.scrollKey ?? "overlay";
@@ -47,7 +54,28 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
 
   function onMouseMove(e: MouseEvent) {
     if (!dragging()) return;
-    const next = { x: e.clientX - dragOffset().dx, y: e.clientY - dragOffset().dy };
+    let next = {
+      x: e.clientX - dragOffset().dx,
+      y: e.clientY - dragOffset().dy,
+    };
+    if (props.constrainToParent && rootEl?.parentElement) {
+      const parent = rootEl.parentElement;
+      const parentW = parent.clientWidth;
+      const parentH = parent.clientHeight;
+      const cardW = rootEl.offsetWidth;
+      const cardH = rootEl.offsetHeight;
+      const pad = 8;
+      next = {
+        x: Math.min(
+          Math.max(next.x, pad),
+          Math.max(pad, parentW - cardW - pad),
+        ),
+        y: Math.min(
+          Math.max(next.y, pad),
+          Math.max(pad, parentH - cardH - pad),
+        ),
+      };
+    }
     setPos(next);
     props.onPositionChange?.(next);
   }
@@ -76,6 +104,7 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
   return (
     <div
       data-testid={`overlay-card-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+      ref={rootEl}
       style={{
         position: "absolute",
         left: `${pos().x}px`,
@@ -89,12 +118,13 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
     >
       <div
         style={{
-          background: "rgba(8, 14, 26, 0.88)",
+          background:
+            "linear-gradient(180deg, rgba(8, 14, 26, 0.92), rgba(6, 11, 22, 0.9))",
           "backdrop-filter": "blur(28px)",
           "-webkit-backdrop-filter": "blur(28px)",
           border: `1px solid ${color()}`,
           "border-radius": "10px",
-          "box-shadow": `0 12px 40px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.06)`,
+          "box-shadow": `0 14px 48px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.07)`,
           overflow: "hidden",
           transition: "box-shadow 0.2s ease",
         }}
@@ -106,15 +136,20 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
             display: "flex",
             "align-items": "center",
             gap: "6px",
-            padding: "6px 8px 6px 10px",
-            background: "rgba(255,255,255,0.025)",
-            "border-bottom": minimized() ? "none" : "1px solid rgba(255,255,255,0.07)",
+            padding: "7px 8px 7px 10px",
+            background:
+              "linear-gradient(90deg, rgba(59,130,246,0.09), rgba(255,255,255,0.025))",
+            "border-bottom": minimized()
+              ? "none"
+              : "1px solid rgba(255,255,255,0.07)",
             cursor: dragging() ? "grabbing" : "grab",
             "border-radius": minimized() ? "10px" : "10px 10px 0 0",
           }}
         >
           <Show when={props.icon}>
-            <div style={{ color: "#64748b", "line-height": 0, "flex-shrink": 0 }}>
+            <div
+              style={{ color: "#64748b", "line-height": 0, "flex-shrink": 0 }}
+            >
               {props.icon}
             </div>
           </Show>
@@ -122,11 +157,11 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
           <span
             style={{
               flex: 1,
-              "font-size": "0.58rem",
+              "font-size": "clamp(0.6rem, 0.55rem + 0.12vw, 0.72rem)",
               "font-weight": "700",
               "text-transform": "uppercase",
-              "letter-spacing": "0.12em",
-              color: "#94a3b8",
+              "letter-spacing": "0.1em",
+              color: "#cbd5e1",
               "font-family": "monospace",
               "white-space": "nowrap",
               overflow: "hidden",
@@ -147,9 +182,15 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
               "pointer-events": "none",
             }}
           >
-            <div style={{ width: "12px", height: "1px", background: "#94a3b8" }} />
-            <div style={{ width: "12px", height: "1px", background: "#94a3b8" }} />
-            <div style={{ width: "12px", height: "1px", background: "#94a3b8" }} />
+            <div
+              style={{ width: "12px", height: "1px", background: "#94a3b8" }}
+            />
+            <div
+              style={{ width: "12px", height: "1px", background: "#94a3b8" }}
+            />
+            <div
+              style={{ width: "12px", height: "1px", background: "#94a3b8" }}
+            />
           </div>
 
           <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
@@ -159,7 +200,9 @@ export function DraggableOverlayCard(props: DraggableOverlayCardProps): JSX.Elem
               onClick={() => setMinimized((m) => !m)}
               title={minimized() ? "Restore panel" : "Minimize panel"}
               style={{
-                background: minimized() ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.04)",
+                background: minimized()
+                  ? "rgba(59,130,246,0.15)"
+                  : "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 "border-radius": "5px",
                 cursor: "pointer",

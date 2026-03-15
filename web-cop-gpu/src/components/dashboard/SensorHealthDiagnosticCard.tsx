@@ -40,6 +40,22 @@ function healthColor(score: number): string {
   return "#f87171";
 }
 
+function dlqSegmentColor(reason: string): string {
+  const r = reason.toLowerCase();
+  if (r.includes("timestamp") || r.includes("schema") || r.includes("format"))
+    return "#22d3ee";
+  if (r.includes("id") || r.includes("missing") || r.includes("crc"))
+    return "#60a5fa";
+  if (
+    r.includes("rate") ||
+    r.includes("limit") ||
+    r.includes("late") ||
+    r.includes("packet")
+  )
+    return "#f59e0b";
+  return "#64748b";
+}
+
 /**
  * Compact glassmorphism overlay card showing a sensor health summary.
  * Appears on the Sensor Health dashboard as a draggable overlay.
@@ -77,6 +93,14 @@ export function SensorHealthDiagnosticCard(
     return { min, max };
   };
 
+  const headlineAlert = () => {
+    if (props.sensor.status === "OFFLINE") return "ALERT: SENSOR OFFLINE";
+    if (props.sensor.dlqCount >= 20) return "ALERT: DLQ SPIKE DETECTED";
+    if (props.sensor.status === "STALE")
+      return "ALERT: OBSERVATION DELAY DETECTED";
+    return "STATUS: TELEMETRY NOMINAL";
+  };
+
   function validationColor(rate: number): string {
     if (rate >= 95) return "#4ade80";
     if (rate >= 80) return "#fbbf24";
@@ -108,7 +132,7 @@ export function SensorHealthDiagnosticCard(
     >
       <span
         style={{
-          "font-size": "0.6rem",
+          "font-size": "clamp(0.6rem, 0.55rem + 0.12vw, 0.7rem)",
           color: "#64748b",
           "text-transform": "uppercase",
           "letter-spacing": "0.08em",
@@ -119,7 +143,7 @@ export function SensorHealthDiagnosticCard(
       </span>
       <div
         style={{
-          "font-size": "0.95rem",
+          "font-size": "clamp(0.95rem, 0.84rem + 0.22vw, 1.08rem)",
           "font-weight": "700",
           color: metricProps.accent ?? "#e2e8f0",
         }}
@@ -139,50 +163,187 @@ export function SensorHealthDiagnosticCard(
   const throughputBars = () => {
     const data = throughputHistory();
     const band = expectedRange();
-    const maxVal = Math.max(...data, band.max);
+    const maxVal = Math.max(...data, band.max, 1);
     if (data.length === 0) return null;
     const widthPct = 100 / data.length;
+    const lastIdx = data.length - 1;
+    const now = new Date();
+    const startTime = new Date(now.getTime() - data.length * 60_000);
+    const fmtTime = (d: Date) =>
+      d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    // Chart inner height (px) used for band/label calculation
+    const chartH = 104;
     return (
       <div
         data-testid="throughput-bars"
-        style={{
-          position: "relative",
-          height: "140px",
-          display: "flex",
-          gap: "4px",
-          "align-items": "flex-end",
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))",
-          padding: "10px",
-          "border-radius": "10px",
-          border: "1px solid rgba(255,255,255,0.06)",
-        }}
+        style={{ display: "flex", "flex-direction": "column", gap: "4px" }}
       >
+        {/* Legend */}
         <div
           style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: `${(band.min / maxVal) * 100}%`,
-            height: `${((band.max - band.min) / maxVal) * 100}%`,
-            background: "rgba(96, 165, 250, 0.1)",
-            border: "1px dashed rgba(96,165,250,0.35)",
-            "border-radius": "6px",
-            "pointer-events": "none",
+            display: "flex",
+            gap: "14px",
+            "align-items": "center",
+            "flex-wrap": "wrap",
           }}
-        />
-        {data.map((v, i) => (
+        >
           <div
             style={{
-              width: `${widthPct}%`,
-              height: `${Math.max(0, (v / maxVal) * 100)}%`,
-              background: "linear-gradient(180deg, #60a5fa, #2563eb)",
-              "border-radius": "6px 6px 2px 2px",
-              opacity: 0.9,
+              display: "flex",
+              "align-items": "center",
+              gap: "5px",
+              "font-size": "0.6rem",
+              color: "#94a3b8",
+              "font-family": "monospace",
             }}
-            title={`t-${data.length - i}m: ${v} obs/s`}
+          >
+            <div
+              style={{
+                width: "12px",
+                height: "10px",
+                background: "linear-gradient(180deg,#60a5fa,#2563eb)",
+                "border-radius": "2px",
+              }}
+            />
+            Current Throughput
+          </div>
+          <div
+            style={{
+              display: "flex",
+              "align-items": "center",
+              gap: "5px",
+              "font-size": "0.6rem",
+              color: "#94a3b8",
+              "font-family": "monospace",
+            }}
+          >
+            <div
+              style={{
+                width: "12px",
+                height: "10px",
+                background: "rgba(96,165,250,0.15)",
+                border: "1px dashed rgba(96,165,250,0.42)",
+                "border-radius": "2px",
+              }}
+            />
+            Expected Range: {band.min}–{band.max} obs/s
+          </div>
+        </div>
+
+        {/* Chart area */}
+        <div
+          style={{
+            position: "relative",
+            height: "130px",
+            display: "flex",
+            gap: "3px",
+            "align-items": "flex-end",
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01))",
+            padding: `8px 44px 8px 10px`,
+            "border-radius": "10px",
+            border: "1px solid rgba(255,255,255,0.06)",
+            overflow: "visible",
+          }}
+        >
+          {/* Y-axis max label */}
+          <div
+            style={{
+              position: "absolute",
+              right: "4px",
+              top: "6px",
+              "font-size": "0.52rem",
+              color: "#475569",
+              "font-family": "monospace",
+              "white-space": "nowrap",
+            }}
+          >
+            {Math.round(maxVal)}
+          </div>
+          {/* Y-axis band label */}
+          <div
+            style={{
+              position: "absolute",
+              right: "4px",
+              bottom: `${8 + (band.min / maxVal) * chartH}px`,
+              "font-size": "0.52rem",
+              color: "rgba(96,165,250,0.8)",
+              "font-family": "monospace",
+              "white-space": "nowrap",
+            }}
+          >
+            {band.min} pkts/s
+          </div>
+
+          {/* Expected range band */}
+          <div
+            style={{
+              position: "absolute",
+              left: "10px",
+              right: "44px",
+              bottom: `${8 + (band.min / maxVal) * chartH}px`,
+              height: `${((band.max - band.min) / maxVal) * chartH}px`,
+              background: "rgba(96,165,250,0.1)",
+              border: "1px dashed rgba(96,165,250,0.35)",
+              "border-radius": "4px",
+              "pointer-events": "none",
+            }}
           />
-        ))}
+
+          {/* Bars */}
+          {data.map((v, i) => (
+            <div
+              style={{
+                width: `${widthPct}%`,
+                height: `${Math.max(2, (v / maxVal) * 100)}%`,
+                background:
+                  i === lastIdx
+                    ? "linear-gradient(180deg, #67e8f9, #22d3ee)"
+                    : "linear-gradient(180deg, #60a5fa, #2563eb)",
+                "border-radius": "3px 3px 1px 1px",
+                opacity: i === lastIdx ? 1 : 0.82,
+                "flex-shrink": 0,
+                position: "relative",
+              }}
+              title={`t-${data.length - i}m: ${v} obs/s`}
+            >
+              {i === lastIdx && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-18px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    "font-size": "0.58rem",
+                    color: "#22d3ee",
+                    "font-weight": "700",
+                    "font-family": "monospace",
+                    "white-space": "nowrap",
+                    "pointer-events": "none",
+                  }}
+                >
+                  {v}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* X-axis time labels */}
+        <div
+          style={{
+            display: "flex",
+            "justify-content": "space-between",
+            "font-size": "0.52rem",
+            color: "#475569",
+            "font-family": "monospace",
+            padding: "0 4px",
+          }}
+        >
+          <span>[{fmtTime(startTime)}]</span>
+          <span>Last 15 Min</span>
+          <span>[{fmtTime(now)}]</span>
+        </div>
       </div>
     );
   };
@@ -192,27 +353,112 @@ export function SensorHealthDiagnosticCard(
       data-testid="sensor-health-diagnostic-card"
       style={{
         width: "100%",
-        background: "rgba(8, 12, 24, 0.86)",
-        "backdrop-filter": "blur(28px) saturate(160%)",
-        "-webkit-backdrop-filter": "blur(28px) saturate(160%)",
-        border: `1px solid ${sColor()}35`,
+        background:
+          "linear-gradient(180deg, rgba(9,18,37,0.92) 0%, rgba(6,14,30,0.88) 100%)",
+        "backdrop-filter": "blur(24px) saturate(150%)",
+        "-webkit-backdrop-filter": "blur(24px) saturate(150%)",
+        border: `1px solid ${sColor()}45`,
         "border-radius": "14px",
-        padding: "16px",
-        "box-shadow": `0 22px 70px rgba(0,0,0,0.6), 0 0 30px ${sColor()}15, inset 0 1px 0 rgba(255,255,255,0.05)`,
+        padding: "9px",
+        "box-shadow": `0 22px 70px rgba(0,0,0,0.62), 0 0 24px ${sColor()}20, inset 0 1px 0 rgba(255,255,255,0.06)`,
         display: "flex",
         "flex-direction": "column",
-        gap: "12px",
+        gap: "9px",
         color: "#f1f5f9",
         "font-family": "monospace",
       }}
     >
       <div
         style={{
+          height: "2px",
+          background:
+            "linear-gradient(90deg, rgba(34,211,238,0.8), rgba(59,130,246,0.05))",
+          "border-radius": "999px",
+        }}
+      />
+
+      <div
+        style={{
+          display: "flex",
+          "align-items": "center",
+          "justify-content": "space-between",
+          padding: "4px 6px 8px",
+          "border-bottom": "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <span
+          style={{
+            "font-size": "clamp(0.78rem, 0.68rem + 0.25vw, 0.96rem)",
+            "font-weight": "800",
+            color: "#dbeafe",
+            "text-transform": "uppercase",
+            "letter-spacing": "0.08em",
+          }}
+        >
+          Sensor Diagnostic Deep-Dive
+        </span>
+        <span
+          style={{
+            "font-size": "clamp(0.64rem, 0.58rem + 0.12vw, 0.74rem)",
+            color: sColor(),
+            "font-weight": "700",
+            "text-transform": "uppercase",
+            "letter-spacing": "0.08em",
+            background: `${sColor()}15`,
+            border: `1px solid ${sColor()}35`,
+            padding: "2px 8px",
+            "border-radius": "999px",
+          }}
+        >
+          Health: {props.sensor.status}
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          "align-items": "center",
+          "justify-content": "space-between",
+          gap: "8px",
+          padding: "6px 8px",
+          "border-radius": "8px",
+          background:
+            props.sensor.status === "CONNECTED"
+              ? "linear-gradient(90deg, rgba(74,222,128,0.14), rgba(74,222,128,0.04))"
+              : "linear-gradient(90deg, rgba(251,191,36,0.18), rgba(248,113,113,0.08))",
+          border:
+            props.sensor.status === "CONNECTED"
+              ? "1px solid rgba(74,222,128,0.3)"
+              : "1px solid rgba(251,191,36,0.35)",
+        }}
+      >
+        <span
+          style={{
+            "font-size": "clamp(0.68rem, 0.62rem + 0.15vw, 0.8rem)",
+            "font-weight": "700",
+            color: props.sensor.status === "CONNECTED" ? "#86efac" : "#fbbf24",
+            "letter-spacing": "0.06em",
+            "text-transform": "uppercase",
+          }}
+        >
+          {headlineAlert()}
+        </span>
+        <span style={{ "font-size": "0.6rem", color: "#94a3b8" }}>
+          {new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })}
+        </span>
+      </div>
+
+      <div
+        style={{
           display: "flex",
           "align-items": "center",
           gap: "10px",
           "border-bottom": "1px solid rgba(255,255,255,0.06)",
-          padding: "2px 0 10px",
+          padding: "0 2px 10px",
         }}
       >
         <div
@@ -227,21 +473,23 @@ export function SensorHealthDiagnosticCard(
             style={{
               width: "36px",
               height: "36px",
-              "border-radius": "12px",
-              background: `${sColor()}1a`,
-              border: `1px solid ${sColor()}50`,
+              "border-radius": "50%",
+              background:
+                "radial-gradient(circle, rgba(34,211,238,0.22) 0%, rgba(15,23,42,0.2) 70%)",
+              border: `1px solid ${sColor()}60`,
               display: "flex",
               "align-items": "center",
               "justify-content": "center",
-              color: sColor(),
+              color: "#67e8f9",
+              "box-shadow": "0 0 14px rgba(34,211,238,0.25)",
             }}
           >
-            ⚙️
+            <span style={{ "font-size": "0.8rem" }}>◉</span>
           </div>
           <div style={{ flex: 1, "min-width": 0 }}>
             <div
               style={{
-                "font-size": "0.95rem",
+                "font-size": "clamp(0.95rem, 0.82rem + 0.26vw, 1.1rem)",
                 "font-weight": "700",
                 overflow: "hidden",
                 "text-overflow": "ellipsis",
@@ -261,9 +509,20 @@ export function SensorHealthDiagnosticCard(
               <span style={{ "font-size": "0.62rem", color: "#94a3b8" }}>
                 {props.sensor.sensorType}
               </span>
+              <span style={{ "font-size": "0.62rem", color: "#64748b" }}>
+                |
+              </span>
               <span
                 style={{
-                  "font-size": "0.62rem",
+                  "font-size": "clamp(0.62rem, 0.56rem + 0.1vw, 0.7rem)",
+                  color: "#94a3b8",
+                }}
+              >
+                {props.sensor.eventsPerSecond.toFixed(1)} obs/s
+              </span>
+              <span
+                style={{
+                  "font-size": "clamp(0.62rem, 0.56rem + 0.1vw, 0.7rem)",
                   "font-weight": "700",
                   color: sColor(),
                   "text-transform": "uppercase",
@@ -326,10 +585,11 @@ export function SensorHealthDiagnosticCard(
             >
               <div
                 style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background:
+                    "linear-gradient(180deg, rgba(251,191,36,0.12) 0%, rgba(255,255,255,0.02) 100%)",
+                  border: "1px solid rgba(251,191,36,0.25)",
                   "border-radius": "12px",
-                  padding: "12px",
+                  padding: "11px",
                   display: "flex",
                   gap: "12px",
                   "align-items": "center",
@@ -388,7 +648,7 @@ export function SensorHealthDiagnosticCard(
                   >
                     <div
                       style={{
-                        "font-size": "1.4rem",
+                        "font-size": "clamp(1.35rem, 1.2rem + 0.25vw, 1.56rem)",
                         "font-weight": "800",
                         color: healthColor(d().healthScore),
                       }}
@@ -397,7 +657,7 @@ export function SensorHealthDiagnosticCard(
                     </div>
                     <div
                       style={{
-                        "font-size": "0.6rem",
+                        "font-size": "clamp(0.6rem, 0.56rem + 0.08vw, 0.66rem)",
                         color: "#64748b",
                         "letter-spacing": "0.06em",
                       }}
@@ -457,7 +717,7 @@ export function SensorHealthDiagnosticCard(
                 style={{
                   display: "grid",
                   "grid-template-columns": "1fr 1fr",
-                  gap: "8px",
+                  gap: "7px",
                 }}
               >
                 <MetricTile
@@ -511,10 +771,10 @@ export function SensorHealthDiagnosticCard(
             >
               <div
                 style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "rgba(11,22,41,0.78)",
+                  border: "1px solid rgba(56,189,248,0.18)",
                   "border-radius": "12px",
-                  padding: "10px",
+                  padding: "9px 10px",
                   display: "flex",
                   "flex-direction": "column",
                   gap: "8px",
@@ -529,7 +789,7 @@ export function SensorHealthDiagnosticCard(
                 >
                   <span
                     style={{
-                      "font-size": "0.72rem",
+                      "font-size": "clamp(0.72rem, 0.65rem + 0.12vw, 0.8rem)",
                       "text-transform": "uppercase",
                       color: "#94a3b8",
                       "letter-spacing": "0.08em",
@@ -537,8 +797,14 @@ export function SensorHealthDiagnosticCard(
                   >
                     Diagnostic Event Timeline
                   </span>
-                  <span style={{ "font-size": "0.6rem", color: "#475569" }}>
-                    Recent
+                  <span
+                    style={{
+                      "font-size": "0.8rem",
+                      color: "#475569",
+                      "line-height": 1,
+                    }}
+                  >
+                    ∨
                   </span>
                 </div>
                 <Show
@@ -553,59 +819,140 @@ export function SensorHealthDiagnosticCard(
                     style={{
                       display: "flex",
                       "flex-direction": "column",
-                      gap: "8px",
+                      gap: "6px",
+                      "overflow-y": "auto",
+                      "max-height": "260px",
                     }}
                   >
                     <For each={timeline()}>
-                      {(evt) => (
-                        <div
-                          style={{
-                            display: "grid",
-                            "grid-template-columns": "90px 1fr",
-                            gap: "8px",
-                            padding: "8px",
-                            background: "rgba(255,255,255,0.02)",
-                            border: "1px solid rgba(255,255,255,0.04)",
-                            "border-radius": "10px",
-                          }}
-                        >
-                          <span
-                            style={{ color: "#64748b", "font-size": "0.62rem" }}
-                          >
-                            {new Date(evt.timeUtc).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            })}
-                          </span>
+                      {(evt) => {
+                        const sColor = severityColor(evt.severity);
+                        const isStatusEvt =
+                          evt.event.toLowerCase().includes("connect") ||
+                          evt.event.toLowerCase().includes("initialized") ||
+                          evt.event.toLowerCase().includes("status:");
+                        const category = isStatusEvt ? "STATUS" : "EVENTS";
+                        const colonIdx = evt.event.indexOf(":");
+                        const title =
+                          colonIdx > -1
+                            ? evt.event.slice(0, colonIdx).trim()
+                            : evt.event;
+                        const sub =
+                          colonIdx > -1
+                            ? evt.event.slice(colonIdx + 1).trim()
+                            : "";
+                        const icon =
+                          isStatusEvt &&
+                          evt.event.toLowerCase().includes("connect") &&
+                          evt.severity === "info"
+                            ? "✓"
+                            : evt.severity === "error"
+                              ? "⚠"
+                              : evt.severity === "warn"
+                                ? "⚠"
+                                : "●";
+                        return (
                           <div
                             style={{
+                              padding: "7px 8px 7px 10px",
+                              background: "rgba(255,255,255,0.02)",
+                              border: `1px solid ${sColor}22`,
+                              "border-left": `3px solid ${sColor}`,
+                              "border-radius": "8px",
                               display: "flex",
                               "flex-direction": "column",
-                              gap: "4px",
+                              gap: "3px",
                             }}
                           >
-                            <span
+                            {/* Time + icon + category row */}
+                            <div
                               style={{
-                                color: severityColor(evt.severity),
-                                "font-weight": "700",
-                                "font-size": "0.72rem",
+                                display: "flex",
+                                "align-items": "center",
+                                gap: "5px",
                               }}
                             >
-                              {evt.severity.toUpperCase()}
-                            </span>
+                              <span
+                                style={{
+                                  color: "#64748b",
+                                  "font-size": "0.58rem",
+                                  "font-family": "monospace",
+                                  "flex-shrink": 0,
+                                }}
+                              >
+                                {new Date(evt.timeUtc).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })}
+                              </span>
+                              <span
+                                style={{
+                                  color: sColor,
+                                  "font-size": "0.72rem",
+                                  "line-height": 1,
+                                  "flex-shrink": 0,
+                                }}
+                              >
+                                {icon}
+                              </span>
+                              <span
+                                style={{
+                                  background: `${sColor}1a`,
+                                  color: sColor,
+                                  border: `1px solid ${sColor}33`,
+                                  "border-radius": "3px",
+                                  padding: "1px 5px",
+                                  "font-size": "0.5rem",
+                                  "font-weight": "700",
+                                  "text-transform": "uppercase",
+                                  "letter-spacing": "0.08em",
+                                  "font-family": "monospace",
+                                  "flex-shrink": 0,
+                                }}
+                              >
+                                {category}
+                              </span>
+                              <div style={{ flex: 1 }} />
+                              <span
+                                style={{
+                                  color: "#334155",
+                                  "font-size": "0.55rem",
+                                }}
+                              >
+                                ···
+                              </span>
+                            </div>
+                            {/* Event title */}
                             <span
                               style={{
                                 color: "#e2e8f0",
-                                "font-size": "0.75rem",
-                                "line-height": "1.4",
+                                "font-weight": "700",
+                                "font-size":
+                                  "clamp(0.7rem, 0.64rem + 0.1vw, 0.78rem)",
+                                "line-height": "1.3",
+                                "padding-left": "12px",
                               }}
                             >
-                              {evt.event}
+                              {title}
                             </span>
+                            {/* Sub-description */}
+                            <Show when={sub.length > 0}>
+                              <span
+                                style={{
+                                  color: "#64748b",
+                                  "font-size":
+                                    "clamp(0.6rem, 0.56rem + 0.08vw, 0.66rem)",
+                                  "line-height": "1.4",
+                                  "padding-left": "12px",
+                                }}
+                              >
+                                {sub}
+                              </span>
+                            </Show>
                           </div>
-                        </div>
-                      )}
+                        );
+                      }}
                     </For>
                   </div>
                 </Show>
@@ -613,10 +960,10 @@ export function SensorHealthDiagnosticCard(
 
               <div
                 style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "rgba(11,22,41,0.78)",
+                  border: "1px solid rgba(56,189,248,0.18)",
                   "border-radius": "12px",
-                  padding: "10px",
+                  padding: "9px 10px",
                   display: "flex",
                   "flex-direction": "column",
                   gap: "8px",
@@ -631,7 +978,7 @@ export function SensorHealthDiagnosticCard(
                 >
                   <span
                     style={{
-                      "font-size": "0.72rem",
+                      "font-size": "clamp(0.72rem, 0.65rem + 0.12vw, 0.8rem)",
                       "text-transform": "uppercase",
                       color: "#94a3b8",
                       "letter-spacing": "0.08em",
@@ -669,13 +1016,7 @@ export function SensorHealthDiagnosticCard(
                             cy="80"
                             r={radius}
                             fill="none"
-                            stroke={
-                              seg.reason.includes("timestamp")
-                                ? "#22d3ee"
-                                : seg.reason.includes("id")
-                                  ? "#60a5fa"
-                                  : "#f59e0b"
-                            }
+                            stroke={dlqSegmentColor(seg.reason)}
                             stroke-width="18"
                             stroke-dasharray={`${(seg.pct / 100) * circumference} ${circumference}`}
                             stroke-dashoffset={
@@ -723,14 +1064,44 @@ export function SensorHealthDiagnosticCard(
                           <div
                             style={{
                               display: "flex",
-                              "justify-content": "space-between",
-                              gap: "10px",
-                              "font-size": "0.68rem",
+                              "align-items": "center",
+                              gap: "6px",
+                              "font-size": "0.63rem",
                               color: "#e2e8f0",
                             }}
                           >
-                            <span>{seg.reason}</span>
-                            <span style={{ color: "#94a3b8" }}>
+                            <div
+                              style={{
+                                width: "8px",
+                                height: "8px",
+                                "border-radius": "2px",
+                                background: dlqSegmentColor(seg.reason),
+                                "flex-shrink": 0,
+                              }}
+                            />
+                            <span
+                              style={{
+                                flex: 1,
+                                color: "#94a3b8",
+                                "white-space": "nowrap",
+                                overflow: "hidden",
+                                "text-overflow": "ellipsis",
+                              }}
+                            >
+                              {seg.reason}
+                            </span>
+                            <span
+                              style={{
+                                color: dlqSegmentColor(seg.reason),
+                                "font-weight": "600",
+                                "flex-shrink": 0,
+                              }}
+                            >
+                              {seg.count}
+                            </span>
+                            <span
+                              style={{ color: "#475569", "flex-shrink": 0 }}
+                            >
                               {seg.pct.toFixed(1)}%
                             </span>
                           </div>
@@ -742,87 +1113,69 @@ export function SensorHealthDiagnosticCard(
               </div>
             </div>
 
-            {/* Throughput + OPS */}
+            {/* Throughput — full width */}
             <div
               style={{
-                display: "grid",
-                "grid-template-columns": "1fr 1fr",
-                gap: "10px",
+                background: "rgba(11,22,41,0.78)",
+                border: "1px solid rgba(96,165,250,0.2)",
+                "border-radius": "12px",
+                padding: "9px 10px",
+                display: "flex",
+                "flex-direction": "column",
+                gap: "8px",
+              }}
+            >
+              <span
+                style={{
+                  "font-size": "clamp(0.72rem, 0.65rem + 0.12vw, 0.8rem)",
+                  color: "#94a3b8",
+                  "letter-spacing": "0.08em",
+                  "text-transform": "uppercase",
+                }}
+              >
+                Throughput vs. Expected Range
+              </span>
+              {throughputBars() ?? (
+                <div style={{ color: "#334155", "font-size": "0.65rem" }}>
+                  No throughput history
+                </div>
+              )}
+            </div>
+
+            {/* Observation Rate — full width */}
+            <div
+              style={{
+                background: "rgba(11,22,41,0.78)",
+                border: "1px solid rgba(96,165,250,0.2)",
+                "border-radius": "12px",
+                padding: "9px 10px",
+                display: "flex",
+                "flex-direction": "column",
+                gap: "8px",
               }}
             >
               <div
                 style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  "border-radius": "12px",
-                  padding: "10px",
                   display: "flex",
-                  "flex-direction": "column",
-                  gap: "8px",
+                  "justify-content": "space-between",
+                  "align-items": "center",
                 }}
               >
-                <div
+                <span
                   style={{
-                    display: "flex",
-                    "justify-content": "space-between",
-                    "align-items": "center",
+                    "font-size": "clamp(0.72rem, 0.65rem + 0.12vw, 0.8rem)",
+                    color: "#94a3b8",
+                    "letter-spacing": "0.08em",
+                    "text-transform": "uppercase",
                   }}
                 >
-                  <span
-                    style={{
-                      "font-size": "0.72rem",
-                      color: "#94a3b8",
-                      "letter-spacing": "0.08em",
-                      "text-transform": "uppercase",
-                    }}
-                  >
-                    Throughput vs Expected
-                  </span>
-                  <span style={{ "font-size": "0.6rem", color: "#475569" }}>
-                    {expectedRange().min}–{expectedRange().max} obs/s
-                  </span>
-                </div>
-                {throughputBars() ?? (
-                  <div style={{ color: "#334155", "font-size": "0.65rem" }}>
-                    No throughput history
-                  </div>
-                )}
+                  Observation Rate — Last 15 Min
+                </span>
+                <span style={{ "font-size": "0.6rem", color: "#475569" }}>
+                  OPS
+                </span>
               </div>
-
-              <div
-                style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.06)",
-                  "border-radius": "12px",
-                  padding: "10px",
-                  display: "flex",
-                  "flex-direction": "column",
-                  gap: "8px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    "justify-content": "space-between",
-                    "align-items": "center",
-                  }}
-                >
-                  <span
-                    style={{
-                      "font-size": "0.72rem",
-                      color: "#94a3b8",
-                      "letter-spacing": "0.08em",
-                      "text-transform": "uppercase",
-                    }}
-                  >
-                    Observation Rate — last 15 min
-                  </span>
-                  <span style={{ "font-size": "0.6rem", color: "#475569" }}>
-                    OPS
-                  </span>
-                </div>
-                <ObsPerSecChart history={opsHistory()} height={100} />
-              </div>
+              <ObsPerSecChart history={opsHistory()} height={90} />
             </div>
 
             {/* CTA */}

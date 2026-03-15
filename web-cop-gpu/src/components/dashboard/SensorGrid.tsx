@@ -58,7 +58,7 @@ export function SensorGrid(props: SensorGridProps) {
           display: "flex",
           "align-items": "center",
           gap: "10px",
-          padding: "6px 24px",
+          padding: "6px 18px",
           "border-bottom": "1px solid rgba(255,255,255,0.04)",
           "flex-shrink": 0,
         }}
@@ -196,7 +196,7 @@ export function SensorGrid(props: SensorGridProps) {
             "min-height": 0,
             "overflow-x": "auto",
             "overflow-y": "hidden",
-            padding: "10px 16px 12px",
+            padding: "8px 14px 12px",
           }}
         >
           {/* Grid — column-flow so cards fill top→bottom then left→right.
@@ -208,7 +208,7 @@ export function SensorGrid(props: SensorGridProps) {
               "grid-template-rows": `repeat(${rows()}, minmax(140px, auto))`,
               "grid-auto-flow": "column",
               "grid-auto-columns": cardMinWidth(),
-              gap: "12px",
+              gap: "10px",
               width: "max-content",
               "min-width": "100%",
               "align-items": "start",
