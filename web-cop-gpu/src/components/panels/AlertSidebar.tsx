@@ -6,21 +6,26 @@
 // Quick-Action triage (Inspect/Confirm/Reject/Assign).
 // Reference: docs/user_guide/operations_commander/02_anomaly_alerts.md
 
-import { For, Show, createMemo, createSignal } from "solid-js";
+import { For, Show, createEffect, createMemo, createSignal } from "solid-js";
 import { acknowledgeAlert, assignAlert } from "../../services/alerts";
 import {
-  submitConfirmAlertFeedback,
-  submitRejectAlertFeedback,
+    submitConfirmAlertFeedback,
+    submitRejectAlertFeedback,
 } from "../../services/feedback";
+import {
+    getAvailableOperators,
+    searchOperators,
+    type Operator,
+} from "../../services/operators";
 import { fetchTrackDetail } from "../../services/query";
 import { alerts } from "../../signals/alerts";
 import { operatorId } from "../../signals/auth";
 import { setActiveSpatialAlertId } from "../../signals/spatial-alerts";
 import {
-  setSelectedTrack,
-  setTrackDetail,
-  setTrackDetailError,
-  setTrackDetailLoading,
+    setSelectedTrack,
+    setTrackDetail,
+    setTrackDetailError,
+    setTrackDetailLoading,
 } from "../../signals/track";
 import { setDashboardSignal } from "../../signals/viewport";
 import type { AlertPayload } from "../../workers/shared-protocol";
@@ -43,13 +48,13 @@ const SEVERITY_GLOWS: Record<AlertPayload["severity"], string> = {
 
 /** High-Fidelity Glassmorphism Styles */
 const GLASS_BASE = {
-  background: "rgba(15, 23, 42, 0.65)",
-  "backdrop-filter": "blur(12px) saturate(180%)",
-  "-webkit-backdrop-filter": "blur(12px) saturate(180%)",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
-  "border-radius": "12px",
-  "box-shadow": "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
-  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+  background: "linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)",
+  "backdrop-filter": "blur(20px) saturate(180%)",
+  "-webkit-backdrop-filter": "blur(20px) saturate(180%)",
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  "border-radius": "16px",
+  "box-shadow": "0 12px 40px 0 rgba(0, 0, 0, 0.6)",
+  transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
 };
 
 /** Returns true when the alert description indicates a coverage gap. */
@@ -148,9 +153,9 @@ function ConfidenceGauge(props: { score: number; color: string }) {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          "font-size": "0.5rem",
+          "font-size": "0.6rem",
           color: "#fff",
-          "font-weight": "bold",
+          "font-weight": "800",
         }}
       >
         {Math.round(props.score)}
@@ -176,17 +181,47 @@ function AlertItem(props: AlertItemProps) {
   });
 
   const actionButtonStyle = (type?: ActionType) => ({
-    background: "rgba(255, 255, 255, 0.05)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
-    color: "#e2e8f0",
-    "border-radius": "6px",
-    padding: "0.25rem 0.6rem",
+    background: "rgba(255, 255, 255, 0.03)",
+    border: "1px solid rgba(255, 255, 255, 0.08)",
+    color: "#cbd5e1",
+    "border-radius": "8px",
+    padding: "0.35rem 0.75rem",
     "font-size": "0.7rem",
+    "font-weight": "600",
     cursor: "pointer",
-    transition: "all 0.2s",
-    "backdrop-filter": "blur(4px)",
-    ...(isHovered() ? { "border-color": "rgba(255,255,255,0.2)" } : {}),
-    ...(type ? {} : {}), // placeholder to use type variable to fix TS6133
+    transition: "all 0.2s ease",
+    "backdrop-filter": "blur(8px)",
+    display: "flex",
+    "align-items": "center",
+    gap: "0.4rem",
+    "&:hover": {
+      background: "rgba(255, 255, 255, 0.08)",
+      "border-color": "rgba(255, 255, 255, 0.2)",
+      color: "#f1f5f9",
+      transform: "translateY(-1px)",
+    },
+    ...(isHovered() ? { "border-color": "rgba(255,255,255,0.15)" } : {}),
+    ...(type === "confirm" && props.decision === "confirmed"
+      ? {
+          background: "rgba(34, 197, 94, 0.15)",
+          color: "#4ade80",
+          "border-color": "rgba(34, 197, 94, 0.3)",
+        }
+      : {}),
+    ...(type === "reject" && props.decision === "rejected"
+      ? {
+          background: "rgba(239, 68, 68, 0.15)",
+          color: "#f87171",
+          "border-color": "rgba(239, 68, 68, 0.3)",
+        }
+      : {}),
+    ...(type === "assign" && props.assignedTo
+      ? {
+          background: "rgba(59, 130, 246, 0.15)",
+          color: "#60a5fa",
+          "border-color": "rgba(59, 130, 246, 0.3)",
+        }
+      : {}),
   });
 
   async function handleAck() {
@@ -207,8 +242,8 @@ function AlertItem(props: AlertItemProps) {
       onMouseLeave={() => setIsHovered(false)}
       style={{
         ...GLASS_BASE,
-        padding: "0.75rem",
-        margin: "0.75rem 0.5rem",
+        padding: "1rem",
+        margin: "1rem 0.75rem",
         position: "relative",
         opacity: props.alert.acknowledged ? "0.6" : "1",
         "box-shadow":
@@ -349,50 +384,29 @@ function AlertItem(props: AlertItemProps) {
         <button
           onClick={() => props.onConfirm(props.alert)}
           disabled={!!props.pendingAction || props.decision !== null}
-          style={{
-            ...actionButtonStyle("confirm"),
-            ...(props.decision === "confirmed"
-              ? {
-                  background: "rgba(34, 197, 94, 0.2)",
-                  color: "#4ade80",
-                  "border-color": "rgba(34, 197, 94, 0.4)",
-                }
-              : {}),
-          }}
+          style={actionButtonStyle("confirm")}
           aria-label="Confirm alert"
         >
+          <Show when={props.decision === "confirmed"}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </Show>
           {props.decision === "confirmed" ? "Confirmed" : "Confirm"}
         </button>
         <button
           onClick={() => props.onReject(props.alert)}
           disabled={!!props.pendingAction || props.decision !== null}
-          style={{
-            ...actionButtonStyle("reject"),
-            ...(props.decision === "rejected"
-              ? {
-                  background: "rgba(239, 68, 68, 0.2)",
-                  color: "#f87171",
-                  "border-color": "rgba(239, 68, 68, 0.4)",
-                }
-              : {}),
-          }}
+          style={actionButtonStyle("reject")}
           aria-label="Reject alert"
         >
+          <Show when={props.decision === "rejected"}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </Show>
           {props.decision === "rejected" ? "Rejected" : "Reject"}
         </button>
         <button
           onClick={() => props.onOpenAssign(props.alert)}
           disabled={!!props.pendingAction}
-          style={{
-            ...actionButtonStyle("assign"),
-            ...(props.assignedTo
-              ? {
-                  background: "rgba(59, 130, 246, 0.2)",
-                  color: "#60a5fa",
-                  "border-color": "rgba(59, 130, 246, 0.4)",
-                }
-              : {}),
-          }}
+          style={actionButtonStyle("assign")}
           aria-label="Assign alert"
         >
           {props.assignedTo ? `To: ${props.assignedTo}` : "Assign"}
@@ -407,9 +421,12 @@ function AlertItem(props: AlertItemProps) {
               "margin-left": "auto",
               background: SEVERITY_COLORS[props.alert.severity],
               color: "#fff",
-              "font-weight": "bold",
+              "font-weight": "800",
               border: "none",
               "box-shadow": `0 4px 12px ${SEVERITY_GLOWS[props.alert.severity]}`,
+              padding: "0.35rem 0.9rem",
+              "text-transform": "uppercase",
+              "letter-spacing": "0.02em",
             }}
             aria-label="Acknowledge alert"
           >
@@ -509,6 +526,16 @@ export default function AlertSidebar() {
     createSignal<AlertPayload | null>(null);
   const [assigneeId, setAssigneeId] = createSignal("");
   const [assignComment, setAssignComment] = createSignal("");
+  const [operatorSearch, setOperatorSearch] = createSignal("");
+  const [filteredOperators, setFilteredOperators] = createSignal<Operator[]>(
+    getAvailableOperators()
+  );
+
+  createEffect(async () => {
+    const q = operatorSearch();
+    const results = await searchOperators(q);
+    setFilteredOperators(results);
+  });
 
   const [localActionState, setLocalActionState] = createSignal<
     Record<string, ActionState>
@@ -609,6 +636,7 @@ export default function AlertSidebar() {
     setAssignModalAlert(alert);
     setAssigneeId("");
     setAssignComment("");
+    setOperatorSearch("");
   }
 
   async function submitAssign() {
@@ -735,7 +763,7 @@ export default function AlertSidebar() {
         </Show>
       </div>
 
-      {/* Assignment Modal (Feature Integration) */}
+      {/* High-Fidelity Assignment Modal */}
       <Show when={assignModalAlert()}>
         <div
           style={{
@@ -752,83 +780,251 @@ export default function AlertSidebar() {
           <div
             style={{
               ...GLASS_BASE,
-              width: "320px",
+              width: "360px",
               padding: "1.5rem",
-              background: "rgba(30, 41, 59, 0.95)",
+              background: "rgba(15, 23, 42, 0.95)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
             }}
           >
-            <h3 style={{ "font-size": "1rem", "margin-top": 0 }}>
-              Assign Alert
-            </h3>
-            <p style={{ "font-size": "0.75rem", color: "#94a3b8" }}>
-              Alert: {assignModalAlert()?.description.substring(0, 50)}...
-            </p>
-
-            <label
-              style={{
-                display: "block",
-                "font-size": "0.7rem",
-                "margin-bottom": "0.25rem",
-              }}
-            >
-              Assign To (Operator ID)
-            </label>
-            <input
-              type="text"
-              value={assigneeId()}
-              onInput={(e) => setAssigneeId(e.currentTarget.value)}
-              placeholder="e.g. OP-442"
-              style={{
-                width: "100%",
-                background: "rgba(0,0,0,0.2)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#fff",
-                padding: "0.5rem",
-                "border-radius": "4px",
-                "margin-bottom": "1rem",
-              }}
-            />
-
-            <label
-              style={{
-                display: "block",
-                "font-size": "0.7rem",
-                "margin-bottom": "0.25rem",
-              }}
-            >
-              Instructions (Optional)
-            </label>
-            <textarea
-              value={assignComment()}
-              onInput={(e) => setAssignComment(e.currentTarget.value)}
-              placeholder="Investigation required..."
-              style={{
-                width: "100%",
-                background: "rgba(0,0,0,0.2)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "#fff",
-                padding: "0.5rem",
-                "border-radius": "4px",
-                "margin-bottom": "1rem",
-                height: "60px",
-              }}
-            />
-
             <div
               style={{
                 display: "flex",
-                gap: "0.5rem",
-                "justify-content": "flex-end",
+                "justify-content": "space-between",
+                "align-items": "center",
+                "margin-bottom": "1rem",
               }}
             >
+              <h3
+                style={{
+                  "font-size": "1.1rem",
+                  margin: 0,
+                  color: "#f8fafc",
+                  "font-weight": "700",
+                }}
+              >
+                Assign Alert
+              </h3>
               <button
                 onClick={() => setAssignModalAlert(null)}
                 style={{
                   background: "none",
-                  border: "1px solid rgba(255,255,255,0.1)",
+                  border: "none",
                   color: "#94a3b8",
-                  padding: "0.4rem 1rem",
-                  "border-radius": "4px",
+                  cursor: "pointer",
+                  "font-size": "1.2rem",
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                padding: "0.75rem",
+                "border-radius": "8px",
+                "margin-bottom": "1rem",
+                border: "1px solid rgba(255,255,255,0.05)",
+              }}
+            >
+              <div
+                style={{
+                  "font-size": "0.65rem",
+                  color: "#94a3b8",
+                  "text-transform": "uppercase",
+                  "margin-bottom": "0.25rem",
+                }}
+              >
+                Selected Alert
+              </div>
+              <div
+                style={{
+                  "font-size": "0.8rem",
+                  color: "#e2e8f0",
+                  "line-height": "1.4",
+                }}
+              >
+                {assignModalAlert()?.description}
+              </div>
+            </div>
+
+            <label
+              style={{
+                display: "block",
+                "font-size": "0.7rem",
+                "margin-bottom": "0.4rem",
+                color: "#94a3b8",
+                "font-weight": "600",
+              }}
+            >
+              SEARCH OPERATOR (ID OR NAME)
+            </label>
+            <input
+              type="text"
+              value={operatorSearch()}
+              onInput={(e) => setOperatorSearch(e.currentTarget.value)}
+              placeholder="Search e.g. Sarah, OP-103..."
+              style={{
+                width: "100%",
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#fff",
+                padding: "0.6rem 0.75rem",
+                "border-radius": "6px",
+                "font-size": "0.85rem",
+                "margin-bottom": "0.5rem",
+                outline: "none",
+              }}
+            />
+
+            {/* Operator List Picker */}
+            <div
+              style={{
+                "max-height": "160px",
+                "overflow-y": "auto",
+                background: "rgba(0,0,0,0.2)",
+                "border-radius": "6px",
+                border: "1px solid rgba(255,255,255,0.05)",
+                "margin-bottom": "1rem",
+              }}
+            >
+              <For each={filteredOperators()}>
+                {(op) => (
+                  <div
+                    onClick={() => setAssigneeId(op.id)}
+                    style={{
+                      padding: "0.75rem 1rem",
+                      cursor: "pointer",
+                      display: "flex",
+                      "justify-content": "space-between",
+                      "align-items": "center",
+                      background:
+                        assigneeId() === op.id
+                          ? "rgba(59, 130, 246, 0.15)"
+                          : "transparent",
+                      transition: "all 0.2s ease",
+                      "border-bottom": "1px solid rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <div style={{ display: "flex", "align-items": "center", gap: "0.75rem", flex: 1 }}>
+                      {/* Avatar Placeholder */}
+                      <div style={{
+                        width: "32px",
+                        height: "32px",
+                        "border-radius": "50%",
+                        background: "linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        display: "flex",
+                        "align-items": "center",
+                        "justify-content": "center",
+                        "font-size": "0.7rem",
+                        color: "#94a3b8",
+                        "font-weight": "800"
+                      }}>
+                        {op.name.split(" ").map(n => n[0]).join("")}
+                      </div>
+                      <div>
+                        <div
+                          style={{
+                            "font-size": "0.85rem",
+                            color: assigneeId() === op.id ? "#60a5fa" : "#e2e8f0",
+                            "font-weight": assigneeId() === op.id ? "700" : "500",
+                          }}
+                        >
+                          {op.name}
+                        </div>
+                        <div style={{ "font-size": "0.65rem", color: "#64748b", "font-family": "monospace" }}>
+                          {op.id}
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        "align-items": "center",
+                        gap: "0.4rem",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          "border-radius": "50%",
+                          background:
+                            op.status === "online"
+                              ? "#22c55e"
+                              : op.status === "busy"
+                                ? "#f59e0b"
+                                : "#64748b",
+                        }}
+                      />
+                      <span
+                        style={{
+                          "font-size": "0.6rem",
+                          "text-transform": "uppercase",
+                          color: "#94a3b8",
+                        }}
+                      >
+                        {op.status}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </For>
+              <Show when={filteredOperators().length === 0}>
+                <div
+                  style={{
+                    padding: "1rem",
+                    "text-align": "center",
+                    color: "#64748b",
+                    "font-size": "0.8rem",
+                  }}
+                >
+                  No matching operators found.
+                </div>
+              </Show>
+            </div>
+
+            <label
+              style={{
+                display: "block",
+                "font-size": "0.7rem",
+                "margin-bottom": "0.4rem",
+                color: "#94a3b8",
+                "font-weight": "600",
+              }}
+            >
+              INSTRUCTIONS (OPTIONAL)
+            </label>
+            <textarea
+              value={assignComment()}
+              onInput={(e) => setAssignComment(e.currentTarget.value)}
+              placeholder="Focus investigation on..."
+              style={{
+                width: "100%",
+                height: "60px",
+                background: "rgba(0,0,0,0.3)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#fff",
+                padding: "0.6rem 0.75rem",
+                "border-radius": "6px",
+                "font-size": "0.85rem",
+                "margin-bottom": "1.25rem",
+                resize: "none",
+                outline: "none",
+              }}
+            />
+
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button
+                onClick={() => setAssignModalAlert(null)}
+                style={{
+                  flex: 1,
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  color: "#e2e8f0",
+                  padding: "0.6rem",
+                  "border-radius": "6px",
                   cursor: "pointer",
                 }}
               >
@@ -838,13 +1034,17 @@ export default function AlertSidebar() {
                 onClick={submitAssign}
                 disabled={!assigneeId()}
                 style={{
-                  background: "#3b82f6",
+                  flex: 1,
+                  background: assigneeId() ? "#2563eb" : "rgba(37, 99, 235, 0.3)",
                   border: "none",
                   color: "#fff",
-                  padding: "0.4rem 1rem",
-                  "border-radius": "4px",
-                  cursor: "pointer",
-                  "font-weight": "bold",
+                  padding: "0.6rem",
+                  "border-radius": "6px",
+                  "font-weight": "700",
+                  cursor: assigneeId() ? "pointer" : "not-allowed",
+                  "box-shadow": assigneeId()
+                    ? "0 4px 12px rgba(37, 99, 235, 0.4)"
+                    : "none",
                 }}
               >
                 Assign
