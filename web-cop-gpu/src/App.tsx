@@ -18,21 +18,21 @@ import { updateAlerts } from "./signals/alerts";
 import { operatorIdFromToken, setOperatorId } from "./signals/auth";
 import { setConnecting, setWtConnected } from "./signals/connection";
 import {
-    setDatagramsPerSec,
-    setDecodeErrors,
-    setFps,
-    setLatencyMs,
-    setRecordsPerSec,
-    setTrackCount,
-    setVisibleCount,
+  setDatagramsPerSec,
+  setDecodeErrors,
+  setFps,
+  setLatencyMs,
+  setRecordsPerSec,
+  setTrackCount,
+  setVisibleCount,
 } from "./signals/stats";
 import {
-    setSelectedTrack,
-    setTrackDetail,
-    setTrackDetailError,
-    setTrackDetailLoading,
+  setSelectedTrack,
+  setTrackDetail,
+  setTrackDetailError,
+  setTrackDetailLoading,
 } from "./signals/track";
-import { dashboard, role } from "./signals/viewport";
+import { dashboard, enforceRoleDashboardGuard, role } from "./signals/viewport";
 
 // Spatial alert signals (Level 3 navigation)
 import { setSpatialAlerts } from "./signals/spatial-alerts";
@@ -45,8 +45,11 @@ import { fetchSensorStatuses } from "./services/sensor-health";
 
 // Components
 import { CoverageMapDashboard } from "./components/dashboard/CoverageMapDashboard";
+import { FusionCommanderDashboard } from "./components/dashboard/FusionCommanderDashboard";
+import { MultiDomainCommanderDashboard } from "./components/dashboard/MultiDomainCommanderDashboard";
+import { OperatorUiCommanderDashboard } from "./components/dashboard/OperatorUiCommanderDashboard";
 import { SensorHealthDashboard } from "./components/dashboard/SensorHealthDashboard";
-import { AlertSidebar } from "./components/panels/AlertSidebar";
+import AlertSidebar from "./components/panels/AlertSidebar";
 import { FeedbackForm } from "./components/panels/FeedbackForm";
 import { TrackDetailPanel } from "./components/panels/TrackDetailPanel";
 import { SearchOverlay } from "./components/search/SearchOverlay";
@@ -59,11 +62,11 @@ import { RoleSelector } from "./components/toolbar/RoleSelector";
 
 // Worker message types
 import type {
-    DataInitMessage,
-    DataToMainMessage,
-    RenderInitMessage,
-    RenderToMainMessage,
-    TokenRefreshMessage,
+  DataInitMessage,
+  DataToMainMessage,
+  RenderInitMessage,
+  RenderToMainMessage,
+  TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -91,7 +94,12 @@ export default function App() {
         break;
 
       case "picked": {
-        setSelectedTrack({ trackIdHash: msg.trackIdHash, x: msg.x, y: msg.y });
+        setSelectedTrack({
+          trackIdHash: msg.trackIdHash,
+          x: msg.x,
+          y: msg.y,
+          source: "canvas",
+        });
         // Attempt to fetch full track detail via gRPC using hash as track ID prefix
         const hashHex = msg.trackIdHash.toString(16).padStart(8, "0");
         setTrackDetailLoading(true);
@@ -166,10 +174,15 @@ export default function App() {
               affectedSensorId: a.trackId || "UNKNOWN",
               // Sector ID is encoded in the alert ID suffix (gap-<sectorId>-<timestamp>)
               // or falls back to the alert ID itself for Phase A.
-              sectorId: a.alertId.startsWith("gap-") ? a.alertId.split("-")[1] ?? a.alertId : a.alertId,
-              severity: (a.severity === "CRITICAL" || a.severity === "ELEVATED" || a.severity === "WATCH")
-                ? a.severity
-                : "WATCH" as const,
+              sectorId: a.alertId.startsWith("gap-")
+                ? (a.alertId.split("-")[1] ?? a.alertId)
+                : a.alertId,
+              severity:
+                a.severity === "CRITICAL" ||
+                a.severity === "ELEVATED" ||
+                a.severity === "WATCH"
+                  ? a.severity
+                  : ("WATCH" as const),
               description: a.description,
               lastContactUtc: new Date(a.detectedAtMs).toISOString(),
               acknowledged: a.acknowledged,
@@ -309,7 +322,10 @@ export default function App() {
     import("./signals/viewport").then(({ dashboard, viewport }) => {
       createEffect(() => {
         const current = dashboard();
-        renderWorker?.postMessage({ type: "set_dashboard", dashboard: current });
+        renderWorker?.postMessage({
+          type: "set_dashboard",
+          dashboard: current,
+        });
       });
 
       createEffect(() => {
@@ -339,8 +355,7 @@ export default function App() {
             bearingStart: s.coverage!.bearingStart,
             bearingEnd: s.coverage!.bearingEnd,
             recordType: 0, // Sector
-            alertLevel:
-              s.dlqCount > 100 ? 2 : s.dlqCount > 50 ? 1 : 0,
+            alertLevel: s.dlqCount > 100 ? 2 : s.dlqCount > 50 ? 1 : 0,
           }));
         renderWorker.postMessage({ type: "set_coverage", records });
       } catch (e) {
@@ -369,11 +384,61 @@ export default function App() {
 
   // ── Dashboard layout helpers ───────────────────────────────────────────────
 
-  const showAlerts = () =>
-    role() === "sensor_operator" || role() === "operations_commander";
+  createEffect(() => {
+    role();
+    dashboard();
+    enforceRoleDashboardGuard();
+  });
+
+  const isOperationsCommander = () => role() === "operations_commander";
+
+  const showAlerts = () => role() === "sensor_operator";
 
   const showTimeline = () =>
-    role() === "operations_commander" || dashboard() === "analytics";
+    dashboard() === "analytics" && !isOperationsCommander();
+
+  const mapCanvas = () => (
+    <canvas
+      ref={canvasRef}
+      id="gpu-canvas"
+      onClick={handleCanvasClick}
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "block",
+        cursor: "crosshair",
+      }}
+    />
+  );
+
+  const renderCommanderDashboard = () => {
+    if (dashboard() === "commander") {
+      return <FusionCommanderDashboard mapContent={mapCanvas()} />;
+    }
+    if (dashboard() === "coverage") {
+      return <MultiDomainCommanderDashboard mapContent={mapCanvas()} />;
+    }
+    return (
+      <OperatorUiCommanderDashboard
+        alertColumnContent={<AlertSidebar />}
+        detailPaneContent={<TrackDetailPanel />}
+        timelinePaneContent={<EventTimeline />}
+      />
+    );
+  };
+
+  const renderNonCommanderDashboard = () => (
+    <Show
+      when={dashboard() === "health"}
+      fallback={
+        <Show when={dashboard() === "coverage"} fallback={mapCanvas()}>
+          <CoverageMapDashboard />
+        </Show>
+      }
+    >
+      <SensorHealthDashboard />
+    </Show>
+  );
 
   return (
     <Show
@@ -402,7 +467,13 @@ export default function App() {
                   flex: 1,
                 }}
               >
-                <div style={{ display: "flex", "align-items": "center", gap: "12px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    "align-items": "center",
+                    gap: "12px",
+                  }}
+                >
                   <RoleSelector />
                   <DashboardSelector />
                 </div>
@@ -453,7 +524,9 @@ export default function App() {
                       border: "1px solid rgba(255,255,255,0.05)",
                     }}
                   >
-                    <span style={{ color: "#64748b", "margin-right": "6px" }}>UTC</span>
+                    <span style={{ color: "#64748b", "margin-right": "6px" }}>
+                      UTC
+                    </span>
                     <span style={{ color: "#e2e8f0" }}>{headerTime()}</span>
                   </div>
                 </Show>
@@ -463,33 +536,16 @@ export default function App() {
           }
           canvas={
             <Show
-              when={dashboard() === "health"}
-              fallback={
-                <Show
-                  when={dashboard() === "coverage"}
-                  fallback={
-                    <canvas
-                      ref={canvasRef}
-                      id="gpu-canvas"
-                      onClick={handleCanvasClick}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        display: "block",
-                        cursor: "crosshair",
-                      }}
-                    />
-                  }
-                >
-                  <CoverageMapDashboard />
-                </Show>
-              }
+              when={isOperationsCommander()}
+              fallback={renderNonCommanderDashboard()}
             >
-              <SensorHealthDashboard />
+              {renderCommanderDashboard()}
             </Show>
           }
           rightPanel={
-            dashboard() !== "health" && dashboard() !== "coverage" ? (
+            !isOperationsCommander() &&
+            dashboard() !== "health" &&
+            dashboard() !== "coverage" ? (
               <>
                 <TrackDetailPanel />
                 <Show when={showAlerts()}>

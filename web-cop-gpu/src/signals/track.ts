@@ -14,6 +14,10 @@ export interface PickedTrack {
   x: number;
   /** Canvas-space Y coordinate of the click that triggered the pick. */
   y: number;
+  /** Source of the selection flow (canvas/search/alert). */
+  source?: "canvas" | "search" | "alert";
+  /** Alert id when selected via alert inspect action. */
+  sourceAlertId?: string;
 }
 
 /** Full track detail fetched via gRPC QueryService.QueryTracks. */
@@ -35,16 +39,21 @@ export interface TrackDetail {
 }
 
 /** The track most recently clicked on the canvas (null = nothing selected). */
-export const [selectedTrack, setSelectedTrack] = createSignal<PickedTrack | null>(null);
+export const [selectedTrack, setSelectedTrack] =
+  createSignal<PickedTrack | null>(null);
 
 /** Full detail for the selected track once fetched (null = not loaded). */
-export const [trackDetail, setTrackDetail] = createSignal<TrackDetail | null>(null);
+export const [trackDetail, setTrackDetail] = createSignal<TrackDetail | null>(
+  null,
+);
 
 /** Whether the detail fetch is in progress. */
 export const [trackDetailLoading, setTrackDetailLoading] = createSignal(false);
 
 /** Error message from the last detail fetch (null = no error). */
-export const [trackDetailError, setTrackDetailError] = createSignal<string | null>(null);
+export const [trackDetailError, setTrackDetailError] = createSignal<
+  string | null
+>(null);
 
 /** Clear the selected track and all derived state. */
 export function clearSelectedTrack(): void {

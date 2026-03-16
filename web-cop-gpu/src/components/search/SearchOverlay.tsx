@@ -6,16 +6,16 @@
 // the track and opens the detail panel.
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §3 U3-6
 
-import { Show, For, createSignal, onCleanup, onMount } from "solid-js";
-import { searchOpen, setSearchOpen } from "../../signals/viewport";
+import { For, Show, createSignal, onCleanup, onMount } from "solid-js";
+import { searchTracks } from "../../services/query";
+import type { TrackDetail } from "../../signals/track";
 import {
   setSelectedTrack,
   setTrackDetail,
-  setTrackDetailLoading,
   setTrackDetailError,
+  setTrackDetailLoading,
 } from "../../signals/track";
-import { searchTracks } from "../../services/query";
-import type { TrackDetail } from "../../signals/track";
+import { searchOpen, setSearchOpen } from "../../signals/viewport";
 
 /** SearchOverlay activated by Ctrl+K. Never destructure props. */
 export function SearchOverlay() {
@@ -81,7 +81,7 @@ export function SearchOverlay() {
   }
 
   function selectResult(track: TrackDetail) {
-    setSelectedTrack({ trackIdHash: 0, x: 0, y: 0 });
+    setSelectedTrack({ trackIdHash: 0, x: 0, y: 0, source: "search" });
     setTrackDetailLoading(false);
     setTrackDetailError(null);
     setTrackDetail(track);
@@ -120,7 +120,9 @@ export function SearchOverlay() {
           onClick={(e) => e.stopPropagation()}
         >
           {/* Search input */}
-          <div style={{ padding: "0.75rem", "border-bottom": "1px solid #1e2a3a" }}>
+          <div
+            style={{ padding: "0.75rem", "border-bottom": "1px solid #1e2a3a" }}
+          >
             <input
               ref={inputRef}
               type="text"
@@ -144,19 +146,45 @@ export function SearchOverlay() {
           {/* Results */}
           <div style={{ "max-height": "50vh", "overflow-y": "auto" }}>
             <Show when={searching()}>
-              <div style={{ padding: "0.75rem", color: "#94a3b8", "font-size": "0.8rem" }}>
+              <div
+                style={{
+                  padding: "0.75rem",
+                  color: "#94a3b8",
+                  "font-size": "0.8rem",
+                }}
+              >
                 Searching…
               </div>
             </Show>
 
             <Show when={searchError() !== null}>
-              <div style={{ padding: "0.75rem", color: "#ef4444", "font-size": "0.8rem" }} role="alert">
+              <div
+                style={{
+                  padding: "0.75rem",
+                  color: "#ef4444",
+                  "font-size": "0.8rem",
+                }}
+                role="alert"
+              >
                 {searchError()}
               </div>
             </Show>
 
-            <Show when={!searching() && results().length === 0 && query().trim().length >= 2 && !searchError()}>
-              <div style={{ padding: "0.75rem", color: "#64748b", "font-size": "0.8rem" }}>
+            <Show
+              when={
+                !searching() &&
+                results().length === 0 &&
+                query().trim().length >= 2 &&
+                !searchError()
+              }
+            >
+              <div
+                style={{
+                  padding: "0.75rem",
+                  color: "#64748b",
+                  "font-size": "0.8rem",
+                }}
+              >
                 No tracks found
               </div>
             </Show>
@@ -180,7 +208,9 @@ export function SearchOverlay() {
                   }}
                   aria-label={`Select track ${track.trackId}`}
                 >
-                  <div style={{ "font-weight": "bold", "margin-bottom": "0.2rem" }}>
+                  <div
+                    style={{ "font-weight": "bold", "margin-bottom": "0.2rem" }}
+                  >
                     {track.trackId}
                   </div>
                   <div style={{ color: "#94a3b8", "font-size": "0.7rem" }}>

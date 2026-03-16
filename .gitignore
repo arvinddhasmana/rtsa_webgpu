@@ -94,3 +94,4 @@ go.work.sum
 coverage.out
 gen/node_modules
 web-cop-gpu/playwright-results.json
+web-cop-gpu/playwright-results.json

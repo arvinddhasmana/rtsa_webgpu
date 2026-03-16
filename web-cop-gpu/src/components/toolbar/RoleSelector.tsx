@@ -1,7 +1,7 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/toolbar/RoleSelector.tsx
 //
-// Switches the active operator role between Sensor Operator and Operations Commander.
+// Switches the active operator role across all supported RTSA operator roles.
 // Role changes filter UI panel visibility without interrupting data flows.
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §3 U3-2, U3-9
 
@@ -13,8 +13,11 @@ interface RoleSelectorProps {
 }
 
 const ROLES: { value: Role; label: string }[] = [
-  { value: "sensor_operator", label: "Sensor Operator" },
   { value: "operations_commander", label: "Ops Commander" },
+  { value: "intelligence_analyst", label: "Intelligence Analyst" },
+  { value: "security_officer", label: "Security Officer" },
+  { value: "sensor_operator", label: "Sensor Operator" },
+  { value: "nato_liaison", label: "NATO Liaison" },
 ];
 
 /** Never destructure props — breaks SolidJS reactivity. */

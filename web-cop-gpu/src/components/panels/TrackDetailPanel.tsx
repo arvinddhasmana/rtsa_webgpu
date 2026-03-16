@@ -8,11 +8,11 @@
 
 import { Show } from "solid-js";
 import {
+  clearSelectedTrack,
   selectedTrack,
   trackDetail,
-  trackDetailLoading,
   trackDetailError,
-  clearSelectedTrack,
+  trackDetailLoading,
 } from "../../signals/track";
 import { setFeedbackOpen } from "../../signals/viewport";
 
@@ -58,7 +58,13 @@ export function TrackDetailPanel() {
             "margin-bottom": "0.6rem",
           }}
         >
-          <span style={{ "font-size": "0.75rem", "font-weight": "bold", color: "#f59e0b" }}>
+          <span
+            style={{
+              "font-size": "0.75rem",
+              "font-weight": "bold",
+              color: "#f59e0b",
+            }}
+          >
             TRACK DETAIL
           </span>
           <button
@@ -78,16 +84,27 @@ export function TrackDetailPanel() {
         </div>
 
         {/* Loading state */}
+        <Show
+          when={
+            selectedTrack()?.source === "alert" &&
+            selectedTrack()?.sourceAlertId
+          }
+        >
+          <Field
+            label="Focused From Alert"
+            value={selectedTrack()!.sourceAlertId}
+          />
+        </Show>
+
         <Show when={trackDetailLoading()}>
-          <div style={{ color: "#94a3b8", "font-size": "0.8rem" }}>Loading…</div>
+          <div style={{ color: "#94a3b8", "font-size": "0.8rem" }}>
+            Loading…
+          </div>
         </Show>
 
         {/* Error state */}
         <Show when={trackDetailError() !== null}>
-          <div
-            style={{ color: "#ef4444", "font-size": "0.8rem" }}
-            role="alert"
-          >
+          <div style={{ color: "#ef4444", "font-size": "0.8rem" }} role="alert">
             {trackDetailError()}
           </div>
         </Show>
@@ -108,9 +125,18 @@ export function TrackDetailPanel() {
             label="Position"
             value={`${trackDetail()!.lat.toFixed(4)}°, ${trackDetail()!.lon.toFixed(4)}°`}
           />
-          <Field label="Altitude" value={`${trackDetail()!.altitudeMeters.toFixed(0)} m`} />
-          <Field label="Speed" value={`${trackDetail()!.speedKnots.toFixed(1)} kts`} />
-          <Field label="Heading" value={`${trackDetail()!.headingDeg.toFixed(1)}°`} />
+          <Field
+            label="Altitude"
+            value={`${trackDetail()!.altitudeMeters.toFixed(0)} m`}
+          />
+          <Field
+            label="Speed"
+            value={`${trackDetail()!.speedKnots.toFixed(1)} kts`}
+          />
+          <Field
+            label="Heading"
+            value={`${trackDetail()!.headingDeg.toFixed(1)}°`}
+          />
           <Show when={trackDetail()!.label}>
             <Field label="Label" value={trackDetail()!.label} />
           </Show>
@@ -135,7 +161,13 @@ export function TrackDetailPanel() {
         </Show>
 
         {/* No detail available yet (pick hash without a full track in DB) */}
-        <Show when={!trackDetailLoading() && !trackDetailError() && trackDetail() === null}>
+        <Show
+          when={
+            !trackDetailLoading() &&
+            !trackDetailError() &&
+            trackDetail() === null
+          }
+        >
           <Field
             label="Track Hash"
             value={`0x${selectedTrack()!.trackIdHash.toString(16).padStart(8, "0")}`}
