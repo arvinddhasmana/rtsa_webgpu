@@ -7,8 +7,8 @@
 //
 // Reference: docs/sdlc_guidelines/08_tech_specific/wgsl_shader_standards.md §3
 
-import { GPUBuffers } from "./buffers";
 import { AtlasTextures } from "./atlas";
+import { GPUBuffers } from "./buffers";
 import { PickResources } from "./pick";
 import { AllPipelines } from "./pipelines";
 
@@ -27,6 +27,8 @@ export interface BindGroups {
   labels:        { g0: GPUBindGroup; g1: GPUBindGroup; g2: GPUBindGroup };
   /** Bind groups for the pick render pass */
   pick:          { g0: GPUBindGroup; g1: GPUBindGroup };
+  /** Bind groups for raw observations */
+  observations:  { g0: GPUBindGroup; g1: GPUBindGroup };
 }
 
 /**
@@ -162,6 +164,18 @@ export function createBindGroups(
     ],
   });
 
+  // --- Observations render ---
+  const obsG0 = device.createBindGroup({
+    label:  "obs-g0",
+    layout: pipelines.render.observations.getBindGroupLayout(0),
+    entries: [{ binding: 0, resource: { buffer: buffers.uniform } }],
+  });
+  const obsG1 = device.createBindGroup({
+    label:  "obs-g1",
+    layout: pipelines.render.observations.getBindGroupLayout(1),
+    entries: [{ binding: 0, resource: { buffer: buffers.observationStorage } }],
+  });
+
   return {
     interpolation: { g0: interpG0, g1: interpG1 },
     culling:       { g0: cullG0,   g1: cullG1   },
@@ -170,5 +184,6 @@ export function createBindGroups(
     halos:         { g0: halosG0,  g1: halosG1               },
     labels:        { g0: labelsG0, g1: labelsG1, g2: labelsG2 },
     pick:          { g0: pickG0,   g1: pickG1                },
+    observations:  { g0: obsG0,    g1: obsG1                 },
   };
 }

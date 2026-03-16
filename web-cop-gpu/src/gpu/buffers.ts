@@ -36,6 +36,12 @@ export const MAX_COVERAGE_RECORDS = 1024;
 /** Bytes per CoverageRecord struct (32 bytes). */
 export const COVERAGE_RECORD_BYTES = 32;
 
+/** Maximum number of raw observations to buffer for rendering. */
+export const MAX_OBSERVATIONS = 10_000;
+
+/** Size of one observation record (lon, lat, type, confidence) = 4 * f32 = 16 bytes. */
+export const OBSERVATION_RECORD_BYTES = 16;
+
 export interface GPUBuffers {
   /** Track records uploaded from the SAB each frame — STORAGE | COPY_DST */
   trackStorage: GPUBuffer;
@@ -51,6 +57,8 @@ export interface GPUBuffers {
   glyphInstances: GPUBuffer;
   /** Coverage records (sectors/gaps) written per-frame (CPU) — STORAGE | COPY_DST */
   coverageStorage: GPUBuffer;
+  /** Raw observations uploaded per-frame (CPU) — STORAGE | COPY_DST */
+  observationStorage: GPUBuffer;
 }
 
 /**
@@ -102,6 +110,12 @@ export function allocateBuffers(device: GPUDevice): GPUBuffers {
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
 
+  const observationStorage = device.createBuffer({
+    label: "observation-storage",
+    size: MAX_OBSERVATIONS * OBSERVATION_RECORD_BYTES,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+
   return {
     trackStorage,
     positions,
@@ -110,6 +124,7 @@ export function allocateBuffers(device: GPUDevice): GPUBuffers {
     uniform,
     glyphInstances,
     coverageStorage,
+    observationStorage,
   };
 }
 
@@ -124,4 +139,5 @@ export function destroyBuffers(buffers: GPUBuffers): void {
   buffers.uniform.destroy();
   buffers.glyphInstances.destroy();
   buffers.coverageStorage.destroy();
+  buffers.observationStorage.destroy();
 }

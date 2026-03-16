@@ -88,8 +88,55 @@ export interface Viewport {
   zoom: number;
 }
 
-export const [viewport, setViewport] = createSignal<Viewport>({
+const [viewportSignal, setViewportSignal] = createSignal<Viewport>({
   centerLat: 0,
   centerLon: 0,
   zoom: 2,
 });
+
+export const viewport = viewportSignal;
+
+export function setViewport(next: Viewport): void {
+  setViewportSignal(next);
+  updateBoundingBoxDebounced(next);
+}
+
+/** Geographic bounding box derived from viewport. */
+export interface BoundingBox {
+  minLat: number;
+  maxLat: number;
+  minLon: number;
+  maxLon: number;
+}
+
+/**
+ * Calculate BoundingBox from Viewport.
+ * Note: This is a simplified calculation for the prototype.
+ */
+export function calculateBoundingBox(vp: Viewport): BoundingBox {
+  const latDelta = 180 / Math.pow(2, vp.zoom);
+  const lonDelta = 360 / Math.pow(2, vp.zoom);
+  return {
+    minLat: vp.centerLat - latDelta / 2,
+    maxLat: vp.centerLat + latDelta / 2,
+    minLon: vp.centerLon - lonDelta / 2,
+    maxLon: vp.centerLon + lonDelta / 2,
+  };
+}
+
+export const [boundingBox, setBoundingBox] = createSignal<BoundingBox>(
+  calculateBoundingBox(viewport()),
+);
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * Debounced update of the bounding box signal.
+ * Prevents flooding the backend with stream requests during panning/zooming.
+ */
+export function updateBoundingBoxDebounced(vp: Viewport): void {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    setBoundingBox(calculateBoundingBox(vp));
+  }, 500); // 500ms debounce
+}

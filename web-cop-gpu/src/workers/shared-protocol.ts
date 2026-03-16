@@ -42,6 +42,8 @@ export interface RenderInitMessage {
   type: "init";
   canvas: OffscreenCanvas;
   sab: SharedArrayBuffer;
+  initialWidth: number;
+  initialHeight: number;
   /**
    * When true, the Data Worker is the sole SAB writer for mock/live data.
    * The Render Worker must NOT write mock data to the SAB when this flag is set.
@@ -79,6 +81,19 @@ export interface SetCoverageMessage {
   }[];
 }
 
+export interface ObservationRecord {
+  id: string;
+  lat: number;
+  lon: number;
+  type: number; // SensorType enum
+  confidence: number;
+}
+
+export interface SetObservationsMessage {
+  type: "set_observations";
+  observations: ObservationRecord[];
+}
+
 export interface SetViewportMessage {
   type:      "set_viewport";
   centerLat: number;
@@ -92,7 +107,8 @@ export type MainToRenderMessage =
   | SelectTrackMessage
   | SetDashboardMessage
   | SetCoverageMessage
-  | SetViewportMessage;
+  | SetViewportMessage
+  | SetObservationsMessage;
 
 // ── Data Worker → Main Thread ──────────────────────────────────────────────────
 

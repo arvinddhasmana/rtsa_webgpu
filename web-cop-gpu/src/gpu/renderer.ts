@@ -64,6 +64,9 @@ export interface RenderState {
   /** Frame timing */
   lastFrameTime: number;
 
+  /** Number of raw observations uploaded this frame. */
+  observationCount: number;
+
   /** Frame timer for GPU timestamp queries and JS wall-clock measurement. */
   frameTimer: FrameTimer;
 
@@ -175,6 +178,24 @@ export function renderFrame(state: RenderState): void {
     });
     // Use the global uniform bind group (set 0)
     state.coverage.draw(pass, bindGroups.trackIcons.g0);
+    pass.end();
+  }
+
+  // 5.2 Render: Raw Observations (loadOp: load)
+  if (state.observationCount > 0) {
+    const pass = encoder.beginRenderPass({
+      label: "observations-pass",
+      colorAttachments: [{
+        view:    colorView,
+        loadOp:  "load",
+        storeOp: "store",
+      }],
+    });
+    pass.setPipeline(pipelines.render.observations);
+    pass.setBindGroup(0, bindGroups.observations.g0);
+    pass.setBindGroup(1, bindGroups.observations.g1);
+    // Draw 4 vertices per instance (quad), observationCount instances
+    pass.draw(4, state.observationCount, 0, 0);
     pass.end();
   }
 

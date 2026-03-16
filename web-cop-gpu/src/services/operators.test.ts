@@ -3,9 +3,9 @@
 
 import { describe, expect, it } from "vitest";
 import {
-    getAvailableOperators,
-    getOperatorById,
-    searchOperators,
+  getAvailableOperators,
+  getOperatorById,
+  searchOperators,
 } from "./operators";
 
 describe("Operators Service", () => {

@@ -18,19 +18,19 @@ import { updateAlerts } from "./signals/alerts";
 import { operatorIdFromToken, setOperatorId } from "./signals/auth";
 import { setConnecting, setWtConnected } from "./signals/connection";
 import {
-  setDatagramsPerSec,
-  setDecodeErrors,
-  setFps,
-  setLatencyMs,
-  setRecordsPerSec,
-  setTrackCount,
-  setVisibleCount,
+    setDatagramsPerSec,
+    setDecodeErrors,
+    setFps,
+    setLatencyMs,
+    setRecordsPerSec,
+    setTrackCount,
+    setVisibleCount,
 } from "./signals/stats";
 import {
-  setSelectedTrack,
-  setTrackDetail,
-  setTrackDetailError,
-  setTrackDetailLoading,
+    setSelectedTrack,
+    setTrackDetail,
+    setTrackDetailError,
+    setTrackDetailLoading,
 } from "./signals/track";
 import { dashboard, enforceRoleDashboardGuard, role } from "./signals/viewport";
 
@@ -42,6 +42,10 @@ import { startAlertStream } from "./services/alerts";
 import { fetchAuthToken } from "./services/auth";
 import { fetchTrackDetail } from "./services/query";
 import { fetchSensorStatuses } from "./services/sensor-health";
+import {
+    startObservationStream
+} from "./services/sensor-observations";
+import { allObservations } from "./signals/sensor-observations";
 
 // Components
 import { CoverageMapDashboard } from "./components/dashboard/CoverageMapDashboard";
@@ -62,11 +66,11 @@ import { RoleSelector } from "./components/toolbar/RoleSelector";
 
 // Worker message types
 import type {
-  DataInitMessage,
-  DataToMainMessage,
-  RenderInitMessage,
-  RenderToMainMessage,
-  TokenRefreshMessage,
+    DataInitMessage,
+    DataToMainMessage,
+    RenderInitMessage,
+    RenderToMainMessage,
+    TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -75,12 +79,13 @@ let lastFpsTime = performance.now();
 
 export default function App() {
   const [caps, setCaps] = createSignal<Capabilities | null>(null);
+  const [canvas, setCanvas] = createSignal<HTMLCanvasElement | null>(null);
 
-  let canvasRef: HTMLCanvasElement | undefined;
   let renderWorker: Worker | null = null;
   let dataWorker: Worker | null = null;
   let alertStreamController: AbortController | null = null;
   let fpsIntervalId: ReturnType<typeof setInterval> | null = null;
+  let canvasInitialized = false;
 
   // ── Render Worker message handler ──────────────────────────────────────────
 
@@ -218,8 +223,9 @@ export default function App() {
   // ── Canvas click → pick buffer ─────────────────────────────────────────────
 
   function handleCanvasClick(e: MouseEvent) {
-    if (!canvasRef || !renderWorker) return;
-    const rect = canvasRef.getBoundingClientRect();
+    const el = canvas();
+    if (!el || !renderWorker) return;
+    const rect = el.getBoundingClientRect();
     const x = Math.round((e.clientX - rect.left) * devicePixelRatio);
     const y = Math.round((e.clientY - rect.top) * devicePixelRatio);
     renderWorker.postMessage({ type: "select_track", x, y });
@@ -272,25 +278,33 @@ export default function App() {
     renderWorker.addEventListener("message", handleRenderMessage);
     dataWorker.addEventListener("message", handleDataMessage);
 
-    // Init Data Worker — pass URL and JWT token when available.
-    // When VITE_WEBTRANSPORT_URL is undefined (local dev), the worker falls back to mock mode.
     const wtUrl = import.meta.env.VITE_WEBTRANSPORT_URL as string | undefined;
 
-    // Transfer OffscreenCanvas to Render Worker
-    if (canvasRef) {
-      const offscreen = canvasRef.transferControlToOffscreen();
-      const initMsg: RenderInitMessage = {
-        type: "init",
-        canvas: offscreen,
-        sab,
-        dataWorkerActive: !!wtUrl, // Re-enable mock tracks if no WT URL
-      };
-      // Transfer OffscreenCanvas only — SAB is shared, not transferred
-      renderWorker.postMessage(initMsg, [offscreen]);
-    }
+    // Reactive Canvas Initialisation
+    createEffect(() => {
+      const el = canvas();
+      if (el && renderWorker && !canvasInitialized) {
+        canvasInitialized = true;
+        const rect = el.getBoundingClientRect();
+        const initialWidth = Math.round(rect.width * devicePixelRatio);
+        const initialHeight = Math.round(rect.height * devicePixelRatio);
+
+        console.log(`[App] Canvas mounted. Initial size: ${initialWidth}x${initialHeight}`);
+        const offscreen = el.transferControlToOffscreen();
+        const initMsg: RenderInitMessage = {
+          type: "init",
+          canvas: offscreen,
+          sab,
+          initialWidth,
+          initialHeight,
+          dataWorkerActive: !!wtUrl,
+        };
+        renderWorker.postMessage(initMsg, [offscreen]);
+        setupResizeObserver(el);
+      }
+    });
 
     const token = wtUrl ? await fetchAuthToken() : undefined;
-    // Decode operator identity from JWT claims; falls back to "anonymous".
     setOperatorId(operatorIdFromToken(token));
     const dataInit: DataInitMessage = { type: "init", sab, url: wtUrl, token };
     dataWorker.postMessage(dataInit);
@@ -308,10 +322,14 @@ export default function App() {
     }
     requestAnimationFrame(rafLoop);
 
-    // Setup resize observer
-    if (canvasRef) {
-      setupResizeObserver(canvasRef);
-    }
+    requestAnimationFrame(rafLoop);
+
+    // Initialise canvas reactively
+    // (createEffect defined above inside init to capture sab)
+
+    // Start observation stream management
+    console.log("[App] Starting observation stream...");
+    startObservationStream();
 
     // Start gRPC alert stream
     alertStreamController = startAlertStream();
@@ -340,6 +358,7 @@ export default function App() {
     });
   });
 
+
   // Level 3: Strategic View — Sync live coverage to WebGPU
   onMount(() => {
     const syncCoverage = async () => {
@@ -366,6 +385,30 @@ export default function App() {
     const timer = setInterval(syncCoverage, 10000);
     syncCoverage();
     onCleanup(() => clearInterval(timer));
+  });
+
+  // Level 3.1: Observations View — Sync live detections to WebGPU
+  createEffect(() => {
+    const obs = allObservations();
+    if (!renderWorker) {
+      console.warn("[App] No renderWorker available for observations sync");
+      return;
+    }
+
+    console.log(`[App] Syncing ${obs.length} observations to GPU...`);
+
+    const records = obs.map((o: any) => ({
+      id: o.id,
+      lat: o.lat,
+      lon: o.lon,
+      type: o.type,
+      confidence: o.confidence,
+    }));
+
+    renderWorker.postMessage({
+      type: "set_observations",
+      observations: records,
+    });
   });
 
   onMount(async () => {
@@ -397,9 +440,10 @@ export default function App() {
   const showTimeline = () =>
     dashboard() === "analytics" && !isOperationsCommander();
 
-  const mapCanvas = () => (
+  // STABLE CANVAS COMPONENT
+  const MapCanvas = (
     <canvas
-      ref={canvasRef}
+      ref={setCanvas}
       id="gpu-canvas"
       onClick={handleCanvasClick}
       style={{
@@ -411,13 +455,37 @@ export default function App() {
     />
   );
 
-  const renderCommanderDashboard = () => {
-    if (dashboard() === "commander") {
-      return <FusionCommanderDashboard mapContent={mapCanvas()} />;
+  /**
+   * Main viewport content.
+   * If the current dashboard uses the map, we show the stable MapCanvas.
+   * Otherwise (e.g. Health Grid), we show the specific dashboard.
+   */
+  const renderMainViewport = () => {
+    const currentDashboard = dashboard();
+
+    // Dashboards that DO NOT use the large map canvas
+    if (currentDashboard === "health") {
+      return <SensorHealthDashboard />;
     }
-    if (dashboard() === "coverage") {
-      return <MultiDomainCommanderDashboard mapContent={mapCanvas()} />;
+
+    // Dashboards that USE the stable map canvas
+    if (currentDashboard === "commander") {
+      return <FusionCommanderDashboard mapContent={MapCanvas} />;
     }
+    if (currentDashboard === "coverage") {
+      // If we're Operations Commander, use the MultiDomain version
+      if (isOperationsCommander()) {
+        return <MultiDomainCommanderDashboard mapContent={MapCanvas} />;
+      }
+      return <CoverageMapDashboard />;
+    }
+
+    // Default for Operator (Sensor Operator etc)
+    if (!isOperationsCommander()) {
+      return MapCanvas;
+    }
+
+    // Fallback/Legacy
     return (
       <OperatorUiCommanderDashboard
         alertColumnContent={<AlertSidebar />}
@@ -426,19 +494,6 @@ export default function App() {
       />
     );
   };
-
-  const renderNonCommanderDashboard = () => (
-    <Show
-      when={dashboard() === "health"}
-      fallback={
-        <Show when={dashboard() === "coverage"} fallback={mapCanvas()}>
-          <CoverageMapDashboard />
-        </Show>
-      }
-    >
-      <SensorHealthDashboard />
-    </Show>
-  );
 
   return (
     <Show
@@ -534,14 +589,7 @@ export default function App() {
               </div>
             </>
           }
-          canvas={
-            <Show
-              when={isOperationsCommander()}
-              fallback={renderNonCommanderDashboard()}
-            >
-              {renderCommanderDashboard()}
-            </Show>
-          }
+          canvas={renderMainViewport()}
           rightPanel={
             !isOperationsCommander() &&
             dashboard() !== "health" &&

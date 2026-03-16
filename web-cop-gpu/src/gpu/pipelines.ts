@@ -11,6 +11,7 @@ import cullingWGSL from "../shaders/culling.wgsl?raw";
 import halosWGSL from "../shaders/halos.wgsl?raw";
 import interpolationWGSL from "../shaders/interpolation.wgsl?raw";
 import labelsWGSL from "../shaders/labels.wgsl?raw";
+import observationsWGSL from "../shaders/observations.wgsl?raw";
 import pickWGSL from "../shaders/pick.wgsl?raw";
 import trackIconsWGSL from "../shaders/track-icons.wgsl?raw";
 import trailWGSL from "../shaders/trail.wgsl?raw";
@@ -28,6 +29,7 @@ export interface RenderPipelines {
   labels:     GPURenderPipeline;
   pick:       GPURenderPipeline;
   coverage:   GPURenderPipeline;
+  observations: GPURenderPipeline;
 }
 
 export interface AllPipelines {
@@ -179,7 +181,6 @@ export function createPipelines(
     primitive: { topology: "triangle-strip" },
   });
 
-  // Coverage pipeline: footprint and gaps (triangle list)
   const coveragePipeline = device.createRenderPipeline({
     label:  "coverage",
     layout: "auto",
@@ -203,6 +204,29 @@ export function createPipelines(
     primitive: { topology: "triangle-list" },
   });
 
+  const observationsPipeline = device.createRenderPipeline({
+    label:  "observations",
+    layout: "auto",
+    vertex: {
+      module:     device.createShaderModule({ label: "observations-vs", code: observationsWGSL }),
+      entryPoint: "vs_main",
+    },
+    fragment: {
+      module:     device.createShaderModule({ label: "observations-fs", code: observationsWGSL }),
+      entryPoint: "fs_main",
+      targets: [
+        {
+          format: swapChainFormat,
+          blend: {
+            color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+            alpha: { srcFactor: "one",       dstFactor: "one-minus-src-alpha", operation: "add" },
+          },
+        },
+      ],
+    },
+    primitive: { topology: "triangle-strip" },
+  });
+
   return {
     compute: {
       interpolation: interpolationPipeline,
@@ -215,6 +239,7 @@ export function createPipelines(
       labels:     labelsPipeline,
       pick:       pickPipeline,
       coverage:   coveragePipeline,
+      observations: observationsPipeline,
     },
   };
 }

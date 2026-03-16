@@ -26,54 +26,21 @@ import {
     makeErrorStatus,
     RENDER_ERROR_THRESHOLD,
     RENDER_INTERVAL_MS,
-    shouldFlushStats,
-    type RenderStatusMessage,
+    shouldFlushStats
 } from "../gpu/render-logic";
 import { renderFrame, type RenderState } from "../gpu/renderer";
 import {
+    MainToRenderMessage,
+    PickedMessage,
     RenderStatsMessage,
-    SetCoverageMessage,
-    SetDashboardMessage,
-    SetViewportMessage
+    RenderReadyMessage as RenderStatusMessage
 } from "./shared-protocol";
 
-/** Messages accepted by the Render Worker */
-interface InitMessage {
-  type: "init";
-  canvas: OffscreenCanvas;
-  sab: SharedArrayBuffer;
-  /**
-   * When true, the Data Worker is the sole SAB writer.
-   * The Render Worker must NOT call mock-data functions in this mode.
-   */
-  dataWorkerActive?: boolean;
-}
+/** Local alias for MainToRenderMessage */
+type InboundMessage = MainToRenderMessage;
 
-interface ResizeMessage {
-  type: "resize";
-  width: number;
-  height: number;
-}
-
-interface SelectTrackMessage {
-  type: "select_track";
-  x: number;
-  y: number;
-}
-
-/** Messages sent back to the main thread */
-interface PickedMessage {
-  type: "picked";
-  trackIdHash: number;
-  x: number;
-  y: number;
-}
-
-// StatusMessage is re-exported from render-logic as RenderStatusMessage.
-// Use the imported type alias for all status message creation.
+/** Status message local alias */
 type StatusMessage = RenderStatusMessage;
-
-type InboundMessage = InitMessage | ResizeMessage | SelectTrackMessage | SetDashboardMessage | SetCoverageMessage | SetViewportMessage;
 
 // RENDER_INTERVAL_MS and RENDER_ERROR_THRESHOLD are imported from render-logic.ts.
 
@@ -112,10 +79,20 @@ function teardown(): void {
  * Initialise the full WebGPU rendering stack.
  * On device loss this is called again with the same canvas and SAB.
  */
-async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataWorkerActive: boolean): Promise<void> {
+async function init(
+  offscreen: OffscreenCanvas,
+  sabBuf: SharedArrayBuffer,
+  dataWorkerActive: boolean,
+  initialWidth: number,
+  initialHeight: number
+): Promise<void> {
   activeCanvas = offscreen;
   activeSab    = sabBuf;
   activeDataWorker = dataWorkerActive;
+
+  // Set initial resolution before WebGPU context request
+  offscreen.width = initialWidth;
+  offscreen.height = initialHeight;
 
   teardown();
 
@@ -140,7 +117,13 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
       console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
     }
     if (activeCanvas && activeSab) {
-      init(activeCanvas, activeSab, activeDataWorker).catch((err: unknown) => {
+      init(
+        activeCanvas,
+        activeSab,
+        activeDataWorker,
+        activeCanvas.width,
+        activeCanvas.height
+      ).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error("[RenderWorker] Re-init failed:", err);
         }
@@ -175,6 +158,7 @@ async function init(offscreen: OffscreenCanvas, sabBuf: SharedArrayBuffer, dataW
     sab: sabBuf,
     canvas: offscreen,
     trackCount: MOCK_TRACK_COUNT,
+    observationCount: 0,
     coverage,
     dashboard: "health", // Default
     camera: {
@@ -291,7 +275,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 
   switch (msg.type) {
     case "init": {
-      init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false).catch((err: unknown) => {
+      init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false, msg.initialWidth, msg.initialHeight).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error("[RenderWorker] Init failed:", err);
         }
@@ -376,6 +360,30 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
         renderState.camera.centerLon = msg.centerLon;
         // Simple mapping: zoom level 2 maps to scale 1.0; each increment doubles scale.
         renderState.camera.scale = Math.pow(2, msg.zoom - 2);
+      }
+      break;
+    }
+
+    case "set_observations": {
+      if (renderState) {
+        const obs = msg.observations;
+        renderState.observationCount = obs.length;
+        if (obs.length > 0) {
+          // Pack observations into a Float32Array
+          // [lon, lat, type, confidence] per record
+          const data = new Float32Array(obs.length * 4);
+          for (let i = 0; i < obs.length; i++) {
+            data[i * 4 + 0] = obs[i].lon;
+            data[i * 4 + 1] = obs[i].lat;
+            data[i * 4 + 2] = obs[i].type;
+            data[i * 4 + 3] = obs[i].confidence;
+          }
+          renderState.device.queue.writeBuffer(
+            renderState.buffers.observationStorage,
+            0,
+            data
+          );
+        }
       }
       break;
     }
