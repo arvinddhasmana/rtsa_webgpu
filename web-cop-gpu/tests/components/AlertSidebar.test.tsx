@@ -3,7 +3,7 @@
 
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
-import { AlertSidebar } from "../../src/components/panels/AlertSidebar";
+import AlertSidebar from "../../src/components/panels/AlertSidebar";
 import { setAlerts } from "../../src/signals/alerts";
 import { setOperatorId } from "../../src/signals/auth";
 import type { AlertPayload } from "../../src/workers/shared-protocol";

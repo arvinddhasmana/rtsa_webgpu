@@ -8,17 +8,19 @@
 //   - acknowledgeAlert calls gRPC client with correct alertId and operatorId
 //   - acknowledgeAlert propagates gRPC errors without swallowing them
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── Mock ConnectRPC client at the transport boundary ──────────────────────────
 
 const mockStreamAlerts = vi.hoisted(() => vi.fn());
 const mockAcknowledgeAlert = vi.hoisted(() => vi.fn());
+const mockAssignAlert = vi.hoisted(() => vi.fn());
 
 vi.mock("@connectrpc/connect", () => ({
   createPromiseClient: () => ({
     streamAlerts: mockStreamAlerts,
     acknowledgeAlert: mockAcknowledgeAlert,
+    assignAlert: mockAssignAlert,
   }),
 }));
 
@@ -54,7 +56,12 @@ vi.mock("../signals/connection", () => ({
   setConnecting: vi.fn(),
 }));
 
-import { startAlertStream, acknowledgeAlert } from "./alerts";
+import {
+  acknowledgeAlert,
+  assignAlert,
+  buildAssignAlertRequest,
+  startAlertStream,
+} from "./alerts";
 
 // ── startAlertStream ──────────────────────────────────────────────────────────
 
@@ -228,7 +235,9 @@ describe("acknowledgeAlert", () => {
 
     await acknowledgeAlert("a1", "op1");
 
-    const [args] = mockAcknowledgeAlert.mock.calls[0] as [Record<string, unknown>];
+    const [args] = mockAcknowledgeAlert.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
     expect(args["comment"]).toBe("");
   });
 
@@ -236,6 +245,75 @@ describe("acknowledgeAlert", () => {
     const grpcError = new Error("gRPC UNAVAILABLE");
     mockAcknowledgeAlert.mockRejectedValue(grpcError);
 
-    await expect(acknowledgeAlert("a1", "op1")).rejects.toThrow("gRPC UNAVAILABLE");
+    await expect(acknowledgeAlert("a1", "op1")).rejects.toThrow(
+      "gRPC UNAVAILABLE",
+    );
+  });
+});
+
+describe("assignAlert", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("buildAssignAlertRequest validates required fields", () => {
+    expect(() =>
+      buildAssignAlertRequest({
+        alertId: "",
+        assignerOperatorId: "op-1",
+        assigneeOperatorId: "op-2",
+      }),
+    ).toThrow("alertId is required");
+
+    expect(() =>
+      buildAssignAlertRequest({
+        alertId: "a1",
+        assignerOperatorId: "",
+        assigneeOperatorId: "op-2",
+      }),
+    ).toThrow("assignerOperatorId is required");
+
+    expect(() =>
+      buildAssignAlertRequest({
+        alertId: "a1",
+        assignerOperatorId: "op-1",
+        assigneeOperatorId: "op-1",
+      }),
+    ).toThrow("assigneeOperatorId must be different");
+  });
+
+  it("sends assign payload with expected identifiers and comment", async () => {
+    mockAssignAlert.mockResolvedValue({
+      success: true,
+      assignedAt: { seconds: BigInt(1_700_000_123) },
+    });
+
+    const result = await assignAlert({
+      alertId: "alert-7",
+      assignerOperatorId: "op-alpha",
+      assigneeOperatorId: "op-bravo",
+      comment: "Follow up now",
+    });
+
+    expect(mockAssignAlert).toHaveBeenCalledWith({
+      alertId: "alert-7",
+      assignerOperatorId: "op-alpha",
+      assigneeOperatorId: "op-bravo",
+      comment: "Follow up now",
+    });
+    expect(result.success).toBe(true);
+    expect(result.assignedAtMs).toBe(1_700_000_123_000);
+  });
+
+  it("propagates assign RPC failures", async () => {
+    mockAssignAlert.mockRejectedValue(new Error("gRPC INTERNAL"));
+
+    await expect(
+      assignAlert({
+        alertId: "alert-9",
+        assignerOperatorId: "op-alpha",
+        assigneeOperatorId: "op-charlie",
+      }),
+    ).rejects.toThrow("gRPC INTERNAL");
   });
 });

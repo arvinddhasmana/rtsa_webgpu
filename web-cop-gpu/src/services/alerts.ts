@@ -5,14 +5,74 @@
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §5
 
 import { createPromiseClient } from "@connectrpc/connect";
-import { AlertService } from "@gen/rtsa/inference/v1/alert_service_connect.js";
-import { transport } from "./grpc-client";
 import { ClassificationLevel } from "@gen/rtsa/common/v1/types_pb.js";
-import type { AlertPayload } from "../workers/shared-protocol";
-import { updateAlerts, acknowledgeAlertLocally } from "../signals/alerts";
+import { AlertService } from "@gen/rtsa/inference/v1/alert_service_connect.js";
+import { acknowledgeAlertLocally, updateAlerts } from "../signals/alerts";
 import { setAlertStreamHealthy } from "../signals/connection";
+import type { AlertPayload } from "../workers/shared-protocol";
+import { transport } from "./grpc-client";
 
 const client = createPromiseClient(AlertService, transport);
+
+type E2EAlertMocks = {
+  assignAlert?: (request: {
+    alertId: string;
+    assignerOperatorId: string;
+    assigneeOperatorId: string;
+    comment: string;
+  }) => Promise<{
+    success: boolean;
+    assignedAt?: { seconds: bigint | number };
+  }>;
+};
+
+function getE2EAlertMocks(): E2EAlertMocks | undefined {
+  const maybeGlobal = globalThis as typeof globalThis & {
+    __RTSA_E2E_MOCKS__?: E2EAlertMocks;
+  };
+  return maybeGlobal.__RTSA_E2E_MOCKS__;
+}
+
+export interface AssignAlertParams {
+  alertId: string;
+  assignerOperatorId: string;
+  assigneeOperatorId: string;
+  comment?: string;
+}
+
+export interface AssignAlertResult {
+  success: boolean;
+  assignedAtMs: number;
+}
+
+/** Build and validate assign request payload for AlertService.AssignAlert. */
+export function buildAssignAlertRequest(params: AssignAlertParams): {
+  alertId: string;
+  assignerOperatorId: string;
+  assigneeOperatorId: string;
+  comment: string;
+} {
+  const alertId = params.alertId.trim();
+  const assignerOperatorId = params.assignerOperatorId.trim();
+  const assigneeOperatorId = params.assigneeOperatorId.trim();
+  const comment = (params.comment ?? "").trim();
+
+  if (!alertId) throw new Error("alertId is required");
+  if (!assignerOperatorId) throw new Error("assignerOperatorId is required");
+  if (!assigneeOperatorId) throw new Error("assigneeOperatorId is required");
+  if (assigneeOperatorId === assignerOperatorId) {
+    throw new Error(
+      "assigneeOperatorId must be different from assignerOperatorId",
+    );
+  }
+
+  return {
+    alertId,
+    assignerOperatorId,
+    assigneeOperatorId,
+    comment,
+  };
+}
 
 /**
  * Start streaming alerts from the AlertService over gRPC-Web.
@@ -86,6 +146,22 @@ export async function acknowledgeAlert(
     }
     throw err;
   }
+}
+
+/** Assign an alert to another operator via AlertService.AssignAlert. */
+export async function assignAlert(
+  params: AssignAlertParams,
+): Promise<AssignAlertResult> {
+  const request = buildAssignAlertRequest(params);
+  const response = getE2EAlertMocks()?.assignAlert
+    ? await getE2EAlertMocks()!.assignAlert!(request)
+    : await client.assignAlert(request);
+  return {
+    success: response.success,
+    assignedAtMs: response.assignedAt
+      ? Number(response.assignedAt.seconds) * 1000
+      : Date.now(),
+  };
 }
 
 type AlertSeverity = AlertPayload["severity"];

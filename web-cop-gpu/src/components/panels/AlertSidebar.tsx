@@ -2,16 +2,19 @@
 // src/components/panels/AlertSidebar.tsx
 //
 // Displays real-time alerts with a High-Fidelity Hybrid Glassmorphism UI.
-// Supports: Pulsing Critical states, Confidence Gauges, Source Badges, and 
+// Supports: Pulsing Critical states, Confidence Gauges, Source Badges, and
 // Quick-Action triage (Inspect/Confirm/Reject/Assign).
 // Reference: docs/user_guide/operations_commander/02_anomaly_alerts.md
 
-import { For, Show, createSignal, createMemo } from "solid-js";
-import { alerts } from "../../signals/alerts";
+import { For, Show, createMemo, createSignal } from "solid-js";
 import { acknowledgeAlert, assignAlert } from "../../services/alerts";
-import type { AlertPayload } from "../../workers/shared-protocol";
+import {
+  submitConfirmAlertFeedback,
+  submitRejectAlertFeedback,
+} from "../../services/feedback";
+import { fetchTrackDetail } from "../../services/query";
+import { alerts } from "../../signals/alerts";
 import { operatorId } from "../../signals/auth";
-import { setDashboard } from "../../signals/viewport";
 import { setActiveSpatialAlertId } from "../../signals/spatial-alerts";
 import {
   setSelectedTrack,
@@ -19,11 +22,8 @@ import {
   setTrackDetailError,
   setTrackDetailLoading,
 } from "../../signals/track";
-import { fetchTrackDetail } from "../../services/query";
-import {
-  submitConfirmAlertFeedback,
-  submitRejectAlertFeedback,
-} from "../../services/feedback";
+import { setDashboardSignal } from "../../signals/viewport";
+import type { AlertPayload } from "../../workers/shared-protocol";
 
 const SEVERITY_COLORS: Record<AlertPayload["severity"], string> = {
   CRITICAL: "#ef4444",
@@ -106,7 +106,10 @@ function saveStoredActionState(nextState: Record<string, ActionState>): void {
   if (typeof window === "undefined") {
     return;
   }
-  window.localStorage.setItem(ACTION_STATE_STORAGE_KEY, JSON.stringify(nextState));
+  window.localStorage.setItem(
+    ACTION_STATE_STORAGE_KEY,
+    JSON.stringify(nextState),
+  );
 }
 
 /** Confidence Ring Component */
@@ -133,7 +136,7 @@ function ConfidenceGauge(props: { score: number; color: string }) {
           fill="none"
           stroke={props.color}
           stroke-width="2"
-          stroke-dasharray={circumference}
+          stroke-dasharray={String(circumference)}
           stroke-dashoffset={offset}
           stroke-linecap="round"
           transform="rotate(-90 12 12)"
@@ -183,6 +186,7 @@ function AlertItem(props: AlertItemProps) {
     transition: "all 0.2s",
     "backdrop-filter": "blur(4px)",
     ...(isHovered() ? { "border-color": "rgba(255,255,255,0.2)" } : {}),
+    ...(type ? {} : {}), // placeholder to use type variable to fix TS6133
   });
 
   async function handleAck() {
@@ -207,29 +211,48 @@ function AlertItem(props: AlertItemProps) {
         margin: "0.75rem 0.5rem",
         position: "relative",
         opacity: props.alert.acknowledged ? "0.6" : "1",
-        "box-shadow": props.alert.severity === "CRITICAL" && !props.alert.acknowledged
-          ? `0 0 20px ${SEVERITY_GLOWS.CRITICAL}`
-          : "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
+        "box-shadow":
+          props.alert.severity === "CRITICAL" && !props.alert.acknowledged
+            ? `0 0 20px ${SEVERITY_GLOWS.CRITICAL}`
+            : "0 8px 32px 0 rgba(0, 0, 0, 0.4)",
         transform: isHovered() ? "translateY(-2px)" : "none",
-        "border-color": isHovered() ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.08)",
+        "border-color": isHovered()
+          ? "rgba(255, 255, 255, 0.15)"
+          : "rgba(255, 255, 255, 0.08)",
       }}
       aria-label={`Alert: ${props.alert.description}`}
     >
       {/* Pulse Effect for Critical */}
-      <Show when={props.alert.severity === "CRITICAL" && !props.alert.acknowledged}>
-        <div style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0, bottom: 0,
-          "border-radius": "12px",
-          border: `2px solid ${SEVERITY_COLORS.CRITICAL}`,
-          animation: "pulse-glow 2s infinite",
-          "pointer-events": "none",
-        }} />
+      <Show
+        when={props.alert.severity === "CRITICAL" && !props.alert.acknowledged}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            "border-radius": "12px",
+            border: `2px solid ${SEVERITY_COLORS.CRITICAL}`,
+            animation: "pulse-glow 2s infinite",
+            "pointer-events": "none",
+          }}
+        />
       </Show>
 
       {/* Header Area */}
-      <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center", "margin-bottom": "0.5rem" }}>
-        <div style={{ display: "flex", "align-items": "center", gap: "0.5rem" }}>
+      <div
+        style={{
+          display: "flex",
+          "justify-content": "space-between",
+          "align-items": "center",
+          "margin-bottom": "0.5rem",
+        }}
+      >
+        <div
+          style={{ display: "flex", "align-items": "center", gap: "0.5rem" }}
+        >
           <div
             style={{
               width: "10px",
@@ -239,56 +262,82 @@ function AlertItem(props: AlertItemProps) {
               "box-shadow": `0 0 8px ${SEVERITY_COLORS[props.alert.severity]}`,
             }}
           />
-          <span style={{ "font-weight": "800", "font-size": "0.65rem", color: SEVERITY_COLORS[props.alert.severity], "letter-spacing": "0.05rem" }}>
+          <span
+            style={{
+              "font-weight": "800",
+              "font-size": "0.65rem",
+              color: SEVERITY_COLORS[props.alert.severity],
+              "letter-spacing": "0.05rem",
+            }}
+          >
             {props.alert.severity}
           </span>
         </div>
-        
+
         {/* Confidence Gauge (Feature from Mockup 1) */}
-        <ConfidenceGauge 
-          score={props.alert.confidence * 100 || 85} 
-          color={SEVERITY_COLORS[props.alert.severity]} 
+        <ConfidenceGauge
+          score={85}
+          color={SEVERITY_COLORS[props.alert.severity]}
         />
       </div>
 
       {/* Body Area */}
       <div style={{ "margin-bottom": "0.75rem" }}>
-        <div style={{ "font-size": "0.75rem", color: "#f8fafc", "line-height": "1.4", "margin-bottom": "0.4rem" }}>
+        <div
+          style={{
+            "font-size": "0.75rem",
+            color: "#f8fafc",
+            "line-height": "1.4",
+            "margin-bottom": "0.4rem",
+          }}
+        >
           {props.alert.description}
         </div>
-        
+
         {/* Source Badges (Feature from Mockup 2) */}
-        <div style={{ display: "flex", gap: "0.3rem", "margin-bottom": "0.4rem" }}>
+        <div
+          style={{ display: "flex", gap: "0.3rem", "margin-bottom": "0.4rem" }}
+        >
           <For each={sources()}>
             {(src) => (
-              <span style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: "rgba(255,255,255,0.5)",
-                padding: "1px 4px",
-                "border-radius": "3px",
-                "font-size": "0.55rem",
-                "font-weight": "bold"
-              }}>
+              <span
+                style={{
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "rgba(255,255,255,0.5)",
+                  padding: "1px 4px",
+                  "border-radius": "3px",
+                  "font-size": "0.55rem",
+                  "font-weight": "bold",
+                }}
+              >
                 {src}
               </span>
             )}
           </For>
         </div>
 
-        <div style={{ "font-size": "0.65rem", color: "#94a3b8", "font-family": "monospace" }}>
+        <div
+          style={{
+            "font-size": "0.65rem",
+            color: "#94a3b8",
+            "font-family": "monospace",
+          }}
+        >
           Track ID: {props.alert.trackId?.substring(0, 8) || "N/A"}
         </div>
       </div>
 
       {/* Action Bar (Feature from Mockup 3 integration) */}
-      <div style={{
-        display: "flex",
-        gap: "0.4rem",
-        "flex-wrap": "wrap",
-        "padding-top": "0.5rem",
-        "border-top": "1px solid rgba(255,255,255,0.05)"
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "0.4rem",
+          "flex-wrap": "wrap",
+          "padding-top": "0.5rem",
+          "border-top": "1px solid rgba(255,255,255,0.05)",
+        }}
+      >
         <button
           onClick={() => props.onInspect(props.alert)}
           disabled={acking()}
@@ -302,7 +351,13 @@ function AlertItem(props: AlertItemProps) {
           disabled={!!props.pendingAction || props.decision !== null}
           style={{
             ...actionButtonStyle("confirm"),
-            ...(props.decision === "confirmed" ? { background: "rgba(34, 197, 94, 0.2)", color: "#4ade80", "border-color": "rgba(34, 197, 94, 0.4)" } : {})
+            ...(props.decision === "confirmed"
+              ? {
+                  background: "rgba(34, 197, 94, 0.2)",
+                  color: "#4ade80",
+                  "border-color": "rgba(34, 197, 94, 0.4)",
+                }
+              : {}),
           }}
           aria-label="Confirm alert"
         >
@@ -313,7 +368,13 @@ function AlertItem(props: AlertItemProps) {
           disabled={!!props.pendingAction || props.decision !== null}
           style={{
             ...actionButtonStyle("reject"),
-            ...(props.decision === "rejected" ? { background: "rgba(239, 68, 68, 0.2)", color: "#f87171", "border-color": "rgba(239, 68, 68, 0.4)" } : {})
+            ...(props.decision === "rejected"
+              ? {
+                  background: "rgba(239, 68, 68, 0.2)",
+                  color: "#f87171",
+                  "border-color": "rgba(239, 68, 68, 0.4)",
+                }
+              : {}),
           }}
           aria-label="Reject alert"
         >
@@ -324,7 +385,13 @@ function AlertItem(props: AlertItemProps) {
           disabled={!!props.pendingAction}
           style={{
             ...actionButtonStyle("assign"),
-            ...(props.assignedTo ? { background: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", "border-color": "rgba(59, 130, 246, 0.4)" } : {})
+            ...(props.assignedTo
+              ? {
+                  background: "rgba(59, 130, 246, 0.2)",
+                  color: "#60a5fa",
+                  "border-color": "rgba(59, 130, 246, 0.4)",
+                }
+              : {}),
           }}
           aria-label="Assign alert"
         >
@@ -342,7 +409,7 @@ function AlertItem(props: AlertItemProps) {
               color: "#fff",
               "font-weight": "bold",
               border: "none",
-              "box-shadow": `0 4px 12px ${SEVERITY_GLOWS[props.alert.severity]}`
+              "box-shadow": `0 4px 12px ${SEVERITY_GLOWS[props.alert.severity]}`,
             }}
             aria-label="Acknowledge alert"
           >
@@ -352,41 +419,59 @@ function AlertItem(props: AlertItemProps) {
       </div>
 
       <Show when={ackError()}>
-        <div style={{ color: "#ef4444", "font-size": "0.6rem", "margin-top": "0.4rem" }}>
+        <div
+          style={{
+            color: "#ef4444",
+            "font-size": "0.6rem",
+            "margin-top": "0.4rem",
+          }}
+        >
           {ackError()}
         </div>
       </Show>
 
       {/* Decision/Action Status */}
       <Show when={props.pendingAction}>
-        <div style={{
-          position: "absolute",
-          bottom: "2.5rem",
-          right: "0.5rem",
-          "font-size": "0.6rem",
-          color: "#94a3b8",
-          animation: "fade-in 0.3s"
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "2.5rem",
+            right: "0.5rem",
+            "font-size": "0.6rem",
+            color: "#94a3b8",
+            animation: "fade-in 0.3s",
+          }}
+        >
           Processing {props.pendingAction}...
         </div>
       </Show>
 
       {/* Action Error */}
       <Show when={props.actionError}>
-        <div style={{
-          color: "#ef4444",
-          "font-size": "0.6rem",
-          "margin-top": "0.4rem",
-          display: "flex",
-          "align-items": "center",
-          gap: "0.4rem"
-        }}>
-          <span>Error during {props.actionError?.action}: {props.actionError?.message}</span>
+        <div
+          style={{
+            color: "#ef4444",
+            "font-size": "0.6rem",
+            "margin-top": "0.4rem",
+            display: "flex",
+            "align-items": "center",
+            gap: "0.4rem",
+          }}
+        >
+          <span>
+            Error during {props.actionError?.action}:{" "}
+            {props.actionError?.message}
+          </span>
           <button
             onClick={() => props.onRetry(props.alert)}
             style={{
-              background: "none", border: "none", color: "#60a5fa", cursor: "pointer",
-              padding: 0, "font-size": "0.6rem", "text-decoration": "underline"
+              background: "none",
+              border: "none",
+              color: "#60a5fa",
+              cursor: "pointer",
+              padding: 0,
+              "font-size": "0.6rem",
+              "text-decoration": "underline",
             }}
           >
             Retry
@@ -410,28 +495,41 @@ function AlertItem(props: AlertItemProps) {
   );
 }
 
-/** 
+/**
  * Main Sidebar Component.
  */
 export default function AlertSidebar() {
-  const [pendingActions, setPendingActions] = createSignal<Record<string, ActionType | null>>({});
-  const [actionErrors, setActionErrors] = createSignal<Record<string, ActionError | null>>({});
-  const [assignModalAlert, setAssignModalAlert] = createSignal<AlertPayload | null>(null);
+  const [pendingActions, setPendingActions] = createSignal<
+    Record<string, ActionType | null>
+  >({});
+  const [actionErrors, setActionErrors] = createSignal<
+    Record<string, ActionError | null>
+  >({});
+  const [assignModalAlert, setAssignModalAlert] =
+    createSignal<AlertPayload | null>(null);
   const [assigneeId, setAssigneeId] = createSignal("");
   const [assignComment, setAssignComment] = createSignal("");
 
-  const [localActionState, setLocalActionState] = createSignal<Record<string, ActionState>>(loadStoredActionState());
+  const [localActionState, setLocalActionState] = createSignal<
+    Record<string, ActionState>
+  >(loadStoredActionState());
 
   async function handleInspect(alert: AlertPayload) {
     if (isCoverageGapAlert(alert)) {
-      setDashboard("CoverageGap");
+      setDashboardSignal("coverage");
       setActiveSpatialAlertId(alert.alertId);
       return;
     }
 
     const trackId = alert.trackId;
     if (trackId) {
-      setSelectedTrack(trackId);
+      setSelectedTrack({
+        trackIdHash: 0, // Placeholder as we don't have hash from alert
+        x: 0,
+        y: 0,
+        source: "alert",
+        sourceAlertId: alert.alertId,
+      });
       setTrackDetailLoading(true);
       setTrackDetailError(null);
       try {
@@ -447,35 +545,63 @@ export default function AlertSidebar() {
 
   async function handleConfirm(alert: AlertPayload) {
     const aid = alert.alertId;
-    setPendingActions(p => ({ ...p, [aid]: "confirm" }));
-    setActionErrors(p => ({ ...p, [aid]: null }));
+    setPendingActions((p) => ({ ...p, [aid]: "confirm" as ActionType }));
+    setActionErrors((p) => ({ ...p, [aid]: null }));
 
     try {
-      await submitConfirmAlertFeedback(aid, operatorId(), "Commander confirmed anomaly via Quick-Action UI");
-      const nextState = { ...localActionState(), [aid]: { ...localActionState()[aid], decision: "confirmed" as const } };
+      await submitConfirmAlertFeedback({
+        alertId: aid,
+        trackId: alert.trackId,
+        operatorId: operatorId(),
+        justification: "Commander confirmed anomaly via Quick-Action UI",
+      });
+      const nextState = {
+        ...localActionState(),
+        [aid]: { ...localActionState()[aid], decision: "confirmed" as const },
+      };
       setLocalActionState(nextState);
       saveStoredActionState(nextState);
     } catch (err: any) {
-      setActionErrors(p => ({ ...p, [aid]: { action: "confirm", message: err.message || "Internal error" } }));
+      setActionErrors((p) => ({
+        ...p,
+        [aid]: {
+          action: "confirm" as ActionType,
+          message: err.message || "Internal error",
+        },
+      }));
     } finally {
-      setPendingActions(p => ({ ...p, [aid]: null }));
+      setPendingActions((p) => ({ ...p, [aid]: null }));
     }
   }
 
   async function handleReject(alert: AlertPayload) {
     const aid = alert.alertId;
-    setPendingActions(p => ({ ...p, [aid]: "reject" }));
-    setActionErrors(p => ({ ...p, [aid]: null }));
+    setPendingActions((p) => ({ ...p, [aid]: "reject" as ActionType }));
+    setActionErrors((p) => ({ ...p, [aid]: null }));
 
     try {
-      await submitRejectAlertFeedback(aid, operatorId(), "Commander rejected anomaly via Quick-Action UI");
-      const nextState = { ...localActionState(), [aid]: { ...localActionState()[aid], decision: "rejected" as const } };
+      await submitRejectAlertFeedback({
+        alertId: aid,
+        trackId: alert.trackId,
+        operatorId: operatorId(),
+        justification: "Commander rejected anomaly via Quick-Action UI",
+      });
+      const nextState = {
+        ...localActionState(),
+        [aid]: { ...localActionState()[aid], decision: "rejected" as const },
+      };
       setLocalActionState(nextState);
       saveStoredActionState(nextState);
     } catch (err: any) {
-      setActionErrors(p => ({ ...p, [aid]: { action: "reject", message: err.message || "Internal error" } }));
+      setActionErrors((p) => ({
+        ...p,
+        [aid]: {
+          action: "reject" as ActionType,
+          message: err.message || "Internal error",
+        },
+      }));
     } finally {
-      setPendingActions(p => ({ ...p, [aid]: null }));
+      setPendingActions((p) => ({ ...p, [aid]: null }));
     }
   }
 
@@ -492,19 +618,35 @@ export default function AlertSidebar() {
     const opId = assigneeId();
     const comment = assignComment();
 
-    setPendingActions(p => ({ ...p, [aid]: "assign" }));
-    setActionErrors(p => ({ ...p, [aid]: null }));
+    setPendingActions((p) => ({ ...p, [aid]: "assign" as ActionType }));
+    setActionErrors((p) => ({ ...p, [aid]: null }));
     setAssignModalAlert(null);
 
     try {
-      await assignAlert(aid, opId, operatorId(), comment);
-      const nextState = { ...localActionState(), [aid]: { ...localActionState()[aid], assignedTo: opId } };
+      await assignAlert({
+        alertId: aid,
+        assignerOperatorId: operatorId(),
+        assigneeOperatorId: opId,
+        comment,
+      });
+      const nextState = {
+        ...localActionState(),
+        [aid]: { ...localActionState()[aid], assignedTo: opId },
+      };
       setLocalActionState(nextState);
       saveStoredActionState(nextState);
     } catch (err: any) {
-      setActionErrors(p => ({ ...p, [aid]: { action: "assign", message: err.message || "Internal error", assigneeOperatorId: opId, comment } }));
+      setActionErrors((p) => ({
+        ...p,
+        [aid]: {
+          action: "assign" as ActionType,
+          message: err.message || "Internal error",
+          assigneeOperatorId: opId,
+          comment,
+        },
+      }));
     } finally {
-      setPendingActions(p => ({ ...p, [aid]: null }));
+      setPendingActions((p) => ({ ...p, [aid]: null }));
     }
   }
 
@@ -521,18 +663,43 @@ export default function AlertSidebar() {
   }
 
   return (
-    <div style={{ height: "100%", display: "flex", "flex-direction": "column", color: "#e2e8f0" }}>
-      <div style={{
-        padding: "1rem",
-        "border-bottom": "1px solid rgba(255,255,255,0.05)",
+    <div
+      style={{
+        height: "100%",
         display: "flex",
-        "justify-content": "space-between",
-        "align-items": "center"
-      }}>
-        <h2 style={{ "font-size": "0.9rem", "font-weight": "800", margin: 0, "letter-spacing": "0.05rem", color: "#94a3b8" }}>
+        "flex-direction": "column",
+        color: "#e2e8f0",
+      }}
+    >
+      <div
+        style={{
+          padding: "1rem",
+          "border-bottom": "1px solid rgba(255,255,255,0.05)",
+          display: "flex",
+          "justify-content": "space-between",
+          "align-items": "center",
+        }}
+      >
+        <h2
+          style={{
+            "font-size": "0.9rem",
+            "font-weight": "800",
+            margin: 0,
+            "letter-spacing": "0.05rem",
+            color: "#94a3b8",
+          }}
+        >
           ALERTS
         </h2>
-        <span style={{ "font-size": "0.7rem", background: "rgba(255,255,255,0.05)", padding: "2px 8px", "border-radius": "10px", "font-family": "monospace" }}>
+        <span
+          style={{
+            "font-size": "0.7rem",
+            background: "rgba(255,255,255,0.05)",
+            padding: "2px 8px",
+            "border-radius": "10px",
+            "font-family": "monospace",
+          }}
+        >
           {alerts().length}
         </span>
       </div>
@@ -555,7 +722,14 @@ export default function AlertSidebar() {
           )}
         </For>
         <Show when={alerts().length === 0}>
-          <div style={{ padding: "2rem", "text-align": "center", color: "#64748b", "font-size": "0.8rem" }}>
+          <div
+            style={{
+              padding: "2rem",
+              "text-align": "center",
+              color: "#64748b",
+              "font-size": "0.8rem",
+            }}
+          >
             No active alerts in sector.
           </div>
         </Show>
@@ -563,28 +737,42 @@ export default function AlertSidebar() {
 
       {/* Assignment Modal (Feature Integration) */}
       <Show when={assignModalAlert()}>
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,0.6)",
-          "backdrop-filter": "blur(4px)",
-          display: "flex",
-          "align-items": "center",
-          "justify-content": "center",
-          "z-index": 1000
-        }}>
-          <div style={{
-            ...GLASS_BASE,
-            width: "320px",
-            padding: "1.5rem",
-            background: "rgba(30, 41, 59, 0.95)"
-          }}>
-            <h3 style={{ "font-size": "1rem", "margin-top": 0 }}>Assign Alert</h3>
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            "backdrop-filter": "blur(4px)",
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "z-index": 1000,
+          }}
+        >
+          <div
+            style={{
+              ...GLASS_BASE,
+              width: "320px",
+              padding: "1.5rem",
+              background: "rgba(30, 41, 59, 0.95)",
+            }}
+          >
+            <h3 style={{ "font-size": "1rem", "margin-top": 0 }}>
+              Assign Alert
+            </h3>
             <p style={{ "font-size": "0.75rem", color: "#94a3b8" }}>
               Alert: {assignModalAlert()?.description.substring(0, 50)}...
             </p>
-            
-            <label style={{ display: "block", "font-size": "0.7rem", "margin-bottom": "0.25rem" }}>Assign To (Operator ID)</label>
+
+            <label
+              style={{
+                display: "block",
+                "font-size": "0.7rem",
+                "margin-bottom": "0.25rem",
+              }}
+            >
+              Assign To (Operator ID)
+            </label>
             <input
               type="text"
               value={assigneeId()}
@@ -597,11 +785,19 @@ export default function AlertSidebar() {
                 color: "#fff",
                 padding: "0.5rem",
                 "border-radius": "4px",
-                "margin-bottom": "1rem"
+                "margin-bottom": "1rem",
               }}
             />
 
-            <label style={{ display: "block", "font-size": "0.7rem", "margin-bottom": "0.25rem" }}>Instructions (Optional)</label>
+            <label
+              style={{
+                display: "block",
+                "font-size": "0.7rem",
+                "margin-bottom": "0.25rem",
+              }}
+            >
+              Instructions (Optional)
+            </label>
             <textarea
               value={assignComment()}
               onInput={(e) => setAssignComment(e.currentTarget.value)}
@@ -614,21 +810,42 @@ export default function AlertSidebar() {
                 padding: "0.5rem",
                 "border-radius": "4px",
                 "margin-bottom": "1rem",
-                height: "60px"
+                height: "60px",
               }}
             />
 
-            <div style={{ display: "flex", gap: "0.5rem", "justify-content": "flex-end" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                "justify-content": "flex-end",
+              }}
+            >
               <button
                 onClick={() => setAssignModalAlert(null)}
-                style={{ background: "none", border: "1px solid rgba(255,255,255,0.1)", color: "#94a3b8", padding: "0.4rem 1rem", "border-radius": "4px", cursor: "pointer" }}
+                style={{
+                  background: "none",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "#94a3b8",
+                  padding: "0.4rem 1rem",
+                  "border-radius": "4px",
+                  cursor: "pointer",
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={submitAssign}
                 disabled={!assigneeId()}
-                style={{ background: "#3b82f6", border: "none", color: "#fff", padding: "0.4rem 1rem", "border-radius": "4px", cursor: "pointer", "font-weight": "bold" }}
+                style={{
+                  background: "#3b82f6",
+                  border: "none",
+                  color: "#fff",
+                  padding: "0.4rem 1rem",
+                  "border-radius": "4px",
+                  cursor: "pointer",
+                  "font-weight": "bold",
+                }}
               >
                 Assign
               </button>

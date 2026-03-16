@@ -7,7 +7,7 @@
 //   - submitFeedback propagates gRPC errors without swallowing them
 //   - justification length validation (max 500 chars)
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // ── Mock ConnectRPC client at the transport boundary ──────────────────────────
 
@@ -32,13 +32,21 @@ vi.mock("@gen/rtsa/common/v1/types_pb.js", () => ({
     CONFIRM_FRIENDLY: 2,
     RECLASSIFY: 3,
     REJECT_ANOMALY: 4,
+    CONFIRM_ANOMALY: 5,
   },
   EntityType: {},
   HostileClassification: {},
   TrackStatus: {},
 }));
 
-import { submitFeedback, type SubmitFeedbackParams } from "./feedback";
+import {
+  buildConfirmAlertFeedbackRequest,
+  buildRejectAlertFeedbackRequest,
+  submitConfirmAlertFeedback,
+  submitFeedback,
+  submitRejectAlertFeedback,
+  type SubmitFeedbackParams,
+} from "./feedback";
 
 const baseParams: SubmitFeedbackParams = {
   trackId: "track-001",
@@ -115,7 +123,9 @@ describe("submitFeedback — input validation", () => {
       operatorId: "  op-trim  ",
     });
 
-    const [args] = mockSubmitFeedback.mock.calls[0] as [Record<string, unknown>];
+    const [args] = mockSubmitFeedback.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
     expect(args["trackId"]).toBe("track-trim");
     expect(args["operatorId"]).toBe("op-trim");
   });
@@ -143,7 +153,9 @@ describe("submitFeedback — successful gRPC response", () => {
   it("calls the gRPC client with the correct feedbackType enum value", async () => {
     await submitFeedback({ ...baseParams, feedbackType: "CONFIRM_HOSTILE" });
 
-    const [args] = mockSubmitFeedback.mock.calls[0] as [Record<string, unknown>];
+    const [args] = mockSubmitFeedback.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
     // FeedbackType.CONFIRM_HOSTILE = 1 (from mock)
     expect(args["feedbackType"]).toBe(1);
   });
@@ -151,15 +163,96 @@ describe("submitFeedback — successful gRPC response", () => {
   it("passes optional alertId when provided", async () => {
     await submitFeedback({ ...baseParams, alertId: "alert-99" });
 
-    const [args] = mockSubmitFeedback.mock.calls[0] as [Record<string, unknown>];
+    const [args] = mockSubmitFeedback.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
     expect(args["alertId"]).toBe("alert-99");
   });
 
   it("passes undefined alertId when not provided", async () => {
     await submitFeedback(baseParams);
 
-    const [args] = mockSubmitFeedback.mock.calls[0] as [Record<string, unknown>];
+    const [args] = mockSubmitFeedback.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
     expect(args["alertId"]).toBeUndefined();
+  });
+});
+
+describe("alert quick-action payload adapters", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSubmitFeedback.mockResolvedValue({
+      feedbackId: "fb-quick",
+      trustScore: 0.7,
+      validated: true,
+    });
+  });
+
+  it("buildConfirmAlertFeedbackRequest maps to CONFIRM_ANOMALY with default justification", () => {
+    const request = buildConfirmAlertFeedbackRequest({
+      alertId: "alert-100",
+      trackId: "track-100",
+      operatorId: "op-100",
+    });
+    expect(request.feedbackType).toBe("CONFIRM_ANOMALY");
+    expect(request.alertId).toBe("alert-100");
+    expect(request.trackId).toBe("track-100");
+    expect(request.justification).toContain("quick-action");
+  });
+
+  it("buildRejectAlertFeedbackRequest maps to REJECT_ANOMALY with default justification", () => {
+    const request = buildRejectAlertFeedbackRequest({
+      alertId: "alert-101",
+      trackId: "track-101",
+      operatorId: "op-101",
+    });
+    expect(request.feedbackType).toBe("REJECT_ANOMALY");
+    expect(request.alertId).toBe("alert-101");
+    expect(request.trackId).toBe("track-101");
+    expect(request.justification).toContain("quick-action");
+  });
+
+  it("submitConfirmAlertFeedback sends CONFIRM_ANOMALY enum to gRPC request", async () => {
+    await submitConfirmAlertFeedback({
+      alertId: "alert-200",
+      trackId: "track-200",
+      operatorId: "op-200",
+      justification: "Confirmed during triage",
+    });
+
+    const [args] = mockSubmitFeedback.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
+    expect(args["feedbackType"]).toBe(5);
+    expect(args["alertId"]).toBe("alert-200");
+    expect(args["justification"]).toBe("Confirmed during triage");
+  });
+
+  it("submitRejectAlertFeedback sends REJECT_ANOMALY enum to gRPC request", async () => {
+    await submitRejectAlertFeedback({
+      alertId: "alert-201",
+      trackId: "track-201",
+      operatorId: "op-201",
+      justification: "False positive",
+    });
+
+    const [args] = mockSubmitFeedback.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
+    expect(args["feedbackType"]).toBe(4);
+    expect(args["alertId"]).toBe("alert-201");
+    expect(args["justification"]).toBe("False positive");
+  });
+
+  it("quick-action payload builders validate missing alertId", () => {
+    expect(() =>
+      buildConfirmAlertFeedbackRequest({
+        alertId: "",
+        trackId: "track-300",
+        operatorId: "op-300",
+      }),
+    ).toThrow("alertId is required");
   });
 });
 
@@ -173,13 +266,17 @@ describe("submitFeedback — gRPC error propagation", () => {
   it("propagates a gRPC UNAVAILABLE error without swallowing it", async () => {
     mockSubmitFeedback.mockRejectedValue(new Error("gRPC UNAVAILABLE"));
 
-    await expect(submitFeedback(baseParams)).rejects.toThrow("gRPC UNAVAILABLE");
+    await expect(submitFeedback(baseParams)).rejects.toThrow(
+      "gRPC UNAVAILABLE",
+    );
   });
 
   it("propagates a gRPC PERMISSION_DENIED error", async () => {
     mockSubmitFeedback.mockRejectedValue(new Error("gRPC PERMISSION_DENIED"));
 
-    await expect(submitFeedback(baseParams)).rejects.toThrow("gRPC PERMISSION_DENIED");
+    await expect(submitFeedback(baseParams)).rejects.toThrow(
+      "gRPC PERMISSION_DENIED",
+    );
   });
 
   it("does not resolve when gRPC rejects", async () => {
@@ -187,7 +284,9 @@ describe("submitFeedback — gRPC error propagation", () => {
 
     let resolved = false;
     await submitFeedback(baseParams).then(
-      () => { resolved = true; },
+      () => {
+        resolved = true;
+      },
       () => {},
     );
     expect(resolved).toBe(false);

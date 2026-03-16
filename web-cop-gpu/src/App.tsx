@@ -49,7 +49,7 @@ import { FusionCommanderDashboard } from "./components/dashboard/FusionCommander
 import { MultiDomainCommanderDashboard } from "./components/dashboard/MultiDomainCommanderDashboard";
 import { OperatorUiCommanderDashboard } from "./components/dashboard/OperatorUiCommanderDashboard";
 import { SensorHealthDashboard } from "./components/dashboard/SensorHealthDashboard";
-import { AlertSidebar } from "./components/panels/AlertSidebar";
+import AlertSidebar from "./components/panels/AlertSidebar";
 import { FeedbackForm } from "./components/panels/FeedbackForm";
 import { TrackDetailPanel } from "./components/panels/TrackDetailPanel";
 import { SearchOverlay } from "./components/search/SearchOverlay";
@@ -94,7 +94,12 @@ export default function App() {
         break;
 
       case "picked": {
-        setSelectedTrack({ trackIdHash: msg.trackIdHash, x: msg.x, y: msg.y });
+        setSelectedTrack({
+          trackIdHash: msg.trackIdHash,
+          x: msg.x,
+          y: msg.y,
+          source: "canvas",
+        });
         // Attempt to fetch full track detail via gRPC using hash as track ID prefix
         const hashHex = msg.trackIdHash.toString(16).padStart(8, "0");
         setTrackDetailLoading(true);
