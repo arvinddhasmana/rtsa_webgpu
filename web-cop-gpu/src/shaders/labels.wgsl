@@ -29,6 +29,10 @@ struct Uniforms {
   viewport_size:   vec2<f32>,
   current_time_ms: u32,
   track_count:     u32,
+  dashboard_mode:  u32,
+  _pad0:           u32,
+  _pad1:           u32,
+  _pad2:           u32,
 }
 
 struct VertexOutput {

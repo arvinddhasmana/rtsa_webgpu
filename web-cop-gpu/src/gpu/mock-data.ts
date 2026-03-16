@@ -6,7 +6,7 @@
 //
 // Reference: docs/implementation/v4/phase1_core_rendering.md §5 (Mock Data Strategy)
 
-import { TRACK_DATA_OFFSET, RECORD_SIZE, HEADER_SIZE } from "../services/sab";
+import { HEADER_SIZE, RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 
 /** Number of mock tracks to generate (Phase 1 target). */
 export const MOCK_TRACK_COUNT = 50_000;

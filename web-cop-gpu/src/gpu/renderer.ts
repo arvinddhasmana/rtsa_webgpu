@@ -82,11 +82,18 @@ export interface RenderState {
  *
  * Reference: webgpu_guidelines.md §5.1 (per-frame pipeline)
  */
+let _frameNum = 0;
+
 export function renderFrame(state: RenderState): void {
   const { device, context, buffers, bindGroups, pipelines, pick, sab } = state;
 
   const now = Date.now() & 0xffffffff;
   state.lastFrameTime = now;
+  _frameNum++;
+
+  // Push error scope on first few frames to detect silent GPU validation errors
+  const debugFrame = import.meta.env.DEV && _frameNum <= 3;
+  if (debugFrame) device.pushErrorScope('validation');
 
   // 1. Read active_track_count from SAB header (Atomics.load for safety)
   const header = new Uint32Array(sab, 0, 4096 / 4);
@@ -177,7 +184,7 @@ export function renderFrame(state: RenderState): void {
       }],
     });
     // Use the global uniform bind group (set 0)
-    state.coverage.draw(pass, bindGroups.trackIcons.g0);
+    state.coverage.draw(pass, bindGroups.coverage.g0);
     pass.end();
   }
 
@@ -231,14 +238,7 @@ export function renderFrame(state: RenderState): void {
     pass.setBindGroup(0, bindGroups.trackIcons.g0);
     pass.setBindGroup(1, bindGroups.trackIcons.g1);
     pass.setBindGroup(2, bindGroups.trackIcons.g2);
-    if (lod.level === "full") {
-      // At full LOD, use indirect draw so the GPU-computed culled count is respected.
-      pass.drawIndirect(buffers.drawArgs, 0);
-    } else {
-      // At medium/minimal LOD, cap instance count to the LOD budget (20k or 10k).
-      // The culling pass still populates visible_indices; we cap how many are drawn.
-      pass.draw(4, lod.maxInstances, 0, 0);
-    }
+    pass.drawIndirect(buffers.drawArgs, 0);
     pass.end();
   }
 
@@ -259,6 +259,7 @@ export function renderFrame(state: RenderState): void {
     pass.end();
   }
 
+/*
   // 9. Render: SDF labels
   if (lod.renderLabels) {
     const pass = encoder.beginRenderPass({
@@ -273,11 +274,12 @@ export function renderFrame(state: RenderState): void {
     pass.setBindGroup(0, bindGroups.labels.g0);
     pass.setBindGroup(1, bindGroups.labels.g1);
     pass.setBindGroup(2, bindGroups.labels.g2);
-    // Labels rendered using direct draw (trackCount glyph instances)
-    // In Phase 1: 0 glyphs rendered (glyph CPU builder deferred to Phase 3)
+    // Note: draw(4, 0) is used because glyph builder is deferred to Phase 3.
+    // If enabled, this pass currently triggers a validation error on some drivers.
     pass.draw(4, 0, 0, 0);
     pass.end();
   }
+*/
 
   // 10. Render: pick buffer (separate R32Uint target)
   {
@@ -300,4 +302,15 @@ export function renderFrame(state: RenderState): void {
   // 11. Submit all commands and present
   state.frameTimer.resolveTimestamps(encoder);
   device.queue.submit([encoder.finish()]);
+
+  // Pop error scope and log any GPU validation errors
+  if (debugFrame) {
+    void device.popErrorScope().then((err) => {
+      if (err) {
+        console.error(`[Renderer] GPU validation error (frame ${_frameNum}):`, err.message);
+      } else if (_frameNum === 1) {
+        console.log(`[Renderer] Frame 1 submitted with no GPU validation errors.`);
+      }
+    });
+  }
 }

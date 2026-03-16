@@ -256,8 +256,11 @@ export default function App() {
     if (
       !detected.webgpu ||
       !detected.sharedArrayBuffer ||
-      !detected.offscreenCanvas ||
-      !detected.webtransport
+      !detected.offscreenCanvas
+      // NOTE: webtransport is intentionally NOT required here.
+      // The Data Worker falls back to mock mode when no WT URL is configured.
+      // Blocking init on webtransport would break all rendering in browsers
+      // without WebTransport support.
     ) {
       return;
     }
@@ -281,26 +284,45 @@ export default function App() {
     const wtUrl = import.meta.env.VITE_WEBTRANSPORT_URL as string | undefined;
 
     // Reactive Canvas Initialisation
+    // Uses requestAnimationFrame to defer until the browser has performed layout
+    // so getBoundingClientRect() returns real dimensions (not 0×0).
     createEffect(() => {
       const el = canvas();
       if (el && renderWorker && !canvasInitialized) {
-        canvasInitialized = true;
-        const rect = el.getBoundingClientRect();
-        const initialWidth = Math.round(rect.width * devicePixelRatio);
-        const initialHeight = Math.round(rect.height * devicePixelRatio);
+        // Try to get dimensions immediately first
+        const tryInit = () => {
+          if (canvasInitialized) return; // guard against double-init
+          const dpr = devicePixelRatio;
+          // Prefer offsetWidth/offsetHeight (layout box, always available after first paint)
+          // fallback to getBoundingClientRect if offset dimensions are also 0
+          let w = el.offsetWidth || Math.round(el.getBoundingClientRect().width);
+          let h = el.offsetHeight || Math.round(el.getBoundingClientRect().height);
 
-        console.log(`[App] Canvas mounted. Initial size: ${initialWidth}x${initialHeight}`);
-        const offscreen = el.transferControlToOffscreen();
-        const initMsg: RenderInitMessage = {
-          type: "init",
-          canvas: offscreen,
-          sab,
-          initialWidth,
-          initialHeight,
-          dataWorkerActive: !!wtUrl,
+          if (w === 0 || h === 0) {
+            // Canvas not laid out yet — retry on next animation frame
+            requestAnimationFrame(tryInit);
+            return;
+          }
+
+          canvasInitialized = true;
+          const initialWidth  = Math.round(w * dpr);
+          const initialHeight = Math.round(h * dpr);
+
+          console.log(`[App] Canvas mounted. Initial size: ${initialWidth}x${initialHeight}`);
+          const offscreen = el.transferControlToOffscreen();
+          const initMsg: RenderInitMessage = {
+            type: "init",
+            canvas: offscreen,
+            sab,
+            initialWidth,
+            initialHeight,
+            dataWorkerActive: !!wtUrl,
+          };
+          renderWorker!.postMessage(initMsg, [offscreen]);
+          setupResizeObserver(el);
         };
-        renderWorker.postMessage(initMsg, [offscreen]);
-        setupResizeObserver(el);
+        // Start the first attempt on the next animation frame so layout is settled
+        requestAnimationFrame(tryInit);
       }
     });
 
@@ -320,8 +342,6 @@ export default function App() {
       }
       requestAnimationFrame(rafLoop);
     }
-    requestAnimationFrame(rafLoop);
-
     requestAnimationFrame(rafLoop);
 
     // Initialise canvas reactively
@@ -504,8 +524,7 @@ export default function App() {
         when={
           caps()!.webgpu &&
           caps()!.sharedArrayBuffer &&
-          caps()!.offscreenCanvas &&
-          caps()!.webtransport
+          caps()!.offscreenCanvas
         }
         fallback={renderDegradedNotice(caps()!)}
       >

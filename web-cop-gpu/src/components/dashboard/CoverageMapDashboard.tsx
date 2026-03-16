@@ -7,16 +7,16 @@
 // Reference: docs/implementation/v5/sensordashboard_three_level_plan.md §C1
 
 import { createResource, createSignal, onMount, Show } from "solid-js";
-import {
-  activeSpatialAlertId,
-  setActiveSpatialAlertId,
-  spatialAlerts,
-} from "../../signals/spatial-alerts";
 import { fetchSensorStatuses, type SensorStatus } from "../../services/sensor-health";
+import {
+    activeSpatialAlertId,
+    setActiveSpatialAlertId,
+    spatialAlerts,
+} from "../../signals/spatial-alerts";
 import { CoverageAreaMap, type CoverageAreaMapBounds } from "./CoverageAreaMap";
-import { SensorFleetList } from "./SensorFleetList";
 import { CriticalAlertsPanel } from "./CriticalAlertsPanel";
 import { SensorDetailHoverPanel } from "./SensorDetailHoverPanel";
+import { SensorFleetList } from "./SensorFleetList";
 import { SpatialAlertBanner } from "./SpatialAlertBanner";
 
 /** Level 3 — Full Coverage Map Dashboard. */

@@ -29,11 +29,14 @@ struct TrackRecord {
 }
 
 struct Uniforms {
-  view_proj:       mat4x4<f32>, // offset 0,  size 64
-  viewport_size:   vec2<f32>,   // offset 64, size 8
-  current_time_ms: u32,         // offset 72, size 4
-  track_count:     u32,         // offset 76, size 4
-  // Total: 80 bytes
+  view_proj:       mat4x4<f32>,
+  viewport_size:   vec2<f32>,
+  current_time_ms: u32,
+  track_count:     u32,
+  dashboard_mode:  u32,
+  _pad0:           u32,
+  _pad1:           u32,
+  _pad2:           u32,
 }
 
 @group(0) @binding(0) var<uniform>          uniforms:  Uniforms;

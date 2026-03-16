@@ -221,7 +221,16 @@ function startRenderLoop(): void {
     try {
       renderFrame(renderState);
       // Reset consecutive error counter on each successful frame.
-      renderFrameErrorCount = 0;
+      if (renderFrameErrorCount > 0) renderFrameErrorCount = 0;
+      // DEV: Log first successful frame state for diagnostics
+      if (import.meta.env.DEV && statsCounter === 1) {
+        const s = renderState;
+        console.log(
+          `[RenderWorker] Frame#1 OK. Canvas:${s.canvas.width}x${s.canvas.height} ` +
+          `tracks:${s.trackCount} scale:${s.camera.scale.toFixed(3)} ` +
+          `dashboard:${s.dashboard}`
+        );
+      }
     } catch (err) {
       renderFrameErrorCount++;
       if (import.meta.env.DEV) {

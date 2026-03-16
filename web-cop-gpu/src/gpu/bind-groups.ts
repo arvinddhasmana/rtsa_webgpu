@@ -29,6 +29,8 @@ export interface BindGroups {
   pick:          { g0: GPUBindGroup; g1: GPUBindGroup };
   /** Bind groups for raw observations */
   observations:  { g0: GPUBindGroup; g1: GPUBindGroup };
+  /** Bind groups for sensor coverage pass */
+  coverage:      { g0: GPUBindGroup };
 }
 
 /**
@@ -176,6 +178,13 @@ export function createBindGroups(
     entries: [{ binding: 0, resource: { buffer: buffers.observationStorage } }],
   });
 
+  // --- Coverage render ---
+  const coverageG0 = device.createBindGroup({
+    label:  "coverage-g0",
+    layout: pipelines.render.coverage.getBindGroupLayout(0),
+    entries: [{ binding: 0, resource: { buffer: buffers.uniform } }],
+  });
+
   return {
     interpolation: { g0: interpG0, g1: interpG1 },
     culling:       { g0: cullG0,   g1: cullG1   },
@@ -185,5 +194,6 @@ export function createBindGroups(
     labels:        { g0: labelsG0, g1: labelsG1, g2: labelsG2 },
     pick:          { g0: pickG0,   g1: pickG1                },
     observations:  { g0: obsG0,    g1: obsG1                 },
+    coverage:      { g0: coverageG0                          },
   };
 }
