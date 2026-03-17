@@ -96,6 +96,9 @@ const [viewportSignal, setViewportSignal] = createSignal<Viewport>({
 
 export const viewport = viewportSignal;
 
+/** Map Style: 0: Standard, 1: HD Satellite */
+export const [mapStyle, setMapStyle] = createSignal<0 | 1>(0);
+
 export function setViewport(next: Viewport): void {
   setViewportSignal(next);
   updateBoundingBoxDebounced(next);

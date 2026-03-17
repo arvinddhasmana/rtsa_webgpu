@@ -97,7 +97,9 @@ export const FusionKPIDashboard: Component = () => {
         >
           <div style={{ position: "absolute", inset: "0", background: "radial-gradient(circle at center, rgba(56, 189, 248, 0.05) 0%, transparent 70%)" }} />
           <div style={{ "text-align": "center", "z-index": "1" }}>
-            <div style={{ "font-size": "1.5rem", "font-weight": "700", color: "#4ade80" }}>88%</div>
+            <div style={{ "font-size": "1.5rem", "font-weight": "700", color: averageObservationConfidence() > 0.7 ? "#4ade80" : "#fbbf24" }}>
+              {(averageObservationConfidence() * 100).toFixed(0)}%
+            </div>
             <div style={{ "font-size": "0.65rem", color: "#94a3b8" }}>FUSION CONFIDENCE</div>
           </div>
         </div>

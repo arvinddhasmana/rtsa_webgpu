@@ -161,6 +161,8 @@ async function init(
     observationCount: 0,
     coverage,
     dashboard: "health", // Default
+    selectedTrackIdHash: 0,
+    mapStyle: 0,
     camera: {
       centerLon: 0,
       centerLat: 0,
@@ -393,6 +395,20 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
             data
           );
         }
+      }
+      break;
+    }
+
+    case "set_track_selection": {
+      if (renderState) {
+        renderState.selectedTrackIdHash = msg.trackIdHash;
+      }
+      break;
+    }
+
+    case "set_map_style": {
+      if (renderState) {
+        renderState.mapStyle = msg.mapStyle as 0 | 1;
       }
       break;
     }

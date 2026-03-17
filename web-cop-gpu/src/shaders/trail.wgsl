@@ -23,14 +23,14 @@ struct TrackRecord {
 }
 
 struct Uniforms {
-  view_proj:       mat4x4<f32>,
-  viewport_size:   vec2<f32>,
-  current_time_ms: u32,
-  track_count:     u32,
-  dashboard_mode:  u32,
-  _pad0:           u32,
-  _pad1:           u32,
-  _pad2:           u32,
+  view_proj:              mat4x4<f32>,
+  viewport_size:          vec2<f32>,
+  current_time_ms:        u32,
+  track_count:            u32,
+  dashboard_mode:         u32,
+  selected_track_id_hash: u32,
+  map_style:              u32,
+  _padding:               u32,
 }
 
 struct VertexOutput {
@@ -78,6 +78,15 @@ fn vs_main(
 ) -> VertexOutput {
   let track_idx = visible_indices[iid];
   let track     = tracks[track_idx];
+
+  // In Commander mode, only show trails for the SELECTED track.
+  // In other modes, show all trails as per usual.
+  let is_selected = track.track_id_hash == uniforms.selected_track_id_hash;
+  let show_trail = select(true, is_selected, uniforms.dashboard_mode == 1u);
+
+  if (!show_trail) {
+    return VertexOutput(vec4<f32>(0.0, 0.0, 0.0, 1.0), 0u, 0.0);
+  }
 
   // Decode segment and vertex within segment
   let seg      = vid / VERTS_PER_SEGMENT; // 0..3

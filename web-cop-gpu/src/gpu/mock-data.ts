@@ -8,14 +8,14 @@
 
 import { HEADER_SIZE, RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 
-/** Number of mock tracks to generate (Phase 1 target). */
-export const MOCK_TRACK_COUNT = 50_000;
+/** Number of mock tracks to generate for tactical clarity. */
+export const MOCK_TRACK_COUNT = 250;
 
 /** Geographic bounding box for track scatter (North Atlantic / Europe region). */
-const LON_MIN = -0.5;      // ~-29°
-const LON_MAX =  0.5;      // ~+29°
-const LAT_MIN = -0.4;      // ~-23°
-const LAT_MAX =  0.4;      // ~+23°
+const LON_MIN = -Math.PI;   // -180°
+const LON_MAX =  Math.PI;   // +180°
+const LAT_MIN = -Math.PI/3; // -60°
+const LAT_MAX =  Math.PI/3; // +60°
 
 const TWO_PI = Math.PI * 2;
 
@@ -62,12 +62,14 @@ export function initMockTracks(count: number = MOCK_TRACK_COUNT): void {
       speed:       100 + Math.random() * 500, // 100–600 m/s
       altitude:    1000 + Math.random() * 10_000,
       threatLevel: Math.floor(Math.random() * 6),      // 0–5
-      alertFlags:  Math.random() < 0.05 ? 1 : 0,      // ~5% have alerts
-      iconIndex:   Math.floor(Math.random() * 16),     // 16 icon types
+      alertFlags:  Math.random() < 0.02 ? 1 : 0,       // ~2% have alerts
+      iconIndex:   Math.floor(Math.random() * 3),      // 0: Air, 1: Surface, 2: Sub
       trail,
     });
   }
 }
+
+// Seeding logic moved to App.tsx for better module context sync
 
 /**
  * Write all mock tracks into the SharedArrayBuffer track data region.

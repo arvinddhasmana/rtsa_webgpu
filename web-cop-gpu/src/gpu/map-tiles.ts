@@ -24,13 +24,18 @@ export const MAP_BACKGROUND_COLOR: GPUColorDict = { r: 0.10, g: 0.15, b: 0.20, a
  */
 export function makeBackgroundPassDescriptor(
   colorAttachmentView: GPUTextureView,
+  mapStyle: number = 0,
 ): GPURenderPassDescriptor {
+  const clearColor = mapStyle === 1
+    ? { r: 0.02, g: 0.04, b: 0.08, a: 1.0 } // HD: Deep Ocean/Black
+    : MAP_BACKGROUND_COLOR; // Standard: Dark Slate
+
   return {
     label: "background-pass",
     colorAttachments: [
       {
         view:       colorAttachmentView,
-        clearValue: MAP_BACKGROUND_COLOR,
+        clearValue: clearColor,
         loadOp:     "clear",
         storeOp:    "store",
       },
@@ -47,9 +52,10 @@ export function makeBackgroundPassDescriptor(
 export function renderBackground(
   encoder: GPUCommandEncoder,
   colorAttachmentView: GPUTextureView,
+  mapStyle: number = 0,
 ): void {
   const pass = encoder.beginRenderPass(
-    makeBackgroundPassDescriptor(colorAttachmentView),
+    makeBackgroundPassDescriptor(colorAttachmentView, mapStyle),
   );
   // No draw calls — the clear provides the solid background
   pass.end();

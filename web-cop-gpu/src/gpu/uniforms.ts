@@ -67,6 +67,8 @@ export function writeUniforms(
   currentTimeMs: number,
   trackCount: number,
   dashboardMode: "sensor" | "commander" | "analytics" | "health" | "coverage",
+  selectedTrackIdHash: number = 0,
+  mapStyle: number = 0, // 0: Standard, 1: HD
 ): void {
   // mat4x4<f32> at offset 0 (16 floats × 4 bytes = 64 bytes)
   _f32.set(viewProj, 0);
@@ -84,6 +86,14 @@ export function writeUniforms(
   // u32 dashboard_mode at offset 80 bytes = uint32 index 20
   const modeMap = { sensor: 0, commander: 1, analytics: 2, health: 3, coverage: 4 };
   _u32[20] = modeMap[dashboardMode] ?? 0;
+
+  // u32 selected_track_id_hash at offset 84 bytes = uint32 index 21
+  _u32[21] = selectedTrackIdHash >>> 0;
+
+  // u32 map_style at offset 88 bytes = uint32 index 22
+  _u32[22] = mapStyle >>> 0;
+
+  // Padding filled by 0 implicitly via pre-allocated ArrayBuffer
 
   device.queue.writeBuffer(uniformBuffer, 0, _uniformData);
 }

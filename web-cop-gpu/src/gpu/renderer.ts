@@ -72,6 +72,12 @@ export interface RenderState {
 
   /** Sensor coverage and gap renderer */
   coverage: CoverageManager;
+
+  /** Selection state for pathing and drill-down */
+  selectedTrackIdHash: number;
+
+  /** Map style: 0: Standard, 1: HD */
+  mapStyle: 0 | 1;
 }
 
 /**
@@ -136,6 +142,8 @@ export function renderFrame(state: RenderState): void {
     now,
     trackCount,
     state.dashboard,
+    state.selectedTrackIdHash,
+    state.mapStyle,
   );
 
   // Reset indirect draw args (instance_count = 0) before culling
@@ -171,7 +179,7 @@ export function renderFrame(state: RenderState): void {
   }
 
   // 5. Render: background (map tiles — loadOp: clear)
-  renderBackground(encoder, colorView);
+  renderBackground(encoder, colorView, state.mapStyle);
 
   // 5.1 Render: Sensor Coverage (loadOp: load)
   {
@@ -237,7 +245,6 @@ export function renderFrame(state: RenderState): void {
     pass.setPipeline(pipelines.render.trackIcons);
     pass.setBindGroup(0, bindGroups.trackIcons.g0);
     pass.setBindGroup(1, bindGroups.trackIcons.g1);
-    pass.setBindGroup(2, bindGroups.trackIcons.g2);
     pass.drawIndirect(buffers.drawArgs, 0);
     pass.end();
   }

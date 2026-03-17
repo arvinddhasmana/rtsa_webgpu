@@ -38,7 +38,6 @@ import { dashboard, enforceRoleDashboardGuard, role } from "./signals/viewport";
 import { setSpatialAlerts } from "./signals/spatial-alerts";
 
 // Services
-import { startAlertStream } from "./services/alerts";
 import { fetchAuthToken } from "./services/auth";
 import { fetchTrackDetail } from "./services/query";
 import { fetchSensorStatuses } from "./services/sensor-health";
@@ -99,6 +98,7 @@ export default function App() {
         break;
 
       case "picked": {
+        console.log("[App] Track picked from GPU:", msg);
         setSelectedTrack({
           trackIdHash: msg.trackIdHash,
           x: msg.x,
@@ -351,8 +351,27 @@ export default function App() {
     console.log("[App] Starting observation stream...");
     startObservationStream();
 
-    // Start gRPC alert stream
-    alertStreamController = startAlertStream();
+    // Seeding mock observations for Fusion Dashboard
+    const pushMockObs = () => {
+      import("./signals/sensor-observations").then(({ updateObservations }) => {
+        for (let i = 0; i < 15; i++) {
+          const type = [0, 1, 2, 4, 8, 16][Math.floor(Math.random() * 6)];
+          const id = Math.floor(Math.random() * 5000);
+          updateObservations({
+            observation: {
+              observationId: `mock-obs-${id}`,
+              sensorType: type,
+              position: { latitude: 57 + Math.random() * 10, longitude: -10 + Math.random() * 10, altitudeMeters: 0, speedKnots: 0, headingDegrees: 0 },
+              observationTime: { seconds: BigInt(Math.floor(Date.now() / 1000)), nanos: 0 },
+              sensorData: { case: "radar", value: { trackQuality: 70 + Math.random() * 30, rangeNm: 0, bearingDeg: 0, elevationDeg: 0 } },
+            },
+          } as any);
+        }
+      });
+    };
+    pushMockObs();
+    const mockObsInterval = setInterval(pushMockObs, 3000);
+    onCleanup(() => clearInterval(mockObsInterval));
   }
 
   // Sync dashboard signal to Render Worker

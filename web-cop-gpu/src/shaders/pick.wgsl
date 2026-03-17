@@ -24,14 +24,14 @@ struct TrackRecord {
 }
 
 struct Uniforms {
-  view_proj:       mat4x4<f32>,
-  viewport_size:   vec2<f32>,
-  current_time_ms: u32,
-  track_count:     u32,
-  dashboard_mode:  u32,
-  _pad0:           u32,
-  _pad1:           u32,
-  _pad2:           u32,
+  view_proj:              mat4x4<f32>,
+  viewport_size:          vec2<f32>,
+  current_time_ms:        u32,
+  track_count:            u32,
+  dashboard_mode:         u32,
+  selected_track_id_hash: u32,
+  map_style:              u32,
+  _padding:               u32,
 }
 
 struct VertexOutput {

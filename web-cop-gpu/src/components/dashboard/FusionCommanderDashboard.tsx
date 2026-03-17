@@ -1,17 +1,13 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/dashboard/FusionCommanderDashboard.tsx
 
-import type { JSX } from "solid-js";
-
-interface FusionCommanderDashboardProps {
-  mapContent: JSX.Element;
-  sidePanelContent?: JSX.Element;
-}
-
-import { createSignal } from "solid-js";
+import { createSignal, JSX } from "solid-js";
+import { clearSelectedTrack, trackDetail } from "../../signals/track";
+import { mapStyle, setMapStyle } from "../../signals/viewport";
 import { FusionConflictPanel } from "./FusionConflictPanel";
 import { FusionKPIDashboard } from "./FusionKPIDashboard";
 import { SensorLegend } from "./SensorLegend";
+import { TrackDrillDownOverlay } from "./TrackDrillDownOverlay";
 import { TrackFusionAudit } from "./TrackFusionAudit";
 
 interface FusionCommanderDashboardProps {
@@ -20,27 +16,28 @@ interface FusionCommanderDashboardProps {
 }
 
 /**
- * Operations Commander Fusion dashboard.
- * Primary view for mission overview, track audit, and conflict resolution.
+ * Operations Commander Fusion Dashboard (Redesigned from Scratch)
+ * Focus: Tactical Clarity, Premium Glassmorphism, Zero Clutter.
  */
 export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
-  const [showObs, setShowObs] = createSignal(true);
+  const [showObs, setShowObs] = createSignal(false);
   const [showTracks, setShowTracks] = createSignal(true);
 
   return (
     <div
-      data-testid="commander-fusion-dashboard"
+      data-testid="fusion-dashboard-root"
       style={{
         display: "flex",
         width: "100%",
         height: "100%",
-        background: "#070d19",
+        background: "#020617", // Deep Navy/Black
+        color: "#f8fafc",
         overflow: "hidden",
+        "font-family": "Inter, sans-serif",
       }}
     >
+      {/* Tactical Map Region */}
       <section
-        data-testid="commander-fusion-map-container"
-        aria-label="Fusion map container"
         style={{
           flex: "1",
           position: "relative",
@@ -50,111 +47,142 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
       >
         {props.mapContent}
 
-        {/* Observation Layer Toggle */}
-        <div
-          data-testid="commander-observation-layer-mount"
-          aria-label="Observation layer mount"
-          style={{
-            position: "absolute",
-            inset: "0",
-            border: showObs() ? "1px dashed rgba(56,189,248,0.35)" : "none",
-            "pointer-events": "none",
-            opacity: showObs() ? "1" : "0",
-            transition: "opacity 0.2s ease",
-          }}
-        />
-
-        {/* Fused Layer Toggle */}
-        <div
-          data-testid="commander-fused-layer-mount"
-          aria-label="Fused layer mount"
-          style={{
-            position: "absolute",
-            inset: "12px",
-            border: showTracks() ? "1px dashed rgba(251,191,36,0.35)" : "none",
-            "pointer-events": "none",
-            opacity: showTracks() ? "1" : "0",
-            transition: "opacity 0.2s ease",
-          }}
-        />
-
-        {/* Map Legend */}
-        <div style={{ position: "absolute", bottom: "1.5rem", left: "1.5rem", "z-index": "10" }}>
-          <SensorLegend />
-        </div>
-
-        {/* Layer Controls */}
+        {/* Floating Top Controls (Glassmorphic) */}
         <div
           style={{
             position: "absolute",
             top: "1.5rem",
+            left: "1.5rem",
             right: "1.5rem",
             display: "flex",
-            gap: "0.5rem",
-            background: "rgba(15, 23, 42, 0.7)",
-            padding: "0.5rem",
-            "border-radius": "8px",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            "backdrop-filter": "blur(4px)"
+            "justify-content": "space-between",
+            "pointer-events": "none",
+            "z-index": "50",
           }}
         >
-          <button
-            style={{
-              background: showObs() ? "#38bdf8" : "transparent",
-              color: showObs() ? "#0f172a" : "#94a3b8",
-              border: "1px solid rgba(56, 189, 248, 0.5)",
-              "font-size": "0.65rem",
-              "font-weight": "700",
-              padding: "0.25rem 0.5rem",
-              "border-radius": "4px",
-              cursor: "pointer"
-            }}
-            onClick={() => setShowObs(!showObs())}
-          >
-            RAW OBS
-          </button>
-          <button
-            style={{
-              background: showTracks() ? "#fbbf24" : "transparent",
-              color: showTracks() ? "#0f172a" : "#94a3b8",
-              border: "1px solid rgba(251, 191, 36, 0.5)",
-              "font-size": "0.65rem",
-              "font-weight": "700",
-              padding: "0.25rem 0.5rem",
-              "border-radius": "4px",
-              cursor: "pointer"
-            }}
-            onClick={() => setShowTracks(!showTracks())}
-          >
-            FUSED TRACKS
-          </button>
+          <div style={{ display: "flex", gap: "1rem", "pointer-events": "auto" }}>
+            <div
+              style={{
+                background: "rgba(15, 23, 42, 0.6)",
+                "backdrop-filter": "blur(8px)",
+                padding: "0.5rem 1rem",
+                "border-radius": "8px",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                display: "flex",
+                "align-items": "center",
+                gap: "1.5rem",
+              }}
+            >
+              <ControlToggle label="RAW OBS" active={showObs()} onClick={() => setShowObs(!showObs())} color="#38bdf8" />
+              <ControlToggle label="FUSED TRACKS" active={showTracks()} onClick={() => setShowTracks(!showTracks())} color="#fbbf24" />
+            </div>
+
+            <div
+              style={{
+                background: "rgba(15, 23, 42, 0.6)",
+                "backdrop-filter": "blur(8px)",
+                padding: "0.5rem",
+                "border-radius": "8px",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }}
+            >
+              <button
+                onClick={() => setMapStyle(mapStyle() === 0 ? 1 : 0)}
+                style={{
+                  background: mapStyle() === 1 ? "rgba(16, 185, 129, 0.2)" : "transparent",
+                  color: mapStyle() === 1 ? "#10b981" : "#94a3b8",
+                  border: `1px solid ${mapStyle() === 1 ? "#10b981" : "rgba(255,255,255,0.1)"}`,
+                  padding: "4px 12px",
+                  "border-radius": "4px",
+                  "font-size": "0.7rem",
+                  "font-weight": "700",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                {mapStyle() === 1 ? "HD MAP ACTIVE" : "STANDARD MAP"}
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Legend Panel (Bottom Left) */}
+        <div
+          style={{
+            position: "absolute",
+            bottom: "1.5rem",
+            left: "1.5rem",
+            "z-index": "20",
+            background: "rgba(15, 23, 42, 0.4)",
+            "backdrop-filter": "blur(4px)",
+            padding: "0.5rem",
+            "border-radius": "8px",
+            border: "1px solid rgba(255,255,255,0.05)",
+          }}
+        >
+          <SensorLegend />
+        </div>
+
+        {/* Track Drill-down (Anchored Overlay) */}
+        <TrackDrillDownOverlay
+          track={trackDetail()}
+          onClose={() => clearSelectedTrack()}
+        />
       </section>
 
+      {/* Right Side Panel: Intelligence & Analytics */}
       <aside
-        data-testid="commander-fusion-side-panel"
-        aria-label="Fusion side panel container"
         style={{
-          width: "22rem",
-          "flex-shrink": "0",
-          background: "rgba(7, 13, 25, 0.95)",
-          "border-left": "1px solid #1e2a3a",
-          padding: "1rem",
-          overflow: "hidden auto",
+          width: "24rem",
+          background: "linear-gradient(180deg, #0f172a 0%, #020617 100%)",
+          "border-left": "1px solid rgba(255, 255, 255, 0.05)",
           display: "flex",
           "flex-direction": "column",
-          gap: "1.5rem",
+          padding: "1.5rem",
+          gap: "2rem",
+          overflow: "hidden auto",
+          "box-shadow": "-10px 0 30px rgba(0,0,0,0.5)",
         }}
       >
-        {props.sidePanelContent ?? (
-          <>
-            <FusionKPIDashboard />
-            <div style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
-            <FusionConflictPanel />
-            <TrackFusionAudit />
-          </>
-        )}
+        <FusionKPIDashboard />
+
+        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }} />
+
+        <FusionConflictPanel />
+
+        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }} />
+
+        <TrackFusionAudit />
       </aside>
     </div>
   );
 }
+
+const ControlToggle = (props: { label: string; active: boolean; onClick: () => void; color: string }) => (
+  <button
+    onClick={props.onClick}
+    style={{
+      background: "transparent",
+      border: "none",
+      color: props.active ? props.color : "#64748b",
+      "font-size": "0.75rem",
+      "font-weight": "700",
+      "letter-spacing": "0.05em",
+      cursor: "pointer",
+      display: "flex",
+      "align-items": "center",
+      gap: "8px",
+      transition: "color 0.2s",
+    }}
+  >
+    <div style={{
+      width: "8px",
+      height: "8px",
+      "border-radius": "50%",
+      background: props.active ? props.color : "transparent",
+      border: `1px solid ${props.active ? props.color : "#475569"}`,
+      "box-shadow": props.active ? `0 0 8px ${props.color}` : "none",
+    }} />
+    {props.label}
+  </button>
+);

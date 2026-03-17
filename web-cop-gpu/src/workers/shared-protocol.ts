@@ -101,6 +101,16 @@ export interface SetViewportMessage {
   zoom:      number;
 }
 
+export interface SetTrackSelectionMessage {
+  type: "set_track_selection";
+  trackIdHash: number;
+}
+
+export interface SetMapStyleMessage {
+  type: "set_map_style";
+  mapStyle: number;
+}
+
 export type MainToRenderMessage =
   | RenderInitMessage
   | RenderResizeMessage
@@ -108,7 +118,9 @@ export type MainToRenderMessage =
   | SetDashboardMessage
   | SetCoverageMessage
   | SetViewportMessage
-  | SetObservationsMessage;
+  | SetObservationsMessage
+  | SetTrackSelectionMessage
+  | SetMapStyleMessage;
 
 // ── Data Worker → Main Thread ──────────────────────────────────────────────────
 
