@@ -7,7 +7,7 @@
 import { createPromiseClient } from "@connectrpc/connect";
 import { ClassificationLevel } from "@gen/rtsa/common/v1/types_pb.js";
 import { AlertService } from "@gen/rtsa/inference/v1/alert_service_connect.js";
-import { acknowledgeAlertLocally, updateAlerts } from "../signals/alerts";
+import { acknowledgeAlertLocally, alerts, updateAlerts } from "../signals/alerts";
 import { setAlertStreamHealthy } from "../signals/connection";
 import type { AlertPayload } from "../workers/shared-protocol";
 import { transport } from "./grpc-client";
@@ -82,6 +82,11 @@ export function buildAssignAlertRequest(params: AssignAlertParams): {
 export function startAlertStream(): AbortController {
   const ac = new AbortController();
 
+  if (import.meta.env.VITE_MOCK_ALERTS === "true" || (import.meta.env.DEV && !import.meta.env.VITE_API_GATEWAY_URL)) {
+    startMockAlertStream(ac);
+    return ac;
+  }
+
   void (async () => {
     try {
       const accumulated: AlertPayload[] = [];
@@ -128,6 +133,46 @@ export function startAlertStream(): AbortController {
   })();
 
   return ac;
+}
+
+function startMockAlertStream(ac: AbortController) {
+  const generate = (id: string, severity: AlertSeverity, desc: string, track: string) => ({
+    alertId: id,
+    severity,
+    description: desc,
+    trackId: track,
+    detectedAtMs: Date.now() - Math.random() * 3600000,
+    acknowledged: Math.random() > 0.7,
+  });
+
+  const initialAlerts: AlertPayload[] = [
+    generate("mock-1", "CRITICAL", "[MOCK] Unidentified signature detected - Sector 4", "track-v-101"),
+    generate("mock-2", "ELEVATED", "[MOCK] AIS/Radar mismatch - Commercial Vessel", "track-v-202"),
+    generate("mock-3", "WATCH", "[MOCK] Fast move detected - Boundary crossing", "track-v-303"),
+    generate("mock-4", "CRITICAL", "[MOCK] Electronic interference localized - Carrier group", "track-v-404"),
+    generate("mock-5", "NORMAL", "[MOCK] Routine port arrival - Tanker Alpha", "track-v-505"),
+  ];
+
+  updateAlerts(initialAlerts);
+
+  const interval = setInterval(() => {
+    if (ac.signal.aborted) {
+      clearInterval(interval);
+      return;
+    }
+    const newAlert = generate(
+      `mock-${Date.now()}`,
+      Math.random() > 0.8 ? "CRITICAL" : "ELEVATED",
+      "[MOCK] Real-time sensor anomaly detected",
+      `track-v-${Math.floor(Math.random() * 1000)}`
+    );
+    updateAlerts([newAlert, ...accumulated_alerts_logic_here()]);
+  }, 30000);
+}
+
+// Helper to get current alerts to append to (simplified for mock)
+function accumulated_alerts_logic_here(): AlertPayload[] {
+  return alerts();
 }
 
 /** Acknowledge an alert via gRPC and update the local signal optimistically. */

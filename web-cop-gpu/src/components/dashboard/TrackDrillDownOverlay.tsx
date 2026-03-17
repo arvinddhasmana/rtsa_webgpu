@@ -10,163 +10,180 @@ interface TrackDrillDownOverlayProps {
 }
 
 export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (props) => {
-  createEffect(() => console.log("[TrackDrillDownOverlay] Track changed:", props.track));
+  createEffect(() => {
+    if (props.track) {
+        console.log("[TrackHUD] Selected Track:", props.track.trackId);
+    }
+  });
+
   return (
     <Show when={props.track}>
       {(t) => (
         <div
           style={{
             position: "absolute",
-            bottom: "2rem",
+            top: "50%",
             left: "50%",
-            transform: "translateX(-50%)",
-            width: "600px",
-            background: "rgba(15, 23, 42, 0.7)",
-            "backdrop-filter": "blur(16px)",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            "border-radius": "12px",
-            "box-shadow": "0 20px 50px rgba(0, 0, 0, 0.8)",
-            padding: "24px",
-            color: "#f8fafc",
-            "font-family": "Inter, sans-serif",
-            "z-index": "100",
+            transform: "translate(-50%, -50%)",
+            width: "800px",
+            height: "500px",
+            background: "rgba(10, 20, 30, 0.7)",
+            "backdrop-filter": "blur(24px)",
+            border: "2px solid rgba(56, 189, 248, 0.2)",
+            "border-radius": "16px",
+            display: "flex",
+            "flex-direction": "column",
+            overflow: "hidden",
+            "box-shadow": "0 0 100px rgba(0,0,0,0.8), inset 0 0 40px rgba(56, 189, 248, 0.05)",
+            "z-index": "1000",
+            animation: "hud-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
-          {/* Header */}
-          <div style={{ display: "flex", "justify-content": "space-between", "align-items": "start", "margin-bottom": "20px" }}>
-            <div>
-              <div style={{ "font-size": "0.75rem", "text-transform": "uppercase", "letter-spacing": "0.1em", color: "#94a3b8" }}>
-                Fused Track Data
-              </div>
-              <h2 style={{ margin: "4px 0 0 0", "font-size": "1.5rem", "font-weight": "700" }}>
-                TRACK ID: {t().trackId}
-              </h2>
+          {/* Header Bar */}
+          <div style={{
+            padding: "0.75rem 1.5rem",
+            background: "linear-gradient(90deg, rgba(56, 189, 248, 0.1) 0%, transparent 100%)",
+            "border-bottom": "1px solid rgba(255, 255, 255, 0.1)",
+            display: "flex",
+            "justify-content": "space-between",
+            "align-items": "center",
+          }}>
+            <div style={{ display: "flex", "align-items": "center", gap: "1rem" }}>
+                <span style={{ "font-size": "0.7rem", "font-weight": "800", color: "#38bdf8", "letter-spacing": "0.15em" }}>FUSED TRACK DATA</span>
+                <span style={{ color: "rgba(255,255,255,0.2)" }}>|</span>
+                <span style={{ "font-size": "0.7rem", "font-weight": "700", color: "#f8fafc" }}>TRACK ID: {t().trackId}</span>
             </div>
-            <button
-              onClick={props.onClose}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#94a3b8",
-                cursor: "pointer",
-                "font-size": "1.5rem",
-              }}
-            >
-              ×
-            </button>
+            <button onClick={props.onClose} style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", "font-size": "1.2rem" }}>×</button>
           </div>
 
-          {/* Main Content Grid */}
-          <div style={{ display: "grid", "grid-template-columns": "1fr 1fr", gap: "24px" }}>
-            {/* Left Column: Classification & Confidence */}
-            <div>
-              <div style={{ "margin-bottom": "16px" }}>
-                <div style={{ "font-size": "0.75rem", color: "#94a3b8", "margin-bottom": "4px" }}>Classification</div>
-                <div style={{ "font-size": "1.1rem", "font-weight": "600", color: "#60a5fa" }}>
-                  {t().classification}
-                </div>
-              </div>
+          <div style={{ flex: "1", padding: "1.5rem", display: "grid", "grid-template-columns": "1fr 240px", gap: "1.5rem" }}>
+             {/* Left Section: Details and Pedigree */}
+             <div style={{ display: "flex", "flex-direction": "column", gap: "2rem" }}>
 
-              <div style={{ "margin-bottom": "16px" }}>
-                <div style={{ "font-size": "0.75rem", color: "#94a3b8", "margin-bottom": "4px" }}>Confidence</div>
-                <div style={{ display: "flex", "align-items": "center", gap: "10px" }}>
-                  <div style={{ flex: 1, height: "8px", background: "rgba(255,255,255,0.1)", "border-radius": "4px", overflow: "hidden" }}>
-                    <div style={{
-                      width: `${t().confidenceScore}%`,
-                      height: "100%",
-                      background: t().confidenceScore > 80 ? "#22c55e" : t().confidenceScore > 50 ? "#eab308" : "#ef4444",
-                    }} />
-                  </div>
-                  <span style={{ "font-family": "monospace", "font-weight": "bold" }}>{t().confidenceScore}%</span>
+                {/* Confidence & Classification Row */}
+                <div style={{ display: "grid", "grid-template-columns": "200px 1fr", gap: "2rem" }}>
+                    <div>
+                        <div style={{ "font-size": "0.65rem", color: "#64748b", "margin-bottom": "0.5rem" }}>TRACK CONFIDENCE: <span style={{ color: "#38bdf8" }}>{t().confidenceScore.toFixed(0)}%</span></div>
+                        <div style={{ height: "4px", background: "rgba(255,255,255,0.05)", "border-radius": "2px", overflow: "hidden" }}>
+                            <div style={{ width: `${t().confidenceScore}%`, height: "100%", background: "#38bdf8" }} />
+                        </div>
+                    </div>
+                    <div>
+                        <div style={{ "font-size": "0.65rem", color: "#64748b", "margin-bottom": "0.5rem" }}>CLASSIFICATION:</div>
+                        <div style={{ display: "flex", "align-items": "center", gap: "0.5rem" }}>
+                           <span style={{ "font-size": "1.5rem" }}>{t().entityType === "Surface" ? "🚢" : "✈"}</span>
+                           <span style={{ "font-size": "1.1rem", "font-weight": "700", "letter-spacing": "0.05em" }}>{t().entityType.toUpperCase()}</span>
+                        </div>
+                    </div>
                 </div>
-              </div>
 
-              <div>
-                <div style={{ "font-size": "0.75rem", color: "#94a3b8", "margin-bottom": "8px" }}>Source Pedigree</div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  {/* Mock Pedigree Nodes */}
-                  <PedigreeNode label="RADAR" time="14:05" active />
-                  <PedigreeLine />
-                  <PedigreeNode label="AIS" time="14:18" active />
-                  <PedigreeLine />
-                  <PedigreeNode label="SIGINT" time="14:27" alert />
+                {/* Source Pedigree Timeline */}
+                <div style={{ flex: "1", display: "flex", "flex-direction": "column" }}>
+                    <div style={{ "font-size": "0.75rem", "font-weight": "700", color: "#f8fafc", "border-bottom": "1px solid rgba(56, 189, 248, 0.3)", "padding-bottom": "0.5rem", "margin-bottom": "1rem" }}>
+                        SOURCE PEDIGREE
+                    </div>
+
+                    <div style={{ position: "relative", flex: "1", "padding-top": "2rem" }}>
+                        {/* Connecting Line */}
+                        <div style={{ position: "absolute", top: "2.5rem", left: "20px", right: "20px", height: "2px", background: "linear-gradient(90deg, #38bdf8 0%, #fbbf24 100%)", opacity: "0.5" }} />
+
+                        <div style={{ display: "flex", "justify-content": "space-between", position: "relative" }}>
+                             <PedigreeNode time="14:05" label="SPY-1 Radar" sub="Sig: High" active color="#38bdf8" />
+                             <PedigreeNode time="14:18" label="AIS Data" sub="Cargo Ship" active color="#38bdf8" />
+                             <PedigreeNode time="14:27" label="RF Emitter" sub="3.2GHz" active color="#f87171" />
+                             <PedigreeNode time="14:38" label="Updated: {t().trackId}" sub="Pos Match" active color="#38bdf8" />
+                             <PedigreeNode time="14:45" label="Final" sub="Conf 94%" active color="#fbbf24" pulse />
+                        </div>
+                    </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Right Column: Kinematics */}
-            <div style={{ background: "rgba(0,0,0,0.2)", padding: "16px", "border-radius": "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
-              <div style={{ "font-size": "0.85rem", "font-weight": "600", "margin-bottom": "12px", "border-bottom": "1px solid rgba(255,255,255,0.1)", "padding-bottom": "4px" }}>
-                KINEMATICS
-              </div>
-              <div style={{ display: "flex", "flex-direction": "column", gap: "12px" }}>
-                <KpiRow label="Velocity" value={`${t().speedKnots.toFixed(1)} KTS`} />
-                <KpiRow label="Heading" value={`${t().headingDeg.toFixed(0)}°`} />
-                <KpiRow label="Altitude" value={`${t().altitudeMeters.toFixed(0)} FT`} />
-                <KpiRow label="Status" value="ACTIVE / TRACKING" color="#22c55e" />
-              </div>
-            </div>
+                {/* Action Footer */}
+                <div style={{ display: "flex", gap: "1rem" }}>
+                    <button onClick={props.onClose} style={{ flex: "1", background: "rgba(248, 113, 113, 0.1)", border: "1px solid #f87171", color: "#f87171", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer" }}>CLOSE</button>
+                    <button style={{ flex: "1", background: "rgba(56, 189, 248, 0.1)", border: "1px solid #38bdf8", color: "#38bdf8", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer" }}>ANALYZE</button>
+                    <button style={{ flex: "1", background: "rgba(56, 189, 248, 0.1)", border: "1px solid #38bdf8", color: "#38bdf8", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer" }}>SHARE</button>
+                </div>
+             </div>
+
+             {/* Right Section: HUD Gauges */}
+             <div style={{ border: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)", "border-radius": "12px", padding: "1.25rem", display: "flex", "flex-direction": "column", gap: "1.5rem" }}>
+                <div style={{ "font-size": "0.7rem", "font-weight": "800", color: "#94a3b8" }}>KINEMATICS</div>
+
+                {/* Velocity Gauge */}
+                <div style={{ display: "flex", "flex-direction": "column", "align-items": "center" }}>
+                    <div style={{ "font-size": "0.6rem", color: "#64748b", "margin-bottom": "0.5rem" }}>VELOCITY (KTS): {t().speedKnots.toFixed(1)}</div>
+                    <div style={{ width: "120px", height: "60px", position: "relative", overflow: "hidden" }}>
+                        <div style={{ width: "120px", height: "120px", border: "8px solid rgba(255,255,255,0.05)", "border-radius": "50%", position: "absolute", top: "0" }} />
+                        <div style={{ width: "120px", height: "120px", border: "8px solid transparent", "border-left-color": "#38bdf8", "border-top-color": "#38bdf8", "border-radius": "50%", position: "absolute", top: "0", transform: `rotate(${t().speedKnots/10}deg)` }} />
+                    </div>
+                </div>
+
+                <div style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
+
+                {/* Heading Compass */}
+                <div style={{ display: "flex", "flex-direction": "column", "align-items": "center" }}>
+                    <div style={{ "font-size": "0.6rem", color: "#64748b", "margin-bottom": "1rem" }}>HEADING: {t().headingDeg.toFixed(0)}°</div>
+                    <div style={{ width: "100px", height: "100px", border: "2px solid rgba(255,255,255,0.1)", "border-radius": "50%", position: "relative", display: "flex", "align-items": "center", "justify-content": "center" }}>
+                        <div style={{ position: "absolute", top: "5px", "font-size": "8px", color: "#f87171" }}>N</div>
+                        <div style={{ width: "2px", height: "40px", background: "#f8fafc", transform: `rotate(${t().headingDeg}deg)`, "transform-origin": "bottom center", position: "absolute", top: "10px" }} />
+                        <div style={{ "font-size": "10px", color: "#38bdf8" }}>{t().headingDeg.toFixed(0)}°</div>
+                    </div>
+                </div>
+
+                <div style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
+
+                {/* Altitude */}
+                <div style={{ display: "flex", "flex-direction": "column" }}>
+                    <div style={{ "font-size": "0.6rem", color: "#64748b", "margin-bottom": "0.5rem" }}>ALTITUDE (FT):</div>
+                    <div style={{ display: "flex", "align-items": "flex-end", gap: "1rem", height: "60px" }}>
+                        <div style={{ flex: "1", height: "100%", border: "1px solid rgba(255,255,255,0.1)", position: "relative" }}>
+                             <div style={{ position: "absolute", bottom: `${(t().altitudeMeters/100)}%`, left: "0", right: "0", height: "2px", background: "#38bdf8", "box-shadow": "0 0 8px #38bdf8" }} />
+                        </div>
+                        <div style={{ "font-size": "1.2rem", "font-weight": "700" }}>{t().altitudeMeters.toFixed(0)}</div>
+                    </div>
+                </div>
+             </div>
           </div>
 
-          {/* Footer Actions */}
-          <div style={{ display: "flex", "justify-content": "flex-end", gap: "12px", "margin-top": "24px", "border-top": "1px solid rgba(255,255,255,0.1)", "padding-top": "16px" }}>
-            <ActionButton label="Analyze" />
-            <ActionButton label="Share" />
-            <ActionButton label="Close" primary onClick={props.onClose} />
-          </div>
+          <style>{`
+            @keyframes hud-appear {
+              from { opacity: 0; transform: translate(-50%, -45%) scale(0.95); }
+              to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            }
+          `}</style>
         </div>
       )}
     </Show>
   );
 };
 
-const KpiRow = (props: { label: string; value: string; color?: string }) => (
-  <div style={{ display: "flex", "justify-content": "space-between", "font-family": "monospace" }}>
-    <span style={{ color: "#94a3b8" }}>{props.label}:</span>
-    <span style={{ color: props.color || "#f8fafc" }}>{props.value}</span>
-  </div>
-);
-
-const ActionButton = (props: { label: string; primary?: boolean; onClick?: () => void }) => (
-  <button
-    onClick={props.onClick}
-    style={{
-      padding: "8px 16px",
-      "border-radius": "6px",
-      border: props.primary ? "none" : "1px solid rgba(255,255,255,0.2)",
-      background: props.primary ? "#2563eb" : "rgba(255,255,255,0.05)",
-      color: "white",
-      cursor: "pointer",
-      "font-size": "0.85rem",
-      "font-weight": "600",
-      transition: "all 0.2s",
-    }}
-  >
-    {props.label}
-  </button>
-);
-
-const PedigreeNode = (props: { label: string; time: string; active?: boolean; alert?: boolean }) => (
-  <div style={{ display: "flex", "flex-direction": "column", "align-items": "center", gap: "4px" }}>
-    <div style={{
-      width: "32px",
-      height: "32px",
-      "border-radius": "50%",
-      background: props.alert ? "rgba(239, 68, 68, 0.2)" : props.active ? "rgba(37, 99, 235, 0.2)" : "rgba(255,255,255,0.05)",
-      border: `1px solid ${props.alert ? "#ef4444" : props.active ? "#2563eb" : "rgba(255,255,255,0.2)"}`,
-      display: "flex",
-      "align-items": "center",
-      "justify-content": "center",
-      "font-size": "0.6rem",
-      "font-weight": "bold",
-      color: props.alert ? "#ef4444" : props.active ? "#60a5fa" : "#94a3b8",
-    }}>
-      {props.label[0]}
+const PedigreeNode = (props: { time: string; label: string; sub: string; active: boolean; color: string; pulse?: boolean }) => (
+    <div style={{ display: "flex", "flex-direction": "column", "align-items": "center", gap: "1rem", "z-index": "10", width: "80px" }}>
+        <div style={{ "font-size": "0.6rem", color: "#64748b" }}>{props.time}</div>
+        <div style={{
+            width: "32px",
+            height: "32px",
+            "border-radius": "50%",
+            background: "#0f172a",
+            border: `2px solid ${props.color}`,
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "box-shadow": props.pulse ? `0 0 15px ${props.color}` : "none",
+            animation: props.pulse ? "pulse-node 2s infinite" : "none"
+        }}>
+           <div style={{ width: "8px", height: "8px", background: props.color, "border-radius": "50%" }} />
+        </div>
+        <div style={{ "text-align": "center" }}>
+            <div style={{ "font-size": "0.6rem", "font-weight": "700", color: "#e2e8f0" }}>{props.label}</div>
+            <div style={{ "font-size": "0.55rem", color: "#64748b" }}>{props.sub}</div>
+        </div>
+        <style>{`
+          @keyframes pulse-node {
+            0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(251, 191, 36, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+          }
+        `}</style>
     </div>
-    <span style={{ "font-size": "0.6rem", color: "#64748b" }}>{props.time}</span>
-  </div>
-);
-
-const PedigreeLine = () => (
-  <div style={{ width: "12px", height: "1px", background: "rgba(255,255,255,0.1)", "margin-top": "16px" }} />
 );

@@ -31,6 +31,8 @@ export interface BindGroups {
   observations:  { g0: GPUBindGroup; g1: GPUBindGroup };
   /** Bind groups for sensor coverage pass */
   coverage:      { g0: GPUBindGroup };
+  /** Bind groups for background pass */
+  background:    { g0: GPUBindGroup };
 }
 
 /**
@@ -178,10 +180,16 @@ export function createBindGroups(
     entries: [{ binding: 0, resource: { buffer: buffers.observationStorage } }],
   });
 
-  // --- Coverage render ---
   const coverageG0 = device.createBindGroup({
     label:  "coverage-g0",
     layout: pipelines.render.coverage.getBindGroupLayout(0),
+    entries: [{ binding: 0, resource: { buffer: buffers.uniform } }],
+  });
+
+  // --- Background render ---
+  const backgroundG0 = device.createBindGroup({
+    label:  "background-g0",
+    layout: pipelines.render.background.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: buffers.uniform } }],
   });
 
@@ -195,5 +203,6 @@ export function createBindGroups(
     pick:          { g0: pickG0,   g1: pickG1                },
     observations:  { g0: obsG0,    g1: obsG1                 },
     coverage:      { g0: coverageG0                          },
+    background:    { g0: backgroundG0                        },
   };
 }

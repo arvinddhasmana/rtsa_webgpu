@@ -115,9 +115,9 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
             "z-index": "20",
             background: "rgba(15, 23, 42, 0.4)",
             "backdrop-filter": "blur(4px)",
-            padding: "0.5rem",
-            "border-radius": "8px",
-            border: "1px solid rgba(255,255,255,0.05)",
+            padding: "0",
+            "border-radius": "12px",
+            border: "none",
           }}
         >
           <SensorLegend />

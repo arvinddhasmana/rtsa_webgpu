@@ -178,8 +178,8 @@ export function renderFrame(state: RenderState): void {
     pass.end();
   }
 
-  // 5. Render: background (map tiles — loadOp: clear)
-  renderBackground(encoder, colorView, state.mapStyle);
+  // 5. Render: background (loadOp: clear)
+  renderBackground(encoder, colorView, pipelines, bindGroups);
 
   // 5.1 Render: Sensor Coverage (loadOp: load)
   {

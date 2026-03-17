@@ -6,6 +6,7 @@
 // Reference: docs/sdlc_guidelines/08_tech_specific/webgpu_guidelines.md §5.4
 
 // Import WGSL shader source — Vite bundles these as strings
+import backgroundWGSL from "../shaders/background.wgsl?raw";
 import coverageWGSL from "../shaders/coverage.wgsl?raw";
 import cullingWGSL from "../shaders/culling.wgsl?raw";
 import halosWGSL from "../shaders/halos.wgsl?raw";
@@ -28,6 +29,7 @@ export interface RenderPipelines {
   halos:      GPURenderPipeline;
   labels:     GPURenderPipeline;
   pick:       GPURenderPipeline;
+  background: GPURenderPipeline;
   coverage:   GPURenderPipeline;
   observations: GPURenderPipeline;
 }
@@ -227,6 +229,21 @@ export function createPipelines(
     primitive: { topology: "triangle-strip" },
   });
 
+  const backgroundPipeline = device.createRenderPipeline({
+    label:  "background",
+    layout: "auto",
+    vertex: {
+      module:     device.createShaderModule({ label: "background-vs", code: backgroundWGSL }),
+      entryPoint: "vs_main",
+    },
+    fragment: {
+      module:     device.createShaderModule({ label: "background-fs", code: backgroundWGSL }),
+      entryPoint: "fs_main",
+      targets: [{ format: swapChainFormat }],
+    },
+    primitive: { topology: "triangle-strip" },
+  });
+
   return {
     compute: {
       interpolation: interpolationPipeline,
@@ -238,6 +255,7 @@ export function createPipelines(
       halos:      halosPipeline,
       labels:     labelsPipeline,
       pick:       pickPipeline,
+      background: backgroundPipeline,
       coverage:   coveragePipeline,
       observations: observationsPipeline,
     },

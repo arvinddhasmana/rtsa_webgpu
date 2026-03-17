@@ -43,20 +43,32 @@ export function makeBackgroundPassDescriptor(
   };
 }
 
+import { BindGroups } from "./bind-groups";
+import { AllPipelines } from "./pipelines";
+
 /**
- * Render the background layer (Phase 1: solid colour placeholder).
- *
- * The pass clears the canvas to the map background colour.
- * No draw calls are issued — the clear itself is the output.
+ * Render the background layer (Phase 1: solid colour placeholder, Phase 5: procedural topography).
  */
 export function renderBackground(
   encoder: GPUCommandEncoder,
   colorAttachmentView: GPUTextureView,
-  mapStyle: number = 0,
+  pipelines: AllPipelines,
+  bindGroups: BindGroups,
 ): void {
-  const pass = encoder.beginRenderPass(
-    makeBackgroundPassDescriptor(colorAttachmentView, mapStyle),
-  );
-  // No draw calls — the clear provides the solid background
+  const pass = encoder.beginRenderPass({
+    label: "background-pass",
+    colorAttachments: [
+      {
+        view:       colorAttachmentView,
+        loadOp:     "clear",
+        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+        storeOp:    "store",
+      },
+    ],
+  });
+
+  pass.setPipeline(pipelines.render.background);
+  pass.setBindGroup(0, bindGroups.background.g0);
+  pass.draw(4);
   pass.end();
 }
