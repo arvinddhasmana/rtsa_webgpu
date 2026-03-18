@@ -377,7 +377,47 @@ export function SensorHealthDiagnosticCard(
         }}
       />
 
-
+      <div style={{ display: "flex", "justify-content": "space-between", "align-items": "flex-start", padding: "0 4px", "margin-bottom": "2px" }}>
+        <div style={{ display: "flex", "flex-direction": "column" }}>
+            <span style={{ "font-size": "0.55rem", color: "#64748b", "text-transform": "uppercase", "letter-spacing": "0.15em", "font-weight": "800" }}>
+                {props.sensor.sensorType}
+            </span>
+            <span style={{ "font-size": "0.85rem", "font-weight": "900", color: "#e2e8f0", "letter-spacing": "0.02em" }}>
+                {props.sensor.sensorId}
+            </span>
+        </div>
+        <button
+          data-testid="diagnostic-card-close-btn"
+          onClick={() => props.onClose?.()}
+          style={{
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            color: "#94a3b8",
+            "border-radius": "6px",
+            width: "22px",
+            height: "22px",
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            cursor: "pointer",
+            transition: "all 0.2s",
+            "font-size": "1.1rem",
+            "line-height": "1"
+          }}
+          onMouseEnter={(e) => {
+            const t = e.currentTarget;
+            t.style.background = "rgba(255,255,255,0.08)";
+            t.style.color = "#f1f5f9";
+          }}
+          onMouseLeave={(e) => {
+            const t = e.currentTarget;
+            t.style.background = "rgba(255,255,255,0.03)";
+            t.style.color = "#94a3b8";
+          }}
+        >
+          ×
+        </button>
+      </div>
 
       <div
         style={{
@@ -397,17 +437,30 @@ export function SensorHealthDiagnosticCard(
               : "1px solid rgba(251,191,36,0.35)",
         }}
       >
-        <span
-          style={{
-            "font-size": "clamp(0.68rem, 0.62rem + 0.15vw, 0.8rem)",
-            "font-weight": "700",
-            color: props.sensor.status === "CONNECTED" ? "#86efac" : "#fbbf24",
-            "letter-spacing": "0.06em",
-            "text-transform": "uppercase",
-          }}
-        >
-          {headlineAlert()}
-        </span>
+        <div style={{ display: "flex", "flex-direction": "column", gap: "1px" }}>
+            <span
+              style={{
+                "font-size": "0.52rem",
+                "font-weight": "800",
+                color: props.sensor.status === "CONNECTED" ? "#86efac" : "#fbbf24",
+                opacity: 0.7,
+                "letter-spacing": "0.1em"
+              }}
+            >
+              {props.sensor.status}
+            </span>
+            <span
+              style={{
+                "font-size": "0.72rem",
+                "font-weight": "800",
+                color: props.sensor.status === "CONNECTED" ? "#86efac" : "#fbbf24",
+                "letter-spacing": "0.02em",
+                "text-transform": "uppercase",
+              }}
+            >
+              {headlineAlert()}
+            </span>
+        </div>
         <span style={{ "font-size": "0.6rem", color: "#94a3b8" }}>
           {new Date().toLocaleTimeString([], {
             hour: "2-digit",

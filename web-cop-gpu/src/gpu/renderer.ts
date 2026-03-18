@@ -179,7 +179,7 @@ export function renderFrame(state: RenderState): void {
   }
 
   // 5. Render: background (loadOp: clear)
-  renderBackground(encoder, colorView, pipelines, bindGroups);
+  renderBackground(encoder, colorView);
 
   // 5.1 Render: Sensor Coverage (loadOp: load)
   {

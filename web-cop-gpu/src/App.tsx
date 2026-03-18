@@ -11,21 +11,21 @@ import { updateAlerts } from "./signals/alerts";
 import { operatorIdFromToken, setOperatorId } from "./signals/auth";
 import { setConnecting, setWtConnected } from "./signals/connection";
 import {
-  setDatagramsPerSec,
-  setDecodeErrors,
-  setFps,
-  setLatencyMs,
-  setRecordsPerSec,
-  setTrackCount,
-  setVisibleCount,
+    setDatagramsPerSec,
+    setDecodeErrors,
+    setFps,
+    setLatencyMs,
+    setRecordsPerSec,
+    setTrackCount,
+    setVisibleCount,
 } from "./signals/stats";
 import {
-  setSelectedTrack,
-  setTrackDetail,
-  setTrackDetailError,
-  setTrackDetailLoading,
+    setSelectedTrack,
+    setTrackDetail,
+    setTrackDetailError,
+    setTrackDetailLoading,
 } from "./signals/track";
-import { dashboard, enforceRoleDashboardGuard, role, viewport } from "./signals/viewport";
+import { dashboard, enforceRoleDashboardGuard, mapStyle, role, viewport } from "./signals/viewport";
 
 // Spatial alert signals
 import { setSpatialAlerts } from "./signals/spatial-alerts";
@@ -35,7 +35,7 @@ import { startAlertStream } from "./services/alerts";
 import { fetchAuthToken } from "./services/auth";
 import { fetchTrackDetail } from "./services/query";
 import {
-  startObservationStream
+    startObservationStream
 } from "./services/sensor-observations";
 import { allObservations } from "./signals/sensor-observations";
 
@@ -45,6 +45,7 @@ import { FusionCommanderDashboard } from "./components/dashboard/FusionCommander
 import { MultiDomainCommanderDashboard } from "./components/dashboard/MultiDomainCommanderDashboard";
 import { OperatorUiCommanderDashboard } from "./components/dashboard/OperatorUiCommanderDashboard";
 import { SensorHealthDashboard } from "./components/dashboard/SensorHealthDashboard";
+import { LeafletMap } from "./components/map/LeafletMap";
 import AlertSidebar from "./components/panels/AlertSidebar";
 import { FeedbackForm } from "./components/panels/FeedbackForm";
 import { TrackDetailPanel } from "./components/panels/TrackDetailPanel";
@@ -58,11 +59,11 @@ import { RoleSelector } from "./components/toolbar/RoleSelector";
 
 // Worker message types
 import type {
-  DataInitMessage,
-  DataToMainMessage,
-  RenderInitMessage,
-  RenderToMainMessage,
-  TokenRefreshMessage,
+    DataInitMessage,
+    DataToMainMessage,
+    RenderInitMessage,
+    RenderToMainMessage,
+    TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -76,7 +77,6 @@ export default function App() {
   const [renderWorker, setRenderWorker] = createSignal<Worker | null>(null);
   const [dataWorker, setDataWorker] = createSignal<Worker | null>(null);
   let alertStreamController: AbortController | null = null;
-  let canvasInitialized = false;
 
   // ── Render Worker message handler ──────────────────────────────────────────
 
@@ -91,6 +91,12 @@ export default function App() {
 
       case "picked": {
         console.log("[App] Track picked from GPU:", msg);
+        if (msg.trackIdHash === 0) {
+          setSelectedTrack(null);
+          setTrackDetail(null);
+          return;
+        }
+
         setSelectedTrack({
           trackIdHash: msg.trackIdHash,
           x: msg.x,
@@ -178,14 +184,15 @@ export default function App() {
 
   // ── Canvas Interaction ─────────────────────────────────────────────────────
 
-  function handleCanvasClick(e: MouseEvent) {
+  // ── Canvas/Map Interaction ──────────────────────────────────────────────────
+
+  function handleMapClick(x: number, y: number) {
     const el = canvas();
     const rw = renderWorker();
     if (!el || !rw) return;
-    const rect = el.getBoundingClientRect();
-    const x = Math.round((e.clientX - rect.left) * devicePixelRatio);
-    const y = Math.round((e.clientY - rect.top) * devicePixelRatio);
-    rw.postMessage({ type: "select_track", x, y });
+    const px = Math.round(x * devicePixelRatio);
+    const py = Math.round(y * devicePixelRatio);
+    rw.postMessage({ type: "select_track", x: px, y: py });
   }
 
   // ── Resize ────────────────────────────────────────────────────────────────
@@ -225,12 +232,14 @@ export default function App() {
 
     const wtUrl = import.meta.env.VITE_WEBTRANSPORT_URL as string | undefined;
 
+    let lastCanvas: HTMLCanvasElement | null = null;
     createEffect(() => {
       const el = canvas();
       const worker = renderWorker();
-      if (el && worker && !canvasInitialized) {
+      if (el && worker && el !== lastCanvas) {
+        lastCanvas = el;
         const tryInit = () => {
-          if (canvasInitialized) return;
+          if (el !== canvas()) return; // Canvas changed again
           const dpr = devicePixelRatio;
           let w = el.offsetWidth || Math.round(el.getBoundingClientRect().width);
           let h = el.offsetHeight || Math.round(el.getBoundingClientRect().height);
@@ -240,7 +249,6 @@ export default function App() {
             return;
           }
 
-          canvasInitialized = true;
           const initialWidth  = Math.round(w * dpr);
           const initialHeight = Math.round(h * dpr);
 
@@ -293,6 +301,14 @@ export default function App() {
       if (rw) {
           console.log(`[App] Syncing dashboard mode: ${current}`);
           rw.postMessage({ type: "set_dashboard", dashboard: current });
+      }
+    });
+
+    createEffect(() => {
+      const style = mapStyle();
+      const rw = renderWorker();
+      if (rw) {
+          rw.postMessage({ type: "set_map_style", mapStyle: style });
       }
     });
 
@@ -357,17 +373,23 @@ export default function App() {
         <canvas
           ref={setCanvas}
           id="gpu-canvas"
-          onClick={handleCanvasClick}
-          style={{ width: "100%", height: "100%", display: "block", cursor: "crosshair" }}
+          style={{ width: "100%", height: "100%", display: "block", "pointer-events": "none", "z-index": 1, position: "absolute", top: 0, left: 0 }}
         />
     );
 
+    const MapContainer = (
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        <LeafletMap onMapClick={handleMapClick} />
+        {MapCanvas}
+      </div>
+    );
+
     if (currentDashboard === "health") return <SensorHealthDashboard />;
-    if (currentDashboard === "commander") return <FusionCommanderDashboard mapContent={MapCanvas} />;
+    if (currentDashboard === "commander") return <FusionCommanderDashboard mapContent={MapContainer} />;
     if (currentDashboard === "coverage") {
-      return isOperationsCommander() ? <MultiDomainCommanderDashboard mapContent={MapCanvas} /> : <CoverageMapDashboard />;
+      return isOperationsCommander() ? <MultiDomainCommanderDashboard mapContent={MapContainer} /> : <CoverageMapDashboard />;
     }
-    if (!isOperationsCommander()) return MapCanvas;
+    if (!isOperationsCommander()) return MapContainer;
 
     return (
       <OperatorUiCommanderDashboard

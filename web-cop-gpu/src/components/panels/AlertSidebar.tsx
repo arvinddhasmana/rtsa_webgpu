@@ -692,6 +692,7 @@ export default function AlertSidebar() {
 
   return (
     <div
+      data-testid="alert-sidebar"
       style={{
         height: "100%",
         display: "flex",

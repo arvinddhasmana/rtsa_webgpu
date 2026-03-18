@@ -1,7 +1,7 @@
 // CLASSIFICATION: UNCLASSIFIED
+import path from "path";
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
-import path from "path";
 
 // Content-Security-Policy for the WebGPU COP.
 // Validated against docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md §7.3
@@ -17,7 +17,7 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",   // SolidJS injects minimal inline styles
-  "img-src 'self' data: blob: https://*.tile.openstreetmap.org",
+  "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.cartocdn.com https://server.arcgisonline.com",
   // In dev: allow http: (gRPC-Web at localhost:8080) and ws: (Vite HMR).
   // In prod: restrict to https: and wss: only.
   isDev

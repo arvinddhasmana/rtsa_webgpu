@@ -1,13 +1,13 @@
 // CLASSIFICATION: UNCLASSIFIED
 // tests/components/FeedbackForm.test.tsx
 
-import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { FeedbackForm } from "../../src/components/panels/FeedbackForm";
-import { setFeedbackOpen } from "../../src/signals/viewport";
-import { setTrackDetail } from "../../src/signals/track";
 import { setOperatorId } from "../../src/signals/auth";
 import type { TrackDetail } from "../../src/signals/track";
+import { setTrackDetail } from "../../src/signals/track";
+import { setFeedbackOpen } from "../../src/signals/viewport";
 
 // Mock the feedback service
 const submitFeedbackMock = vi.fn().mockResolvedValue({
@@ -34,6 +34,7 @@ const mockTrack: TrackDetail = {
   speedKnots: 300,
   headingDeg: 90,
   updatedAtMs: Date.now(),
+  sourceContributions: [],
 };
 
 afterEach(() => {
@@ -53,41 +54,42 @@ describe("FeedbackForm", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
     expect(screen.getByRole("dialog")).toBeDefined();
-    expect(screen.getByText("OPERATOR FEEDBACK")).toBeDefined();
+    expect(screen.getByText("Tactical Feedback Loop")).toBeDefined();
   });
 
   it("shows track ID when trackDetail is set", () => {
     setFeedbackOpen(true);
     setTrackDetail(mockTrack);
     render(() => <FeedbackForm />);
-    expect(screen.getByText(/track-xyz-999/)).toBeDefined();
+    expect(screen.getByText(/track-xy/)).toBeDefined();
   });
 
-  it("shows feedback type selector", () => {
+  it("shows feedback options", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
-    expect(screen.getByLabelText("Feedback Type")).toBeDefined();
+    expect(screen.getByText("Confirm Hostile")).toBeDefined();
+    expect(screen.getByText("Reject Anomaly")).toBeDefined();
   });
 
   it("shows justification textarea", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
-    expect(screen.getByLabelText("Justification (required)")).toBeDefined();
+    expect(screen.getByLabelText("Operational Justification")).toBeDefined();
   });
 
   it("Submit button is disabled when justification is empty", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
-    const submitBtn = screen.getByRole("button", { name: "Submit" });
+    const submitBtn = screen.getByRole("button", { name: "COMMIT ACTION" });
     expect((submitBtn as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("Submit button is enabled when justification is filled", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
-    const textarea = screen.getByLabelText("Justification (required)") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Operational Justification") as HTMLTextAreaElement;
     fireEvent.input(textarea, { target: { value: "Confirmed by radar analysis" } });
-    const submitBtn = screen.getByRole("button", { name: "Submit" });
+    const submitBtn = screen.getByRole("button", { name: "COMMIT ACTION" });
     expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
   });
 
@@ -103,9 +105,9 @@ describe("FeedbackForm", () => {
     setTrackDetail(mockTrack);
     render(() => <FeedbackForm />);
 
-    const textarea = screen.getByLabelText("Justification (required)") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Operational Justification") as HTMLTextAreaElement;
     fireEvent.input(textarea, { target: { value: "Radar confirmed hostile intent" } });
-    const submitBtn = screen.getByRole("button", { name: "Submit" });
+    const submitBtn = screen.getByRole("button", { name: "COMMIT ACTION" });
     fireEvent.click(submitBtn);
 
     await waitFor(() => expect(submitFeedbackMock).toHaveBeenCalledTimes(1));
@@ -120,9 +122,9 @@ describe("FeedbackForm", () => {
     setTrackDetail(mockTrack);
     render(() => <FeedbackForm />);
 
-    const textarea = screen.getByLabelText("Justification (required)") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText("Operational Justification") as HTMLTextAreaElement;
     fireEvent.input(textarea, { target: { value: "Fallback operator test" } });
-    fireEvent.click(screen.getByRole("button", { name: "Submit" }));
+    fireEvent.click(screen.getByRole("button", { name: "COMMIT ACTION" }));
 
     await waitFor(() => expect(submitFeedbackMock).toHaveBeenCalledTimes(1));
     const callArgs = submitFeedbackMock.mock.calls[0][0] as { operatorId: string };

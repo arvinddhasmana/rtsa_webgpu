@@ -45,7 +45,11 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
           overflow: "hidden",
         }}
       >
-        {props.mapContent}
+        <div data-testid="commander-fusion-map-container" style={{ width: "100%", height: "100%", position: "relative" }}>
+          {props.mapContent}
+          <div data-testid="commander-observation-layer-mount" />
+          <div data-testid="commander-fused-layer-mount" />
+        </div>
 
         {/* Floating Top Controls (Glassmorphic) */}
         <div
@@ -130,30 +134,123 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
         />
       </section>
 
-      {/* Right Side Panel: Intelligence & Analytics */}
-      <aside
+      {/* Mission Analytics Fragment (Floating Draggable Toast) */}
+      <MissionAnalyticsToast />
+    </div>
+  );
+}
+
+function MissionAnalyticsToast() {
+  const [pos, setPos] = createSignal({ x: window.innerWidth - 420, y: 80 });
+  const [minimized, setMinimized] = createSignal(false);
+  const [isDragging, setIsDragging] = createSignal(false);
+  let dragOffset = { x: 0, y: 0 };
+
+  const onMouseDown = (e: MouseEvent) => {
+    setIsDragging(true);
+    dragOffset = {
+      x: e.clientX - pos().x,
+      y: e.clientY - pos().y
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+  };
+
+  const onMouseMove = (e: MouseEvent) => {
+    if (!isDragging()) return;
+    setPos({
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y
+    });
+  };
+
+  const onMouseUp = () => {
+    setIsDragging(false);
+    window.removeEventListener("mousemove", onMouseMove);
+    window.removeEventListener("mouseup", onMouseUp);
+  };
+
+  return (
+    <div
+      data-testid="commander-fusion-side-panel"
+      style={{
+        position: "absolute",
+        left: `${pos().x}px`,
+        top: `${pos().y}px`,
+        width: "410px",
+        "max-height": minimized() ? "48px" : "calc(100% - 100px)",
+        background: "rgba(7, 12, 24, 0.8)",
+        "backdrop-filter": "blur(30px) saturate(200%)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        "box-shadow": "0 25px 50px -12px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255,255,255,0.05)",
+        "border-radius": "16px",
+        display: "flex",
+        "flex-direction": "column",
+        "z-index": "100",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
+    >
+      {/* Header / Drag Handle - Mockup Matched */}
+      <div
+        onMouseDown={onMouseDown}
         style={{
-          width: "24rem",
-          background: "linear-gradient(180deg, #0f172a 0%, #020617 100%)",
-          "border-left": "1px solid rgba(255, 255, 255, 0.05)",
+          padding: "1rem 1.5rem",
           display: "flex",
-          "flex-direction": "column",
-          padding: "1.5rem",
-          gap: "2rem",
-          overflow: "hidden auto",
-          "box-shadow": "-10px 0 30px rgba(0,0,0,0.5)",
+          "justify-content": "space-between",
+          "align-items": "center",
+          cursor: "grab",
+          background: "linear-gradient(90deg, rgba(30, 41, 59, 0.6) 0%, transparent 100%)",
+          "border-bottom": minimized() ? "none" : "1px solid rgba(255,255,255,0.05)",
         }}
       >
-        <FusionKPIDashboard />
+        <span style={{
+          "font-size": "0.75rem",
+          "font-weight": "900",
+          color: "#38bdf8",
+          "letter-spacing": "0.15em",
+          "text-transform": "uppercase",
+          "text-shadow": "0 0 10px rgba(56, 189, 248, 0.3)"
+        }}>
+          MISSION ANALYTICS
+        </span>
+        <button
+          onClick={() => setMinimized(!minimized())}
+          style={{
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "#e2e8f0",
+            width: "28px",
+            height: "28px",
+            "border-radius": "6px",
+            cursor: "pointer",
+            display: "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            transition: "background 0.2s"
+          }}
+        >
+          {minimized() ? "＋" : "－"}
+        </button>
+      </div>
 
-        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }} />
-
-        <FusionConflictPanel />
-
-        <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)" }} />
-
-        <TrackFusionAudit />
-      </aside>
+      {/* Content Area */}
+      {!minimized() && (
+        <div style={{
+          padding: "1.5rem",
+          display: "flex",
+          "flex-direction": "column",
+          gap: "2rem",
+          overflow: "hidden auto",
+          "scrollbar-width": "none"
+        }}>
+          <FusionKPIDashboard />
+          <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.2), transparent)" }} />
+          <FusionConflictPanel />
+          <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.2), transparent)" }} />
+          <TrackFusionAudit />
+        </div>
+      )}
     </div>
   );
 }

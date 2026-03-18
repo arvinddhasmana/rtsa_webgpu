@@ -1,19 +1,19 @@
 // CLASSIFICATION: UNCLASSIFIED
 // tests/signals/track.test.ts
 
-import { describe, it, expect, afterEach } from "vitest";
-import {
-  selectedTrack,
-  setSelectedTrack,
-  trackDetail,
-  setTrackDetail,
-  trackDetailLoading,
-  setTrackDetailLoading,
-  trackDetailError,
-  setTrackDetailError,
-  clearSelectedTrack,
-} from "../../src/signals/track";
+import { afterEach, describe, expect, it } from "vitest";
 import type { TrackDetail } from "../../src/signals/track";
+import {
+    clearSelectedTrack,
+    selectedTrack,
+    setSelectedTrack,
+    setTrackDetail,
+    setTrackDetailError,
+    setTrackDetailLoading,
+    trackDetail,
+    trackDetailError,
+    trackDetailLoading,
+} from "../../src/signals/track";
 
 const mockDetail: TrackDetail = {
   trackId: "t-1",
@@ -29,6 +29,7 @@ const mockDetail: TrackDetail = {
   speedKnots: 500,
   headingDeg: 180,
   updatedAtMs: Date.now(),
+  sourceContributions: [],
 };
 
 afterEach(() => {

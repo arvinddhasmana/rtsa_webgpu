@@ -91,27 +91,27 @@ fn threat_color(level: u32) -> vec3<f32> {
   }
 }
 
-// Procedural high-fidelity silhouettes
+// Sharp, anti-aliased silhouettes using smoothstep and fwidth
 fn get_silhouette(uv: vec2<f32>, type_idx: u32, rotated_uv: vec2<f32>) -> f32 {
-  let p = rotated_uv * 2.0 - 1.0;
-  let p_fixed = uv * 2.0 - 1.0;
+    let p = rotated_uv * 2.0 - 1.0;
+    let p_fixed = uv * 2.0 - 1.0;
+    let fw = fwidth(length(p)) * 1.5; // Edge softness based on screen-space derivative
 
-  switch(type_idx % 3u) {
-    case 0u: { // AIR: Swept-back silhouette
-      let d = max(abs(p.x) * 1.5 + p.y * 0.5, -p.y);
-      let tail = step(abs(p.x * 4.0) + (p.y + 0.8), 0.2);
-      return max(step(d, 0.8), tail);
+    switch(type_idx % 3u) {
+        case 0u: { // AIR: Pointed / Swept-back (Triangle-ish)
+            let d = max(abs(p.x) * 1.5 + p.y * 0.5, -p.y - 0.2);
+            return 1.0 - smoothstep(0.7 - fw, 0.7 + fw, d);
+        }
+        case 1u: { // SURFACE: Diamond hull
+            let d = abs(p.x) + abs(p.y);
+            return 1.0 - smoothstep(0.8 - fw, 0.8 + fw, d);
+        }
+        case 2u: { // SUBSURFACE: Ellipse
+            let d = (p_fixed.x * p_fixed.x * 2.5) + (p_fixed.y * p_fixed.y * 1.0);
+            return 1.0 - smoothstep(0.8 - fw, 0.8 + fw, d);
+        }
+        default: { return 0.0; }
     }
-    case 1u: { // SURFACE: Diamond hull
-      let d = abs(p.x) * 2.0 + abs(p.y) * 0.8;
-      return step(d, 1.0);
-    }
-    case 2u: { // SUBSURFACE: Capsule
-      let d = (p_fixed.x * p_fixed.x * 3.0) + (p_fixed.y * p_fixed.y * 1.2);
-      return step(d, 1.0);
-    }
-    default: { return 0.0; }
-  }
 }
 
 @fragment
@@ -126,34 +126,42 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     s * (in.uv.x - pivot.x) + c * (in.uv.y - pivot.y) + pivot.y
   );
 
-  let silhouette = get_silhouette(in.uv, in.icon_index, rotated_uv);
-
-  // Tactical Pulse / Anomaly Highlight
-  var alpha = silhouette;
-  var color = threat_color(in.threat_level);
-
-  if (in.alert_flags > 0u) {
-    let t = f32(uniforms.current_time_ms % 2000u) / 2000.0;
-    let pulse = 0.5 + 0.5 * sin(t * 12.56); // faster double pulse
-
-    // Outer glow for anomaly
-    let dist_center = length(in.uv - vec2<f32>(0.5, 0.5));
-    let glow = smoothstep(0.5, 0.45, dist_center) * pulse;
-
-    let anomaly_color = select(vec3<f32>(1.0, 0.8, 0.0), vec3<f32>(1.0, 0.2, 0.0), in.threat_level == 5u);
-    color = mix(color, anomaly_color, glow * 0.6);
-    alpha = max(alpha, glow * 0.4);
-  }
-
-  if (alpha < 0.1) { discard; }
-
-  // Selection Highlight
-  if (in.is_selected > 0u) {
-    color = mix(color, vec3<f32>(0.0, 1.0, 1.0), 0.3);
-    // Subtle outer ring for selected
+    let silhouette = get_silhouette(in.uv, in.icon_index, rotated_uv);
     let dist = length(in.uv - vec2<f32>(0.5, 0.5));
-    if (dist > 0.45) { color = vec3<f32>(0.0, 1.0, 1.0); alpha = 1.0; }
-  }
 
-  return vec4<f32>(color, alpha);
+    // Smooth outline logic
+    let outline_width = 0.05;
+    let outer_silhouette = get_silhouette(in.uv, in.icon_index, rotated_uv);
+    // We already have a smooth silhouette, so we can use it for the main shape.
+
+    var color = threat_color(in.threat_level);
+    var alpha = silhouette;
+
+    // Add subtle dark outline for contrast
+    let outline = smoothstep(0.45, 0.48, dist) * (1.0 - silhouette);
+    color = mix(color, vec3<f32>(0.02, 0.05, 0.1), outline * 0.8);
+    alpha = max(alpha, outline * 0.5);
+
+    // Tactical Pulsing for Alerts
+    if (in.alert_flags > 0u) {
+        let t = f32(uniforms.current_time_ms % 2000u) / 2000.0;
+        let pulse = 0.5 + 0.5 * sin(t * 12.56);
+        let glow = smoothstep(0.5, 0.3, dist) * pulse;
+        let anomaly_color = select(vec3<f32>(1.0, 0.8, 0.0), vec3<f32>(1.0, 0.2, 0.0), in.threat_level == 5u);
+        color = mix(color, anomaly_color, glow * 0.7);
+        alpha = max(alpha, glow * 0.4);
+    }
+
+    // Selection Glow (Cyan ring)
+    if (in.is_selected > 0u) {
+        let select_glow = smoothstep(0.5, 0.4, dist) * 0.4;
+        color = mix(color, vec3<f32>(0.0, 1.0, 1.0), select_glow + 0.3);
+        if (dist > 0.44 && dist < 0.5) {
+            color = vec3<f32>(0.0, 1.0, 1.0);
+            alpha = 1.0;
+        }
+    }
+
+    if (alpha < 0.05) { discard; }
+    return vec4<f32>(color, alpha);
 }

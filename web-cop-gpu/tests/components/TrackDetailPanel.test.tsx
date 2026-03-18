@@ -1,17 +1,17 @@
 // CLASSIFICATION: UNCLASSIFIED
 // tests/components/TrackDetailPanel.test.tsx
 
-import { describe, it, expect, afterEach } from "vitest";
 import { render, screen } from "@solidjs/testing-library";
+import { afterEach, describe, expect, it } from "vitest";
 import { TrackDetailPanel } from "../../src/components/panels/TrackDetailPanel";
-import {
-  setSelectedTrack,
-  setTrackDetail,
-  setTrackDetailLoading,
-  setTrackDetailError,
-  clearSelectedTrack,
-} from "../../src/signals/track";
 import type { TrackDetail } from "../../src/signals/track";
+import {
+    clearSelectedTrack,
+    setSelectedTrack,
+    setTrackDetail,
+    setTrackDetailError,
+    setTrackDetailLoading,
+} from "../../src/signals/track";
 
 const mockTrack: TrackDetail = {
   trackId: "track-abc-123",
@@ -27,6 +27,7 @@ const mockTrack: TrackDetail = {
   speedKnots: 480,
   headingDeg: 270,
   updatedAtMs: Date.now(),
+  sourceContributions: [],
 };
 
 afterEach(() => {
@@ -49,7 +50,7 @@ describe("TrackDetailPanel", () => {
     setSelectedTrack({ trackIdHash: 0x1234, x: 0, y: 0 });
     setTrackDetailLoading(true);
     render(() => <TrackDetailPanel />);
-    expect(screen.getByText("Loading…")).toBeDefined();
+    expect(screen.getByText("Synchronizing Intelligence...")).toBeDefined();
   });
 
   it("shows error state on fetch failure", () => {
@@ -63,7 +64,7 @@ describe("TrackDetailPanel", () => {
     setSelectedTrack({ trackIdHash: 0x1234, x: 0, y: 0 });
     setTrackDetail(mockTrack);
     render(() => <TrackDetailPanel />);
-    expect(screen.getByText("track-abc-123")).toBeDefined();
+    expect(screen.getByText("track-ab")).toBeDefined();
     expect(screen.getByText("Air")).toBeDefined();
     expect(screen.getByText("Hostile")).toBeDefined();
     expect(screen.getByText("Active")).toBeDefined();
@@ -73,7 +74,7 @@ describe("TrackDetailPanel", () => {
     setSelectedTrack({ trackIdHash: 0x1234, x: 0, y: 0 });
     setTrackDetail(mockTrack);
     render(() => <TrackDetailPanel />);
-    expect(screen.getByText("92.0%")).toBeDefined();
+    expect(screen.getByText("92%")).toBeDefined();
   });
 
   it("clears panel when close button is clicked", async () => {

@@ -82,7 +82,7 @@ export function buildAssignAlertRequest(params: AssignAlertParams): {
 export function startAlertStream(): AbortController {
   const ac = new AbortController();
 
-  if (import.meta.env.VITE_MOCK_ALERTS === "true" || (import.meta.env.DEV && !import.meta.env.VITE_API_GATEWAY_URL)) {
+  if (import.meta.env.VITE_MOCK_ALERTS === "true" || (import.meta.env.DEV && !import.meta.env.VITE_API_GATEWAY_URL && !import.meta.env.VITEST)) {
     startMockAlertStream(ac);
     return ac;
   }

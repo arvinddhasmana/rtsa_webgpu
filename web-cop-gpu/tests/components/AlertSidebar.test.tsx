@@ -1,8 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // tests/components/AlertSidebar.test.tsx
 
-import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import AlertSidebar from "../../src/components/panels/AlertSidebar";
 import { setAlerts } from "../../src/signals/alerts";
 import { setOperatorId } from "../../src/signals/auth";
@@ -49,7 +49,7 @@ describe("AlertSidebar", () => {
 
   it("shows no active alerts message when list is empty", () => {
     render(() => <AlertSidebar />);
-    expect(screen.getByText("No active alerts")).toBeDefined();
+    expect(screen.getByText(/No active alerts/i)).toBeDefined();
   });
 
   it("renders alert list when alerts are present", () => {

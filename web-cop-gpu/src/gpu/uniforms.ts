@@ -24,31 +24,42 @@ const _f32 = new Float32Array(_uniformData);
 const _u32 = new Uint32Array(_uniformData);
 
 /**
- * Build an identity perspective-like view-projection matrix.
- * In a production implementation this would be derived from the map camera.
+ * Build a view-projection matrix for Web Mercator.
+ * Transforms normalized Web Mercator coordinates [0, 1] into NDC space [-1, 1],
+ * exactly matching Leaflet's zoom and panning pixel coordinate system.
  *
  * Returns a column-major mat4x4 as a 16-element Float32Array.
  */
 export function makeViewProjection(
   canvasWidth: number,
   canvasHeight: number,
-  centerLon: number,
-  centerLat: number,
-  scale: number,
+  centerLon: number, // degrees
+  centerLat: number, // degrees
+  scale: number,     // 2^(zoom - 2)
 ): Float32Array {
-  // Simple orthographic projection mapping lon/lat → NDC
-  // NDC_x = (lon - centerLon) * scale * aspectRatio^-1
-  // NDC_y = (lat - centerLat) * scale
-  const aspect = canvasHeight > 0 ? canvasWidth / canvasHeight : 1;
-  const sx = scale / aspect;
-  const sy = scale;
+  // Leaflet world size in pixels: 256 * 2^zoom = 256 * 4 * scale = 1024 * scale
+  const L = 1024 * scale;
+
+  // Center in normalized [0, 1] Web Mercator
+  const cx = centerLon / 360.0 + 0.5;
+  const sinLat = Math.sin(centerLat * Math.PI / 180.0);
+  const cy = 0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI);
+
+  // Transform:
+  // ndc_x = (mx - cx) * (2 * L / W) = mx * sx - cx * sx
+  // ndc_y = -(my - cy) * (2 * L / H) = my * sy - cy * sy
+  const sx = (canvasWidth > 0) ? (2 * L / canvasWidth) : 1;
+  const sy = (canvasHeight > 0) ? (-2 * L / canvasHeight) : 1;
+
+  const tx = -cx * sx;
+  const ty = -cy * sy;
 
   // Column-major mat4x4 (WebGPU convention)
   return new Float32Array([
-    sx,           0,            0, 0,
-    0,            sy,           0, 0,
-    0,            0,            1, 0,
-    -centerLon * sx, -centerLat * sy, 0, 1,
+    sx, 0,  0, 0,
+    0,  sy, 0, 0,
+    0,  0,  1, 0,
+    tx, ty, 0, 1,
   ]);
 }
 

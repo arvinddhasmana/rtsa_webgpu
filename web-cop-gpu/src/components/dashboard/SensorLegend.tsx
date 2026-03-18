@@ -28,49 +28,59 @@ export const SensorLegend: Component = () => {
       <div style={{ display: "grid", "grid-template-columns": "1fr 1fr", gap: "1rem" }}>
         {/* Friendly Section */}
         <div style={{ display: "flex", "flex-direction": "column", gap: "0.5rem" }}>
-          <div style={{ "font-size": "0.65rem", color: "#64748b", "font-weight": "700" }}>FRIENDLY</div>
-          <div style={{ display: "grid", "grid-template-columns": "20px 1fr", "align-items": "center", gap: "8px" }}>
-            <span style={{ color: "#38bdf8", "font-size": "0.9rem" }}>✈</span>
-            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Friendly</span>
+          <div style={{ "font-size": "0.65rem", color: "#38bdf8", "font-weight": "700" }}>FRIENDLY</div>
+          <div style={{ display: "grid", "grid-template-columns": "24px 1fr", "align-items": "center", gap: "8px" }}>
+            <AirIcon color="#38bdf8" />
+            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Air Track</span>
           </div>
-          <div style={{ display: "grid", "grid-template-columns": "20px 1fr", "align-items": "center", gap: "8px" }}>
-            <span style={{ color: "#38bdf8", "font-size": "0.9rem" }}>△</span>
-            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Drone</span>
+          <div style={{ display: "grid", "grid-template-columns": "24px 1fr", "align-items": "center", gap: "8px" }}>
+            <SurfaceIcon color="#38bdf8" />
+            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Surface</span>
           </div>
         </div>
 
         {/* Hostile Section */}
         <div style={{ display: "flex", "flex-direction": "column", gap: "0.5rem" }}>
           <div style={{ "font-size": "0.65rem", color: "#f87171", "font-weight": "700" }}>HOSTILE</div>
-          <div style={{ display: "grid", "grid-template-columns": "20px 1fr", "align-items": "center", gap: "8px" }}>
-            <span style={{ color: "#f87171", "font-size": "0.9rem" }}>⬥</span>
-            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Hostile Icons</span>
+          <div style={{ display: "grid", "grid-template-columns": "24px 1fr", "align-items": "center", gap: "8px" }}>
+            <SurfaceIcon color="#f87171" />
+            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Hostile Vessel</span>
           </div>
-          <div style={{ display: "grid", "grid-template-columns": "20px 1fr", "align-items": "center", gap: "8px" }}>
-            <span style={{ color: "#f87171", "font-size": "0.9rem" }}>◇</span>
-            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Statuses</span>
+          <div style={{ display: "grid", "grid-template-columns": "24px 1fr", "align-items": "center", gap: "8px" }}>
+            <SubsurfaceIcon color="#f87171" />
+            <span style={{ "font-size": "0.7rem", color: "#e2e8f0" }}>Subsurface</span>
           </div>
         </div>
       </div>
 
       <div style={{ height: "1px", background: "rgba(255,255,255,0.05)" }} />
 
-      {/* Statuses Section */}
-      <div style={{ display: "flex", "flex-direction": "column", gap: "0.65rem" }}>
-        <div style={{ "font-size": "0.65rem", color: "#64748b", "font-weight": "700" }}>STATUSES</div>
-        <div style={{ display: "grid", "grid-template-columns": "40px 1fr", "align-items": "center", gap: "12px" }}>
-          <div style={{ height: "2px", width: "30px", background: "#38bdf8" }} />
-          <span style={{ "font-size": "0.7rem", color: "#94a3b8" }}>Frigate</span>
-        </div>
-        <div style={{ display: "grid", "grid-template-columns": "40px 1fr", "align-items": "center", gap: "12px" }}>
-            <div style={{ height: "4px", width: "30px", background: "#f87171" }} />
-          <span style={{ "font-size": "0.7rem", color: "#94a3b8" }}>Destroyer</span>
-        </div>
-        <div style={{ display: "grid", "grid-template-columns": "40px 1fr", "align-items": "center", gap: "12px" }}>
-          <div style={{ height: "4px", width: "20px", background: "#38bdf8", "border-radius": "10px 10px 0 0" }} />
-          <span style={{ "font-size": "0.7rem", color: "#94a3b8" }}>Submarine silhouette</span>
+      {/* Neutral/Unknown Section */}
+      <div style={{ display: "flex", "flex-direction": "column", gap: "0.5rem" }}>
+        <div style={{ "font-size": "0.65rem", color: "#fbbf24", "font-weight": "700" }}>NEUTRAL / UNKNOWN</div>
+        <div style={{ display: "grid", "grid-template-columns": "24px 1fr", "align-items": "center", gap: "8px" }}>
+          <AirIcon color="#fbbf24" />
+          <span style={{ "font-size": "0.7rem", color: "#94a3b8" }}>Unidentified Air</span>
         </div>
       </div>
     </div>
   );
 };
+
+const AirIcon = (props: { color: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={props.color} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2L4 22L12 18L20 22L12 2Z" fill={props.color} fill-opacity="0.3" />
+  </svg>
+);
+
+const SurfaceIcon = (props: { color: string }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={props.color} stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 2L22 12L12 22L2 12L12 2Z" fill={props.color} fill-opacity="0.3" />
+  </svg>
+);
+
+const SubsurfaceIcon = (props: { color: string }) => (
+  <svg width="20" height="12" viewBox="0 0 40 24" fill="none" stroke={props.color} stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="20" cy="12" rx="18" ry="10" fill={props.color} fill-opacity="0.3" />
+  </svg>
+);

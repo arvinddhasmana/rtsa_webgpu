@@ -43,8 +43,6 @@ export function makeBackgroundPassDescriptor(
   };
 }
 
-import { BindGroups } from "./bind-groups";
-import { AllPipelines } from "./pipelines";
 
 /**
  * Render the background layer (Phase 1: solid colour placeholder, Phase 5: procedural topography).
@@ -52,23 +50,19 @@ import { AllPipelines } from "./pipelines";
 export function renderBackground(
   encoder: GPUCommandEncoder,
   colorAttachmentView: GPUTextureView,
-  pipelines: AllPipelines,
-  bindGroups: BindGroups,
 ): void {
+  // We now use Leaflet as the real map background.
+  // This pass just clears the canvas to transparent black so the map shows through.
   const pass = encoder.beginRenderPass({
-    label: "background-pass",
+    label: "background-clear-pass",
     colorAttachments: [
       {
         view:       colorAttachmentView,
         loadOp:     "clear",
-        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
         storeOp:    "store",
       },
     ],
   });
-
-  pass.setPipeline(pipelines.render.background);
-  pass.setBindGroup(0, bindGroups.background.g0);
-  pass.draw(4);
   pass.end();
 }

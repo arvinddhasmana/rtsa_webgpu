@@ -49,6 +49,14 @@ const EARTH_RADIUS_M: f32 = 6371000.0;
 // Maximum dead-reckoning window — discard extrapolation beyond 5 minutes
 const MAX_DR_S: f32 = 300.0;
 
+const PI: f32 = 3.14159265359;
+
+fn to_web_mercator(lon_rad: f32, lat_rad: f32) -> vec2<f32> {
+    let mx = lon_rad / (2.0 * PI) + 0.5;
+    let my = 0.5 - log(tan(PI / 4.0 + lat_rad / 2.0)) / (2.0 * PI);
+    return vec2<f32>(mx, my);
+}
+
 @compute @workgroup_size(256)
 fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx = gid.x;
@@ -69,10 +77,14 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let dx = track.speed * sin(track.course) * dt_s / (EARTH_RADIUS_M * safe_cos_lat);
   let dy = track.speed * cos(track.course) * dt_s / EARTH_RADIUS_M;
 
+  let final_lon = track.lon + dx;
+  let final_lat = track.lat + dy;
+  let m = to_web_mercator(final_lon, final_lat);
+
   // Store extrapolated position; w component carries track_id_hash for identification
   positions[idx] = vec4<f32>(
-    track.lon + dx,
-    track.lat + dy,
+    m.x,
+    m.y,
     track.altitude,
     bitcast<f32>(track.track_id_hash),
   );

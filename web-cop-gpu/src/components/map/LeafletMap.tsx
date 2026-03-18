@@ -1,0 +1,95 @@
+// CLASSIFICATION: UNCLASSIFIED
+// src/components/map/LeafletMap.tsx
+
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { createEffect, onCleanup, onMount } from "solid-js";
+import { mapStyle, setViewport, viewport } from "../../signals/viewport";
+
+interface LeafletMapProps {
+  onMapClick?: (x: number, y: number) => void;
+}
+
+export function LeafletMap(props: LeafletMapProps) {
+  let mapDiv!: HTMLDivElement;
+  let map: L.Map;
+  let standardLayer: L.TileLayer;
+  let hdLayer: L.TileLayer;
+
+  onMount(() => {
+    // Initialize map
+    map = L.map(mapDiv, {
+      center: [viewport().centerLat, viewport().centerLon],
+      zoom: viewport().zoom,
+      zoomControl: false, // UI might prefer to use custom controls or leave to mouse
+      attributionControl: false, // Clean look for tactical UI
+    });
+
+    // CartoDB Dark Matter (Standard)
+    standardLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
+      maxZoom: 20,
+      crossOrigin: true, // Required for COEP and SharedArrayBuffer
+    });
+
+    // Esri World Imagery (HD Satellite)
+    hdLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      crossOrigin: true, // Required for COEP and SharedArrayBuffer
+    });
+
+    // Add initial layer
+    if (mapStyle() === 1) {
+      hdLayer.addTo(map);
+    } else {
+      standardLayer.addTo(map);
+    }
+
+    // Sync Leaflet state to global viewport signal
+    // 'move' fires continuously during drag/zoom
+    map.on("move", () => {
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      setViewport({ centerLat: center.lat, centerLon: center.lng, zoom });
+    });
+
+    // Forward clicks to WebGPU picker
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      if (props.onMapClick) {
+        props.onMapClick(e.containerPoint.x, e.containerPoint.y);
+      }
+    });
+
+    onCleanup(() => {
+      map.remove();
+    });
+  });
+
+  // Sync global mapStyle signal to Leaflet layers
+  createEffect(() => {
+    if (!map) return;
+    const style = mapStyle();
+    if (style === 1) {
+      if (map.hasLayer(standardLayer)) map.removeLayer(standardLayer);
+      if (!map.hasLayer(hdLayer)) hdLayer.addTo(map);
+    } else {
+      if (map.hasLayer(hdLayer)) map.removeLayer(hdLayer);
+      if (!map.hasLayer(standardLayer)) standardLayer.addTo(map);
+    }
+  });
+
+  return (
+    <div
+      ref={mapDiv}
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        "z-index": 0, // Behind WebGPU canvas
+        background: "#090f1a",
+      }}
+    />
+  );
+}

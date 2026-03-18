@@ -38,6 +38,14 @@ const QUAD_UVS = array<vec2<f32>, 4>(
   vec2<f32>(1.0, 1.0),
 );
 
+const PI: f32 = 3.14159265359;
+fn to_web_mercator_deg(lon_deg: f32, lat_deg: f32) -> vec2<f32> {
+    let lat_rad = lat_deg * PI / 180.0;
+    let mx = lon_deg / 360.0 + 0.5;
+    let my = 0.5 - log(tan(PI / 4.0 + lat_rad / 2.0)) / (2.0 * PI);
+    return vec2<f32>(mx, my);
+}
+
 @vertex
 fn vs_main(
   @builtin(vertex_index)   vid: u32,
@@ -46,7 +54,8 @@ fn vs_main(
   let obs = observations[iid];
 
   // Project world position
-  let clip = uniforms.view_proj * vec4<f32>(obs.lon, obs.lat, 0.0, 1.0);
+  let m = to_web_mercator_deg(obs.lon, obs.lat);
+  let clip = uniforms.view_proj * vec4<f32>(m.x, m.y, 0.0, 1.0);
   let w    = select(clip.w, 0.00001, abs(clip.w) < 0.00001);
   let ndc  = clip.xy / w;
 

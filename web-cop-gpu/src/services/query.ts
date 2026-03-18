@@ -114,6 +114,7 @@ export async function fetchTrackDetail(trackId: string): Promise<TrackDetail | n
 
     const track = response.tracks[0];
     if (track) return mapTrack(track);
+    return null;
   } catch (err) {
     console.warn("[QueryService] fetchTrackDetail failed, falling back to mock", err);
   }
