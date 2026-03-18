@@ -6,7 +6,7 @@
 //            → fetchTrackDetail (gRPC QueryService) → trackDetail signal → this panel.
 // Reference: docs/implementation/v4/phase3_ui_interaction.md §3 U3-3
 
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 import {
     clearSelectedTrack,
     selectedTrack,
@@ -15,6 +15,7 @@ import {
     trackDetailLoading,
 } from "../../signals/track";
 import { setFeedbackOpen } from "../../signals/viewport";
+import { EventTimeline } from "../timeline/EventTimeline";
 
 const labelStyle = {
   "font-size": "0.65rem",
@@ -165,7 +166,10 @@ export function TrackDetailPanel() {
             </div>
 
             <div style={{ "margin-top": "1.5rem", "padding-top": "1.25rem", "border-top": "1px solid rgba(255,255,255,0.1)" }}>
-              <h4 style={{ ...labelStyle, "margin-bottom": "1rem", color: "#64748b", "font-weight": "800" }}>Live Kinematics</h4>
+              <div style={{ display: "flex", "justify-content": "space-between", "align-items": "baseline", "margin-bottom": "1rem" }}>
+                <h4 style={{ ...labelStyle, color: "#64748b", "font-weight": "800" }}>Live Kinematics</h4>
+                <div style={{ "font-size": "0.6rem", color: "#3b82f6", background: "rgba(59, 130, 246, 0.1)", padding: "0.1rem 0.4rem", "border-radius": "4px" }}>REAL-TIME UPDATING</div>
+              </div>
               <div style={{ display: "grid", "grid-template-columns": "1fr 1fr", gap: "1rem" }}>
                 <Field
                   label="Position"
@@ -184,6 +188,65 @@ export function TrackDetailPanel() {
                   value={`${trackDetail()!.headingDeg.toFixed(0)}°`}
                 />
               </div>
+            </div>
+
+            {/* Source Pedigree Section */}
+            <div style={{ "margin-top": "1.5rem", "padding-top": "1.25rem", "border-top": "1px solid rgba(255,255,255,0.1)" }}>
+              <h4 style={{ ...labelStyle, "margin-bottom": "1rem", color: "#64748b", "font-weight": "800" }}>Source Pedigree</h4>
+              <div style={{ display: "flex", "flex-direction": "column", gap: "0.75rem" }}>
+                <For each={trackDetail()!.sourceContributions}>
+                  {(source) => (
+                    <div style={{
+                      background: "rgba(255,255,255,0.02)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                      "border-radius": "8px",
+                      padding: "0.6rem",
+                      display: "flex",
+                      "align-items": "center",
+                      gap: "0.75rem"
+                    }}>
+                      <div style={{
+                        width: "32px",
+                        height: "32px",
+                        background: "rgba(59, 130, 246, 0.1)",
+                        "border-radius": "6px",
+                        display: "flex",
+                        "align-items": "center",
+                        "justify-content": "center"
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2m-3.17-6.83l-1.42 1.42m-10.83 10.83l-1.42 1.42m0-13.67l1.42 1.42m10.83 10.83l1.42 1.42"></path></svg>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", "justify-content": "space-between", "margin-bottom": "0.15rem" }}>
+                          <span style={{ "font-size": "0.7rem", "font-weight": "700", color: "#e2e8f0" }}>{source.sourceName}</span>
+                          <span style={{ "font-size": "0.6rem", color: "#94a3b8" }}>{new Date(source.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div style={{ "font-size": "0.65rem", color: "#64748b" }}>{source.data}</div>
+                        <div style={{
+                          height: "3px",
+                          width: "100%",
+                          background: "rgba(255,255,255,0.05)",
+                          "border-radius": "2px",
+                          "margin-top": "0.4rem",
+                          overflow: "hidden"
+                        }}>
+                          <div style={{
+                            height: "100%",
+                            width: `${source.signalStrength * 100}%`,
+                            background: source.signalStrength > 0.8 ? "#10b981" : "#3b82f6",
+                            "box-shadow": "0 0 8px rgba(59, 130, 246, 0.5)"
+                          }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </For>
+              </div>
+            </div>
+
+            {/* Integrated Timeline */}
+            <div style={{ "margin-top": "1.5rem", "padding-top": "1.25rem", "border-top": "1px solid rgba(255,255,255,0.1)" }}>
+              <EventTimeline />
             </div>
 
             {/* Feedback button */}

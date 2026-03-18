@@ -20,6 +20,15 @@ export interface PickedTrack {
   sourceAlertId?: string;
 }
 
+/** Contribution from a specific sensor or data source. */
+export interface SourceContribution {
+  sourceName: string;
+  sourceType: string;
+  timestamp: string;
+  data: string;
+  signalStrength: number; // 0 to 1
+}
+
 /** Full track detail fetched via gRPC QueryService.QueryTracks. */
 export interface TrackDetail {
   trackId: string;
@@ -36,6 +45,8 @@ export interface TrackDetail {
   altitudeMeters: number;
   label?: string;
   updatedAtMs: number;
+  /** Pedigree of sources contributing to this track fusion. */
+  sourceContributions: SourceContribution[];
 }
 
 /** The track most recently clicked on the canvas (null = nothing selected). */

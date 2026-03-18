@@ -1,8 +1,10 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/dashboard/TrackDrillDownOverlay.tsx
 
-import { Component, Show, createEffect } from "solid-js";
+import { Component, createEffect, For, Show } from "solid-js";
 import { TrackDetail } from "../../signals/track";
+import { setFeedbackOpen } from "../../signals/viewport";
+import { EventTimeline } from "../timeline/EventTimeline";
 
 interface TrackDrillDownOverlayProps {
   track: TrackDetail | null;
@@ -26,7 +28,7 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
             left: "50%",
             transform: "translate(-50%, -50%)",
             width: "800px",
-            height: "500px",
+            height: "600px",
             background: "rgba(10, 20, 30, 0.7)",
             "backdrop-filter": "blur(24px)",
             border: "2px solid rgba(56, 189, 248, 0.2)",
@@ -56,10 +58,16 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
             <button onClick={props.onClose} style={{ background: "transparent", border: "none", color: "#94a3b8", cursor: "pointer", "font-size": "1.2rem" }}>×</button>
           </div>
 
-          <div style={{ flex: "1", padding: "1.5rem", display: "grid", "grid-template-columns": "1fr 240px", gap: "1.5rem" }}>
+          <div style={{ flex: "1", padding: "0", display: "grid", "grid-template-columns": "1fr 240px", gap: "0", "min-height": "0", overflow: "hidden" }}>
              {/* Left Section: Details and Pedigree */}
-             <div style={{ display: "flex", "flex-direction": "column", gap: "2rem" }}>
-
+             <div style={{
+               display: "flex",
+               "flex-direction": "column",
+               gap: "1.5rem",
+               padding: "1.5rem",
+               "overflow-y": "auto",
+               "border-right": "1px solid rgba(255,255,255,0.05)"
+             }}>
                 {/* Confidence & Classification Row */}
                 <div style={{ display: "grid", "grid-template-columns": "200px 1fr", gap: "2rem" }}>
                     <div>
@@ -77,36 +85,49 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
                     </div>
                 </div>
 
-                {/* Source Pedigree Timeline */}
-                <div style={{ flex: "1", display: "flex", "flex-direction": "column" }}>
-                    <div style={{ "font-size": "0.75rem", "font-weight": "700", color: "#f8fafc", "border-bottom": "1px solid rgba(56, 189, 248, 0.3)", "padding-bottom": "0.5rem", "margin-bottom": "1rem" }}>
-                        SOURCE PEDIGREE
+                {/* Source Pedigree & Timeline Section */}
+                <div style={{ display: "flex", "flex-direction": "column" }}>
+                    <div style={{ "font-size": "0.75rem", "font-weight": "700", color: "#f8fafc", "border-bottom": "1px solid rgba(56, 189, 248, 0.3)", "padding-bottom": "0.5rem", "margin-bottom": "1rem", display: "flex", "justify-content": "space-between" }}>
+                        <span>SOURCE PEDIGREE</span>
+                        <span style={{ color: "#38bdf8", "font-size": "0.6rem" }}>{t().sourceContributions.length} CONTRIBUTORS</span>
                     </div>
 
-                    <div style={{ position: "relative", flex: "1", "padding-top": "2rem" }}>
+                    <div style={{ position: "relative", "padding-top": "1rem", "margin-bottom": "1.5rem" }}>
                         {/* Connecting Line */}
-                        <div style={{ position: "absolute", top: "2.5rem", left: "20px", right: "20px", height: "2px", background: "linear-gradient(90deg, #38bdf8 0%, #fbbf24 100%)", opacity: "0.5" }} />
+                        <div style={{ position: "absolute", top: "2.5rem", left: "20px", right: "20px", height: "2px", background: "linear-gradient(90deg, #38bdf8 0%, #fbbf24 100%)", opacity: "0.2" }} />
 
-                        <div style={{ display: "flex", "justify-content": "space-between", position: "relative" }}>
-                             <PedigreeNode time="14:05" label="SPY-1 Radar" sub="Sig: High" active color="#38bdf8" />
-                             <PedigreeNode time="14:18" label="AIS Data" sub="Cargo Ship" active color="#38bdf8" />
-                             <PedigreeNode time="14:27" label="RF Emitter" sub="3.2GHz" active color="#f87171" />
-                             <PedigreeNode time="14:38" label="Updated: {t().trackId}" sub="Pos Match" active color="#38bdf8" />
-                             <PedigreeNode time="14:45" label="Final" sub="Conf 94%" active color="#fbbf24" pulse />
+                        <div style={{ display: "flex", gap: "1rem", position: "relative", "overflow-x": "auto", "padding-bottom": "1rem" }}>
+                             <For each={t().sourceContributions}>
+                                {(source, index) => (
+                                    <PedigreeNode
+                                        time={new Date(source.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        label={source.sourceName}
+                                        sub={source.data}
+                                        active
+                                        color={source.signalStrength > 0.8 ? "#10b981" : "#38bdf8"}
+                                        pulse={index() === t().sourceContributions.length - 1}
+                                    />
+                                )}
+                             </For>
                         </div>
                     </div>
-                </div>
 
-                {/* Action Footer */}
-                <div style={{ display: "flex", gap: "1rem" }}>
-                    <button onClick={props.onClose} style={{ flex: "1", background: "rgba(248, 113, 113, 0.1)", border: "1px solid #f87171", color: "#f87171", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer" }}>CLOSE</button>
-                    <button style={{ flex: "1", background: "rgba(56, 189, 248, 0.1)", border: "1px solid #38bdf8", color: "#38bdf8", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer" }}>ANALYZE</button>
-                    <button style={{ flex: "1", background: "rgba(56, 189, 248, 0.1)", border: "1px solid #38bdf8", color: "#38bdf8", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer" }}>SHARE</button>
+                    {/* Integrated Event Timeline */}
+                    <div style={{ border: "1px solid rgba(56, 189, 248, 0.1)", "border-radius": "8px", background: "rgba(0,0,0,0.2)", padding: "0.5rem 1rem" }}>
+                        <EventTimeline />
+                    </div>
                 </div>
              </div>
 
              {/* Right Section: HUD Gauges */}
-             <div style={{ border: "1px solid rgba(255,255,255,0.05)", background: "rgba(0,0,0,0.2)", "border-radius": "12px", padding: "1.25rem", display: "flex", "flex-direction": "column", gap: "1.5rem" }}>
+             <div style={{
+               background: "rgba(0,0,0,0.2)",
+               padding: "1.25rem",
+               display: "flex",
+               "flex-direction": "column",
+               gap: "1.5rem",
+               "overflow-y": "auto"
+             }}>
                 <div style={{ "font-size": "0.7rem", "font-weight": "800", color: "#94a3b8" }}>KINEMATICS</div>
 
                 {/* Velocity Gauge */}
@@ -143,6 +164,19 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
                     </div>
                 </div>
              </div>
+          </div>
+
+          {/* Action Footer (Fixed at the bottom) */}
+          <div style={{
+            padding: "1rem 1.5rem",
+            "border-top": "1px solid rgba(255,255,255,0.05)",
+            background: "rgba(0,0,0,0.2)",
+            display: "flex",
+            gap: "1rem"
+          }}>
+              <button onClick={props.onClose} style={{ flex: "1", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", color: "#94a3b8", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer", transition: "all 0.2s" }}>DISMISS</button>
+              <button onClick={() => setFeedbackOpen(true)} style={{ flex: "2", background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", border: "none", color: "#fff", padding: "0.75rem", "border-radius": "4px", "font-weight": "800", cursor: "pointer", "box-shadow": "0 4px 15px rgba(59, 130, 246, 0.3)", "text-transform": "uppercase", "letter-spacing": "0.05em" }}>OPERATIONAL FEEDBACK</button>
+              <button onClick={() => alert(`Sharing Track ${t().trackId} data to external liaison...`)} style={{ flex: "1", background: "rgba(56, 189, 248, 0.1)", border: "1px solid #38bdf8", color: "#38bdf8", padding: "0.75rem", "border-radius": "4px", "font-weight": "700", cursor: "pointer" }}>SHARE</button>
           </div>
 
           <style>{`
