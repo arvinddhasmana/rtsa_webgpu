@@ -31,16 +31,14 @@ describe("Commander dashboard skeletons", () => {
     ).toBeTruthy();
   });
 
-  it("renders Operator UI dashboard alert/detail/timeline panes", () => {
+  it("renders Operator UI dashboard alert/detail panes", () => {
     render(() => (
       <OperatorUiCommanderDashboard
         alertColumnContent={<div>alerts</div>}
         detailPaneContent={<div>detail</div>}
-        timelinePaneContent={<div>timeline</div>}
       />
     ));
     expect(screen.getByTestId("commander-operator-alert-column")).toBeTruthy();
     expect(screen.getByTestId("commander-operator-detail-pane")).toBeTruthy();
-    expect(screen.getByTestId("commander-operator-timeline-pane")).toBeTruthy();
   });
 });

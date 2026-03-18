@@ -395,7 +395,6 @@ export default function App() {
       <OperatorUiCommanderDashboard
         alertColumnContent={<AlertSidebar />}
         detailPaneContent={<TrackDetailPanel />}
-        timelinePaneContent={<EventTimeline />}
       />
     );
   };

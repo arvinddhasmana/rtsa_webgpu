@@ -145,6 +145,30 @@ export function TrackDetailPanel() {
 
           {/* Track data */}
           <Show when={trackDetail() !== null}>
+            {/* Feedback button moved to top */}
+            <button
+              onClick={() => setFeedbackOpen(true)}
+              style={{
+                "margin-bottom": "1.5rem",
+                width: "100%",
+                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)",
+                color: "#60a5fa",
+                border: "1px solid rgba(59, 130, 246, 0.4)",
+                "border-radius": "12px",
+                padding: "0.8rem",
+                "font-size": "0.8rem",
+                "font-weight": "800",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                "backdrop-filter": "blur(8px)",
+                "text-transform": "uppercase",
+                "letter-spacing": "0.04em",
+                "box-shadow": "0 4px 20px rgba(0,0,0,0.3)"
+              }}
+            >
+              Submit Feedback
+            </button>
+
             <div style={{ display: "grid", "grid-template-columns": "1fr 1fr", gap: "1rem" }}>
               <Field label="Track ID" value={trackDetail()!.trackId.substring(0, 8)} />
               <Field label="Type" value={trackDetail()!.entityType} />
@@ -249,29 +273,6 @@ export function TrackDetailPanel() {
               <EventTimeline />
             </div>
 
-            {/* Feedback button */}
-            <button
-              onClick={() => setFeedbackOpen(true)}
-              style={{
-                "margin-top": "2rem",
-                width: "100%",
-                background: "linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%)",
-                color: "#60a5fa",
-                border: "1px solid rgba(59, 130, 246, 0.4)",
-                "border-radius": "12px",
-                padding: "0.8rem",
-                "font-size": "0.8rem",
-                "font-weight": "800",
-                cursor: "pointer",
-                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                "backdrop-filter": "blur(8px)",
-                "text-transform": "uppercase",
-                "letter-spacing": "0.04em",
-                "box-shadow": "0 4px 20px rgba(0,0,0,0.3)"
-              }}
-            >
-              Submit Feedback
-            </button>
           </Show>
 
           {/* No detail fallback */}
