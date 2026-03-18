@@ -25,7 +25,7 @@ import {
     setTrackDetailError,
     setTrackDetailLoading,
 } from "./signals/track";
-import { dashboard, enforceRoleDashboardGuard, mapStyle, role, viewport } from "./signals/viewport";
+import { dashboard, enforceRoleDashboardGuard, mapStyle, role, setMapStyle, viewport } from "./signals/viewport";
 
 // Spatial alert signals
 import { setSpatialAlerts } from "./signals/spatial-alerts";
@@ -297,10 +297,16 @@ export default function App() {
   onMount(() => {
     createEffect(() => {
       const current = dashboard();
+      const currentRole = role();
       const rw = renderWorker();
       if (rw) {
           console.log(`[App] Syncing dashboard mode: ${current}`);
           rw.postMessage({ type: "set_dashboard", dashboard: current });
+
+          // Force HD map by default for Operations Commander
+          if (currentRole === "operations_commander") {
+            setMapStyle(1);
+          }
       }
     });
 
@@ -332,16 +338,14 @@ export default function App() {
     const rw = renderWorker();
     if (!rw) return;
 
-    if (obs.length > 0) {
-        const records = obs.map((o: any) => ({
-          id: o.id,
-          lat: o.lat,
-          lon: o.lon,
-          type: o.type,
-          confidence: o.confidence,
-        }));
-        rw.postMessage({ type: "set_observations", observations: records });
-    }
+    const records = obs.map((o: any) => ({
+      id: o.id,
+      lat: o.lat,
+      lon: o.lon,
+      type: o.type,
+      confidence: o.confidence,
+    }));
+    rw.postMessage({ type: "set_observations", observations: records });
   });
 
   onMount(async () => {

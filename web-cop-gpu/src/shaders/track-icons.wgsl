@@ -142,14 +142,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     color = mix(color, vec3<f32>(0.02, 0.05, 0.1), outline * 0.8);
     alpha = max(alpha, outline * 0.5);
 
-    // Tactical Pulsing for Alerts
+    // Tactical Pulsing for Alerts (Slower, subtler glow)
     if (in.alert_flags > 0u) {
-        let t = f32(uniforms.current_time_ms % 2000u) / 2000.0;
-        let pulse = 0.5 + 0.5 * sin(t * 12.56);
-        let glow = smoothstep(0.5, 0.3, dist) * pulse;
+        let t = f32(uniforms.current_time_ms % 8000u) / 8000.0;
+        let pulse = 0.6 + 0.4 * sin(t * 6.28318); // 0.2 to 1.0 range, 1 cycle per 8s
+        let glow = smoothstep(0.5, 0.2, dist) * pulse;
         let anomaly_color = select(vec3<f32>(1.0, 0.8, 0.0), vec3<f32>(1.0, 0.2, 0.0), in.threat_level == 5u);
-        color = mix(color, anomaly_color, glow * 0.7);
-        alpha = max(alpha, glow * 0.4);
+        color = mix(color, anomaly_color, glow * 0.5);
+        alpha = max(alpha, glow * 0.3);
     }
 
     // Selection Glow (Cyan ring)

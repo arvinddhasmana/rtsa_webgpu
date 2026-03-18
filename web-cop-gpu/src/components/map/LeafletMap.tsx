@@ -23,10 +23,12 @@ export function LeafletMap(props: LeafletMapProps) {
       zoom: viewport().zoom,
       zoomControl: false, // UI might prefer to use custom controls or leave to mouse
       attributionControl: false, // Clean look for tactical UI
+      zoomAnimation: false, // Prevents WebGPU desync during CSS fractional zoom animation
+      markerZoomAnimation: false,
     });
 
     // CartoDB Dark Matter (Standard)
-    standardLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png", {
+    standardLayer = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
       subdomains: "abcd",
       maxZoom: 20,
       crossOrigin: true, // Required for COEP and SharedArrayBuffer

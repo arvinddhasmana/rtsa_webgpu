@@ -9,7 +9,7 @@
 import { HEADER_SIZE, RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 
 /** Number of mock tracks to generate for tactical clarity. */
-export const MOCK_TRACK_COUNT = 250;
+export const MOCK_TRACK_COUNT = 30;
 
 /** Geographic bounding box for track scatter (North Atlantic / Europe region). */
 const LON_MIN = -Math.PI;   // -180°
