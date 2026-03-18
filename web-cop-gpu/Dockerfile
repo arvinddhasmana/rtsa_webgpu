@@ -87,7 +87,7 @@ server {
     add_header X-Content-Type-Options "nosniff"                 always;
     add_header X-Frame-Options        "DENY"                    always;
     add_header Referrer-Policy        "strict-origin-when-cross-origin" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; ${CONNECT_SRC}; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.cartocdn.com https://server.arcgisonline.com; ${CONNECT_SRC}; worker-src 'self' blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
 
     # ── Wasm MIME type ───────────────────────────────────────
     # A types{} block in a server{} context replaces the entire inherited
