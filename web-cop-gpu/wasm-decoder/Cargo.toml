@@ -19,3 +19,9 @@ wasm-bindgen-test = "0.3"
 opt-level = "s"
 lto = true
 strip = true
+
+# wasm-pack bundles wasm-opt for post-compilation size optimisation.
+# Rust 1.84+ enables the bulk-memory WASM feature by default; the
+# bundled wasm-opt must be told to accept it explicitly.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory"]

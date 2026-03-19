@@ -21,6 +21,7 @@ K3D_VERSION="5.6.3"
 KUBECTL_VERSION="1.29.4"
 GO_MIN_VERSION="1.22"
 NODE_MIN_VERSION="20"
+WASM_PACK_VERSION="0.13.1"
 
 # ─────────────────────────────────────────────────────────────
 # WSL detection & sudo-user HOME fix
@@ -240,16 +241,132 @@ install_pnpm() {
   log_pass "pnpm $(pnpm --version) installed"
 }
 
+install_wasm_pack_binary() {
+  local wasm_platform wasm_arch tarball url tmp_dir extracted_dir bin_dest
+
+  case "$PLATFORM" in
+    linux) wasm_platform="unknown-linux-musl" ;;
+    darwin) wasm_platform="apple-darwin" ;;
+    *)
+      log_warn "Automatic wasm-pack install not supported on ${PLATFORM}/${GOARCH}."
+      return 1
+      ;;
+  esac
+
+  case "$GOARCH" in
+    amd64) wasm_arch="x86_64" ;;
+    arm64) wasm_arch="aarch64" ;;
+    *)
+      log_warn "Automatic wasm-pack install not supported on ${PLATFORM}/${GOARCH}."
+      return 1
+      ;;
+  esac
+
+  tarball="wasm-pack-v${WASM_PACK_VERSION}-${wasm_arch}-${wasm_platform}.tar.gz"
+  url="https://github.com/rustwasm/wasm-pack/releases/download/v${WASM_PACK_VERSION}/${tarball}"
+  tmp_dir="$(mktemp -d)"
+
+  log_info "Downloading wasm-pack v${WASM_PACK_VERSION}..."
+  if ! curl -sSfL "$url" -o "${tmp_dir}/${tarball}"; then
+    log_warn "Failed to download wasm-pack from ${url}"
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  if ! tar -xzf "${tmp_dir}/${tarball}" -C "$tmp_dir"; then
+    log_warn "Failed to extract wasm-pack archive"
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  extracted_dir="${tmp_dir}/wasm-pack-v${WASM_PACK_VERSION}-${wasm_arch}-${wasm_platform}"
+  bin_dest="${extracted_dir}/wasm-pack"
+  if [ ! -x "$bin_dest" ]; then
+    log_warn "Unexpected wasm-pack layout in ${tarball}"
+    rm -rf "$tmp_dir"
+    return 1
+  fi
+
+  if [ -w /usr/local/bin ]; then
+    mv "$bin_dest" /usr/local/bin/wasm-pack
+  else
+    sudo mv "$bin_dest" /usr/local/bin/wasm-pack
+  fi
+  chmod 755 /usr/local/bin/wasm-pack
+  rm -rf "$tmp_dir"
+  log_pass "wasm-pack v${WASM_PACK_VERSION} installed"
+}
+
 # ─────────────────────────────────────────────────────────────
 # Step 3b: Rust toolchain + wasm-pack (for web-cop-gpu wasm-decoder)
 # ─────────────────────────────────────────────────────────────
+
+# Install rustup and the stable Rust toolchain non-interactively.
+# After installation, sources the cargo environment so subsequent
+# commands (rustc, cargo, rustup) resolve from ~/.cargo/bin.
+install_rustup() {
+  if has_cmd rustup; then
+    log_pass "rustup already installed"
+    return 0
+  fi
+
+  log_info "Installing rustup (official Rust toolchain manager)..."
+  if ! curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path; then
+    log_warn "rustup installation failed"
+    return 1
+  fi
+
+  # Make rustup/cargo available for the remainder of this script session.
+  # shellcheck source=/dev/null
+  if [ -f "${HOME}/.cargo/env" ]; then
+    . "${HOME}/.cargo/env"
+  fi
+
+  log_pass "rustup $(rustup --version 2>/dev/null | awk '{print $2}') installed"
+}
+
+# Add wasm32-unknown-unknown to the active Rust toolchain when missing.
+# wasm-pack requires this target even on non-Rustup setups; using rustup
+# is the supported path.
+ensure_wasm_target() {
+  if has_cmd rustup; then
+    if rustup target list --installed 2>/dev/null | grep -q "wasm32-unknown-unknown"; then
+      log_pass "wasm32-unknown-unknown target already installed"
+      return 0
+    fi
+    log_info "Adding wasm32-unknown-unknown target..."
+    if rustup target add wasm32-unknown-unknown; then
+      log_pass "wasm32-unknown-unknown target added"
+      return 0
+    fi
+    log_warn "Failed to add wasm32-unknown-unknown via rustup"
+    return 1
+  fi
+
+  # rustup not available — check if the target sysroot exists for a
+  # manually-installed Rust (e.g. installed via apt).
+  local sysroot
+  sysroot="$(rustc --print sysroot 2>/dev/null || true)"
+  if [ -n "$sysroot" ] && [ -d "${sysroot}/lib/rustlib/wasm32-unknown-unknown" ]; then
+    log_pass "wasm32-unknown-unknown target present in sysroot"
+    return 0
+  fi
+
+  log_warn "rustup is not installed — cannot add wasm32-unknown-unknown automatically."
+  log_info "  Install rustup first: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+  log_info "  Then run: rustup target add wasm32-unknown-unknown"
+  return 1
+}
+
 check_rust() {
   log_step "Checking Rust toolchain (required for wasm-decoder)"
 
   if ! has_cmd rustc; then
-    log_warn "Rust is not installed. Required for web-cop-gpu/wasm-decoder."
-    log_info "  Install: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-    return
+    log_warn "Rust is not installed. Installing via rustup..."
+    install_rustup || {
+      log_info "  Install manually: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+      return
+    }
   fi
 
   log_pass "Rust $(rustc --version | awk '{print $2}')"
@@ -257,8 +374,15 @@ check_rust() {
   if has_cmd wasm-pack; then
     log_pass "wasm-pack $(wasm-pack --version | awk '{print $2}') installed"
   else
-    log_warn "wasm-pack not found. Install with: cargo install wasm-pack"
+    log_warn "wasm-pack not found. Attempting to install prebuilt v${WASM_PACK_VERSION}..."
+    if install_wasm_pack_binary; then
+      log_pass "wasm-pack $(wasm-pack --version | awk '{print $2}') installed"
+    else
+      log_warn "Automatic wasm-pack install failed — install manually via cargo install wasm-pack or download a release from https://github.com/rustwasm/wasm-pack/releases"
+    fi
   fi
+
+  ensure_wasm_target || log_warn "wasm32-unknown-unknown target missing; install via rustup target add wasm32-unknown-unknown"
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -731,6 +855,40 @@ main() {
   echo -e "${CYAN}════════════════════════════════════════════════════${NC}"
   echo -e "${CYAN}  RTSA Developer Environment Setup                  ${NC}"
   echo -e "${CYAN}  CLASSIFICATION: UNCLASSIFIED                      ${NC}"
+  echo -e "${CYAN}════════════════════════════════════════════════════${NC}"
+
+  detect_platform
+
+  check_go
+  install_buf
+  install_proto_plugins
+  check_node
+  install_pnpm
+  check_rust
+  check_docker
+  install_gitleaks
+  install_gosec
+  install_govulncheck
+  install_golangci_lint
+  install_trivy
+  install_semgrep
+  install_mkcert
+  install_kubectl
+  install_helm
+  configure_git
+  setup_go_modules
+  setup_frontend
+  generate_proto
+  setup_env
+  generate_certs
+  pull_docker_images
+
+  print_summary
+
+  exit "$ERRORS"
+}
+
+main "$@"
   echo -e "${CYAN}════════════════════════════════════════════════════${NC}"
 
   detect_platform
