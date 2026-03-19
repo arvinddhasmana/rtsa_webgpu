@@ -31,6 +31,7 @@ export function LeafletMap(props: LeafletMapProps) {
         [90, 180],
       ], // Limit map panning to true world bounds
       maxBoundsViscosity: 1.0,
+      minZoom: 2,
     });
 
     // CartoDB Dark Matter (Standard)
@@ -39,6 +40,7 @@ export function LeafletMap(props: LeafletMapProps) {
       maxZoom: 20,
       crossOrigin: true, // Required for COEP and SharedArrayBuffer
       noWrap: true,      // Prevent multiple earths
+      bounds: [[-90, -180], [90, 180]] as L.LatLngBoundsLiteral,
     });
 
     // Esri World Imagery (HD Satellite)
@@ -46,6 +48,7 @@ export function LeafletMap(props: LeafletMapProps) {
       maxZoom: 19,
       crossOrigin: true, // Required for COEP and SharedArrayBuffer
       noWrap: true,      // Prevent multiple earths
+      bounds: [[-90, -180], [90, 180]] as L.LatLngBoundsLiteral,
     });
 
     // Add initial layer
