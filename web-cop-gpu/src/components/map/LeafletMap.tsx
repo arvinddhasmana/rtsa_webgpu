@@ -25,6 +25,12 @@ export function LeafletMap(props: LeafletMapProps) {
       attributionControl: false, // Clean look for tactical UI
       zoomAnimation: false, // Prevents WebGPU desync during CSS fractional zoom animation
       markerZoomAnimation: false,
+      worldCopyJump: false,
+      maxBounds: [
+        [-90, -180],
+        [90, 180],
+      ], // Limit map panning to true world bounds
+      maxBoundsViscosity: 1.0,
     });
 
     // CartoDB Dark Matter (Standard)
@@ -32,12 +38,14 @@ export function LeafletMap(props: LeafletMapProps) {
       subdomains: "abcd",
       maxZoom: 20,
       crossOrigin: true, // Required for COEP and SharedArrayBuffer
+      noWrap: true,      // Prevent multiple earths
     });
 
     // Esri World Imagery (HD Satellite)
     hdLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
       maxZoom: 19,
       crossOrigin: true, // Required for COEP and SharedArrayBuffer
+      noWrap: true,      // Prevent multiple earths
     });
 
     // Add initial layer
@@ -52,7 +60,11 @@ export function LeafletMap(props: LeafletMapProps) {
     map.on("move", () => {
       const center = map.getCenter();
       const zoom = map.getZoom();
-      setViewport({ centerLat: center.lat, centerLon: center.lng, zoom });
+      // Keep lng clamped between -180 and 180 since we disabled wrapping
+      let lng = center.lng;
+      if (lng > 180) lng = 180;
+      if (lng < -180) lng = -180;
+      setViewport({ centerLat: center.lat, centerLon: lng, zoom });
     });
 
     // Forward clicks to WebGPU picker
