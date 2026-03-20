@@ -84,31 +84,57 @@ fn vs_main(
 }
 
 fn threat_color(level: u32) -> vec3<f32> {
+  // Aligned with TrackAffiliation enum in src/types/track-symbol.ts
   switch (level) {
-    case 1u: { return vec3<f32>(0.2, 0.7, 1.0); } // Friendly (Blue)
-    case 5u: { return vec3<f32>(1.0, 0.3, 0.3); } // Hostile (Red)
-    default: { return vec3<f32>(0.9, 0.8, 0.2); } // Neutral/Unknown (Yellow)
+    case 0u: { return vec3<f32>(0.96, 0.62, 0.04); } // UNKNOWN  — Yellow  (#f59e0b)
+    case 1u: { return vec3<f32>(0.02, 0.71, 0.83); } // PENDING  — Cyan    (#06b6d4)
+    case 2u: { return vec3<f32>(0.23, 0.51, 0.96); } // FRIENDLY — Blue    (#3b82f6)
+    case 3u: { return vec3<f32>(0.13, 0.77, 0.37); } // NEUTRAL  — Green   (#22c55e)
+    case 4u: { return vec3<f32>(0.98, 0.45, 0.09); } // SUSPECT  — Orange  (#f97316)
+    case 5u: { return vec3<f32>(0.94, 0.27, 0.27); } // HOSTILE  — Red     (#ef4444)
+    default: { return vec3<f32>(0.96, 0.62, 0.04); } // fallback UNKNOWN
   }
 }
 
 // Sharp, anti-aliased silhouettes using smoothstep and fwidth
+// Domain mapping aligned with TrackDomain enum in src/types/track-symbol.ts:
+//   0=AIR  1=SURFACE  2=SUBSURFACE  3=LAND  4=SPACE  5=CYBER
 fn get_silhouette(uv: vec2<f32>, type_idx: u32, rotated_uv: vec2<f32>) -> f32 {
     let p = rotated_uv * 2.0 - 1.0;
     let p_fixed = uv * 2.0 - 1.0;
     let fw = fwidth(length(p)) * 1.5; // Edge softness based on screen-space derivative
 
-    switch(type_idx % 3u) {
-        case 0u: { // AIR: Pointed / Swept-back (Triangle-ish)
+    switch(type_idx % 6u) {
+        case 0u: { // AIR: Pointed / Swept-back triangle (nose up)
             let d = max(abs(p.x) * 1.5 + p.y * 0.5, -p.y - 0.2);
             return 1.0 - smoothstep(0.7 - fw, 0.7 + fw, d);
         }
-        case 1u: { // SURFACE: Diamond hull
+        case 1u: { // SURFACE: Diamond hull (naval vessel)
             let d = abs(p.x) + abs(p.y);
             return 1.0 - smoothstep(0.8 - fw, 0.8 + fw, d);
         }
-        case 2u: { // SUBSURFACE: Ellipse
+        case 2u: { // SUBSURFACE: Wide horizontal ellipse (submarine)
             let d = (p_fixed.x * p_fixed.x * 2.5) + (p_fixed.y * p_fixed.y * 1.0);
             return 1.0 - smoothstep(0.8 - fw, 0.8 + fw, d);
+        }
+        case 3u: { // LAND: Square / rectangle (ground vehicle)
+            let d = max(abs(p.x), abs(p.y));
+            return 1.0 - smoothstep(0.75 - fw, 0.75 + fw, d);
+        }
+        case 4u: { // SPACE: Circle with pointed top fin (satellite)
+            let body = length(vec2<f32>(p_fixed.x, p_fixed.y + 0.05));
+            let fin  = max(abs(p.x) * 4.0 + (p.y + 0.6) * 2.0, -(p.y + 0.55));
+            let body_s = 1.0 - smoothstep(0.72 - fw, 0.72 + fw, body);
+            let fin_s  = 1.0 - smoothstep(0.55 - fw, 0.55 + fw, fin);
+            return max(body_s, fin_s);
+        }
+        case 5u: { // CYBER: Hexagon (logical / non-physical domain)
+            // Regular hexagon approximation via max of rotated coordinates
+            let hex1 = abs(p.x);
+            let hex2 = abs(p.x * 0.5 + p.y * 0.866);
+            let hex3 = abs(p.x * 0.5 - p.y * 0.866);
+            let d = max(hex1, max(hex2, hex3));
+            return 1.0 - smoothstep(0.78 - fw, 0.78 + fw, d);
         }
         default: { return 0.0; }
     }

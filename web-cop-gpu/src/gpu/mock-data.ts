@@ -4,18 +4,31 @@
 // Generates up to 50,000 mock track records in a SharedArrayBuffer.
 // Used by the Render Worker until Phase 2 delivers real WebTransport data.
 //
+// Geographic focus: West Asia (Iran / Persian Gulf region) — lon 44°E–63°E,
+// lat 24°N–37°N — for realistic threat-scenario demonstration.
+//
+// Domain (iconIndex) and affiliation (threatLevel) values are aligned with the
+// TrackDomain and TrackAffiliation enumerations in src/types/track-symbol.ts:
+//
+//   iconIndex:  0=AIR  1=SURFACE  2=SUBSURFACE  3=LAND  4=SPACE  5=CYBER
+//   threatLevel: 0=UNKNOWN  1=PENDING  2=FRIENDLY  3=NEUTRAL  4=SUSPECT  5=HOSTILE
+//
 // Reference: docs/implementation/v4/phase1_core_rendering.md §5 (Mock Data Strategy)
 
 import { HEADER_SIZE, RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 
 /** Number of mock tracks to generate for tactical clarity. */
-export const MOCK_TRACK_COUNT = 30;
+export const MOCK_TRACK_COUNT = 40;
 
-/** Geographic bounding box for track scatter (North Atlantic / Europe region). */
-const LON_MIN = -Math.PI;   // -180°
-const LON_MAX =  Math.PI;   // +180°
-const LAT_MIN = -Math.PI/3; // -60°
-const LAT_MAX =  Math.PI/3; // +60°
+/**
+ * Geographic bounding box — West Asia (Iran / Persian Gulf region).
+ * lon: 44°E – 63°E  |  lat: 24°N – 37°N
+ * Values stored as radians to match the WebMercator projection used by the renderer.
+ */
+const LON_MIN =  44 * Math.PI / 180; //  44°E
+const LON_MAX =  63 * Math.PI / 180; //  63°E
+const LAT_MIN =  24 * Math.PI / 180; //  24°N
+const LAT_MAX =  37 * Math.PI / 180; //  37°N
 
 const TWO_PI = Math.PI * 2;
 
@@ -43,9 +56,46 @@ let mockTracks: MockTrackState[] = [];
 /**
  * Initialise the mock track state array.
  * Call once at Render Worker startup.
+ *
+ * Domain distribution reflects a West Asia threat scenario:
+ *   ~35% Air (fighters, drones)    iconIndex 0
+ *   ~25% Surface (naval vessels)   iconIndex 1
+ *   ~10% Subsurface (submarines)   iconIndex 2
+ *   ~20% Land (ground vehicles)    iconIndex 3
+ *   ~ 5% Space (satellites)        iconIndex 4
+ *   ~ 5% Cyber (logical entities)  iconIndex 5
+ *
+ * Affiliation distribution (threat scenario bias):
+ *   ~20% Friendly  (own-force tracks)   threatLevel 2
+ *   ~15% Neutral                        threatLevel 3
+ *   ~10% Unknown                        threatLevel 0
+ *   ~ 5% Pending                        threatLevel 1
+ *   ~20% Suspect                        threatLevel 4
+ *   ~30% Hostile                        threatLevel 5
  */
 export function initMockTracks(count: number = MOCK_TRACK_COUNT): void {
   mockTracks = [];
+
+  // Weighted domain pool — 20 entries giving the distribution above
+  const DOMAIN_POOL: number[] = [
+    0, 0, 0, 0, 0, 0, 0,  // 35% Air
+    1, 1, 1, 1, 1,         // 25% Surface
+    2, 2,                  // 10% Subsurface
+    3, 3, 3, 3,            // 20% Land
+    4,                     // 5%  Space
+    5,                     // 5%  Cyber
+  ];
+
+  // Weighted affiliation pool — 20 entries giving the distribution above
+  const AFFIL_POOL: number[] = [
+    2, 2, 2, 2,            // 20% Friendly
+    3, 3, 3,               // 15% Neutral
+    0, 0,                  // 10% Unknown
+    1,                     //  5% Pending
+    4, 4, 4, 4,            // 20% Suspect
+    5, 5, 5, 5, 5, 5,      // 30% Hostile
+  ];
+
   for (let i = 0; i < count; i++) {
     const lon = LON_MIN + Math.random() * (LON_MAX - LON_MIN);
     const lat = LAT_MIN + Math.random() * (LAT_MAX - LAT_MIN);
@@ -54,16 +104,22 @@ export function initMockTracks(count: number = MOCK_TRACK_COUNT): void {
     for (let ti = 0; ti < 6; ti++) {
       trail.push({ lon, lat });
     }
+
+    const iconIndex   = DOMAIN_POOL[Math.floor(Math.random() * DOMAIN_POOL.length)]!;
+    const threatLevel = AFFIL_POOL[Math.floor(Math.random() * AFFIL_POOL.length)]!;
+
     mockTracks.push({
       trackIdHash: i + 1, // 0 reserved for "no track" in pick buffer
       lon,
       lat,
-      course:      Math.random() * TWO_PI,
-      speed:       100 + Math.random() * 500, // 100–600 m/s
-      altitude:    1000 + Math.random() * 10_000,
-      threatLevel: Math.floor(Math.random() * 6),      // 0–5
-      alertFlags:  Math.random() < 0.02 ? 1 : 0,       // ~2% have alerts
-      iconIndex:   Math.floor(Math.random() * 3),      // 0: Air, 1: Surface, 2: Sub
+      course:     Math.random() * TWO_PI,
+      speed:      50 + Math.random() * 550,  // 50–600 m/s (land to supersonic air)
+      altitude:   iconIndex === 0 || iconIndex === 4
+                    ? 1000 + Math.random() * 12_000 // Air / Space — higher altitude
+                    : 0,                             // Surface / Land / Subsurface / Cyber
+      threatLevel,
+      alertFlags: threatLevel >= 4 && Math.random() < 0.3 ? 1 : 0, // Suspect/Hostile ~30% alert
+      iconIndex,
       trail,
     });
   }
