@@ -1,7 +1,7 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/dashboard/FusionCommanderDashboard.tsx
 
-import { createSignal, JSX } from "solid-js";
+import { createSignal, JSX, onMount } from "solid-js";
 import { clearSelectedTrack, trackDetail } from "../../signals/track";
 import { mapStyle, setMapStyle } from "../../signals/viewport";
 import { FusionConflictPanel } from "./FusionConflictPanel";
@@ -141,10 +141,17 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
 }
 
 function MissionAnalyticsToast() {
-  const [pos, setPos] = createSignal({ x: window.innerWidth - 420, y: 80 });
+  // Initialise with 0; corrected to the actual viewport width after mount so
+  // that JSDOM / SSR contexts (where window.innerWidth === 0) do not produce
+  // an off-screen panel.
+  const [pos, setPos] = createSignal({ x: 0, y: 80 });
   const [minimized, setMinimized] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
   let dragOffset = { x: 0, y: 0 };
+
+  onMount(() => {
+    setPos({ x: Math.max(0, window.innerWidth - 420), y: 80 });
+  });
 
   const onMouseDown = (e: MouseEvent) => {
     setIsDragging(true);
