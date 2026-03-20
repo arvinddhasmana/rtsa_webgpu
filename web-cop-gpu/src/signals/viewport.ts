@@ -89,9 +89,9 @@ export interface Viewport {
 }
 
 const [viewportSignal, setViewportSignal] = createSignal<Viewport>({
-  centerLat: 0,
-  centerLon: 0,
-  zoom: 2,
+  centerLat: 27.0, // Persian Gulf — centered on Iran / UAE / Gulf of Oman
+  centerLon: 54.0,
+  zoom: 6,
 });
 
 export const viewport = viewportSignal;

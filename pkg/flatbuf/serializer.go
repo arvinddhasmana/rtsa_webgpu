@@ -29,6 +29,12 @@ fnvPrime  uint32 = 16777619
 
 // degreesToRadians converts geographic degrees to radians.
 degreesToRadians = math.Pi / 180.0
+
+// iconContextMilitary is the context value for military entities in the
+// icon_index encoding (context * 36 + entity_type * 6 + threat_level).
+// Defaults to 0 (MILITARY) until FusedTrack proto gains a context field.
+// See: plan-mil2525SymbologyWestAsiaDemo.md §Phase 5.2
+iconContextMilitary uint32 = 0
 )
 
 // Record is a fixed 128-byte GPU-aligned binary record.
@@ -200,14 +206,24 @@ return 0 // Unknown
 }
 }
 
-// buildIconIndex maps entity type and hostile classification to a GPU atlas index.
-// Icon grid: entity_type (0–4) × 6 + threat_level (0–5) = 0–29.
+// buildIconIndex packs context, entity type, and threat level into a single u32.
+//
+// Encoding: context * 36 + entity_type * 6 + threat_level
+//
+//   context (0–1):     0=MILITARY (solid fill), 1=CIVILIAN (outline only)
+//   entity_type (0–5): proto EntityType — 0=Unspecified, 1=Surface, 2=Air,
+//                      3=Subsurface, 4=Land, 5=Cyber
+//   threat_level (0–5): affiliation — 0=Unknown, 1=Pending, 2=Friendly,
+//                       3=Neutral, 4=Suspect, 5=Hostile
+//
+// Context defaults to MILITARY (0) until the FusedTrack proto gains a
+// dedicated context field (deferred — see plan §Phase 5.2).
 func buildIconIndex(et commonv1.EntityType, hc commonv1.HostileClassification) uint32 {
-entityBase := uint32(et) // 0=Unspecified, 1=Surface, 2=Air, 3=Subsurface, 4=Land, 5=Cyber
-if entityBase > 5 {
-entityBase = 0
-}
-return entityBase*6 + hostileClassToThreatLevel(hc)
+	entityBase := uint32(et) // 0=Unspecified, 1=Surface, 2=Air, 3=Subsurface, 4=Land, 5=Cyber
+	if entityBase > 5 {
+		entityBase = 0
+	}
+	return iconContextMilitary*36 + entityBase*6 + hostileClassToThreatLevel(hc)
 }
 
 // updateTrailHistory pushes the current position into the trail ring buffer

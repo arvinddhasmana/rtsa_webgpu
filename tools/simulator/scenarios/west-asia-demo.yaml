@@ -1,0 +1,154 @@
+# CLASSIFICATION: UNCLASSIFIED
+# tools/simulator/scenarios/west-asia-demo.yaml
+#
+# West Asia / Persian Gulf demo scenario for the RTSA MIL-STD-2525 symbology demo.
+# Generates ~150 fused tracks across 5 domains at 7 named strategic sensor locations.
+#
+# Sensors at named strategic locations (Persian Gulf region):
+#   RADAR-HORMUZ-001    @ Strait of Hormuz   (26.6°N, 56.3°E)  150nm
+#   RADAR-BAHRAIN-002   @ Bahrain            (26.2°N, 50.6°E)  120nm
+#   AIS-DUBAI-001       @ Dubai/UAE Coast    (25.1°N, 55.1°E)  AIS receiver
+#   EW-MUSCAT-001       @ Muscat, Oman       (23.6°N, 58.5°E)  SIGINT
+#   ELINT-CHABAHAR-001  @ Chabahar, Iran     (25.3°N, 60.6°E)  ELINT
+#   ISR-BANDARABBAS-001 @ Bandar Abbas, Iran (27.2°N, 56.3°E)  ISR platform
+#   RADAR-QESHM-003     @ Qeshm Island       (26.9°N, 55.9°E)  coastal radar
+#
+# Reference: docs/implementation/v5/operations_commander/plan-mil2525SymbologyWestAsiaDemo.md §Phase 6
+
+name: "West Asia / Persian Gulf Demo"
+description: >
+  MIL-STD-2525 symbology demonstration scenario.  ~150 fused tracks across
+  Air, Surface, Subsurface, Land, and Cyber domains.  Scenario centred on the
+  Strait of Hormuz, covering the Persian Gulf, Gulf of Oman, and southern Iran.
+  Affiliation distribution: ~45% Friendly, ~20% Neutral, ~12% Unknown,
+  ~8% Suspect, ~10% Hostile, ~5% Pending.
+seed: 20240815
+duration_minutes: 0
+
+entities:
+  surface:
+    count: 55
+    hostile_ratio: 0.09
+    friendly_ratio: 0.40
+    neutral_ratio: 0.27
+    unknown_ratio: 0.15
+    suspect_ratio: 0.09
+    speed_range: [3, 25]        # knots — tankers to warships
+    patterns:
+      straight_line: 0.55
+      patrol: 0.20
+      loitering: 0.15
+      random: 0.10
+
+  air:
+    count: 40
+    hostile_ratio: 0.15
+    friendly_ratio: 0.38
+    neutral_ratio: 0.25
+    unknown_ratio: 0.12
+    suspect_ratio: 0.10
+    speed_range: [150, 580]     # knots — commercial to supersonic military
+    altitude_range: [500, 13000]
+    patterns:
+      straight_line: 0.60
+      patrol: 0.25
+      random: 0.15
+
+  subsurface:
+    count: 15
+    hostile_ratio: 0.27
+    friendly_ratio: 0.33
+    neutral_ratio: 0.07
+    unknown_ratio: 0.20
+    suspect_ratio: 0.13
+    speed_range: [3, 18]        # knots
+    depth_range: [50, 400]
+    patterns:
+      straight_line: 0.55
+      patrol: 0.45
+
+  land:
+    count: 30
+    hostile_ratio: 0.27
+    friendly_ratio: 0.47
+    neutral_ratio: 0.00
+    unknown_ratio: 0.13
+    pending_ratio: 0.13
+    speed_range: [0, 60]        # km/h — static SAM sites to armoured vehicles
+    patterns:
+      straight_line: 0.30
+      patrol: 0.40
+      loitering: 0.20
+      random: 0.10
+
+  cyber:
+    count: 10
+    hostile_ratio: 0.20
+    friendly_ratio: 0.20
+    neutral_ratio: 0.10
+    unknown_ratio: 0.30
+    suspect_ratio: 0.20
+    speed_range: [0, 0]         # logical / non-physical — stationary
+    patterns:
+      loitering: 1.00
+
+sensors:
+  radar:
+    count: 3
+    sensor_ids:
+      - "RADAR-HORMUZ-001"
+      - "RADAR-BAHRAIN-002"
+      - "RADAR-QESHM-003"
+    update_interval_ms: 2000
+    coverage_nm: 150
+
+  ais:
+    count: 1
+    sensor_ids:
+      - "AIS-DUBAI-001"
+    update_interval_ms: 5000
+
+  ew:
+    count: 1
+    sensor_ids:
+      - "EW-MUSCAT-001"
+    update_interval_ms: 3000
+
+  elint:
+    count: 1
+    sensor_ids:
+      - "ELINT-CHABAHAR-001"
+    update_interval_ms: 4000
+
+  isr:
+    count: 1
+    sensor_ids:
+      - "ISR-BANDARABBAS-001"
+    update_interval_ms: 10000
+
+  cyber:
+    count: 1
+    sensor_ids:
+      - "CYBER-TEHRAN-001"
+    update_interval_ms: 10000
+    ioc_rate: 3
+
+anomalies:
+  injection_rate: 0.08
+  types:
+    speed: 0.25
+    route_deviation: 0.25
+    ais_manipulation: 0.25
+    behavioral: 0.15
+    proximity: 0.10
+
+operational_area:
+  center: { lat: 27.0, lon: 54.0 }   # Persian Gulf centroid
+  radius_nm: 400
+  exclusion_zones:
+    - name: "Dubai International Airspace"
+      center: { lat: 25.25, lon: 55.36 }
+      radius_nm: 15
+    - name: "Bahrain Naval Base"
+      center: { lat: 26.22, lon: 50.58 }
+      radius_nm: 5
