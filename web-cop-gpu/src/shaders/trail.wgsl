@@ -40,10 +40,15 @@ struct VertexOutput {
 @group(1) @binding(1) var<storage, read> visible_indices: array<u32>;
 
 const PI: f32 = 3.14159265359;
+// Trail records store lon/lat in degrees – convert before Web Mercator projection.
+const DEG_TO_RAD: f32 = PI / 180.0;
 fn to_web_mercator(lon_rad: f32, lat_rad: f32) -> vec2<f32> {
     let mx = lon_rad / (2.0 * PI) + 0.5;
     let my = 0.5 - log(tan(PI / 4.0 + lat_rad / 2.0)) / (2.0 * PI);
     return vec2<f32>(mx, my);
+}
+fn deg_to_mercator(lon_deg: f32, lat_deg: f32) -> vec2<f32> {
+    return to_web_mercator(lon_deg * DEG_TO_RAD, lat_deg * DEG_TO_RAD);
 }
 
 const TRAIL_WIDTH_BASE: f32 = 1.5;
@@ -83,8 +88,8 @@ fn vs_main(
   let p_a = vec2<f32>(trail_seg.x, trail_seg.y);
   let p_b = vec2<f32>(trail_seg.z, trail_seg.w);
 
-  let m_a = to_web_mercator(p_a.x, p_a.y);
-  let m_b = to_web_mercator(p_b.x, p_b.y);
+  let m_a = deg_to_mercator(p_a.x, p_a.y);
+  let m_b = deg_to_mercator(p_b.x, p_b.y);
 
   let clip_a = uniforms.view_proj * vec4<f32>(m_a.x, m_a.y, 0.0, 1.0);
   let clip_b = uniforms.view_proj * vec4<f32>(m_b.x, m_b.y, 0.0, 1.0);

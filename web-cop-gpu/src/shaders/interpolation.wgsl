@@ -50,7 +50,10 @@ const EARTH_RADIUS_M: f32 = 6371000.0;
 const MAX_DR_S: f32 = 300.0;
 
 const PI: f32 = 3.14159265359;
+// Track records store lon/lat in degrees; shaders need radians.
+const DEG_TO_RAD: f32 = PI / 180.0;
 
+// Expects lon_rad and lat_rad in RADIANS and returns normalised Web Mercator [0,1].
 fn to_web_mercator(lon_rad: f32, lat_rad: f32) -> vec2<f32> {
     let mx = lon_rad / (2.0 * PI) + 0.5;
     let my = 0.5 - log(tan(PI / 4.0 + lat_rad / 2.0)) / (2.0 * PI);
@@ -69,16 +72,21 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let clamped_dt_ms = clamp(f32(raw_dt_ms), 0.0, MAX_DR_S * 1000.0);
   let dt_s = clamped_dt_ms / 1000.0;
 
-  // Dead-reckoning: angular displacement on a sphere
+  // SAB stores lon/lat in degrees; convert to radians for all trigonometry.
+  let lon_rad = track.lon * DEG_TO_RAD;
+  let lat_rad = track.lat * DEG_TO_RAD;
+
+  // Dead-reckoning: angular displacement on a sphere (result in radians)
   // dx (east component) = speed * sin(course) * dt / R / cos(lat)
   // dy (north component) = speed * cos(course) * dt / R
-  let cos_lat = cos(track.lat);
+  let cos_lat = cos(lat_rad);
   let safe_cos_lat = select(cos_lat, 0.0001, abs(cos_lat) < 0.0001); // avoid div/0 at poles
   let dx = track.speed * sin(track.course) * dt_s / (EARTH_RADIUS_M * safe_cos_lat);
   let dy = track.speed * cos(track.course) * dt_s / EARTH_RADIUS_M;
 
-  let final_lon = track.lon + dx;
-  let final_lat = track.lat + dy;
+  // Add dead-reckoning displacement (in radians) to radian coordinates
+  let final_lon = lon_rad + dx;
+  let final_lat = lat_rad + dy;
   let m = to_web_mercator(final_lon, final_lat);
 
   // Store extrapolated position; w component carries track_id_hash for identification

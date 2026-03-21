@@ -20,6 +20,18 @@ export interface RenderStatsMessage {
 export interface HoveredMessage {
   type: "hovered";
   trackIdHash: number;
+  /** threat_level (0–5) matching TrackAffiliation enum */
+  threatLevel: number;
+  /** entity_type decoded from icon_index: 0=Unspec, 1=Surface, 2=Air, 3=Sub, 4=Land, 5=Cyber */
+  entityType: number;
+  /** 0=MILITARY, 1=CIVILIAN */
+  context: number;
+  /** Speed in m/s */
+  speed: number;
+  /** Altitude in metres */
+  altitude: number;
+  /** Alert bitmask */
+  alertFlags: number;
 }
 
 /** Emitted when the pick buffer resolves after a canvas click. */
@@ -84,13 +96,13 @@ export interface SetDashboardMessage {
 export interface SetCoverageMessage {
   type: "set_coverage";
   records: {
-    centerLon:    number;
-    centerLat:    number;
-    rangeNm:      number;
+    centerLon: number;
+    centerLat: number;
+    rangeNm: number;
     bearingStart: number;
-    bearingEnd:   number;
-    recordType:   number; // 0 = Sector, 1 = Gap Polygon
-    alertLevel:   number; // 0 = Normal, 1 = Warning, 2 = Critical
+    bearingEnd: number;
+    recordType: number; // 0 = Sector, 1 = Gap Polygon
+    alertLevel: number; // 0 = Normal, 1 = Warning, 2 = Critical
   }[];
 }
 
@@ -108,10 +120,10 @@ export interface SetObservationsMessage {
 }
 
 export interface SetViewportMessage {
-  type:      "set_viewport";
+  type: "set_viewport";
   centerLat: number;
   centerLon: number;
-  zoom:      number;
+  zoom: number;
 }
 
 export interface SetTrackSelectionMessage {

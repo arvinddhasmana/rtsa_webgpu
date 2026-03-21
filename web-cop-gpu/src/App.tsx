@@ -11,21 +11,28 @@ import { updateAlerts } from "./signals/alerts";
 import { operatorIdFromToken, setOperatorId } from "./signals/auth";
 import { setConnecting, setWtConnected } from "./signals/connection";
 import {
-    setDatagramsPerSec,
-    setDecodeErrors,
-    setFps,
-    setLatencyMs,
-    setRecordsPerSec,
-    setTrackCount,
-    setVisibleCount,
+  setDatagramsPerSec,
+  setDecodeErrors,
+  setFps,
+  setLatencyMs,
+  setRecordsPerSec,
+  setTrackCount,
+  setVisibleCount,
 } from "./signals/stats";
 import {
-    setSelectedTrack,
-    setTrackDetail,
-    setTrackDetailError,
-    setTrackDetailLoading,
+  setSelectedTrack,
+  setTrackDetail,
+  setTrackDetailError,
+  setTrackDetailLoading,
 } from "./signals/track";
-import { dashboard, enforceRoleDashboardGuard, mapStyle, role, setMapStyle, viewport } from "./signals/viewport";
+import {
+  dashboard,
+  enforceRoleDashboardGuard,
+  mapStyle,
+  role,
+  setMapStyle,
+  viewport,
+} from "./signals/viewport";
 
 // Spatial alert signals
 import { setSpatialAlerts } from "./signals/spatial-alerts";
@@ -34,9 +41,7 @@ import { setSpatialAlerts } from "./signals/spatial-alerts";
 import { startAlertStream } from "./services/alerts";
 import { fetchAuthToken } from "./services/auth";
 import { fetchTrackDetail } from "./services/query";
-import {
-    startObservationStream
-} from "./services/sensor-observations";
+import { startObservationStream } from "./services/sensor-observations";
 import { allObservations } from "./signals/sensor-observations";
 
 // Components
@@ -59,11 +64,12 @@ import { RoleSelector } from "./components/toolbar/RoleSelector";
 
 // Worker message types
 import type {
-    DataInitMessage,
-    DataToMainMessage,
-    RenderInitMessage,
-    RenderToMainMessage,
-    TokenRefreshMessage,
+  DataInitMessage,
+  DataToMainMessage,
+  HoveredMessage,
+  RenderInitMessage,
+  RenderToMainMessage,
+  TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -74,7 +80,7 @@ export default function App() {
   const [caps, setCaps] = createSignal<Capabilities | null>(null);
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement | null>(null);
 
-  const [hoveredTrackIdHash, setHoveredTrackIdHash] = createSignal<number>(0);
+  const [hoveredTrack, setHoveredTrack] = createSignal<HoveredMessage | null>(null);
 
   const [renderWorker, setRenderWorker] = createSignal<Worker | null>(null);
   const [dataWorker, setDataWorker] = createSignal<Worker | null>(null);
@@ -101,17 +107,17 @@ export default function App() {
           if (rw) {
             const vp = viewport();
             rw.postMessage({
-              type:      "set_viewport",
+              type: "set_viewport",
               centerLat: vp.centerLat,
               centerLon: vp.centerLon,
-              zoom:      vp.zoom,
+              zoom: vp.zoom,
             });
           }
         }
         break;
 
       case "hovered": {
-        setHoveredTrackIdHash(msg.trackIdHash);
+        setHoveredTrack(msg);
         break;
       }
 
@@ -139,7 +145,9 @@ export default function App() {
             setTrackDetailLoading(false);
           })
           .catch((err: unknown) => {
-            setTrackDetailError(err instanceof Error ? err.message : "Fetch failed");
+            setTrackDetailError(
+              err instanceof Error ? err.message : "Fetch failed",
+            );
             setTrackDetailLoading(false);
           });
         break;
@@ -154,7 +162,9 @@ export default function App() {
   }
 
   // ── UTC Clock ───────────────────────────────────────────────────────────
-  const [headerTime, setHeaderTime] = createSignal(new Date().toISOString().slice(11, 19));
+  const [headerTime, setHeaderTime] = createSignal(
+    new Date().toISOString().slice(11, 19),
+  );
   onMount(() => {
     const timer = setInterval(() => {
       setHeaderTime(new Date().toISOString().slice(11, 19));
@@ -187,8 +197,15 @@ export default function App() {
             .map((a) => ({
               alertId: a.alertId,
               affectedSensorId: a.trackId || "UNKNOWN",
-              sectorId: a.alertId.startsWith("gap-") ? (a.alertId.split("-")[1] ?? a.alertId) : a.alertId,
-              severity: (a.severity === "CRITICAL" || a.severity === "ELEVATED" || a.severity === "WATCH") ? a.severity : "WATCH",
+              sectorId: a.alertId.startsWith("gap-")
+                ? (a.alertId.split("-")[1] ?? a.alertId)
+                : a.alertId,
+              severity:
+                a.severity === "CRITICAL" ||
+                a.severity === "ELEVATED" ||
+                a.severity === "WATCH"
+                  ? a.severity
+                  : "WATCH",
               description: a.description,
               lastContactUtc: new Date(a.detectedAtMs).toISOString(),
               acknowledged: a.acknowledged,
@@ -201,7 +218,10 @@ export default function App() {
         fetchAuthToken().then((newToken) => {
           const dw = dataWorker();
           if (newToken && dw) {
-            dw.postMessage({ type: "token-refresh", token: newToken } as TokenRefreshMessage);
+            dw.postMessage({
+              type: "token-refresh",
+              token: newToken,
+            } as TokenRefreshMessage);
           }
         });
         break;
@@ -221,8 +241,11 @@ export default function App() {
     rw.postMessage({ type: "select_track", x: px, y: py });
   }
 
-  const [hoverPosition, setHoverPosition] = createSignal<{x: number, y: number} | null>(null);
-  
+  const [hoverPosition, setHoverPosition] = createSignal<{
+    x: number;
+    y: number;
+  } | null>(null);
+
   function handleMapHover(x: number, y: number) {
     const el = canvas();
     const rw = renderWorker();
@@ -254,13 +277,24 @@ export default function App() {
   // ── Initialise Workers ─────────────────────────────────────────────────────
 
   async function init(detected: Capabilities) {
-    if (!detected.webgpu || !detected.sharedArrayBuffer || !detected.offscreenCanvas) return;
+    if (
+      !detected.webgpu ||
+      !detected.sharedArrayBuffer ||
+      !detected.offscreenCanvas
+    )
+      return;
 
     const ringBuffer = allocateSAB();
     const sab = ringBuffer.sab;
 
-    const rwMain = new Worker(new URL("./workers/render-worker.ts", import.meta.url), { type: "module" });
-    const dwMain = new Worker(new URL("./workers/data-worker.ts", import.meta.url), { type: "module" });
+    const rwMain = new Worker(
+      new URL("./workers/render-worker.ts", import.meta.url),
+      { type: "module" },
+    );
+    const dwMain = new Worker(
+      new URL("./workers/data-worker.ts", import.meta.url),
+      { type: "module" },
+    );
 
     rwMain.addEventListener("message", handleRenderMessage);
     dwMain.addEventListener("message", handleDataMessage);
@@ -279,27 +313,34 @@ export default function App() {
         const tryInit = () => {
           if (el !== canvas()) return; // Canvas changed again
           const dpr = devicePixelRatio;
-          let w = el.offsetWidth || Math.round(el.getBoundingClientRect().width);
-          let h = el.offsetHeight || Math.round(el.getBoundingClientRect().height);
+          let w =
+            el.offsetWidth || Math.round(el.getBoundingClientRect().width);
+          let h =
+            el.offsetHeight || Math.round(el.getBoundingClientRect().height);
 
           if (w === 0 || h === 0) {
             requestAnimationFrame(tryInit);
             return;
           }
 
-          const initialWidth  = Math.round(w * dpr);
+          const initialWidth = Math.round(w * dpr);
           const initialHeight = Math.round(h * dpr);
 
-          console.log(`[App] Canvas mounted. size: ${initialWidth}x${initialHeight}`);
+          console.log(
+            `[App] Canvas mounted. size: ${initialWidth}x${initialHeight}`,
+          );
           const offscreen = el.transferControlToOffscreen();
-          worker.postMessage({
-            type: "init",
-            canvas: offscreen,
-            sab,
-            initialWidth,
-            initialHeight,
-            dataWorkerActive: !!wtUrl,
-          } as RenderInitMessage, [offscreen]);
+          worker.postMessage(
+            {
+              type: "init",
+              canvas: offscreen,
+              sab,
+              initialWidth,
+              initialHeight,
+              dataWorkerActive: !!wtUrl,
+            } as RenderInitMessage,
+            [offscreen],
+          );
           setupResizeObserver(el);
         };
         requestAnimationFrame(tryInit);
@@ -310,7 +351,12 @@ export default function App() {
     setOperatorId(operatorIdFromToken(token));
     const dwActive = dataWorker();
     if (dwActive) {
-        dwActive.postMessage({ type: "init", sab, url: wtUrl, token } as DataInitMessage);
+      dwActive.postMessage({
+        type: "init",
+        sab,
+        url: wtUrl,
+        token,
+      } as DataInitMessage);
     }
 
     function rafLoop() {
@@ -338,13 +384,13 @@ export default function App() {
       const currentRole = role();
       const rw = renderWorker();
       if (rw) {
-          console.log(`[App] Syncing dashboard mode: ${current}`);
-          rw.postMessage({ type: "set_dashboard", dashboard: current });
+        console.log(`[App] Syncing dashboard mode: ${current}`);
+        rw.postMessage({ type: "set_dashboard", dashboard: current });
 
-          // Force HD map by default for Operations Commander
-          if (currentRole === "operations_commander") {
-            setMapStyle(1);
-          }
+        // Force HD map by default for Operations Commander
+        if (currentRole === "operations_commander") {
+          setMapStyle(1);
+        }
       }
     });
 
@@ -352,7 +398,7 @@ export default function App() {
       const style = mapStyle();
       const rw = renderWorker();
       if (rw) {
-          rw.postMessage({ type: "set_map_style", mapStyle: style });
+        rw.postMessage({ type: "set_map_style", mapStyle: style });
       }
     });
 
@@ -360,12 +406,12 @@ export default function App() {
       const vp = viewport();
       const rw = renderWorker();
       if (rw) {
-          rw.postMessage({
-            type: "set_viewport",
-            centerLat: vp.centerLat,
-            centerLon: vp.centerLon,
-            zoom: vp.zoom,
-          });
+        rw.postMessage({
+          type: "set_viewport",
+          centerLat: vp.centerLat,
+          centerLon: vp.centerLon,
+          zoom: vp.zoom,
+        });
       }
     });
   });
@@ -407,50 +453,91 @@ export default function App() {
 
   const isOperationsCommander = () => role() === "operations_commander";
   const showAlerts = () => role() === "sensor_operator";
-  const showTimeline = () => dashboard() === "analytics" && !isOperationsCommander();
+  const showTimeline = () =>
+    dashboard() === "analytics" && !isOperationsCommander();
 
   const renderMainViewport = () => {
     const currentDashboard = dashboard();
     const MapCanvas = (
-        <canvas
-          ref={setCanvas}
-          id="gpu-canvas"
-          style={{ width: "100%", height: "100%", display: "block", "pointer-events": "none", "z-index": 1, position: "absolute", top: 0, left: 0 }}
-        />
+      <canvas
+        ref={setCanvas}
+        id="gpu-canvas"
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "block",
+          "pointer-events": "none",
+          "z-index": 1,
+          position: "absolute",
+          top: 0,
+          left: 0,
+        }}
+      />
     );
 
     const MapContainer = (
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
         <LeafletMap onMapClick={handleMapClick} onMapHover={handleMapHover} />
         {MapCanvas}
-        <Show when={hoveredTrackIdHash() !== 0 && hoverPosition() !== null}>
-          <div
-            style={{
-              position: "absolute",
-              left: `${hoverPosition()!.x + 15}px`,
-              top: `${hoverPosition()!.y + 15}px`,
-              "background-color": "rgba(15, 23, 42, 0.9)",
-              color: "#fff",
-              padding: "8px",
-              "border-radius": "4px",
-              "border": "1px solid #1e293b",
-              "z-index": 1000,
-              "pointer-events": "none",
-              "font-family": "monospace",
-              "font-size": "12px",
-            }}
-          >
-            <div>Track ID: {hoveredTrackIdHash().toString(16).padStart(8, "0")}</div>
-            <div>[Click for more details]</div>
-          </div>
+        <Show when={hoveredTrack() !== null && hoveredTrack()!.trackIdHash !== 0 && hoverPosition() !== null}>
+          {(() => {
+            const t = hoveredTrack()!;
+            const AFFILIATION = ["UNKNOWN","PENDING","FRIENDLY","NEUTRAL","SUSPECT","HOSTILE"];
+            const ENTITY_TYPE = ["UNSPEC","SURFACE","AIR","SUBSURFACE","LAND","CYBER"];
+            const AFFIL_COLOR = ["#FBBF24","#80CCFF","#38BDFF","#57E688","#FF9933","#F87171"];
+            const affil = t.threatLevel >= 0 && t.threatLevel <= 5 ? t.threatLevel : 0;
+            const etype = t.entityType >= 0 && t.entityType <= 5 ? t.entityType : 0;
+            const ctx   = t.context === 1 ? "CIVILIAN" : "MILITARY";
+            const speedKts = (t.speed * 1.94384).toFixed(0);
+            const altFt    = (t.altitude * 3.28084).toFixed(0);
+            const color    = AFFIL_COLOR[affil]!;
+            return (
+              <div
+                style={{
+                  position: "absolute",
+                  left: `${hoverPosition()!.x + 18}px`,
+                  top: `${hoverPosition()!.y + 18}px`,
+                  background: "rgba(8, 18, 36, 0.93)",
+                  color: "#e2e8f0",
+                  padding: "8px 12px",
+                  "border-radius": "6px",
+                  border: `1px solid ${color}`,
+                  "z-index": 1000,
+                  "pointer-events": "none",
+                  "font-family": "'Courier New', monospace",
+                  "font-size": "11px",
+                  "line-height": "1.6",
+                  "min-width": "170px",
+                  "box-shadow": `0 0 8px ${color}55`,
+                }}
+              >
+                <div style={{ color, "font-weight": "bold", "margin-bottom": "4px", "font-size": "12px" }}>
+                  ▸ {AFFILIATION[affil]} {ENTITY_TYPE[etype]}
+                </div>
+                <div>CTX:&nbsp; <span style={{ color: "#94a3b8" }}>{ctx}</span></div>
+                <div>SPD:&nbsp; <span style={{ color: "#94a3b8" }}>{speedKts} kts</span></div>
+                <div>ALT:&nbsp; <span style={{ color: "#94a3b8" }}>{altFt} ft</span></div>
+                {t.alertFlags > 0 && <div style={{ color: "#F87171", "margin-top": "4px" }}>⚠ ALERT ACTIVE</div>}
+                <div style={{ color: "#475569", "margin-top": "4px", "font-size": "10px" }}>
+                  ID: {t.trackIdHash.toString(16).padStart(8, "0").toUpperCase()}
+                </div>
+                <div style={{ color: "#475569", "font-size": "10px" }}>Click for full details</div>
+              </div>
+            );
+          })()}
         </Show>
       </div>
     );
 
     if (currentDashboard === "health") return <SensorHealthDashboard />;
-    if (currentDashboard === "commander") return <FusionCommanderDashboard mapContent={MapContainer} />;
+    if (currentDashboard === "commander")
+      return <FusionCommanderDashboard mapContent={MapContainer} />;
     if (currentDashboard === "coverage") {
-      return isOperationsCommander() ? <MultiDomainCommanderDashboard mapContent={MapContainer} /> : <CoverageMapDashboard />;
+      return isOperationsCommander() ? (
+        <MultiDomainCommanderDashboard mapContent={MapContainer} />
+      ) : (
+        <CoverageMapDashboard />
+      );
     }
     if (!isOperationsCommander()) return MapContainer;
 
@@ -463,29 +550,86 @@ export default function App() {
   };
 
   return (
-    <Show when={caps() !== null} fallback={<div style={{ padding: "2rem" }}>Initialising…</div>}>
-      <Show when={caps()!.webgpu && caps()!.sharedArrayBuffer && caps()!.offscreenCanvas} fallback={renderDegradedNotice(caps()!)}>
+    <Show
+      when={caps() !== null}
+      fallback={<div style={{ padding: "2rem" }}>Initialising…</div>}
+    >
+      <Show
+        when={
+          caps()!.webgpu && caps()!.sharedArrayBuffer && caps()!.offscreenCanvas
+        }
+        fallback={renderDegradedNotice(caps()!)}
+      >
         <AppShell
           headerBar={
             <>
-              <div style={{ display: "flex", "flex-direction": "row", "align-items": "center", gap: "16px", flex: 1 }}>
-                <div style={{ display: "flex", "align-items": "center", gap: "12px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  "flex-direction": "row",
+                  "align-items": "center",
+                  gap: "16px",
+                  flex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    "align-items": "center",
+                    gap: "12px",
+                  }}
+                >
                   <RoleSelector />
                   <DashboardSelector />
                 </div>
                 <Show when={dashboard() === "health"}>
-                  <div style={{ padding: "0 16px", "border-left": "1px solid rgba(255,255,255,0.1)", display: "flex", "align-items": "center", gap: "12px" }}>
-                    <h1 style={{ "font-size": "1.1rem", "font-weight": "600", color: "#f8fafc", margin: 0, "letter-spacing": "0.02em" }}>
+                  <div
+                    style={{
+                      padding: "0 16px",
+                      "border-left": "1px solid rgba(255,255,255,0.1)",
+                      display: "flex",
+                      "align-items": "center",
+                      gap: "12px",
+                    }}
+                  >
+                    <h1
+                      style={{
+                        "font-size": "1.1rem",
+                        "font-weight": "600",
+                        color: "#f8fafc",
+                        margin: 0,
+                        "letter-spacing": "0.02em",
+                      }}
+                    >
                       Sensor Health Dashboard
                     </h1>
                   </div>
                 </Show>
               </div>
 
-              <div style={{ display: "flex", "flex-direction": "row", "align-items": "center", gap: "20px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  "flex-direction": "row",
+                  "align-items": "center",
+                  gap: "20px",
+                }}
+              >
                 <Show when={dashboard() === "health"}>
-                  <div style={{ "font-family": "monospace", "font-size": "0.85rem", color: "#94a3b8", background: "rgba(0,0,0,0.2)", padding: "4px 10px", "border-radius": "4px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                    <span style={{ color: "#64748b", "margin-right": "6px" }}>UTC</span>
+                  <div
+                    style={{
+                      "font-family": "monospace",
+                      "font-size": "0.85rem",
+                      color: "#94a3b8",
+                      background: "rgba(0,0,0,0.2)",
+                      padding: "4px 10px",
+                      "border-radius": "4px",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    <span style={{ color: "#64748b", "margin-right": "6px" }}>
+                      UTC
+                    </span>
                     <span style={{ color: "#e2e8f0" }}>{headerTime()}</span>
                   </div>
                 </Show>
@@ -494,14 +638,32 @@ export default function App() {
             </>
           }
           canvas={renderMainViewport()}
-          rightPanel={!isOperationsCommander() && dashboard() !== "health" && dashboard() !== "coverage" ? (
+          rightPanel={
+            !isOperationsCommander() &&
+            dashboard() !== "health" &&
+            dashboard() !== "coverage" ? (
+              <>
+                <TrackDetailPanel />
+                <Show when={showAlerts()}>
+                  <AlertSidebar />
+                </Show>
+              </>
+            ) : undefined
+          }
+          bottomPanel={
             <>
-              <TrackDetailPanel />
-              <Show when={showAlerts()}><AlertSidebar /></Show>
+              <StatusBar />
+              <Show when={showTimeline()}>
+                <EventTimeline />
+              </Show>
             </>
-          ) : undefined}
-          bottomPanel={<><StatusBar /><Show when={showTimeline()}><EventTimeline /></Show></>}
-          overlay={<><FeedbackForm /><SearchOverlay /></>}
+          }
+          overlay={
+            <>
+              <FeedbackForm />
+              <SearchOverlay />
+            </>
+          }
         />
       </Show>
     </Show>

@@ -18,22 +18,32 @@ import { allocateBuffers, destroyBuffers } from "../gpu/buffers";
 import { CoverageManager } from "../gpu/coverage";
 import { initGPU } from "../gpu/device";
 import { FrameTimer } from "../gpu/frame-timer";
-import { initMockTracks, MOCK_TRACK_COUNT, tickMockTracks, writeMockTracksToSAB } from "../gpu/mock-data";
-import { createPickResources, destroyPickResources, readPickPixel } from "../gpu/pick";
+import {
+  initMockTracks,
+  MOCK_TRACK_COUNT,
+  tickMockTracks,
+  writeMockTracksToSAB,
+} from "../gpu/mock-data";
+import {
+  createPickResources,
+  destroyPickResources,
+  readPickPixel,
+} from "../gpu/pick";
 import { createPipelines } from "../gpu/pipelines";
 import {
-    computeFps,
-    makeErrorStatus,
-    RENDER_ERROR_THRESHOLD,
-    RENDER_INTERVAL_MS,
-    shouldFlushStats
+  computeFps,
+  makeErrorStatus,
+  RENDER_ERROR_THRESHOLD,
+  RENDER_INTERVAL_MS,
+  shouldFlushStats,
 } from "../gpu/render-logic";
 import { renderFrame, type RenderState } from "../gpu/renderer";
+import { RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 import {
-    MainToRenderMessage,
-    PickedMessage,
-    RenderStatsMessage,
-    RenderReadyMessage as RenderStatusMessage
+  MainToRenderMessage,
+  PickedMessage,
+  RenderStatsMessage,
+  RenderReadyMessage as RenderStatusMessage,
 } from "./shared-protocol";
 
 /** Local alias for MainToRenderMessage */
@@ -84,10 +94,10 @@ async function init(
   sabBuf: SharedArrayBuffer,
   dataWorkerActive: boolean,
   initialWidth: number,
-  initialHeight: number
+  initialHeight: number,
 ): Promise<void> {
   activeCanvas = offscreen;
-  activeSab    = sabBuf;
+  activeSab = sabBuf;
   activeDataWorker = dataWorkerActive;
 
   // Set initial resolution before WebGPU context request
@@ -114,7 +124,9 @@ async function init(
   device.lost.then((info: GPUDeviceLostInfo) => {
     if (info.reason === "destroyed") return;
     if (import.meta.env.DEV) {
-      console.warn(`[RenderWorker] Device lost (${info.reason}), re-initialising…`);
+      console.warn(
+        `[RenderWorker] Device lost (${info.reason}), re-initialising…`,
+      );
     }
     if (activeCanvas && activeSab) {
       init(
@@ -122,7 +134,7 @@ async function init(
         activeSab,
         activeDataWorker,
         activeCanvas.width,
-        activeCanvas.height
+        activeCanvas.height,
       ).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error("[RenderWorker] Re-init failed:", err);
@@ -132,12 +144,12 @@ async function init(
   });
 
   // Allocate all GPU resources (zero per-frame allocation after this)
-  const buffers    = allocateBuffers(device);
-  const atlas      = createAtlasTextures(device);
-  const pick       = createPickResources(device, offscreen.width, offscreen.height);
-  const pipelines  = createPipelines(device, format);
+  const buffers = allocateBuffers(device);
+  const atlas = createAtlasTextures(device);
+  const pick = createPickResources(device, offscreen.width, offscreen.height);
+  const pipelines = createPipelines(device, format);
   const bindGroups = createBindGroups(device, pipelines, buffers, atlas, pick);
-  const coverage   = new CoverageManager(device, buffers, pipelines);
+  const coverage = new CoverageManager(device, buffers, pipelines);
 
   // Seed SAB with mock data only when no Data Worker is providing data.
   // When activeDataWorker is true, the Data Worker is the sole SAB writer.
@@ -166,7 +178,7 @@ async function init(
     camera: {
       centerLon: 0,
       centerLat: 0,
-      scale:     2.0,
+      scale: 2.0,
     },
     lastFrameTime: performance.now(),
     frameTimer,
@@ -180,7 +192,7 @@ async function init(
   if (import.meta.env.DEV) {
     console.log(
       `[RenderWorker] Initialised. Canvas: ${offscreen.width}×${offscreen.height}, ` +
-      `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
+        `tracks: ${MOCK_TRACK_COUNT}, format: ${format}`,
     );
   }
 }
@@ -195,7 +207,7 @@ function startRenderLoop(): void {
     renderState.frameTimer.markJsStart();
 
     const now = performance.now();
-    const dt  = now - lastTickTime;
+    const dt = now - lastTickTime;
     lastTickTime = now;
 
     // Animate mock tracks only when Render Worker is the sole SAB writer.
@@ -210,12 +222,22 @@ function startRenderLoop(): void {
       // Mock coverage data (Phase 1)
       renderState.coverage.reset();
       renderState.coverage.addRecord({
-        centerLon: -63.5, centerLat: 44.6, rangeNm: 50, bearingStart: 0, bearingEnd: 360,
-        recordType: 0, alertLevel: 0
+        centerLon: -63.5,
+        centerLat: 44.6,
+        rangeNm: 50,
+        bearingStart: 0,
+        bearingEnd: 360,
+        recordType: 0,
+        alertLevel: 0,
       });
       renderState.coverage.addRecord({
-        centerLon: -63.6, centerLat: 44.7, rangeNm: 20, bearingStart: 0, bearingEnd: 360,
-        recordType: 1, alertLevel: 2
+        centerLon: -63.6,
+        centerLat: 44.7,
+        rangeNm: 20,
+        bearingStart: 0,
+        bearingEnd: 360,
+        recordType: 1,
+        alertLevel: 2,
       });
       renderState.coverage.upload();
     }
@@ -229,8 +251,8 @@ function startRenderLoop(): void {
         const s = renderState;
         console.log(
           `[RenderWorker] Frame#1 OK. Canvas:${s.canvas.width}x${s.canvas.height} ` +
-          `tracks:${s.trackCount} scale:${s.camera.scale.toFixed(3)} ` +
-          `dashboard:${s.dashboard}`
+            `tracks:${s.trackCount} scale:${s.camera.scale.toFixed(3)} ` +
+            `dashboard:${s.dashboard}`,
         );
       }
     } catch (err) {
@@ -243,9 +265,11 @@ function startRenderLoop(): void {
       if (renderFrameErrorCount >= RENDER_ERROR_THRESHOLD) {
         stopRenderLoop();
         const errMsg = err instanceof Error ? err.message : String(err);
-        self.postMessage(makeErrorStatus(
-          `Render pipeline failed after ${RENDER_ERROR_THRESHOLD} consecutive errors: ${errMsg}`,
-        ));
+        self.postMessage(
+          makeErrorStatus(
+            `Render pipeline failed after ${RENDER_ERROR_THRESHOLD} consecutive errors: ${errMsg}`,
+          ),
+        );
         return;
       }
     }
@@ -286,12 +310,18 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 
   switch (msg.type) {
     case "init": {
-      init(msg.canvas, msg.sab, msg.dataWorkerActive ?? false, msg.initialWidth, msg.initialHeight).catch((err: unknown) => {
+      init(
+        msg.canvas,
+        msg.sab,
+        msg.dataWorkerActive ?? false,
+        msg.initialWidth,
+        msg.initialHeight,
+      ).catch((err: unknown) => {
         if (import.meta.env.DEV) {
           console.error("[RenderWorker] Init failed:", err);
         }
         const status: StatusMessage = {
-          type:  "status",
+          type: "status",
           ready: false,
           error: err instanceof Error ? err.message : String(err),
         };
@@ -302,7 +332,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 
     case "resize": {
       if (renderState) {
-        renderState.canvas.width  = msg.width;
+        renderState.canvas.width = msg.width;
         renderState.canvas.height = msg.height;
         // Re-create pick resources for new canvas size
         destroyPickResources(renderState.pick);
@@ -313,8 +343,8 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
         );
         // Re-configure canvas context for new size
         renderState.context.configure({
-          device:    renderState.device,
-          format:    renderState.format,
+          device: renderState.device,
+          format: renderState.format,
           alphaMode: "premultiplied",
         });
       }
@@ -323,12 +353,51 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
 
     case "hover_track": {
       if (renderState) {
-        readPickPixel(renderState.device, renderState.pick, msg.x, msg.y)
-          .then((trackIdHash) => {
-            if (trackIdHash === null) return;
-            const hovered = { type: "hovered", trackIdHash };
-            self.postMessage(hovered);
-          });
+        const rs = renderState;
+        readPickPixel(rs.device, rs.pick, msg.x, msg.y).then(
+          (trackIdHash) => {
+            if (trackIdHash === null || trackIdHash === 0) return;
+            // Scan SAB to find the slot with this hash and read metadata
+            const sabView = new DataView(
+              rs.sab,
+              TRACK_DATA_OFFSET,
+              rs.trackCount * RECORD_SIZE,
+            );
+            let hoveredMsg: import("./shared-protocol").HoveredMessage = {
+              type: "hovered",
+              trackIdHash,
+              threatLevel: 0,
+              entityType: 0,
+              context: 0,
+              speed: 0,
+              altitude: 0,
+              alertFlags: 0,
+            };
+            for (let i = 0; i < rs.trackCount; i++) {
+              const base = i * RECORD_SIZE;
+              const hash = sabView.getUint32(base + 0x14, true);
+              if (hash === trackIdHash) {
+                const speed     = sabView.getFloat32(base + 0x0c, true);
+                const altitude  = sabView.getFloat32(base + 0x10, true);
+                const threat    = sabView.getUint32(base + 0x20, true);
+                const iconIndex = sabView.getUint32(base + 0x24, true);
+                const alertFlags = sabView.getUint32(base + 0x28, true);
+                hoveredMsg = {
+                  type: "hovered",
+                  trackIdHash,
+                  threatLevel: threat,
+                  entityType: Math.floor((iconIndex % 36) / 6),
+                  context: Math.floor(iconIndex / 36),
+                  speed,
+                  altitude,
+                  alertFlags,
+                };
+                break;
+              }
+            }
+            self.postMessage(hoveredMsg);
+          },
+        );
       }
       break;
     }
@@ -351,9 +420,11 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
               console.error("[RenderWorker] Pick readback error:", err);
             }
             // Notify the main thread so the failure is observable in production.
-            self.postMessage(makeErrorStatus(
-              `Pick readback failed: ${err instanceof Error ? err.message : String(err)}`,
-            ));
+            self.postMessage(
+              makeErrorStatus(
+                `Pick readback failed: ${err instanceof Error ? err.message : String(err)}`,
+              ),
+            );
           });
       }
       break;
@@ -404,7 +475,7 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
           renderState.device.queue.writeBuffer(
             renderState.buffers.observationStorage,
             0,
-            data
+            data,
           );
         }
       }
