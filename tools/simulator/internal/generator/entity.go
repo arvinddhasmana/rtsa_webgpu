@@ -3,6 +3,7 @@ package generator
 
 import (
 "fmt"
+"math"
 "math/rand"
 "time"
 
@@ -10,13 +11,52 @@ commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
 "github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/config"
 )
 
-// Mid-Atlantic operational area bounds.
+// defaultAreaBounds is the North Atlantic fallback used when no scenario
+// OperationalArea is configured.
 const (
 MinLat = 43.0
 MaxLat = 47.0
 MinLon = -65.0
 MaxLon = -55.0
 )
+
+// AreaBounds defines the geographic bounding box for entity generation.
+// All values are in decimal degrees (WGS-84).
+type AreaBounds struct {
+MinLat float64
+MaxLat float64
+MinLon float64
+MaxLon float64
+}
+
+// defaultBounds is the North Atlantic Mid-Atlantic operational area.
+var defaultBounds = AreaBounds{
+MinLat: MinLat,
+MaxLat: MaxLat,
+MinLon: MinLon,
+MaxLon: MaxLon,
+}
+
+// NauticalMilesDegrees is the number of degrees latitude per nautical mile.
+const NauticalMilesDegrees = 1.0 / 60.0
+
+// AreaBoundsFromCenter derives a bounding box from a center point and radius.
+// radiusNM is the radius in nautical miles. The longitude extent is widened
+// by 1/cos(lat) to approximate equal coverage at the given latitude.
+func AreaBoundsFromCenter(centerLat, centerLon, radiusNM float64) AreaBounds {
+latDelta := radiusNM * NauticalMilesDegrees
+cosLat := math.Cos(centerLat * math.Pi / 180.0)
+if math.Abs(cosLat) < 0.01 {
+cosLat = 0.01
+}
+lonDelta := latDelta / cosLat
+return AreaBounds{
+MinLat: centerLat - latDelta,
+MaxLat: centerLat + latDelta,
+MinLon: centerLon - lonDelta,
+MaxLon: centerLon + lonDelta,
+}
+}
 
 // MovementPattern defines how an entity moves over time.
 type MovementPattern int
@@ -82,15 +122,23 @@ rng      *rand.Rand
 cfg      *config.SimulatorConfig
 injector *AnomalyInjector
 tick     int64
+area     AreaBounds // geographic bounding box for entity generation
 }
 
-// NewEntityManager creates the manager and initialises all entities from config.
+// NewEntityManager creates the manager using the default North Atlantic bounds.
 func NewEntityManager(cfg *config.SimulatorConfig, rng *rand.Rand) *EntityManager {
+return NewEntityManagerWithBounds(cfg, rng, defaultBounds)
+}
+
+// NewEntityManagerWithBounds creates the manager using the supplied AreaBounds.
+// Use AreaBoundsFromCenter to derive bounds from a scenario OperationalArea.
+func NewEntityManagerWithBounds(cfg *config.SimulatorConfig, rng *rand.Rand, area AreaBounds) *EntityManager {
 m := &EntityManager{
 entities: make(map[string]*SimEntity),
 rng:      rng,
 cfg:      cfg,
 injector: NewAnomalyInjector(rng),
+area:     area,
 }
 
 // Determine anomalous entity count per domain.
@@ -159,7 +207,7 @@ injector.InjectProximity(e)
 }
 
 // Clamp to operational area.
-clampToArea(&e.Position)
+		m.clampToArea(&e.Position)
 }
 }
 
@@ -179,8 +227,8 @@ commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN,
 []float64{0.40, 0.15, 0.30, 0.15},
 ),
 Position: Position{
-Lat:     MinLat + m.rng.Float64()*(MaxLat-MinLat),
-Lon:     MinLon + m.rng.Float64()*(MaxLon-MinLon),
+Lat:     m.area.MinLat + m.rng.Float64()*(m.area.MaxLat-m.area.MinLat),
+Lon:     m.area.MinLon + m.rng.Float64()*(m.area.MaxLon-m.area.MinLon),
 AltM:    0,
 SpeedKn: 8 + m.rng.Float64()*17, // 8-25 knots
 Heading: m.rng.Float64() * 360,
@@ -209,8 +257,8 @@ commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN,
 []float64{0.50, 0.20, 0.20, 0.10},
 ),
 Position: Position{
-Lat:     MinLat + m.rng.Float64()*(MaxLat-MinLat),
-Lon:     MinLon + m.rng.Float64()*(MaxLon-MinLon),
+Lat:     m.area.MinLat + m.rng.Float64()*(m.area.MaxLat-m.area.MinLat),
+Lon:     m.area.MinLon + m.rng.Float64()*(m.area.MaxLon-m.area.MinLon),
 AltM:    1000 + m.rng.Float64()*14000, // 1000-15000 m
 SpeedKn: 150 + m.rng.Float64()*400,    // 150-550 knots
 Heading: m.rng.Float64() * 360,
@@ -239,8 +287,8 @@ commonv1.HostileClassification_HOSTILE_CLASSIFICATION_UNKNOWN,
 []float64{0.40, 0.20, 0.20, 0.20},
 ),
 Position: Position{
-Lat:     MinLat + m.rng.Float64()*(MaxLat-MinLat),
-Lon:     MinLon + m.rng.Float64()*(MaxLon-MinLon),
+Lat:     m.area.MinLat + m.rng.Float64()*(m.area.MaxLat-m.area.MinLat),
+Lon:     m.area.MinLon + m.rng.Float64()*(m.area.MaxLon-m.area.MinLon),
 AltM:    -(50 + m.rng.Float64()*350), // -50 to -400 m
 SpeedKn: 5 + m.rng.Float64()*10,      // 5-15 knots
 Heading: m.rng.Float64() * 360,
@@ -264,12 +312,12 @@ e.AnomalyType = randomAnomalyType(m.rng)
 // Generate patrol waypoints if needed.
 if e.MovementPattern == PatternPatrol {
 wp1 := Position{
-Lat: MinLat + m.rng.Float64()*(MaxLat-MinLat),
-Lon: MinLon + m.rng.Float64()*(MaxLon-MinLon),
+Lat: m.area.MinLat + m.rng.Float64()*(m.area.MaxLat-m.area.MinLat),
+Lon: m.area.MinLon + m.rng.Float64()*(m.area.MaxLon-m.area.MinLon),
 }
 wp2 := Position{
-Lat: MinLat + m.rng.Float64()*(MaxLat-MinLat),
-Lon: MinLon + m.rng.Float64()*(MaxLon-MinLon),
+Lat: m.area.MinLat + m.rng.Float64()*(m.area.MaxLat-m.area.MinLat),
+Lon: m.area.MinLon + m.rng.Float64()*(m.area.MaxLon-m.area.MinLon),
 }
 e.Waypoints = []Position{wp1, wp2}
 e.WaypointFwd = true
@@ -285,18 +333,37 @@ e.LoiterAngle = m.rng.Float64() * 2 * 3.14159265358979
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-func clampToArea(pos *Position) {
-if pos.Lat < MinLat {
-pos.Lat = MinLat
+// clampToDefaultArea clamps a position to the default North Atlantic bounds.
+// Used by AnomalyInjector which operates without access to the EntityManager.
+// Entity generation and per-tick clamping use the manager method instead.
+func clampToDefaultArea(pos *Position) {
+if pos.Lat < defaultBounds.MinLat {
+pos.Lat = defaultBounds.MinLat
 }
-if pos.Lat > MaxLat {
-pos.Lat = MaxLat
+if pos.Lat > defaultBounds.MaxLat {
+pos.Lat = defaultBounds.MaxLat
 }
-if pos.Lon < MinLon {
-pos.Lon = MinLon
+if pos.Lon < defaultBounds.MinLon {
+pos.Lon = defaultBounds.MinLon
 }
-if pos.Lon > MaxLon {
-pos.Lon = MaxLon
+if pos.Lon > defaultBounds.MaxLon {
+pos.Lon = defaultBounds.MaxLon
+}
+}
+
+// clampToArea clamps a position to the manager's configured AreaBounds.
+func (m *EntityManager) clampToArea(pos *Position) {
+if pos.Lat < m.area.MinLat {
+pos.Lat = m.area.MinLat
+}
+if pos.Lat > m.area.MaxLat {
+pos.Lat = m.area.MaxLat
+}
+if pos.Lon < m.area.MinLon {
+pos.Lon = m.area.MinLon
+}
+if pos.Lon > m.area.MaxLon {
+pos.Lon = m.area.MaxLon
 }
 }
 

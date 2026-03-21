@@ -284,3 +284,59 @@ Replace `get_silhouette()` and `fs_main()` with MIL-STD-2525 rendering:
 1. **Atlas texture vs procedural SDF**: Current plan continues using procedural SDF shapes in the fragment shader. For production, baked NATO APP-6 icon atlas (64×64 per icon, pre-rendered) would be higher fidelity. This can be Phase 2 work.
 2. **TrackContext in proto**: Adding `context` field to `FusedTrack` proto requires `buf generate`, updating all consumers. Defer to a separate PR.
 3. **Suspect vs Unknown frame**: MIL-STD-2525D uses the same diamond frame for Hostile and Suspect (distinguished by fill/dashing). The plan uses distinct colors (red vs orange) which is more visually clear for operators.
+
+---
+
+## Implementation Status (post-Phase 1–6 delivery)
+
+### Completed Phases ✅
+
+| Phase | Artefact | Status |
+|-------|----------|--------|
+| 1.1 | `web-cop-gpu/src/types/symbology.ts` — `encodeIconIndex`, `decodeIconIndex`, `entityTypeToTrackDomain`, `threatLevelToAffiliation`, `trackDomainToEntityType`, `TrackRenderContext` | ✅ Done |
+| 2.1 | `web-cop-gpu/src/shaders/track-icons.wgsl` — MIL-STD-2525 affiliation outer frames + inner domain icons, `ICON_BASE_SIZE_PX` 14→20, updated colour palette, civilian outline-only rendering | ✅ Done |
+| 3 | `web-cop-gpu/src/gpu/mock-data.ts` — 150-track West Asia demo, `encodeIconIndex` encoding, 7 named sensor positions, correct domain/affiliation distribution | ✅ Done |
+| 4.1 | `web-cop-gpu/src/signals/viewport.ts` — Default viewport → `centerLat:27.0, centerLon:54.0, zoom:6` | ✅ Done |
+| 5.1 | `pkg/flatbuf/serializer.go` — `buildIconIndex` formula `context*36 + entityType*6 + threatLevel` | ✅ Done |
+| 6.1 | `tools/simulator/scenarios/west-asia-demo.yaml` — 150-entity scenario with 7 named sensors | ✅ Done |
+| 6.2 | `tools/simulator/internal/generator/entity.go` — `AreaBounds` struct, `AreaBoundsFromCenter()`, `NewEntityManagerWithBounds()`, per-manager `clampToArea()` | ✅ Done |
+| 8.1 | `web-cop-gpu/src/types/symbology.test.ts` — 40 unit tests: roundtrip, collision-free encoding, mapping functions, shader extraction compatibility | ✅ Done |
+
+### Pending Items 🔲
+
+The following phases were out-of-scope for the critical-blocker sprint and remain deferred:
+
+#### Phase 1.2 — TrackContext in Protobuf (deferred)
+- **File**: `proto/rtsa/common/v1/types.proto`
+- **Task**: Add `TrackContext` enum (`MILITARY=0`, `CIVILIAN=1`) and `context` field to `FusedTrack` message.
+- **Why deferred**: Requires `buf generate`, regeneration of all language bindings, and updates to all proto consumers. Context is currently derived from mock data only.
+- **Unblocks**: Real-pipeline civilian/military context distinction in the WebGPU shader.
+
+#### Phase 2.2 — `halos.wgsl` colour update (deferred)
+- **File**: `web-cop-gpu/src/shaders/halos.wgsl`
+- **Task**: Update halo glow colours to match the new MIL-STD-2525 affiliation palette (`#38BDFF` friendly, `#F87171` hostile, etc.).
+- **Why deferred**: Alert halos still use the pre-existing colour values; functional but not fully palette-consistent.
+
+#### Phase 5.2 — `context` field in `FusedTrack` proto (deferred)
+- **File**: `proto/rtsa/entity/v1/entity.proto`
+- **Task**: Add `TrackContext context = N` to `FusedTrack` message; update `buildIconIndex` in serializer to use the real context value instead of the hardcoded `iconContextMilitary`.
+- **Blocks on**: Phase 1.2 (types.proto enum).
+
+#### Phase 6.3 — Demo seed script update (deferred)
+- **File**: `scripts/demo/seed-demo-data.sh`
+- **Task**: Add `--scenario tools/simulator/scenarios/west-asia-demo.yaml` variant; make scenario configurable via CLI.
+
+#### Phase 7.1 — `SensorLegend.tsx` MIL-STD-2525 update (deferred)
+- **File**: `web-cop-gpu/src/components/dashboard/SensorLegend.tsx`
+- **Task**: Replace current SVG icons with SVG shapes matching the new MIL-STD-2525 affiliation frames (rectangle/diamond/quatrefoil/circle). Add all 4 affiliations × 4 domains grid. Add Military vs Civilian column.
+
+#### Phase 7.2 — `TrackDetailPanel.tsx` context display (deferred)
+- **File**: `web-cop-gpu/src/components/panels/TrackDetailPanel.tsx`
+- **Task**: Decode `iconIndex` from selected track using `decodeIconIndex()` and show Domain, Affiliation, and Context (Military/Civilian) in the detail panel.
+
+#### Phase 8.2 — Mock data distribution tests (deferred)
+- **File**: `web-cop-gpu/src/gpu/mock-data.test.ts` (to create)
+- **Task**: Verify `initMockTracks()` generates exactly 150 tracks; verify all tracks within West Asia geographic bounds; verify affiliation distribution matches spec (±5%).
+
+#### Phase 8.3 — Regression test updates (deferred)
+- **Task**: Audit existing track rendering tests for hardcoded `MOCK_TRACK_COUNT = 40` references; update to use new constant (`150`) or mock the data layer.

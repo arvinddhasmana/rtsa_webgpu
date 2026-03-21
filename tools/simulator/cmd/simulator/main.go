@@ -28,6 +28,11 @@ var consecutiveFailures atomic.Int64
 
 const consecutiveFailureThreshold = 10
 
+// defaultOperationalRadiusNM is the fallback radius (in nautical miles) used
+// to derive entity generation bounds from a scenario's OperationalArea center
+// when no explicit radius is provided.
+const defaultOperationalRadiusNM = 150.0
+
 func main() {
 // ── CLI flags ────────────────────────────────────────────────────────────
 scenarioFile := flag.String("scenario", "", "Path to YAML scenario file")
@@ -59,6 +64,7 @@ if *scenarioFile != "" {
 scenarioPath = *scenarioFile
 }
 var invalidInjectCfg generator.InvalidInjectionConfig
+var scenarioBounds *generator.AreaBounds
 if scenarioPath != "" {
 	sc, loadErr := scenario.LoadFromFile(scenarioPath)
 	if loadErr != nil {
@@ -71,6 +77,28 @@ if scenarioPath != "" {
 		Enabled: sc.InvalidInjection.Enabled,
 		Rate:    sc.InvalidInjection.Rate,
 		Reasons: sc.InvalidInjection.Reasons,
+	}
+	// Derive geographic bounds from scenario OperationalArea if a center is set.
+	if sc.OperationalArea.Center.Lat != 0 || sc.OperationalArea.Center.Lon != 0 {
+		radius := sc.OperationalArea.RadiusNM
+		if radius <= 0 {
+			radius = defaultOperationalRadiusNM
+		}
+		bounds := generator.AreaBoundsFromCenter(
+			sc.OperationalArea.Center.Lat,
+			sc.OperationalArea.Center.Lon,
+			radius,
+		)
+		scenarioBounds = &bounds
+		slog.Info("operational area overriding entity bounds",
+			"center_lat", sc.OperationalArea.Center.Lat,
+			"center_lon", sc.OperationalArea.Center.Lon,
+			"radius_nm", radius,
+			"min_lat", bounds.MinLat,
+			"max_lat", bounds.MaxLat,
+			"min_lon", bounds.MinLon,
+			"max_lon", bounds.MaxLon,
+		)
 	}
 }
 
@@ -107,7 +135,12 @@ sensor.SetRNG(simRNG)
 	invalidInj := generator.NewInvalidObservationInjector(invalidInjectCfg, simRNG)
 
 // ── Entity manager ────────────────────────────────────────────────────────
-mgr := generator.NewEntityManager(cfg, simRNG)
+var mgr *generator.EntityManager
+if scenarioBounds != nil {
+	mgr = generator.NewEntityManagerWithBounds(cfg, simRNG, *scenarioBounds)
+} else {
+	mgr = generator.NewEntityManager(cfg, simRNG)
+}
 slog.Info("entity manager initialised",
 "surface", cfg.SurfaceEntityCount,
 "air", cfg.AirEntityCount,

@@ -77,7 +77,7 @@ SpeedKn: e.Position.SpeedKn,
 Heading: e.Position.Heading,
 AltM:    0,
 }
-clampToArea(&manipulated)
+clampToDefaultArea(&manipulated)
 return manipulated
 }
 
@@ -113,7 +113,7 @@ e.Position.Lat += offsetNM * math.Cos(directionRad) * nmToDegreesLat
 if cosLat != 0 {
 e.Position.Lon += offsetNM * math.Sin(directionRad) * nmToDegreesLat / cosLat
 }
-clampToArea(&e.Position)
+clampToDefaultArea(&e.Position)
 }
 
 // OffsetNM calculates the approximate offset in NM between two positions.
