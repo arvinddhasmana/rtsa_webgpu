@@ -8,6 +8,7 @@ import { mapStyle, setViewport, viewport } from "../../signals/viewport";
 
 interface LeafletMapProps {
   onMapClick?: (x: number, y: number) => void;
+  onMapHover?: (x: number, y: number) => void;
 }
 
 export function LeafletMap(props: LeafletMapProps) {
@@ -74,6 +75,13 @@ export function LeafletMap(props: LeafletMapProps) {
     map.on("click", (e: L.LeafletMouseEvent) => {
       if (props.onMapClick) {
         props.onMapClick(e.containerPoint.x, e.containerPoint.y);
+      }
+    });
+
+    // Forward mousemove to WebGPU picker for hover
+    map.on("mousemove", (e: L.LeafletMouseEvent) => {
+      if (props.onMapHover) {
+        props.onMapHover(e.containerPoint.x, e.containerPoint.y);
       }
     });
 

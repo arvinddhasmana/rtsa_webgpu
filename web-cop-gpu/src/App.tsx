@@ -74,6 +74,8 @@ export default function App() {
   const [caps, setCaps] = createSignal<Capabilities | null>(null);
   const [canvas, setCanvas] = createSignal<HTMLCanvasElement | null>(null);
 
+  const [hoveredTrackIdHash, setHoveredTrackIdHash] = createSignal<number>(0);
+
   const [renderWorker, setRenderWorker] = createSignal<Worker | null>(null);
   const [dataWorker, setDataWorker] = createSignal<Worker | null>(null);
   let alertStreamController: AbortController | null = null;
@@ -86,8 +88,32 @@ export default function App() {
       case "status":
         if (msg.ready) {
           setConnecting(false);
+          // Re-send the current viewport to the render worker now that it is
+          // fully initialised. The initial set_viewport message sent when
+          // setRenderWorker() was first called arrived before renderState was
+          // ready and was silently dropped, leaving the camera at its (0,0)
+          // default. This is especially critical now that the default viewport
+          // is Persian Gulf (27°N, 54°E, zoom 6) — without this resend the
+          // GPU camera stays at (0°,0°, scale=2) while Leaflet shows a
+          // zoomed-in Persian Gulf, making all 150 West Asia tracks appear at
+          // completely wrong pixel positions (effectively invisible on the map).
+          const rw = renderWorker();
+          if (rw) {
+            const vp = viewport();
+            rw.postMessage({
+              type:      "set_viewport",
+              centerLat: vp.centerLat,
+              centerLon: vp.centerLon,
+              zoom:      vp.zoom,
+            });
+          }
         }
         break;
+
+      case "hovered": {
+        setHoveredTrackIdHash(msg.trackIdHash);
+        break;
+      }
 
       case "picked": {
         console.log("[App] Track picked from GPU:", msg);
@@ -193,6 +219,18 @@ export default function App() {
     const px = Math.round(x * devicePixelRatio);
     const py = Math.round(y * devicePixelRatio);
     rw.postMessage({ type: "select_track", x: px, y: py });
+  }
+
+  const [hoverPosition, setHoverPosition] = createSignal<{x: number, y: number} | null>(null);
+  
+  function handleMapHover(x: number, y: number) {
+    const el = canvas();
+    const rw = renderWorker();
+    if (!el || !rw) return;
+    const px = Math.round(x * devicePixelRatio);
+    const py = Math.round(y * devicePixelRatio);
+    setHoverPosition({ x, y }); // Use logical pixels for component absolute positioning
+    rw.postMessage({ type: "hover_track", x: px, y: py });
   }
 
   // ── Resize ────────────────────────────────────────────────────────────────
@@ -383,8 +421,29 @@ export default function App() {
 
     const MapContainer = (
       <div style={{ position: "relative", width: "100%", height: "100%" }}>
-        <LeafletMap onMapClick={handleMapClick} />
+        <LeafletMap onMapClick={handleMapClick} onMapHover={handleMapHover} />
         {MapCanvas}
+        <Show when={hoveredTrackIdHash() !== 0 && hoverPosition() !== null}>
+          <div
+            style={{
+              position: "absolute",
+              left: `${hoverPosition()!.x + 15}px`,
+              top: `${hoverPosition()!.y + 15}px`,
+              "background-color": "rgba(15, 23, 42, 0.9)",
+              color: "#fff",
+              padding: "8px",
+              "border-radius": "4px",
+              "border": "1px solid #1e293b",
+              "z-index": 1000,
+              "pointer-events": "none",
+              "font-family": "monospace",
+              "font-size": "12px",
+            }}
+          >
+            <div>Track ID: {hoveredTrackIdHash().toString(16).padStart(8, "0")}</div>
+            <div>[Click for more details]</div>
+          </div>
+        </Show>
       </div>
     );
 

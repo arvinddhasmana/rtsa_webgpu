@@ -321,6 +321,18 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
       break;
     }
 
+    case "hover_track": {
+      if (renderState) {
+        readPickPixel(renderState.device, renderState.pick, msg.x, msg.y)
+          .then((trackIdHash) => {
+            if (trackIdHash === null) return;
+            const hovered = { type: "hovered", trackIdHash };
+            self.postMessage(hovered);
+          });
+      }
+      break;
+    }
+
     case "select_track": {
       if (renderState) {
         readPickPixel(renderState.device, renderState.pick, msg.x, msg.y)

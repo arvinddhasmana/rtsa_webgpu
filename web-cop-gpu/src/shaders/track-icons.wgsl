@@ -63,7 +63,7 @@ struct VertexOutput {
 @group(1) @binding(2) var<storage, read>    visible_indices: array<u32>;
 
 // MIL-STD-2525 icons need more space for internal domain icons
-const ICON_BASE_SIZE_PX: f32 = 20.0;
+const ICON_BASE_SIZE_PX: f32 = 40.0;
 
 // Affiliation threat-level constants used in frame/rendering logic
 const THREAT_LEVEL_UNKNOWN:  u32 = 0u;
@@ -208,8 +208,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let entity_type = (in.icon_index % 36u) / 6u;
   let is_civilian = (in.icon_index / 36u) == 1u;
 
-  // Rotate UV by course for oriented icons
-  let angle = in.course * 3.14159 / 180.0;
+  // Rotate UV by course for oriented icons.
+  // track.course is stored in radians (0 = north, clockwise) — use directly.
+  let angle = in.course;
   let c     = cos(angle);
   let s     = sin(angle);
   let pivot = vec2<f32>(0.5, 0.5);
@@ -233,9 +234,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // ── Civilian: outline-only ──────────────────────────────────────────
     let outline_hw = 0.10; // half-width of the outline stroke
     alpha = 1.0 - smoothstep(outline_hw - fw, outline_hw + fw, abs(frame_d));
-    // Faint inner icon overlay
+    // Faint inner icon overlay (only inside the frame boundary)
+    // NOTE: edge0 must be < edge1 per WGSL spec; was previously swapped (fw,-fw)
     let icon_w = get_inner_icon(p_rot, entity_type);
-    alpha = max(alpha, icon_w * 0.35 * (1.0 - smoothstep(fw, -fw, frame_d)));
+    alpha = max(alpha, icon_w * 0.35 * (1.0 - smoothstep(-fw, fw, frame_d)));
   } else {
     // ── Military: filled frame ──────────────────────────────────────────
     let fill = 1.0 - smoothstep(-fw, fw, frame_d);

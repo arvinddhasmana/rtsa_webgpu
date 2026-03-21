@@ -16,6 +16,12 @@ export interface RenderStatsMessage {
   visibleCount: number;
 }
 
+/** Emitted when the pick buffer resolves after a canvas hover. */
+export interface HoveredMessage {
+  type: "hovered";
+  trackIdHash: number;
+}
+
 /** Emitted when the pick buffer resolves after a canvas click. */
 export interface PickedMessage {
   type: "picked";
@@ -34,6 +40,7 @@ export interface RenderReadyMessage {
 export type RenderToMainMessage =
   | RenderStatsMessage
   | PickedMessage
+  | HoveredMessage
   | RenderReadyMessage;
 
 // ── Main Thread → Render Worker ────────────────────────────────────────────────
@@ -59,6 +66,12 @@ export interface RenderResizeMessage {
 
 export interface SelectTrackMessage {
   type: "select_track";
+  x: number;
+  y: number;
+}
+
+export interface HoverTrackMessage {
+  type: "hover_track";
   x: number;
   y: number;
 }
@@ -115,6 +128,7 @@ export type MainToRenderMessage =
   | RenderInitMessage
   | RenderResizeMessage
   | SelectTrackMessage
+  | HoverTrackMessage
   | SetDashboardMessage
   | SetCoverageMessage
   | SetViewportMessage
