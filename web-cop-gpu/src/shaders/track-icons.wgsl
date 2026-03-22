@@ -166,10 +166,9 @@ fn sdf_frame(p: vec2<f32>, affiliation: u32) -> f32 {
 //   0=Unspecified(default Air), 1=Surface, 2=Air, 3=Subsurface, 4=Land, 5=Cyber
 //
 // Returns silhouette weight in [0, 1]. Icon is rendered at ~50% of frame size.
-fn get_inner_icon(p: vec2<f32>, entity_type: u32) -> f32 {
+fn get_inner_icon(p: vec2<f32>, entity_type: u32, fw: f32) -> f32 {
   // Scale p to the inner icon region (icons use ±0.45 of the [-1,1] space)
   let q   = p * 2.2;
-  let fw  = fwidth(length(q)) * 1.5;
 
   switch (entity_type % 6u) {
     case 0u, 2u: { // Unspecified / Air: swept-back triangle (nose up)
@@ -227,6 +226,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
   let frame_d = sdf_frame(p, in.threat_level);
   let fw      = max(fwidth(frame_d), 0.01);
 
+  // Inner icon derivative computed unconditionally for WGSL uniform control flow
+  let icon_fw = max(fwidth(length(p_rot * 2.2)) * 1.5, 0.001);
+
   var color = affiliation_color(in.threat_level);
   var alpha: f32;
 
@@ -236,7 +238,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     alpha = 1.0 - smoothstep(outline_hw - fw, outline_hw + fw, abs(frame_d));
     // Faint inner icon overlay (only inside the frame boundary)
     // NOTE: edge0 must be < edge1 per WGSL spec; was previously swapped (fw,-fw)
-    let icon_w = get_inner_icon(p_rot, entity_type);
+    let icon_w = get_inner_icon(p_rot, entity_type, icon_fw);
     alpha = max(alpha, icon_w * 0.35 * (1.0 - smoothstep(-fw, fw, frame_d)));
   } else {
     // ── Military: filled frame ──────────────────────────────────────────
@@ -249,7 +251,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     color = mix(color, vec3<f32>(0.02, 0.05, 0.10), outline * 0.7);
 
     // Inner domain icon — rendered slightly darker inside the filled area
-    let icon_w  = get_inner_icon(p_rot, entity_type);
+    let icon_w  = get_inner_icon(p_rot, entity_type, icon_fw);
     let in_fill = 1.0 - smoothstep(-fw, fw, frame_d); // same as fill
     color = mix(color,
                 vec3<f32>(color.r * 0.5, color.g * 0.5, color.b * 0.5),

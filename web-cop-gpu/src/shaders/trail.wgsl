@@ -47,9 +47,7 @@ fn to_web_mercator(lon_rad: f32, lat_rad: f32) -> vec2<f32> {
     let my = 0.5 - log(tan(PI / 4.0 + lat_rad / 2.0)) / (2.0 * PI);
     return vec2<f32>(mx, my);
 }
-fn to_web_mercator(lon_deg: f32, lat_deg: f32) -> vec2<f32> {
-    return to_web_mercator(lon_deg * DEG_TO_RAD, lat_deg * DEG_TO_RAD);
-}
+
 
 const TRAIL_WIDTH_BASE: f32 = 1.5;
 
