@@ -120,8 +120,9 @@ export function renderFrame(state: RenderState): void {
   device.queue.writeBuffer(
     buffers.trackStorage,
     0,
-    sabTrackView.buffer as unknown as ArrayBuffer,
-    sabTrackView.byteOffset,
+    // @ts-expect-error WebGPU fully supports SharedArrayBuffer views
+    sabTrackView,
+    0,
     trackCount * RECORD_SIZE,
   );
 

@@ -72,9 +72,9 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
   let clamped_dt_ms = clamp(f32(raw_dt_ms), 0.0, MAX_DR_S * 1000.0);
   let dt_s = clamped_dt_ms / 1000.0;
 
-  // SAB stores lon/lat in degrees; convert to radians for all trigonometry.
-  let lon_rad = track.lon * DEG_TO_RAD;
-  let lat_rad = track.lat * DEG_TO_RAD;
+  // SAB stores lon/lat in RADIANS (both from WebTransport and mock-data.ts).
+  let lon_rad = track.lon;
+  let lat_rad = track.lat;
 
   // Dead-reckoning: angular displacement on a sphere (result in radians)
   // dx (east component) = speed * sin(course) * dt / R / cos(lat)

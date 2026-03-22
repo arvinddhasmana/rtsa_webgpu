@@ -60,17 +60,20 @@
     "version": "1.58.2",
     "workers": 11,
     "webServer": {
-      "command": "npm run dev",
+      "command": "VITE_MOCK_SENSORS=true npm run dev",
       "url": "http://localhost:5174",
       "reuseExistingServer": true,
-      "timeout": 90000
+      "timeout": 90000,
+      "env": {
+        "VITE_MOCK_SENSORS": "true"
+      }
     }
   },
   "suites": [],
   "errors": [],
   "stats": {
-    "startTime": "2026-03-12T04:03:32.497Z",
-    "duration": 129385.768,
+    "startTime": "2026-03-22T07:06:16.068Z",
+    "duration": 19779.490999999998,
     "expected": 0,
     "skipped": 0,
     "unexpected": 0,
