@@ -40,6 +40,15 @@ export interface PickedMessage {
   trackIdHash: number;
   x: number;
   y: number;
+  threatLevel?: number;
+  entityType?: number;
+  context?: number;
+  speed?: number;
+  altitude?: number;
+  alertFlags?: number;
+  lon?: number;
+  lat?: number;
+  course?: number;
 }
 
 /** Emitted once the Render Worker has successfully initialised. */

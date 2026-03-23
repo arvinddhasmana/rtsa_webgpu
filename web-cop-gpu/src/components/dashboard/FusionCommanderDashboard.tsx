@@ -1,9 +1,9 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/dashboard/FusionCommanderDashboard.tsx
 
-import { createSignal, JSX } from "solid-js";
-import { clearSelectedTrack, trackDetail } from "../../signals/track";
-import { mapStyle, setMapStyle } from "../../signals/viewport";
+import { createEffect, createSignal, For, JSX, onCleanup, Show } from "solid-js";
+import { clearSelectedTrack, openTrackDetails, setOpenTrackDetails, setTrackOverlayPositions, trackDetail, trackOverlayPositions } from "../../signals/track";
+import { DraggableOverlayCard } from "./DraggableOverlayCard";
 import { FusionConflictPanel } from "./FusionConflictPanel";
 import { FusionKPIDashboard } from "./FusionKPIDashboard";
 import { SensorLegend } from "./SensorLegend";
@@ -20,8 +20,59 @@ interface FusionCommanderDashboardProps {
  * Focus: Tactical Clarity, Premium Glassmorphism, Zero Clutter.
  */
 export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
-  const [showObs, setShowObs] = createSignal(false);
+  const [showObs, setShowObs] = createSignal(true);
   const [showTracks, setShowTracks] = createSignal(true);
+  const [mapStyle, setMapStyle] = createSignal(0);
+  const [legendPos, setLegendPos] = createSignal({ x: 24, y: window.innerHeight - 300 });
+
+  function closeTrackOverlay(trackId: string) {
+    setOpenTrackDetails((curr) => curr.filter((t) => t.trackId !== trackId));
+    if (trackDetail()?.trackId === trackId) {
+       clearSelectedTrack();
+    }
+  }
+
+  function closeAllTrackOverlays() {
+    setOpenTrackDetails([]);
+    clearSelectedTrack();
+  }
+
+  function updateTrackOverlayPosition(trackId: string, pos: { x: number; y: number }) {
+    setTrackOverlayPositions((prev) => ({ ...prev, [trackId]: pos }));
+  }
+
+  function autoArrangeTrackOverlays() {
+    const root = document.querySelector('[data-testid="fusion-dashboard-root"]');
+    if (!root) return;
+    const rootR = root.getBoundingClientRect();
+    const w = rootR.width;
+    const items = openTrackDetails();
+    const gap = 20;
+    const cardW = 750;
+    const cardH = 550;
+    const columns = Math.max(1, Math.floor((w - 40) / (cardW + gap)));
+    const arranged: Record<string, { x: number; y: number }> = {};
+    items.forEach((track, idx) => {
+      const col = idx % columns;
+      const row = Math.floor(idx / columns);
+      arranged[track.trackId] = {
+        x: 20 + col * (cardW + gap),
+        y: 60 + row * (cardH + gap),
+      };
+    });
+    setTrackOverlayPositions({ ...arranged });
+  }
+
+  createEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && openTrackDetails().length > 0) {
+        e.preventDefault();
+        closeAllTrackOverlays();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    onCleanup(() => window.removeEventListener("keydown", onKeyDown));
+  });
 
   return (
     <div
@@ -110,28 +161,80 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
           </div>
         </div>
 
-        {/* Legend Panel (Bottom Left) */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: "1.5rem",
-            left: "1.5rem",
-            "z-index": "20",
-            background: "rgba(15, 23, 42, 0.4)",
-            "backdrop-filter": "blur(4px)",
-            padding: "0",
-            "border-radius": "12px",
-            border: "none",
-          }}
+        {/* Legend Panel (Floating) */}
+        <DraggableOverlayCard
+          title="PROFESSIONAL GLASS LEGEND"
+          position={legendPos()}
+          onPositionChange={setLegendPos}
+          minWidth="280px"
+          constrainToParent
         >
           <SensorLegend />
-        </div>
+        </DraggableOverlayCard>
 
         {/* Track Drill-down (Anchored Overlay) */}
-        <TrackDrillDownOverlay
-          track={trackDetail()}
-          onClose={() => clearSelectedTrack()}
-        />
+        <Show when={openTrackDetails().length > 0}>
+          <div
+            data-testid="track-overlay-layer"
+            style={{
+              position: "absolute",
+              inset: "0",
+              "pointer-events": "none",
+              "z-index": 120,
+            }}
+          >
+            <button
+              data-testid="track-auto-arrange"
+              onClick={() => autoArrangeTrackOverlays()}
+              title="Auto-arrange track cards"
+              style={{
+                position: "absolute",
+                top: "8px",
+                right: "8px",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "#94a3b8",
+                padding: "4px 8px",
+                "border-radius": "8px",
+                "font-size": "0.6rem",
+                "font-weight": "700",
+                "text-transform": "uppercase",
+                "letter-spacing": "0.1em",
+                cursor: "pointer",
+                "pointer-events": "auto",
+                transition: "all 0.15s ease",
+                "box-shadow": "0 2px 8px rgba(0,0,0,0.4)",
+              }}
+              onMouseEnter={(e) => {
+                const t = e.currentTarget;
+                t.style.background = "rgba(255,255,255,0.12)";
+                t.style.color = "#f8fafc";
+              }}
+              onMouseLeave={(e) => {
+                const t = e.currentTarget;
+                t.style.background = "rgba(255,255,255,0.06)";
+                t.style.color = "#94a3b8";
+              }}
+            >
+              Auto Arrange
+            </button>
+            <For each={openTrackDetails()}>
+              {(detail) => (
+                <DraggableOverlayCard
+                  title={`FUSED TRACK DATA | TRACK ID: ${detail.trackId}`}
+                  position={trackOverlayPositions()[detail.trackId] ?? { x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 275 }}
+                  onPositionChange={(pos) => updateTrackOverlayPosition(detail.trackId, pos)}
+                  onClose={() => closeTrackOverlay(detail.trackId)}
+                  minWidth="750px"
+                  constrainToParent
+                  accentColor="#38bdf8"
+                >
+                  <TrackDrillDownOverlay track={detail} onClose={() => closeTrackOverlay(detail.trackId)} />
+                </DraggableOverlayCard>
+              )}
+            </For>
+          </div>
+        </Show>
       </section>
 
       {/* Mission Analytics Fragment (Floating Draggable Toast) */}

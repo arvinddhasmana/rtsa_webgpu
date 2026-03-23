@@ -19,31 +19,31 @@ import { CoverageManager } from "../gpu/coverage";
 import { initGPU } from "../gpu/device";
 import { FrameTimer } from "../gpu/frame-timer";
 import {
-  initMockTracks,
-  MOCK_TRACK_COUNT,
-  tickMockTracks,
-  writeMockTracksToSAB,
+    initMockTracks,
+    MOCK_TRACK_COUNT,
+    tickMockTracks,
+    writeMockTracksToSAB,
 } from "../gpu/mock-data";
 import {
-  createPickResources,
-  destroyPickResources,
-  readPickPixel,
+    createPickResources,
+    destroyPickResources,
+    readPickPixel,
 } from "../gpu/pick";
 import { createPipelines } from "../gpu/pipelines";
 import {
-  computeFps,
-  makeErrorStatus,
-  RENDER_ERROR_THRESHOLD,
-  RENDER_INTERVAL_MS,
-  shouldFlushStats,
+    computeFps,
+    makeErrorStatus,
+    RENDER_ERROR_THRESHOLD,
+    RENDER_INTERVAL_MS,
+    shouldFlushStats,
 } from "../gpu/render-logic";
 import { renderFrame, type RenderState } from "../gpu/renderer";
 import { RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 import {
-  MainToRenderMessage,
-  PickedMessage,
-  RenderStatsMessage,
-  RenderReadyMessage as RenderStatusMessage,
+    MainToRenderMessage,
+    PickedMessage,
+    RenderStatsMessage,
+    RenderReadyMessage as RenderStatusMessage,
 } from "./shared-protocol";
 
 /** Local alias for MainToRenderMessage */
@@ -356,7 +356,13 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
         const rs = renderState;
         readPickPixel(rs.device, rs.pick, msg.x, msg.y).then(
           (trackIdHash) => {
-            if (trackIdHash === null || trackIdHash === 0) return;
+            if (trackIdHash === null || trackIdHash === 0) {
+              const emptyMsg: import("./shared-protocol").HoveredMessage = {
+                type: "hovered", trackIdHash: 0, threatLevel: 0, entityType: 0, context: 0, speed: 0, altitude: 0, alertFlags: 0
+              };
+              self.postMessage(emptyMsg);
+              return;
+            }
             // Scan SAB to find the slot with this hash and read metadata
             const sabView = new DataView(
               rs.sab,
@@ -413,6 +419,31 @@ self.addEventListener("message", (event: MessageEvent<InboundMessage>) => {
               x: msg.x,
               y: msg.y,
             };
+            if (trackIdHash !== 0 && renderState) {
+              const rs = renderState;
+              const sabView = new DataView(
+                rs.sab,
+                TRACK_DATA_OFFSET,
+                rs.trackCount * RECORD_SIZE,
+              );
+              for (let i = 0; i < rs.trackCount; i++) {
+                const base = i * RECORD_SIZE;
+                const hash = sabView.getUint32(base + 0x14, true);
+                if (hash === trackIdHash) {
+                  picked.speed     = sabView.getFloat32(base + 0x0c, true);
+                  picked.altitude  = sabView.getFloat32(base + 0x10, true);
+                  picked.threatLevel = sabView.getUint32(base + 0x20, true);
+                  const iconIndex  = sabView.getUint32(base + 0x24, true);
+                  picked.alertFlags = sabView.getUint32(base + 0x28, true);
+                  picked.entityType = Math.floor((iconIndex % 36) / 6);
+                  picked.context   = Math.floor(iconIndex / 36);
+                  picked.lon       = sabView.getFloat32(base + 0x00, true);
+                  picked.lat       = sabView.getFloat32(base + 0x04, true);
+                  picked.course    = sabView.getFloat32(base + 0x08, true);
+                  break;
+                }
+              }
+            }
             self.postMessage(picked);
           })
           .catch((err: unknown) => {

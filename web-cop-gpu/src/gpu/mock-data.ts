@@ -20,13 +20,13 @@
 
 import { HEADER_SIZE, RECORD_SIZE, TRACK_DATA_OFFSET } from "../services/sab";
 import {
-  encodeIconIndex,
-  ENTITY_TYPE_AIR,
-  ENTITY_TYPE_SURFACE,
-  ENTITY_TYPE_SUBSURFACE,
-  ENTITY_TYPE_LAND,
-  ENTITY_TYPE_CYBER,
-  TrackRenderContext,
+    encodeIconIndex,
+    ENTITY_TYPE_AIR,
+    ENTITY_TYPE_CYBER,
+    ENTITY_TYPE_LAND,
+    ENTITY_TYPE_SUBSURFACE,
+    ENTITY_TYPE_SURFACE,
+    TrackRenderContext,
 } from "../types/symbology";
 
 /** Number of mock tracks for the West Asia demo scenario. */
@@ -98,6 +98,32 @@ function clampToBox(lon: number, lat: number): { lon: number; lat: number } {
   };
 }
 
+const WATER_BOXES = [
+  { minLon: 48, maxLon: 55, minLat: 24.5, maxLat: 29 }, // Persian Gulf
+  { minLon: 56.5, maxLon: 61, minLat: 22, maxLat: 25.5 }, // Gulf of Oman
+];
+
+const LAND_BOXES = [
+  { minLon: 50, maxLon: 60, minLat: 29.5, maxLat: 31.5 }, // Iran Inland
+  { minLon: 52, maxLon: 56, minLat: 22, maxLat: 23.5 }, // UAE / Oman Inland
+];
+
+function randWater(): { lon: number; lat: number } {
+  const b = WATER_BOXES[Math.floor(Math.random() * WATER_BOXES.length)]!;
+  return clampToBox(
+    randFloat(b.minLon * Math.PI / 180, b.maxLon * Math.PI / 180),
+    randFloat(b.minLat * Math.PI / 180, b.maxLat * Math.PI / 180)
+  );
+}
+
+function randLand(): { lon: number; lat: number } {
+  const b = LAND_BOXES[Math.floor(Math.random() * LAND_BOXES.length)]!;
+  return clampToBox(
+    randFloat(b.minLon * Math.PI / 180, b.maxLon * Math.PI / 180),
+    randFloat(b.minLat * Math.PI / 180, b.maxLat * Math.PI / 180)
+  );
+}
+
 // ── Track factory helpers ─────────────────────────────────────────────────────
 
 function makeTrail(lon: number, lat: number): Array<{ lon: number; lat: number }> {
@@ -162,46 +188,31 @@ export function initMockTracks(_count: number = MOCK_TRACK_COUNT): void {
   // ── Surface / Vessel tracks (55) ────────────────────────────────────────────
   // 22 Military Friendly — coalition warships, patrol boats
   for (let i = 0; i < 22; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(47 * Math.PI / 180, 60 * Math.PI / 180),
-      randFloat(23 * Math.PI / 180, 30 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SURFACE, 2, TrackRenderContext.MILITARY,
       randFloat(5, 18), 0, SENSOR_HORMUZ | SENSOR_BAHRAIN));
   }
   // 5 Military Hostile — Iranian warships
   for (let i = 0; i < 5; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(55 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(25 * Math.PI / 180, 29 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SURFACE, 5, TrackRenderContext.MILITARY,
       randFloat(8, 22), 0, SENSOR_HORMUZ | SENSOR_BANDAR));
   }
   // 5 Military Suspect — vessels with AIS anomalies
   for (let i = 0; i < 5; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(54 * Math.PI / 180, 60 * Math.PI / 180),
-      randFloat(24 * Math.PI / 180, 27 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SURFACE, 4, TrackRenderContext.MILITARY,
       randFloat(5, 15), 0, SENSOR_DUBAI | SENSOR_HORMUZ));
   }
   // 8 Military Unknown — unidentified contacts
   for (let i = 0; i < 8; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(56 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(22 * Math.PI / 180, 26 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SURFACE, 0, TrackRenderContext.MILITARY,
       randFloat(3, 12), 0, SENSOR_CHABAHAR | SENSOR_MUSCAT));
   }
   // 15 Civilian Neutral — tankers, cargo ships
   for (let i = 0; i < 15; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(47 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(23 * Math.PI / 180, 30 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SURFACE, 3, TrackRenderContext.CIVILIAN,
       randFloat(6, 14), 0, SENSOR_AIS_BITMAP(i)));
   }
@@ -256,37 +267,25 @@ export function initMockTracks(_count: number = MOCK_TRACK_COUNT): void {
   // ── Land tracks (30) ──────────────────────────────────────────────────────
   // 14 Military Friendly — UAE/Oman ground forces
   for (let i = 0; i < 14; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(46 * Math.PI / 180, 58 * Math.PI / 180),
-      randFloat(23 * Math.PI / 180, 30 * Math.PI / 180),
-    );
+    const { lon, lat } = randLand();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_LAND, 2, TrackRenderContext.MILITARY,
       randFloat(10, 60), 0, SENSOR_BAHRAIN | SENSOR_DUBAI));
   }
   // 8 Military Hostile — Iranian coastal SAM / IRGCN ground units
   for (let i = 0; i < 8; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(56 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(26 * Math.PI / 180, 31 * Math.PI / 180),
-    );
+    const { lon, lat } = randLand();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_LAND, 5, TrackRenderContext.MILITARY,
       randFloat(0, 40), 0, SENSOR_BANDAR | SENSOR_CHABAHAR));
   }
   // 4 Military Pending — newly detected ground contacts
   for (let i = 0; i < 4; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(54 * Math.PI / 180, 60 * Math.PI / 180),
-      randFloat(24 * Math.PI / 180, 28 * Math.PI / 180),
-    );
+    const { lon, lat } = randLand();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_LAND, 1, TrackRenderContext.MILITARY,
       randFloat(0, 30), 0, SENSOR_QESHM | SENSOR_HORMUZ));
   }
   // 4 Military Unknown — unidentified ground targets
   for (let i = 0; i < 4; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(56 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(25 * Math.PI / 180, 29 * Math.PI / 180),
-    );
+    const { lon, lat } = randLand();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_LAND, 0, TrackRenderContext.MILITARY,
       randFloat(0, 50), 0, SENSOR_MUSCAT | SENSOR_CHABAHAR));
   }
@@ -294,37 +293,25 @@ export function initMockTracks(_count: number = MOCK_TRACK_COUNT): void {
   // ── Subsurface tracks (15) ────────────────────────────────────────────────
   // 5 Military Friendly — allied submarines
   for (let i = 0; i < 5; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(58 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(22 * Math.PI / 180, 25 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SUBSURFACE, 2, TrackRenderContext.MILITARY,
       randFloat(8, 18), 0, SENSOR_MUSCAT | SENSOR_CHABAHAR));
   }
   // 4 Military Hostile — Iranian submarines
   for (let i = 0; i < 4; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(57 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(23 * Math.PI / 180, 26 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SUBSURFACE, 5, TrackRenderContext.MILITARY,
       randFloat(5, 15), 0, SENSOR_HORMUZ | SENSOR_BANDAR));
   }
   // 3 Military Suspect — unclassified subsurface contacts
   for (let i = 0; i < 3; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(57 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(22 * Math.PI / 180, 25 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SUBSURFACE, 4, TrackRenderContext.MILITARY,
       randFloat(3, 12), 0, SENSOR_MUSCAT | SENSOR_CHABAHAR));
   }
   // 3 Military Unknown — unidentified underwater contacts
   for (let i = 0; i < 3; i++) {
-    const { lon, lat } = clampToBox(
-      randFloat(57 * Math.PI / 180, 62 * Math.PI / 180),
-      randFloat(22 * Math.PI / 180, 24 * Math.PI / 180),
-    );
+    const { lon, lat } = randWater();
     mockTracks.push(makeTrack(idx++, lon, lat, ENTITY_TYPE_SUBSURFACE, 0, TrackRenderContext.MILITARY,
       randFloat(2, 10), 0, SENSOR_HORMUZ | SENSOR_BANDAR));
   }

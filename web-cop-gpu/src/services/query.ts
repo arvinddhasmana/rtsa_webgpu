@@ -14,6 +14,7 @@ import {
 import type { FusedTrack } from "@gen/rtsa/entity/v1/fused_track_pb.js";
 import { QueryService } from "@gen/rtsa/query/v1/query_service_connect.js";
 import type { TrackDetail } from "../signals/track";
+import type { PickedMessage } from "../workers/shared-protocol";
 import { transport } from "./grpc-client";
 
 const client = createPromiseClient(QueryService, transport);
@@ -104,7 +105,7 @@ function mapTrack(track: FusedTrack): TrackDetail {
  * Fetch full track detail for a given track ID from ClickHouse via gRPC.
  * Returns mock data if the gRPC call fails or no matching track is found.
  */
-export async function fetchTrackDetail(trackId: string): Promise<TrackDetail | null> {
+export async function fetchTrackDetail(trackId: string, fallbackData?: PickedMessage): Promise<TrackDetail | null> {
   try {
     const response = await client.queryTracks({
       trackId,
@@ -119,7 +120,60 @@ export async function fetchTrackDetail(trackId: string): Promise<TrackDetail | n
     console.warn("[QueryService] fetchTrackDetail failed, falling back to mock", err);
   }
 
-  // Mock Fallback
+  // Use precision mock data if we received a picked metadata payload
+  if (fallbackData && fallbackData.threatLevel !== undefined && fallbackData.entityType !== undefined) {
+    const typeLabels = ["Unspecified", "Surface", "Air", "Subsurface", "Land", "Cyber"];
+    const classLabels = ["Unknown", "Pending", "Friendly", "Neutral", "Suspect", "Hostile"];
+
+    const eType = typeLabels[fallbackData.entityType] ?? "Unknown";
+    let dynSources = [];
+    const now = Date.now();
+
+    if (eType === "Surface") {
+      dynSources = [
+        { sourceName: "AIS Network", sourceType: "AIS", timestamp: new Date(now - 12000).toISOString(), data: "Vessel signature matched", signalStrength: 0.95 },
+        { sourceName: "Coastal Radar", sourceType: "Radar", timestamp: new Date(now - 8000).toISOString(), data: `Track pos ${fallbackData.lat?.toFixed(2)}, ${fallbackData.lon?.toFixed(2)}`, signalStrength: 0.82 },
+      ];
+    } else if (eType === "Air") {
+      dynSources = [
+        { sourceName: "ADS-B Feed", sourceType: "ADS-B", timestamp: new Date(now - 5000).toISOString(), data: `Squawk matched. Alt: ${(fallbackData.altitude||0).toFixed(0)}m`, signalStrength: 0.98 },
+        { sourceName: "SPY-1 Radar", sourceType: "Radar", timestamp: new Date(now - 2000).toISOString(), data: `High-speed contact ${((fallbackData.speed||0)*1.94384).toFixed(0)}kts`, signalStrength: 0.91 },
+      ];
+    } else if (eType === "Subsurface") {
+      dynSources = [
+        { sourceName: "Sonar Array", sourceType: "Acoustic", timestamp: new Date(now - 45000).toISOString(), data: "Cavitation noise detected", signalStrength: 0.65 },
+        { sourceName: "Sonobuoy Field", sourceType: "Acoustic", timestamp: new Date(now - 21000).toISOString(), data: "Faint magnetic anomaly", signalStrength: 0.52 },
+      ];
+    } else if (eType === "Land") {
+      dynSources = [
+        { sourceName: "ISR Drone", sourceType: "EO/IR", timestamp: new Date(now - 15000).toISOString(), data: "Visual confirmation of ground transport", signalStrength: 0.88 },
+        { sourceName: "SIGINT Intercept", sourceType: "RF", timestamp: new Date(now - 32000).toISOString(), data: "Command net transmission localized", signalStrength: 0.74 },
+      ];
+    } else {
+      dynSources = [
+        { sourceName: "Satellite Intel", sourceType: "GEOINT", timestamp: new Date(now - 60000).toISOString(), data: "Anomalous footprint", signalStrength: 0.77 }
+      ];
+    }
+
+    return {
+      trackId: trackId,
+      entityType: eType,
+      hostileClass: classLabels[fallbackData.threatLevel] ?? "Unknown",
+      status: "Active",
+      classification: fallbackData.context === 1 ? "UNCLASSIFIED" : "SECRET",
+      confidenceScore: 85 + Math.random() * 10,
+      sourceCount: dynSources.length,
+      lat: fallbackData.lat ? fallbackData.lat * 180 / Math.PI : 0,
+      lon: fallbackData.lon ? fallbackData.lon * 180 / Math.PI : 0,
+      speedKnots: (fallbackData.speed || 0) * 1.94384,
+      headingDeg: fallbackData.course ? fallbackData.course * 180 / Math.PI : 0,
+      altitudeMeters: fallbackData.altitude || 0,
+      updatedAtMs: now,
+      sourceContributions: dynSources
+    };
+  }
+
+  // Standard Random Mock Fallback (should rarely occur for main Tracks now)
   return {
     trackId: trackId,
     entityType: ["Air", "Surface", "Subsurface"][Math.floor(Math.random() * 3)],

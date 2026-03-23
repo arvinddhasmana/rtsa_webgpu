@@ -8,23 +8,14 @@ export const SensorLegend: Component = () => {
     <div
       data-testid="sensor-legend"
       style={{
-        background: "rgba(15, 23, 42, 0.6)",
-        "backdrop-filter": "blur(12px)",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        "border-radius": "12px",
-        padding: "1rem",
         color: "#f8fafc",
         width: "280px",
+        padding: "0.5rem 1rem 1rem 1rem",
         display: "flex",
         "flex-direction": "column",
         gap: "1rem",
-        "box-shadow": "0 10px 40px rgba(0,0,0,0.4)",
       }}
     >
-      <header style={{ "font-size": "0.7rem", "font-weight": "800", color: "#94a3b8", "letter-spacing": "0.1em", "text-transform": "uppercase" }}>
-        PROFESSIONAL GLASS LEGEND
-      </header>
-
       <div style={{ display: "grid", "grid-template-columns": "1fr 1fr", gap: "1rem" }}>
         {/* Friendly Section */}
         <div style={{ display: "flex", "flex-direction": "column", gap: "0.5rem" }}>

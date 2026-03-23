@@ -11,27 +11,29 @@ import { updateAlerts } from "./signals/alerts";
 import { operatorIdFromToken, setOperatorId } from "./signals/auth";
 import { setConnecting, setWtConnected } from "./signals/connection";
 import {
-  setDatagramsPerSec,
-  setDecodeErrors,
-  setFps,
-  setLatencyMs,
-  setRecordsPerSec,
-  setTrackCount,
-  setVisibleCount,
+    setDatagramsPerSec,
+    setDecodeErrors,
+    setFps,
+    setLatencyMs,
+    setRecordsPerSec,
+    setTrackCount,
+    setVisibleCount,
 } from "./signals/stats";
 import {
-  setSelectedTrack,
-  setTrackDetail,
-  setTrackDetailError,
-  setTrackDetailLoading,
+    setOpenTrackDetails,
+    setSelectedTrack,
+    setTrackDetail,
+    setTrackDetailError,
+    setTrackDetailLoading,
+    setTrackOverlayPositions,
 } from "./signals/track";
 import {
-  dashboard,
-  enforceRoleDashboardGuard,
-  mapStyle,
-  role,
-  setMapStyle,
-  viewport,
+    dashboard,
+    enforceRoleDashboardGuard,
+    mapStyle,
+    role,
+    setMapStyle,
+    viewport,
 } from "./signals/viewport";
 
 // Spatial alert signals
@@ -64,12 +66,12 @@ import { RoleSelector } from "./components/toolbar/RoleSelector";
 
 // Worker message types
 import type {
-  DataInitMessage,
-  DataToMainMessage,
-  HoveredMessage,
-  RenderInitMessage,
-  RenderToMainMessage,
-  TokenRefreshMessage,
+    DataInitMessage,
+    DataToMainMessage,
+    HoveredMessage,
+    RenderInitMessage,
+    RenderToMainMessage,
+    TokenRefreshMessage,
 } from "./workers/shared-protocol";
 
 // Fps tracking
@@ -139,10 +141,20 @@ export default function App() {
         setTrackDetailLoading(true);
         setTrackDetailError(null);
         setTrackDetail(null);
-        fetchTrackDetail(hashHex)
+        fetchTrackDetail(hashHex, msg as any)
           .then((detail) => {
             setTrackDetail(detail);
             setTrackDetailLoading(false);
+            if (detail) {
+              setOpenTrackDetails((curr) => {
+                if (curr.some((t) => t.trackId === detail.trackId)) return curr;
+                setTrackOverlayPositions((prev) => ({
+                  ...prev,
+                  [detail.trackId]: prev[detail.trackId] ?? { x: window.innerWidth / 2 - 400 + curr.length * 40, y: window.innerHeight / 2 - 300 + curr.length * 40 }
+                }));
+                return [...curr, detail];
+              });
+            }
           })
           .catch((err: unknown) => {
             setTrackDetailError(

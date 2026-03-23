@@ -61,6 +61,12 @@ export const [trackDetail, setTrackDetail] = createSignal<TrackDetail | null>(
 /** Whether the detail fetch is in progress. */
 export const [trackDetailLoading, setTrackDetailLoading] = createSignal(false);
 
+/** List of currently open Track Detail panels (for multiple HUDs). */
+export const [openTrackDetails, setOpenTrackDetails] = createSignal<TrackDetail[]>([]);
+
+/** Map of track IDs to window positions for Draggable overlay cards. */
+export const [trackOverlayPositions, setTrackOverlayPositions] = createSignal<Record<string, {x:number, y:number}>>({});
+
 /** Error message from the last detail fetch (null = no error). */
 export const [trackDetailError, setTrackDetailError] = createSignal<
   string | null
