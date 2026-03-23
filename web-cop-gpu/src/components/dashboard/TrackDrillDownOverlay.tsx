@@ -2,7 +2,7 @@
 // src/components/dashboard/TrackDrillDownOverlay.tsx
 
 import { Component, For } from "solid-js";
-import { TrackDetail } from "../../signals/track";
+import { TrackDetail, setTrackDetail } from "../../signals/track";
 import { setFeedbackOpen } from "../../signals/viewport";
 import { EventTimeline } from "../timeline/EventTimeline";
 
@@ -30,29 +30,38 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
       style={{
         display: "flex",
         "flex-direction": "column",
-        width: "550px",
-        padding: "0.5rem 1rem",
-        gap: "1rem",
+        padding: "0.25rem 0.5rem",
+        gap: "0.5rem",
         background: "transparent",
       }}
     >
-        {/* Top Actions Row */}
-        <div style={{ display: "flex", "justify-content": "flex-end", gap: "8px" }}>
-              <button onClick={() => setFeedbackOpen(true)} style={{ background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", border: "none", color: "#fff", padding: "4px 8px", "border-radius": "4px", "font-weight": "800", cursor: "pointer", "text-transform": "uppercase", "letter-spacing": "0.05em", "font-size": "0.6rem" }}>FEEDBACK</button>
-              <button onClick={() => alert(`Sharing Track ${t().trackId} data to external liaison...`)} style={{ background: "rgba(56, 189, 248, 0.1)", border: "1px solid #38bdf8", color: "#38bdf8", padding: "4px 8px", "border-radius": "4px", "font-weight": "700", cursor: "pointer", "font-size": "0.6rem" }}>SHARE</button>
+        {/* Ultra-compact Top Row: Icon + Confidence + Actions */}
+        <div style={{ display: "flex", "justify-content": "space-between", "align-items": "center" }}>
+             <div style={{ display: "flex", "align-items": "center", gap: "0.75rem" }}>
+                 <span style={{ "font-size": "1.8rem" }} title={t().entityType.toUpperCase()}>{trackIcon(t().entityType)}</span>
+                 <div style={{ display: "flex", "flex-direction": "column", width: "100px" }}>
+                     <div style={{ "font-size": "0.55rem", color: "#64748b", "margin-bottom": "0.25rem", "font-weight": 700 }}>TRACK CONFIDENCE: <span style={{ color: "#38bdf8" }}>{t().confidenceScore.toFixed(0)}%</span></div>
+                     <div style={{ height: "3px", background: "rgba(255,255,255,0.05)", "border-radius": "1.5px", overflow: "hidden" }}>
+                         <div style={{ width: `${t().confidenceScore}%`, height: "100%", background: "#38bdf8" }} />
+                     </div>
+                 </div>
+             </div>
+
+             <div style={{ display: "flex", gap: "6px" }}>
+                  <button onClick={() => { setTrackDetail(t()); setFeedbackOpen(true); }} style={{ background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)", border: "none", color: "#fff", padding: "4px 8px", "border-radius": "4px", "font-weight": "800", cursor: "pointer", "text-transform": "uppercase", "letter-spacing": "0.05em", "font-size": "0.6rem" }}>FEEDBACK</button>
+                  <button onClick={() => alert(`Sharing Track ${t().trackId} data to external liaison...`)} style={{ background: "rgba(56, 189, 248, 0.1)", border: "1px solid #38bdf8", color: "#38bdf8", padding: "4px 8px", "border-radius": "4px", "font-weight": "700", cursor: "pointer", "font-size": "0.6rem" }}>SHARE</button>
+             </div>
         </div>
 
-        {/* Kinematics Row (Horizontal) */}
+        {/* Kinematics Row (Micro Horizontal HUD) */}
         <div style={{
             background: "rgba(0,0,0,0.2)",
-            padding: "0.75rem",
-            "border-radius": "8px",
+            padding: "0.5rem",
+            "border-radius": "4px",
             display: "flex",
             "justify-content": "space-around",
             "align-items": "center",
-            border: "1px solid rgba(255,255,255,0.05)",
         }}>
-            <div style={{ "font-size": "0.65rem", "font-weight": "800", color: "#94a3b8" }}>KINEMATICS</div>
             <div style={{ display: "flex", "flex-direction": "column", "align-items": "center" }}>
                 <div style={{ "font-size": "0.55rem", color: "#64748b", "margin-bottom": "0.25rem" }}>VELOCITY (KTS): {t().speedKnots.toFixed(1)}</div>
                 <div style={{ width: "60px", height: "30px", position: "relative", overflow: "hidden" }}>
@@ -75,23 +84,6 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
                     <div style={{ height: "100%", width: "12px", border: "1px solid rgba(255,255,255,0.1)", position: "relative" }}>
                          <div style={{ position: "absolute", bottom: `${Math.min(100, (t().altitudeMeters/100))}%`, left: "0", right: "0", height: "20%", background: "#38bdf8", "box-shadow": "0 0 4px #38bdf8" }} />
                     </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Confidence & Classification */}
-        <div style={{ display: "grid", "grid-template-columns": "1fr 1fr", gap: "1rem", "align-items": "center" }}>
-            <div style={{ background: "rgba(0,0,0,0.1)", padding: "10px", "border-radius": "6px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ "font-size": "0.6rem", color: "#64748b", "margin-bottom": "0.5rem" }}>TRACK CONFIDENCE: <span style={{ color: "#38bdf8" }}>{t().confidenceScore.toFixed(0)}%</span></div>
-                <div style={{ height: "4px", background: "rgba(255,255,255,0.05)", "border-radius": "2px", overflow: "hidden" }}>
-                    <div style={{ width: `${t().confidenceScore}%`, height: "100%", background: "#38bdf8" }} />
-                </div>
-            </div>
-            <div style={{ background: "rgba(0,0,0,0.1)", padding: "10px", "border-radius": "6px", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div style={{ "font-size": "0.6rem", color: "#64748b", "margin-bottom": "0.5rem" }}>CLASSIFICATION:</div>
-                <div style={{ display: "flex", "align-items": "center", gap: "0.5rem" }}>
-                   <span style={{ "font-size": "1.2rem" }}>{trackIcon(t().entityType)}</span>
-                   <span style={{ "font-size": "0.85rem", "font-weight": "700", "letter-spacing": "0.05em" }}>{t().entityType.toUpperCase()}</span>
                 </div>
             </div>
         </div>

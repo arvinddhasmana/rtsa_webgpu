@@ -3,6 +3,7 @@
 
 import { createEffect, createSignal, For, JSX, onCleanup, Show } from "solid-js";
 import { clearSelectedTrack, openTrackDetails, setOpenTrackDetails, setTrackOverlayPositions, trackDetail, trackOverlayPositions } from "../../signals/track";
+import { setFeedbackOpen } from "../../signals/viewport";
 import { DraggableOverlayCard } from "./DraggableOverlayCard";
 import { FusionConflictPanel } from "./FusionConflictPanel";
 import { FusionKPIDashboard } from "./FusionKPIDashboard";
@@ -48,8 +49,8 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
     const w = rootR.width;
     const items = openTrackDetails();
     const gap = 20;
-    const cardW = 750;
-    const cardH = 550;
+    const cardW = 480;
+    const cardH = 340;
     const columns = Math.max(1, Math.floor((w - 40) / (cardW + gap)));
     const arranged: Record<string, { x: number; y: number }> = {};
     items.forEach((track, idx) => {
@@ -65,9 +66,12 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
 
   createEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && openTrackDetails().length > 0) {
-        e.preventDefault();
-        closeAllTrackOverlays();
+      if (e.key === "Escape") {
+        setFeedbackOpen(false);
+        if (openTrackDetails().length > 0) {
+          e.preventDefault();
+          closeAllTrackOverlays();
+        }
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -222,10 +226,13 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
               {(detail) => (
                 <DraggableOverlayCard
                   title={`FUSED TRACK DATA | TRACK ID: ${detail.trackId}`}
-                  position={trackOverlayPositions()[detail.trackId] ?? { x: window.innerWidth / 2 - 400, y: window.innerHeight / 2 - 275 }}
+                  position={trackOverlayPositions()[detail.trackId] ?? { x: window.innerWidth / 2 - 250, y: window.innerHeight / 2 - 275 }}
                   onPositionChange={(pos) => updateTrackOverlayPosition(detail.trackId, pos)}
                   onClose={() => closeTrackOverlay(detail.trackId)}
-                  minWidth="750px"
+                  width="450px"
+                  minWidth="340px"
+                  maxHeight="800px"
+                  resizable={true}
                   constrainToParent
                   accentColor="#38bdf8"
                 >

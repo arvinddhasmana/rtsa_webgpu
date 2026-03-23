@@ -22,6 +22,7 @@ export interface DraggableOverlayCardProps {
   onPositionChange?: (pos: { x: number; y: number }) => void;
   onClose?: () => void;
   constrainToParent?: boolean;
+  resizable?: boolean;
 }
 
 /**
@@ -105,8 +106,7 @@ export function DraggableOverlayCard(
         position: "absolute",
         left: `${pos().x}px`,
         top: `${pos().y}px`,
-        width: props.width ?? "220px",
-        "min-width": props.minWidth ?? "180px",
+        width: "max-content",
         "z-index": props.zIndex ?? 10,
         "user-select": dragging() ? "none" : "auto",
         "pointer-events": "auto",
@@ -123,6 +123,12 @@ export function DraggableOverlayCard(
           "box-shadow": `0 14px 48px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.07)`,
           overflow: "hidden",
           transition: "box-shadow 0.2s ease",
+          display: "flex",
+          "flex-direction": "column",
+          resize: minimized() ? "none" : (props.resizable ? "both" : "none"),
+          width: minimized() ? "auto" : (props.width ?? "220px"),
+          "min-width": props.minWidth ?? "180px",
+          "max-height": props.maxHeight ?? "auto",
         }}
       >
         {/* ── Header / drag handle ── */}
@@ -249,7 +255,7 @@ export function DraggableOverlayCard(
           <div
             class={`overlay-scroll-${scrollKey}`}
             style={{
-              "max-height": props.maxHeight ?? "280px",
+              flex: 1,
               "overflow-y": "auto",
               "overflow-x": "hidden",
               padding: "8px",

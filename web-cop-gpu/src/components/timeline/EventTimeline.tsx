@@ -34,12 +34,12 @@ export function EventTimeline() {
       style={{
         display: "flex",
         "flex-direction": "column",
-        padding: "0.5rem 0",
-        "min-height": "6rem",
+        padding: "0",
+        "min-height": "4rem",
       }}
       aria-label="Event timeline"
     >
-      <div style={{ "font-size": "0.65rem", color: "#94a3b8", "margin-bottom": "1rem", "font-weight": "800", "text-transform": "uppercase", "letter-spacing": "0.06em" }}>
+      <div style={{ "font-size": "0.65rem", color: "#94a3b8", "margin-bottom": "0.25rem", "font-weight": "800", "text-transform": "uppercase", "letter-spacing": "0.06em" }}>
         Event Intelligence Stream
       </div>
 

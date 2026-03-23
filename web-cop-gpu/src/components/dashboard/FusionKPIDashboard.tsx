@@ -2,7 +2,7 @@
 // src/components/dashboard/FusionKPIDashboard.tsx
 
 import { Component, For, createMemo } from "solid-js";
-import { activeObservationCount } from "../../signals/sensor-observations";
+import { trackCount } from "../../signals/stats";
 
 export const FusionKPIDashboard: Component = () => {
   // Mock buckets for high-fidelity look
@@ -30,12 +30,6 @@ export const FusionKPIDashboard: Component = () => {
         "font-family": "Inter, sans-serif",
       }}
     >
-      <header>
-        <h2 style={{ "font-size": "0.75rem", "font-weight": "800", color: "#94a3b8", "letter-spacing": "0.1em", "text-transform": "uppercase", "margin-bottom": "1rem" }}>
-          Mission Analytics
-        </h2>
-      </header>
-
       {/* Active Observations HUD */}
       <section style={{
         background: "rgba(15, 23, 42, 0.4)",
@@ -48,12 +42,12 @@ export const FusionKPIDashboard: Component = () => {
         <div style={{ "font-size": "0.65rem", color: "#94a3b8", "margin-bottom": "0.5rem" }}>ACTIVE OBS</div>
         <div style={{ display: "flex", "align-items": "baseline", gap: "0.5rem" }}>
           <span style={{ "font-size": "2.5rem", "font-weight": "700", color: "#f8fafc" }}>
-            {activeObservationCount().toLocaleString()}
+            {trackCount().toLocaleString()}
           </span>
           <span style={{ "font-size": "0.8rem", color: "#64748b" }}>Tracks</span>
         </div>
-        <div style={{ position: "absolute", top: "1rem", right: "1rem" }}>
-            <div style={{ width: "12px", height: "12px", border: "1px solid #4ade80", "border-radius": "50%", display: "flex", "align-items": "center", "justify-content": "center", "font-size": "8px", color: "#4ade80" }}>i</div>
+        <div style={{ position: "absolute", top: "1rem", right: "1rem" }} title="Total number of active fused tracks currently being monitored by the Operations Commander.">
+            <div style={{ width: "12px", height: "12px", border: "1px solid #4ade80", "border-radius": "50%", display: "flex", "align-items": "center", "justify-content": "center", "font-size": "8px", color: "#4ade80", cursor: "help" }}>i</div>
         </div>
       </section>
 
