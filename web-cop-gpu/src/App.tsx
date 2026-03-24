@@ -14,6 +14,8 @@ import {
     setDatagramsPerSec,
     setDecodeErrors,
     setFps,
+    setFusionStats,
+    setLatencyHistory,
     setLatencyMs,
     setRecordsPerSec,
     setTrackCount,
@@ -199,6 +201,14 @@ export default function App() {
         setDatagramsPerSec(msg.datagramsReceived);
         setRecordsPerSec(msg.recordsDecoded);
         setDecodeErrors(msg.decodeErrors);
+        break;
+
+      case "fusion_stats":
+        setFusionStats(msg.stats);
+        setLatencyHistory((prev) => {
+          const next = [...prev, msg.stats.avg_latency_ms];
+          return next.length > 20 ? next.slice(1) : next;
+        });
         break;
 
       case "alerts_updated":

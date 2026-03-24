@@ -16,13 +16,13 @@ describe("makeViewProjection", () => {
     expect(vp.length).toBe(16);
   });
 
-  it("identity case: center (0,0), scale 1, square canvas", () => {
-    const vp = makeViewProjection(100, 100, 0, 0, 1);
-    // Column-major orthographic: scale on diagonal, no translation
-    expect(vp[0]).toBeCloseTo(1, 5);  // sx
-    expect(vp[5]).toBeCloseTo(1, 5);  // sy
-    expect(vp[12]).toBeCloseTo(0, 5); // tx = -centerLon * sx = 0
-    expect(vp[13]).toBeCloseTo(0, 5); // ty = -centerLat * sy = 0
+  it("identity case: center (0,0), scale 1, square canvas matching world size", () => {
+    const vp = makeViewProjection(2048, 2048, 0, 0, 1);
+    // L=1024, W=H=2048 -> sx=1, sy=-1
+    expect(vp[0]).toBeCloseTo(1, 5);   // sx
+    expect(vp[5]).toBeCloseTo(-1, 5);  // sy (Y-flip)
+    expect(vp[12]).toBeCloseTo(-0.5, 5); // tx = -cx * sx = -0.5 * 1
+    expect(vp[13]).toBeCloseTo(0.5, 5);  // ty = -cy * sy = -0.5 * -1
     expect(vp[15]).toBe(1);           // homogeneous row
   });
 
@@ -33,20 +33,23 @@ describe("makeViewProjection", () => {
     expect(vp2[5]).toBeCloseTo(vp1[5]! * 2, 5);
   });
 
-  it("aspect ratio: wider canvas reduces sx relative to sy", () => {
+  it("aspect ratio: wider canvas reduces sx relative to Math.abs(sy)", () => {
     const vp = makeViewProjection(1920, 1080, 0, 0, 1);
-    // sx = scale / aspect = 1 / (1920/1080) ≈ 0.5625
-    // sy = scale = 1
-    expect(vp[0]!).toBeLessThan(vp[5]!);
+    // sx = 2 * 1024 / 1920 ≈ 1.066
+    // sy = -2 * 1024 / 1080 ≈ -1.896
+    expect(vp[0]!).toBeLessThan(Math.abs(vp[5]!));
   });
 
-  it("non-zero centre shifts translation column", () => {
-    const lon = 0.5;
-    const lat = 0.3;
-    const vp  = makeViewProjection(100, 100, lon, lat, 1);
-    // tx = -centerLon * sx  (sx = sy = 1 for square canvas)
-    expect(vp[12]).toBeCloseTo(-lon, 5);
-    expect(vp[13]).toBeCloseTo(-lat, 5);
+  it("non-zero centre shifts translation column based on Web Mercator cx/cy", () => {
+    const lon = 45;
+    const lat = 45;
+    const vp  = makeViewProjection(2048, 2048, lon, lat, 1);
+
+    // cx = 45/360 + 0.5 = 0.625
+    // sin(45)=0.707 -> ln((1.707)/(0.293))/4pi = 1.76/12.56 = 0.14
+    // cy = 0.5 - 0.14 = 0.36
+    expect(vp[12]).toBeCloseTo(-0.625, 3);
+    expect(vp[13]).toBeCloseTo(0.36, 1); // rough check as lat->cy is non-linear
   });
 
   it("handles zero canvas height gracefully (no NaN)", () => {

@@ -55,6 +55,133 @@ fn read_u32(src: &[u8], offset: usize) -> u32 {
     u32::from_le_bytes(src[offset..offset + 4].try_into().unwrap_or([0u8; 4]))
 }
 
+// ── Statistical Aggregation ──────────────────────────────────────────────────
+
+/// Aggregated metrics for the Operations Commander dashboard.
+#[wasm_bindgen]
+pub struct FusionStats {
+    pub high_confidence_count: u32,
+    pub mid_confidence_count: u32,
+    pub low_confidence_count: u32,
+    pub radar_count: u32,
+    pub sigint_count: u32,
+    pub satellite_count: u32,
+    pub ew_count: u32,
+    pub others_count: u32,
+    pub avg_latency_ms: f32,
+    pub max_latency_ms: f32,
+}
+
+/// Compute statistical buckets for all tracks in the SharedArrayBuffer.
+///
+/// Iterates from slot 0 to `active_track_count` and aggregates confidence-score
+/// distributions, sensor presence bits, and propagation latency.
+///
+/// # Returns
+/// A `FusionStats` struct containing the computed metrics.
+#[wasm_bindgen]
+pub fn get_fusion_stats(
+    sab_slice: &[u8],
+    active_track_count: u32,
+    current_time_ms: u32,
+) -> FusionStats {
+    let mut stats = FusionStats {
+        high_confidence_count: 0,
+        mid_confidence_count: 0,
+        low_confidence_count: 0,
+        radar_count: 0,
+        sigint_count: 0,
+        satellite_count: 0,
+        ew_count: 0,
+        others_count: 0,
+        avg_latency_ms: 0.0,
+        max_latency_ms: 0.0,
+    };
+
+    if active_track_count == 0 {
+        return stats;
+    }
+
+    let mut total_latency = 0.0;
+    let mut latency_count: u32 = 0;
+
+    // Boundary check for the slice
+    let max_len = sab_slice.len();
+
+    for i in 0..active_track_count as usize {
+        let offset = i * RECORD_SIZE;
+        if offset + RECORD_SIZE > max_len {
+            break;
+        }
+
+        let record = &sab_slice[offset..offset + RECORD_SIZE];
+
+        // ── Data Extraction ──
+        let source_bitmap = read_u32(record, offsets::SOURCE_BITMAP);
+        let threat_level = read_u32(record, offsets::THREAT_LEVEL);
+        let update_epoch_ms = read_u32(record, offsets::UPDATE_EPOCH_MS);
+
+        // ── Confidence Buckets (Heuristic) ──
+        // High: 3+ sensors OR Friendly(2)/Hostile(5)/Neutral(3)
+        // Mid:  2 sensors OR Suspect(4)/Pending(1)
+        // Low:  1 sensor  OR Unknown(0)
+        let sensor_count = source_bitmap.count_ones();
+        if sensor_count >= 3 || (threat_level >= 2 && threat_level <= 3) || threat_level == 5 {
+            stats.high_confidence_count += 1;
+        } else if sensor_count == 2 || threat_level == 4 || threat_level == 1 {
+            stats.mid_confidence_count += 1;
+        } else {
+            stats.low_confidence_count += 1;
+        }
+
+        // ── Sensor Contribution (Bit assignments from mock-data.ts) ──
+        // Radar: Bits 0, 1, 6 (Hormuz, Bahrain, Qeshm)
+        if (source_bitmap & 0x43) != 0 {
+            stats.radar_count += 1;
+        }
+        // SIGINT: Bit 4 (Chabahar ELINT)
+        if (source_bitmap & 0x10) != 0 {
+            stats.sigint_count += 1;
+        }
+        // Satellite: Bit 5 (Bandar Abbas ISR)
+        if (source_bitmap & 0x20) != 0 {
+            stats.satellite_count += 1;
+        }
+        // EW: Bit 3 (Muscat EW)
+        if (source_bitmap & 0x08) != 0 {
+            stats.ew_count += 1;
+        }
+        // Others: Bit 2 (Dubai AIS)
+        if (source_bitmap & 0x04) != 0 {
+            stats.others_count += 1;
+        }
+
+        // ── Latency (Time since server emission) ──
+        if update_epoch_ms > 0 {
+            let latency = if current_time_ms >= update_epoch_ms {
+                current_time_ms - update_epoch_ms
+            } else {
+                0
+            } as f32;
+
+            if latency < 5000.0 {
+                // Reject outliers > 5s
+                total_latency += latency;
+                latency_count += 1;
+                if latency > stats.max_latency_ms {
+                    stats.max_latency_ms = latency;
+                }
+            }
+        }
+    }
+
+    if latency_count > 0 {
+        stats.avg_latency_ms = total_latency / latency_count as f32;
+    }
+
+    stats
+}
+
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /// Decode a raw datagram and write the 128-byte record into `dest`.

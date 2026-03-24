@@ -191,10 +191,31 @@ export interface DataStatsMessage {
   decodeErrors: number;
 }
 
+/** Statistics for the Fusion KPI Dashboard. */
+export interface FusionStats {
+  high_confidence_count: number;
+  mid_confidence_count: number;
+  low_confidence_count: number;
+  radar_count: number;
+  sigint_count: number;
+  satellite_count: number;
+  ew_count: number;
+  others_count: number;
+  avg_latency_ms: number;
+  max_latency_ms: number;
+}
+
+/** Periodic update of Fusion KPI metrics. */
+export interface FusionStatsUpdateMessage {
+  type: "fusion_stats";
+  stats: FusionStats;
+}
+
 export type DataToMainMessage =
   | AlertsUpdatedMessage
   | DataConnectionStatusMessage
   | DataStatsMessage
+  | FusionStatsUpdateMessage
   | TokenExpiringMessage;
 
 // ── Main Thread → Data Worker ──────────────────────────────────────────────────

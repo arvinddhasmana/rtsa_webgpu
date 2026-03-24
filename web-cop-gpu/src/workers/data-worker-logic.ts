@@ -93,6 +93,11 @@ export interface WasmDecoder {
     max_slots: number,
     datagram: Uint8Array,
   ): boolean;
+  get_fusion_stats(
+    sab_slice: Uint8Array,
+    active_track_count: number,
+    current_time_ms: number,
+  ): any; // FusionStats (wasm-bindgen class)
 }
 
 export function writeRecordToSlot(

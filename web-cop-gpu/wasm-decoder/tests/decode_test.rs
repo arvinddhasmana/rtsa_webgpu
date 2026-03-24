@@ -9,8 +9,60 @@
 
 use wasm_decoder::{
     decode_track_update, field_latitude, field_longitude, field_track_id_hash,
-    make_test_record, write_slot_from_datagram, RECORD_SIZE,
+    get_fusion_stats, make_test_record, write_slot_from_datagram, RECORD_SIZE,
 };
+
+// ── get_fusion_stats ─────────────────────────────────────────────────────────
+
+#[test]
+fn test_get_fusion_stats_aggregation() {
+    let mut sab = vec![0u8; 10 * RECORD_SIZE];
+
+    // 3 High Confidence:
+    // - 2 with 3 sensors (bit 0,1,6)
+    // - 1 with Hostile threat level (5) but only 1 sensor
+    for i in 0..2 {
+        let record = make_test_record(0.0, 0.0, 0.0, 0.0, 0.0, i as u32, 0x43, 1, 0, 0, 0, 1000);
+        sab[i * RECORD_SIZE..(i + 1) * RECORD_SIZE].copy_from_slice(&record);
+    }
+    let hostile_record = make_test_record(0.0, 0.0, 0.0, 0.0, 0.0, 2, 0x01, 1, 5, 0, 0, 1000);
+    sab[2 * RECORD_SIZE..3 * RECORD_SIZE].copy_from_slice(&hostile_record);
+
+    // 2 Mid Confidence:
+    // - 1 with 2 sensors (bit 2,3)
+    // - 1 with Pending threat level (1) but only 1 sensor
+    let mid1 = make_test_record(0.0, 0.0, 0.0, 0.0, 0.0, 3, 0x0C, 1, 0, 0, 0, 1000);
+    sab[3 * RECORD_SIZE..4 * RECORD_SIZE].copy_from_slice(&mid1);
+    let mid2 = make_test_record(0.0, 0.0, 0.0, 0.0, 0.0, 4, 0x01, 1, 1, 0, 0, 1000);
+    sab[4 * RECORD_SIZE..5 * RECORD_SIZE].copy_from_slice(&mid2);
+
+    // 5 Low Confidence: (1 sensor, Unknown threat level)
+    for i in 5..10 {
+        let record = make_test_record(0.0, 0.0, 0.0, 0.0, 0.0, i as u32, 0x01, 1, 0, 0, 0, 900);
+        sab[i * RECORD_SIZE..(i + 1) * RECORD_SIZE].copy_from_slice(&record);
+    }
+
+    let stats = get_fusion_stats(&sab, 10, 1000);
+
+    assert_eq!(stats.high_confidence_count, 3);
+    assert_eq!(stats.mid_confidence_count, 2);
+    assert_eq!(stats.low_confidence_count, 5);
+
+    // Sensor counts:
+    // Radar (bits 0,1,6): 2 (from high) + 1 (hostile) + 1 (pending) + 5 (low) = 9
+    assert_eq!(stats.radar_count, 9);
+    // EW (bit 3): 1 (mid1)
+    assert_eq!(stats.ew_count, 1);
+    // Others (bit 2): 1 (mid1)
+    assert_eq!(stats.others_count, 1);
+
+    // Latency:
+    // 5 tracks at 1000-1000 = 0ms
+    // 5 tracks at 1000-900 = 100ms
+    // Avg = (0*5 + 100*5) / 10 = 50ms
+    assert_eq!(stats.avg_latency_ms, 50.0);
+    assert_eq!(stats.max_latency_ms, 100.0);
+}
 
 // ── decode_track_update ──────────────────────────────────────────────────────
 

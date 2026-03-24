@@ -8,15 +8,15 @@
 //   - writeRecordToSlot copies record bytes with and without a Wasm decoder
 //   - processDatagram correctly decodes batched records and tracks slot index
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
-  buildTransportUrl,
-  getJwtExpiryMs,
-  writeMockRecord,
-  writeRecordToSlot,
-  processDatagram,
-  RECORD_SIZE,
-  type WasmDecoder,
+    buildTransportUrl,
+    getJwtExpiryMs,
+    processDatagram,
+    RECORD_SIZE,
+    writeMockRecord,
+    writeRecordToSlot,
+    type WasmDecoder,
 } from "../src/workers/data-worker-logic";
 
 // ── buildTransportUrl ─────────────────────────────────────────────────────────
@@ -168,6 +168,7 @@ describe("writeRecordToSlot", () => {
 
     const mockDecoder: WasmDecoder = {
       write_slot_from_datagram: vi.fn(() => true),
+      get_fusion_stats: vi.fn(),
     };
 
     const result = writeRecordToSlot(trackData, 0, maxSlots, record, mockDecoder);

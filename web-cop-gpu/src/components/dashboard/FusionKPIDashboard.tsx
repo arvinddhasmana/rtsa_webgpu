@@ -2,22 +2,58 @@
 // src/components/dashboard/FusionKPIDashboard.tsx
 
 import { Component, For, createMemo } from "solid-js";
-import { trackCount } from "../../signals/stats";
+import { fusionStats, latencyHistory, trackCount } from "../../signals/stats";
 
 export const FusionKPIDashboard: Component = () => {
-  // Mock buckets for high-fidelity look
-  const confidenceBuckets = createMemo(() => [
-    { label: "High", value: 74, color: "#4ade80" },
-    { label: "Mid", value: 19, color: "#fbbf24" },
-    { label: "Low", value: 7, color: "#f87171" },
-  ]);
+  const confidenceBuckets = createMemo(() => {
+    const s = fusionStats();
+    const total = s.high_confidence_count + s.mid_confidence_count + s.low_confidence_count;
+    if (total === 0) return [
+      { label: "High", value: 0, color: "#4ade80" },
+      { label: "Mid", value: 0, color: "#fbbf24" },
+      { label: "Low", value: 0, color: "#f87171" },
+    ];
+    return [
+      { label: "High", value: Math.round((s.high_confidence_count / total) * 100), color: "#4ade80" },
+      { label: "Mid", value: Math.round((s.mid_confidence_count / total) * 100), color: "#fbbf24" },
+      { label: "Low", value: Math.round((s.low_confidence_count / total) * 100), color: "#f87171" },
+    ];
+  });
 
-  const sensorContribution = createMemo(() => [
-    { label: "RADAR", value: 45, color: "#38bdf8" },
-    { label: "SIGINT", value: 30, color: "#818cf8" },
-    { label: "SATELLITE", value: 20, color: "#94a3b8" },
-    { label: "EW", value: 5, color: "#6366f1" },
-  ]);
+  const sensorContribution = createMemo(() => {
+    const s = fusionStats();
+    const total = trackCount();
+    if (total === 0) return [
+      { label: "RADAR", value: 0, color: "#38bdf8" },
+      { label: "SIGINT", value: 0, color: "#818cf8" },
+      { label: "SATELLITE", value: 0, color: "#94a3b8" },
+      { label: "EW", value: 0, color: "#6366f1" },
+    ];
+    return [
+      { label: "RADAR", value: Math.round((s.radar_count / total) * 100), color: "#38bdf8" },
+      { label: "SIGINT", value: Math.round((s.sigint_count / total) * 100), color: "#818cf8" },
+      { label: "SATELLITE", value: Math.round((s.satellite_count / total) * 100), color: "#94a3b8" },
+      { label: "EW", value: Math.round((s.ew_count / total) * 100), color: "#6366f1" },
+    ];
+  });
+
+  const sparklinePath = createMemo(() => {
+    const history = latencyHistory();
+    if (history.length < 2) return "";
+    const max = Math.max(...history, 50);
+    const points = history.map((val, i) => {
+      const x = (i / (history.length - 1)) * 100;
+      const y = 40 - (val / max) * 35;
+      return `${x} ${y}`;
+    });
+    return `M ${points.join(" L ")}`;
+  });
+
+  const sparklineArea = createMemo(() => {
+    const path = sparklinePath();
+    if (!path) return "";
+    return `${path} L 100 40 L 0 40 Z`;
+  });
 
   return (
     <div
@@ -99,11 +135,11 @@ export const FusionKPIDashboard: Component = () => {
         </h3>
         <div style={{ display: "flex", "flex-direction": "column", gap: "0.4rem" }}>
             <div style={{ display: "flex", "justify-content": "space-between", "font-size": "0.7rem" }}>
-                <span style={{ color: "#94a3b8" }}>Avg: 11ms</span>
+                <span style={{ color: "#94a3b8" }}>Avg: {fusionStats().avg_latency_ms.toFixed(0)}ms</span>
                 <div style={{ width: "40px", height: "2px", background: "#4ade80", "align-self": "center" }} />
             </div>
             <div style={{ display: "flex", "justify-content": "space-between", "font-size": "0.7rem" }}>
-                <span style={{ color: "#94a3b8" }}>Max: 32ms</span>
+                <span style={{ color: "#94a3b8" }}>Max: {fusionStats().max_latency_ms.toFixed(0)}ms</span>
                 <div style={{ width: "40px", height: "2px", background: "#f87171", "align-self": "center" }} />
             </div>
         </div>
@@ -111,8 +147,8 @@ export const FusionKPIDashboard: Component = () => {
         {/* Sparkline Placeholder */}
         <div style={{ height: "40px", background: "rgba(56, 189, 248, 0.05)", "margin-top": "1rem", "border-radius": "4px", position: "relative" }}>
              <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
-                <path d="M0 35 L10 30 L20 37 L30 25 L40 28 L50 15 L60 22 L70 10 L80 18 L90 5 L100 12 L100 40 L0 40 Z" fill="rgba(56, 189, 248, 0.1)" />
-                <path d="M0 35 L10 30 L20 37 L30 25 L40 28 L50 15 L60 22 L70 10 L80 18 L90 5 L100 12" fill="none" stroke="#38bdf8" stroke-width="1" />
+                <path d={sparklineArea()} fill="rgba(56, 189, 248, 0.1)" />
+                <path d={sparklinePath()} fill="none" stroke="#38bdf8" stroke-width="1" />
              </svg>
         </div>
 

@@ -81,6 +81,8 @@ interface TokenExpiringMessage {
   type: "token-expiring";
 }
 
+import { FusionStatsUpdateMessage } from "./shared-protocol";
+
 // ── Module state ──────────────────────────────────────────────────────────────
 
 let sab: SharedArrayBuffer | null = null;
@@ -235,10 +237,55 @@ function startStatsReporting(): void {
       recordsDecoded,
       decodeErrors,
     } satisfies StatsMessage);
+
+    // Also report higher-level Fusion stats for the Ops Commander dashboard.
+    // This is the O(N) aggregation performed in Rust Wasm to keep the Main Thread free.
+    reportFusionStats();
+
     datagramsReceived = 0;
     recordsDecoded = 0;
     decodeErrors = 0;
   }, STATS_INTERVAL_MS);
+}
+
+/**
+ * Poll the Rust Wasm decoder for aggregated Fusion metrics (Confidence, Sensors, Latency).
+ * This executes the O(N) statistical bucketing logic safe from the Main Thread.
+ */
+function reportFusionStats(): void {
+  if (!wasmDecoder || !trackData || !sabHeader) return;
+
+  const activeCount = Atomics.load(sabHeader, HEADER_OFFSET_ACTIVE_TRACK_COUNT);
+  if (activeCount === 0) return;
+
+  try {
+    const stats = wasmDecoder.get_fusion_stats(
+      trackData,
+      activeCount,
+      Date.now() >>> 0,
+    );
+
+    postMessage({
+      type: "fusion_stats",
+      stats: {
+        high_confidence_count: stats.high_confidence_count,
+        mid_confidence_count: stats.mid_confidence_count,
+        low_confidence_count: stats.low_confidence_count,
+        radar_count: stats.radar_count,
+        sigint_count: stats.sigint_count,
+        satellite_count: stats.satellite_count,
+        ew_count: stats.ew_count,
+        others_count: stats.others_count,
+        avg_latency_ms: stats.avg_latency_ms,
+        max_latency_ms: stats.max_latency_ms,
+      },
+    } satisfies FusionStatsUpdateMessage);
+
+    // Free the Wasm-memory backed object
+    if (stats.free) stats.free();
+  } catch (err) {
+    console.error("[DataWorker] Failed to compute Fusion stats:", err);
+  }
 }
 
 function stopStatsReporting(): void {
