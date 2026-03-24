@@ -285,6 +285,16 @@ function startRenderLoop(): void {
     statsCounter++;
     if (shouldFlushStats(statsCounter)) {
       statsCounter = 0;
+
+      // Sync trackCount from SAB header if available
+      if (renderState.sab) {
+        const header = new Uint32Array(renderState.sab, 0, 10); // First 40 bytes
+        const activeCount = Atomics.load(header, 0); // HEADER_OFFSET_ACTIVE_TRACK_COUNT = 0
+        if (activeCount > 0) {
+          renderState.trackCount = activeCount;
+        }
+      }
+
       // Use actual frame-to-frame interval for fps — more accurate than JS work duration.
       const fps = computeFps(dt);
       const statsMsg: RenderStatsMessage = {

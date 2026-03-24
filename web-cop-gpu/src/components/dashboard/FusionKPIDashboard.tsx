@@ -22,7 +22,7 @@ export const FusionKPIDashboard: Component = () => {
 
   const sensorContribution = createMemo(() => {
     const s = fusionStats();
-    const total = trackCount();
+    const total = s.high_confidence_count + s.mid_confidence_count + s.low_confidence_count;
     if (total === 0) return [
       { label: "RADAR", value: 0, color: "#38bdf8" },
       { label: "SIGINT", value: 0, color: "#818cf8" },
@@ -152,13 +152,25 @@ export const FusionKPIDashboard: Component = () => {
              </svg>
         </div>
 
-        <div style={{ display: "flex", "justify-content": "space-between", "margin-top": "0.5rem" }}>
-            <span style={{ "font-size": "0.65rem", color: "#64748b" }}>STATUS</span>
-            <div style={{ display: "flex", gap: "4px" }}>
-                <div style={{ width: "12px", height: "4px", background: "#4ade80", "border-radius": "1px" }} />
-                <div style={{ width: "12px", height: "4px", background: "#4ade80", "border-radius": "1px" }} />
-                <div style={{ width: "12px", height: "4px", background: "#f59e0b", "border-radius": "1px" }} />
-                <div style={{ width: "12px", height: "4px", background: "#4b5563", "border-radius": "1px" }} />
+        <div style={{ display: "flex", "flex-direction": "column", gap: "0.5rem", "margin-top": "0.5rem" }}>
+            <span style={{ "font-size": "0.65rem", color: "#64748b", "font-weight": "700", "margin-bottom": "0.25rem" }}>SERVICES STATUS</span>
+            <div style={{ display: "grid", "grid-template-columns": "repeat(4, 1fr)", gap: "0.5rem" }}>
+                <div title="Ingestion: Healthy" style={{ cursor: "help" }}>
+                    <div style={{ "font-size": "0.55rem", color: "#94a3b8", "margin-bottom": "4px" }}>INGESTION</div>
+                    <div style={{ height: "4px", background: "#4ade80", "border-radius": "1px" }} />
+                </div>
+                <div title="Fusion: Healthy" style={{ cursor: "help" }}>
+                    <div style={{ "font-size": "0.55rem", color: "#94a3b8", "margin-bottom": "4px" }}>FUSION</div>
+                    <div style={{ height: "4px", background: "#4ade80", "border-radius": "1px" }} />
+                </div>
+                <div title="Analytics: High Load" style={{ cursor: "help" }}>
+                    <div style={{ "font-size": "0.55rem", color: "#94a3b8", "margin-bottom": "4px" }}>ANALYTICS</div>
+                    <div style={{ height: "4px", background: "#f59e0b", "border-radius": "1px" }} />
+                </div>
+                <div title="Archival: Connection Pending" style={{ cursor: "help" }}>
+                    <div style={{ "font-size": "0.55rem", color: "#94a3b8", "margin-bottom": "4px" }}>ARCHIVAL</div>
+                    <div style={{ height: "4px", background: "#4b5563", "border-radius": "1px" }} />
+                </div>
             </div>
         </div>
       </section>

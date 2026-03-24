@@ -5,6 +5,7 @@
 // Reference: docs/sdlc_guidelines/04_coding_standards/solidjs_standards.md §3.3
 
 import { createSignal } from "solid-js";
+import { setSelectedTrackId } from "./track-selection";
 
 /** Lightweight pick result received directly from the Render Worker. */
 export interface PickedTrack {
@@ -77,6 +78,7 @@ export const [trackDetailError, setTrackDetailError] = createSignal<
 /** Clear the selected track and all derived state. */
 export function clearSelectedTrack(): void {
   setSelectedTrack(null);
+  setSelectedTrackId(null);
   setTrackDetail(null);
   setTrackDetailLoading(false);
   setTrackDetailError(null);

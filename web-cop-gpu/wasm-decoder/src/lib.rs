@@ -68,6 +68,7 @@ pub struct FusionStats {
     pub satellite_count: u32,
     pub ew_count: u32,
     pub others_count: u32,
+    pub active_track_count: u32,
     pub avg_latency_ms: f32,
     pub max_latency_ms: f32,
 }
@@ -94,6 +95,7 @@ pub fn get_fusion_stats(
         satellite_count: 0,
         ew_count: 0,
         others_count: 0,
+        active_track_count: 0,
         avg_latency_ms: 0.0,
         max_latency_ms: 0.0,
     };
@@ -178,6 +180,8 @@ pub fn get_fusion_stats(
     if latency_count > 0 {
         stats.avg_latency_ms = total_latency / latency_count as f32;
     }
+
+    stats.active_track_count = active_track_count;
 
     stats
 }

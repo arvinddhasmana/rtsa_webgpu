@@ -22,6 +22,7 @@ import {
     setVisibleCount,
 } from "./signals/stats";
 import {
+    clearSelectedTrack,
     setOpenTrackDetails,
     setSelectedTrack,
     setTrackDetail,
@@ -40,6 +41,7 @@ import {
 
 // Spatial alert signals
 import { setSpatialAlerts } from "./signals/spatial-alerts";
+import { setSelectedTrackId } from "./signals/track-selection";
 
 // Services
 import { startAlertStream } from "./services/alerts";
@@ -128,8 +130,7 @@ export default function App() {
       case "picked": {
         console.log("[App] Track picked from GPU:", msg);
         if (msg.trackIdHash === 0) {
-          setSelectedTrack(null);
-          setTrackDetail(null);
+          clearSelectedTrack();
           return;
         }
 
@@ -148,15 +149,16 @@ export default function App() {
             setTrackDetail(detail);
             setTrackDetailLoading(false);
             if (detail) {
-              setOpenTrackDetails((curr) => {
-                if (curr.some((t) => t.trackId === detail.trackId)) return curr;
-                setTrackOverlayPositions((prev) => ({
-                  ...prev,
-                  [detail.trackId]: prev[detail.trackId] ?? { x: window.innerWidth / 2 - 400 + curr.length * 40, y: window.innerHeight / 2 - 300 + curr.length * 40 }
-                }));
-                return [...curr, detail];
-              });
-            }
+            setOpenTrackDetails((curr) => {
+              if (curr.some((t) => t.trackId === detail.trackId)) return curr;
+              setTrackOverlayPositions((prev) => ({
+                ...prev,
+                [detail.trackId]: prev[detail.trackId] ?? { x: window.innerWidth / 2 - 400 + curr.length * 40, y: window.innerHeight / 2 - 300 + curr.length * 40 }
+              }));
+              return [...curr, detail];
+            });
+            setSelectedTrackId(detail.trackId);
+          }
           })
           .catch((err: unknown) => {
             setTrackDetailError(

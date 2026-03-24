@@ -1,7 +1,8 @@
 // CLASSIFICATION: UNCLASSIFIED
 // src/components/dashboard/TrackDrillDownOverlay.tsx
 
-import { Component, For, Show } from "solid-js";
+import { Component, For, Show, createMemo } from "solid-js";
+import { alerts } from "../../signals/alerts";
 import { TrackDetail, setTrackDetail } from "../../signals/track";
 import { setFeedbackOpen } from "../../signals/viewport";
 import { EventTimeline } from "../timeline/EventTimeline";
@@ -13,6 +14,9 @@ interface TrackDrillDownOverlayProps {
 
 export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (props) => {
   const t = () => props.track;
+  const hasActiveAlert = createMemo(() =>
+    alerts().some(a => a.trackId === t().trackId && !a.acknowledged)
+  );
 
   const trackIcon = (type: string) => {
     switch(type.toUpperCase()) {
@@ -36,7 +40,7 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
       }}
     >
         {/* Alert Indicator */}
-        <Show when={t().status.toUpperCase() === "HOSTILE" || t().confidenceScore < 50}>
+        <Show when={hasActiveAlert()}>
             <div style={{
                 background: "#ef4444",
                 color: "#fff",
@@ -68,9 +72,9 @@ export const TrackDrillDownOverlay: Component<TrackDrillDownOverlayProps> = (pro
              <div style={{ display: "flex", "align-items": "center", gap: "0.75rem" }}>
                  <span style={{ "font-size": "1.4rem" }} title={t().entityType.toUpperCase()}>{trackIcon(t().entityType)}</span>
                  <div style={{ display: "flex", "flex-direction": "column", width: "120px" }}>
-                     <div style={{ "font-size": "0.6rem", color: "#94a3b8", "margin-bottom": "0.25rem", "font-weight": 800 }}>CONFIDENCE: <span style={{ color: "#38bdf8" }}>{t().confidenceScore.toFixed(0)}%</span></div>
+                     <div style={{ "font-size": "0.6rem", color: "#94a3b8", "margin-bottom": "0.25rem", "font-weight": 800 }}>CONFIDENCE: <span style={{ color: "#38bdf8" }}>{(t().confidenceScore * 100).toFixed(0)}%</span></div>
                      <div style={{ height: "12px", background: "rgba(255,255,255,0.05)", "border-radius": "2px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
-                         <div style={{ width: `${t().confidenceScore}%`, height: "100%", background: "linear-gradient(90deg, #0ea5e9, #38bdf8)", "box-shadow": "0 0 8px rgba(56, 189, 248, 0.4)" }} />
+                         <div style={{ width: `${t().confidenceScore * 100}%`, height: "100%", background: "linear-gradient(90deg, #0ea5e9, #38bdf8)", "box-shadow": "0 0 8px rgba(56, 189, 248, 0.4)" }} />
                      </div>
                  </div>
              </div>

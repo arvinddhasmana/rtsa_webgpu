@@ -5,11 +5,9 @@ import { createEffect, createSignal, For, JSX, onCleanup, Show } from "solid-js"
 import { clearSelectedTrack, openTrackDetails, setOpenTrackDetails, setTrackOverlayPositions, trackDetail, trackOverlayPositions } from "../../signals/track";
 import { setFeedbackOpen } from "../../signals/viewport";
 import { DraggableOverlayCard } from "./DraggableOverlayCard";
-import { FusionConflictPanel } from "./FusionConflictPanel";
 import { FusionKPIDashboard } from "./FusionKPIDashboard";
 import { SensorLegend } from "./SensorLegend";
 import { TrackDrillDownOverlay } from "./TrackDrillDownOverlay";
-import { TrackFusionAudit } from "./TrackFusionAudit";
 
 interface FusionCommanderDashboardProps {
   mapContent: JSX.Element;
@@ -245,19 +243,6 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
                       <span> | {detail.context.toUpperCase()}</span>
 
                       {/* Blinking Alert Indicator in Heading */}
-                      <Show when={detail.hostileClass.toUpperCase() === "HOSTILE" || detail.confidenceScore < 50}>
-                        <span style={{
-                          color: "#ef4444",
-                          "margin-left": "auto",
-                          "padding-right": "4px",
-                          "font-weight": "900",
-                          "font-size": "0.6rem",
-                          "animation": "blink-alert 1s infinite",
-                          "letter-spacing": "0.05em"
-                        }}>
-                          {"<! ALERT ACTIVE>"}
-                        </span>
-                      </Show>
 
                       <style>{`
                         @keyframes blink-alert {
@@ -397,10 +382,6 @@ function MissionAnalyticsToast() {
           "scrollbar-width": "none"
         }}>
           <FusionKPIDashboard />
-          <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.2), transparent)" }} />
-          <FusionConflictPanel />
-          <div style={{ height: "1px", background: "linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.2), transparent)" }} />
-          <TrackFusionAudit />
         </div>
       )}
     </div>
