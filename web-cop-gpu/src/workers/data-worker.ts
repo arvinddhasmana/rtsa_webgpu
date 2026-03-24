@@ -410,20 +410,21 @@ self.addEventListener("message", (event: MessageEvent<WorkerInboundMessage>) => 
     // Track data starts immediately after the header + dirty bitfield
     trackData = new Uint8Array(sab, TRACK_DATA_OFFSET);
 
-    if (msg.url) {
-      // Phase 2 hot path: real WebTransport connection
-      currentUrl = msg.url;
-      currentToken = msg.token;
-      const transportUrl = buildTransportUrl(currentUrl, currentToken);
-      loadWasmDecoder().then(() => {
+    loadWasmDecoder().then(() => {
+      if (msg.url) {
+        // Phase 2 hot path: real WebTransport connection
+        currentUrl = msg.url;
+        currentToken = msg.token;
+        const transportUrl = buildTransportUrl(currentUrl, currentToken);
         connectWithRetry(transportUrl).catch((_err) => {
           postMessage({ type: "connection_status", connected: false, latency: -1 } satisfies StatusMessage);
         });
-      });
-    } else {
-      // Stub/dev mode: generate mock data for pipeline testing
-      startMockUpdates();
-    }
+      } else {
+        // Stub/dev mode: generate mock data for pipeline testing
+        startMockUpdates();
+        startStatsReporting();
+      }
+    });
     return;
   }
 

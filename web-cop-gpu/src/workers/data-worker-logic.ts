@@ -71,9 +71,13 @@ export function writeMockRecord(
   view.setFloat32(0x0c, 10, true);                            // speed m/s
   view.setFloat32(0x10, 1000, true);                          // altitude meters
   view.setUint32(0x14, slot, true);                           // track_id_hash
-  view.setUint32(0x18, 1, true);                              // source_bitmap
+  // Source Bitmap: 1=Radar, 4=SIGINT (0x10), 5=Satellite (0x20), 3=EW (0x08)
+  // We'll randomize bits 0-6
+  const sourceBits = Math.floor(Math.random() * 128);
+  const threatLvl = Math.floor(Math.random() * 6); // 0-5
+  view.setUint32(0x18, sourceBits, true);                     // source_bitmap
   view.setUint32(0x1c, 1, true);                              // classification_level
-  view.setUint32(0x20, 0, true);                              // threat_level = Unknown
+  view.setUint32(0x20, threatLvl, true);                      // threat_level
   view.setUint32(0x24, 0, true);                              // icon_index
   view.setUint32(0x28, 0, true);                              // alert_flags
   view.setUint32(0x2c, Date.now() & 0xffffffff, true);        // update_epoch_ms
