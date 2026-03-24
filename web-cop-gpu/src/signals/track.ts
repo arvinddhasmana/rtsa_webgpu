@@ -45,6 +45,8 @@ export interface TrackDetail {
   altitudeMeters: number;
   label?: string;
   updatedAtMs: number;
+  /** Context (MILITARY/CIVILIAN) derived from track data. */
+  context: string;
   /** Pedigree of sources contributing to this track fusion. */
   sourceContributions: SourceContribution[];
 }

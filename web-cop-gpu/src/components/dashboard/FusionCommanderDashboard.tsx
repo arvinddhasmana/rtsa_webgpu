@@ -225,11 +225,53 @@ export function FusionCommanderDashboard(props: FusionCommanderDashboardProps) {
             <For each={openTrackDetails()}>
               {(detail) => (
                 <DraggableOverlayCard
-                  title={`FUSED TRACK DATA | TRACK ID: ${detail.trackId}`}
-                  position={trackOverlayPositions()[detail.trackId] ?? { x: window.innerWidth / 2 - 250, y: window.innerHeight / 2 - 275 }}
+                  title={
+                    <div style={{ display: "flex", "align-items": "center", "white-space": "nowrap", width: "100%" }}>
+                      <span>ID: {detail.trackId} | </span>
+                      <span style={{
+                        color: (() => {
+                          const h = detail.hostileClass.toUpperCase();
+                          if (h === "HOSTILE") return "#f87171";
+                          if (h === "FRIENDLY") return "#38bdf8";
+                          if (h === "NEUTRAL") return "#57e688";
+                          if (h === "UNKNOWN" || h === "PENDING") return "#fbbf24";
+                          if (h === "SUSPECT") return "#ff9933";
+                          return "#cbd5e1";
+                        })(),
+                        "font-weight": "bold"
+                      }}>
+                        {detail.hostileClass.toUpperCase()} {detail.entityType.toUpperCase()}
+                      </span>
+                      <span> | {detail.context.toUpperCase()}</span>
+
+                      {/* Blinking Alert Indicator in Heading */}
+                      <Show when={detail.hostileClass.toUpperCase() === "HOSTILE" || detail.confidenceScore < 50}>
+                        <span style={{
+                          color: "#ef4444",
+                          "margin-left": "auto",
+                          "padding-right": "4px",
+                          "font-weight": "900",
+                          "font-size": "0.6rem",
+                          "animation": "blink-alert 1s infinite",
+                          "letter-spacing": "0.05em"
+                        }}>
+                          {"<! ALERT ACTIVE>"}
+                        </span>
+                      </Show>
+
+                      <style>{`
+                        @keyframes blink-alert {
+                          0% { opacity: 1; }
+                          50% { opacity: 0.2; }
+                          100% { opacity: 1; }
+                        }
+                      `}</style>
+                    </div>
+                  }
+                  position={trackOverlayPositions()[detail.trackId] ?? { x: window.innerWidth / 2 - 200, y: window.innerHeight / 2 - 275 }}
                   onPositionChange={(pos) => updateTrackOverlayPosition(detail.trackId, pos)}
                   onClose={() => closeTrackOverlay(detail.trackId)}
-                  width="450px"
+                  width="400px"
                   minWidth="340px"
                   maxHeight="800px"
                   resizable={true}

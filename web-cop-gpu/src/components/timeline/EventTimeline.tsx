@@ -35,11 +35,11 @@ export function EventTimeline() {
         display: "flex",
         "flex-direction": "column",
         padding: "0",
-        "min-height": "4rem",
+        "min-height": "1.5rem",
       }}
       aria-label="Event timeline"
     >
-      <div style={{ "font-size": "0.65rem", color: "#94a3b8", "margin-bottom": "0.25rem", "font-weight": "800", "text-transform": "uppercase", "letter-spacing": "0.06em" }}>
+      <div style={{ "font-size": "0.6rem", color: "#64748b", "margin-bottom": "0.1rem", "font-weight": "800", "text-transform": "uppercase", "letter-spacing": "0.06em" }}>
         Event Intelligence Stream
       </div>
 
@@ -62,15 +62,16 @@ export function EventTimeline() {
       <Show when={!timeline.loading && !timeline.error && trackId()}>
         <div style={{
           display: "flex",
-          gap: "1.25rem",
+          gap: "1rem",
           "overflow-x": "auto",
-          "padding": "0.5rem 0.25rem 1rem",
-          position: "relative"
+          "padding": "0.1rem 0.25rem 0.25rem",
+          position: "relative",
+          "scrollbar-width": "none"
         }}>
           {/* Connecting line */}
           <div style={{
             position: "absolute",
-            top: "14px",
+            top: "6px",
             left: "0",
             right: "0",
             height: "1px",
@@ -98,18 +99,18 @@ export function EventTimeline() {
                 title={event.summary}
               >
                 <div style={{
-                  width: "18px",
-                  height: "18px",
+                  width: "8px",
+                  height: "8px",
                   background: "#0f172a",
-                  border: "2px solid #3b82f6",
+                  border: "1px solid #3b82f6",
                   "border-radius": "50%",
-                  "margin-bottom": "0.6rem",
+                  "margin-bottom": "0.2rem",
                   display: "flex",
                   "align-items": "center",
                   "justify-content": "center",
-                  "box-shadow": "0 0 10px rgba(59, 130, 246, 0.4)"
+                  "box-shadow": "0 0 6px rgba(59, 130, 246, 0.4)"
                 }}>
-                  <div style={{ width: "6px", height: "6px", background: "#3b82f6", "border-radius": "50%" }}></div>
+                  <div style={{ width: "3px", height: "3px", background: "#3b82f6", "border-radius": "50%" }}></div>
                 </div>
 
                 <div style={{

@@ -6,7 +6,7 @@
 import { createEffect, createSignal, JSX, onCleanup, Show } from "solid-js";
 
 export interface DraggableOverlayCardProps {
-  title: string;
+  title: string | JSX.Element;
   icon?: JSX.Element;
   initialX?: number;
   initialY?: number;
@@ -42,8 +42,8 @@ export function DraggableOverlayCard(
   const [dragOffset, setDragOffset] = createSignal({ dx: 0, dy: 0 });
   let rootEl: HTMLDivElement | undefined;
 
-  const color = () => props.accentColor ?? "rgba(59,130,246,0.55)";
   const scrollKey = props.scrollKey ?? "overlay";
+  const titleSlug = () => (typeof props.title === "string" ? props.title : "custom").toLowerCase().replace(/\s+/g, "-");
 
   function onMouseDown(e: MouseEvent) {
     const target = e.target as HTMLElement;
@@ -100,7 +100,7 @@ export function DraggableOverlayCard(
 
   return (
     <div
-      data-testid={`overlay-card-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+      data-testid={`overlay-card-${titleSlug()}`}
       ref={rootEl}
       style={{
         position: "absolute",
@@ -114,13 +114,12 @@ export function DraggableOverlayCard(
     >
       <div
         style={{
-          background:
-            "linear-gradient(180deg, rgba(8, 14, 26, 0.92), rgba(6, 11, 22, 0.9))",
-          "backdrop-filter": "blur(28px)",
-          "-webkit-backdrop-filter": "blur(28px)",
-          border: `1px solid ${color()}`,
+          background: "rgba(7, 12, 24, 0.98)",
+          "backdrop-filter": "blur(8px)",
+          "-webkit-backdrop-filter": "blur(8px)",
+          border: `1px solid rgba(255,255,255,0.1)`,
           "border-radius": "10px",
-          "box-shadow": `0 14px 48px rgba(0,0,0,0.68), inset 0 1px 0 rgba(255,255,255,0.07)`,
+          "box-shadow": `0 24px 64px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)`,
           overflow: "hidden",
           transition: "box-shadow 0.2s ease",
           display: "flex",
@@ -198,7 +197,7 @@ export function DraggableOverlayCard(
           <div style={{ display: "flex", "align-items": "center", gap: "6px" }}>
             {/* Minimize / restore button */}
             <button
-              data-testid={`overlay-minimize-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+              data-testid={`overlay-minimize-${titleSlug()}`}
               onClick={() => setMinimized((m) => !m)}
               title={minimized() ? "Restore panel" : "Minimize panel"}
               style={{
@@ -223,7 +222,7 @@ export function DraggableOverlayCard(
 
             <Show when={props.onClose}>
               <button
-                data-testid={`overlay-close-${props.title.toLowerCase().replace(/\s+/g, "-")}`}
+                data-testid={`overlay-close-${titleSlug()}`}
                 title="Close panel"
                 onClick={(e) => {
                   e.stopPropagation();

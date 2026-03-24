@@ -82,6 +82,7 @@ function mapTrack(track: FusedTrack): TrackDetail {
     updatedAtMs: track.updatedAt
       ? Number(track.updatedAt.seconds) * 1000
       : 0,
+    context: track.classification === ClassificationLevel.UNCLASSIFIED ? "CIVILIAN" : "MILITARY",
     sourceContributions: [
       {
         sourceName: "SPY-1 Radar",
@@ -169,6 +170,7 @@ export async function fetchTrackDetail(trackId: string, fallbackData?: PickedMes
       headingDeg: fallbackData.course ? fallbackData.course * 180 / Math.PI : 0,
       altitudeMeters: fallbackData.altitude || 0,
       updatedAtMs: now,
+      context: fallbackData.context === 1 ? "CIVILIAN" : "MILITARY",
       sourceContributions: dynSources
     };
   }
@@ -188,6 +190,7 @@ export async function fetchTrackDetail(trackId: string, fallbackData?: PickedMes
     headingDeg: Math.random() * 360,
     altitudeMeters: 5000 + Math.random() * 2000,
     updatedAtMs: Date.now(),
+    context: "MILITARY",
     sourceContributions: [
       {
         sourceName: "SPY-1 Radar",
