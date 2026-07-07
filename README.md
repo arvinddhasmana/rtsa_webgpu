@@ -283,10 +283,4 @@ This repository includes purpose-built GitHub Copilot agent profiles in `.github
 
 ---
 
-## License
-
-This project is proprietary to the Canadian Department of National Defence (DND). Unauthorized access, distribution, or use is prohibited.
-
----
-
 > **CLASSIFICATION: UNCLASSIFIED** — This document contains no classified information.
