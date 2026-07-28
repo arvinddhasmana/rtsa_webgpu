@@ -1,0 +1,84 @@
+# CLASSIFICATION: UNCLASSIFIED
+# svc-track — consumes tracks.fused.* and serves the track gRPC API.
+# Scales on Redpanda consumer-group lag via KEDA.
+nameOverride: svc-track
+replicaCount: 1
+
+ports:
+  grpc: 50051
+  health: 8081
+  metrics: 9090
+
+nodeSelector:
+  workload: processing
+tolerations:
+  - key: workload
+    operator: Equal
+    value: processing
+    effect: NoSchedule
+
+env:
+  - name: RTSA_SERVICE_NAME
+    value: svc-track
+  - name: RTSA_REDPANDA_BROKERS
+    value: redpanda.rtsa.svc.cluster.local:9092
+  - name: RTSA_CONSUMER_GROUP
+    value: track-service
+  - name: RTSA_GRPC_PORT
+    value: "50051"
+  - name: RTSA_HEALTH_PORT
+    value: "8081"
+  - name: RTSA_METRICS_PORT
+    value: "9090"
+  - name: RTSA_TLS_ENABLED
+    value: "false"
+  - name: RTSA_LOG_LEVEL
+    value: info
+  - name: RTSA_LOG_FORMAT
+    value: json
+  - name: RTSA_OTEL_ENDPOINT
+    value: otel-collector.observability.svc.cluster.local:4317
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+autoscaling:
+  mode: keda
+  minReplicas: 1
+  maxReplicas: 6
+  keda:
+    pollingInterval: 15
+    cooldownPeriod: 60
+    triggers:
+      - type: kafka
+        metadata:
+          bootstrapServers: redpanda.rtsa.svc.cluster.local:9092
+          consumerGroup: track-service
+          topic: tracks.fused.air
+          lagThreshold: "2000"
+          offsetResetPolicy: latest
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: "1"
+    memory: 768Mi

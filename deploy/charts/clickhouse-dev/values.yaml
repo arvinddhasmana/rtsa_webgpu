@@ -1,0 +1,58 @@
+# CLASSIFICATION: UNCLASSIFIED
+# clickhouse-dev — single-node ClickHouse for ephemeral RTSA dev environments.
+#
+# Service is named "clickhouse" so svc-query reaches it at
+# clickhouse.<namespace>.svc.cluster.local:9000 (matches values/svc-query.yaml).
+
+image:
+  repository: clickhouse/clickhouse-server
+  tag: "24.8"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Database auto-created on first boot (CLICKHOUSE_DB). svc-query DSN targets it.
+database: rtsa
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "2"
+    memory: 2Gi
+
+persistence:
+  enabled: true
+  size: 16Gi
+  storageClassName: null
+
+ports:
+  http: 8123
+  native: 9000
+
+# ClickHouse image runs as uid/gid 101.
+podSecurityContext:
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+nodeSelector:
+  workload: stateful
+tolerations: []
+affinity: {}
+
+serviceType: ClusterIP
+
+terminationGracePeriodSeconds: 60

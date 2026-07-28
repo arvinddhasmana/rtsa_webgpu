@@ -1,0 +1,7 @@
+# CLASSIFICATION: UNCLASSIFIED
+.git
+.gitignore
+*.tmp
+*.bak
+*.orig
+.DS_Store

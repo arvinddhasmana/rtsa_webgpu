@@ -1,0 +1,193 @@
+# CLASSIFICATION: UNCLASSIFIED
+# CI — Pull Request pipeline implementing the RTSA SDLC security gates SG-1..SG-5.
+# See docs/deployment/azure/05-devops-cicd-and-environments.md and
+# docs/sdlc_guidelines/06_integration_cicd/ci_cd_pipeline.md.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write # upload SARIF
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── SG-1 — Pre-build: secrets, classification headers, formatting, protobuf ──
+  sg1-prebuild:
+    name: SG-1 Pre-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks (secret scan)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Classification headers on changed files
+        run: |
+          set -euo pipefail
+          base="origin/${{ github.base_ref || 'main' }}"
+          git fetch origin "${{ github.base_ref || 'main' }}" --depth=1 || true
+          files=$(git diff --name-only "$base"...HEAD \
+            | grep -E '\.(go|ts|tsx|yaml|yml|tf|sh|md)$' || true)
+          fail=0
+          for f in $files; do
+            [ -f "$f" ] || continue
+            if ! head -n 5 "$f" | grep -q 'CLASSIFICATION: UNCLASSIFIED'; then
+              echo "::error file=$f::Missing 'CLASSIFICATION: UNCLASSIFIED' header"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache-dependency-path: "**/go.sum"
+
+      - name: gofmt (changed Go files)
+        run: |
+          set -euo pipefail
+          base="origin/${{ github.base_ref || 'main' }}"
+          changed=$(git diff --name-only "$base"...HEAD | grep -E '\.go$' || true)
+          [ -z "$changed" ] && { echo "no Go changes"; exit 0; }
+          unformatted=$(gofmt -l $changed || true)
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt needed:"; echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Set up buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: buf lint + format
+        run: |
+          buf lint
+          buf format --diff --exit-code
+
+  # ── SG-2 + SG-3 — Build all modules & unit tests (race) with coverage gate ──
+  sg2-sg3-go:
+    name: SG-2/3 Build & Test (Go)
+    needs: sg1-prebuild
+    uses: ./.github/workflows/_reusable/go-build-test.yml
+    with:
+      go-version: "1.24.x"
+      min-coverage: "80"
+
+  # ── SG-3 — Frontend build & unit tests ──
+  sg3-web:
+    name: SG-3 Build & Test (Web)
+    needs: sg1-prebuild
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        run: pnpm --filter ./web-cop-gpu run build
+      - name: Unit tests
+        run: pnpm --filter ./web-cop-gpu run test
+
+  # ── SG-4 — Security: SAST, vuln scanning, dependency & filesystem scans ──
+  sg4-security:
+    name: SG-4 Security
+    needs: sg2-sg3-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache-dependency-path: "**/go.sum"
+
+      - name: gosec (per module, SARIF)
+        run: |
+          set -euo pipefail
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          echo '{"runs":[],"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json"}' > gosec.sarif
+          while IFS= read -r modfile; do
+            dir="$(dirname "$modfile")"
+            case "$dir" in ./gen/*) continue ;; esac
+            ( cd "$dir" && GOWORK=off "$(go env GOPATH)/bin/gosec" -no-fail -fmt sarif -out gosec.sarif ./... ) || true
+          done < <(find . -name go.mod -not -path './gen/*')
+
+      - name: Upload gosec SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec.sarif
+          category: gosec
+
+      - name: govulncheck (per module)
+        run: |
+          set -euo pipefail
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          rc=0
+          while IFS= read -r modfile; do
+            dir="$(dirname "$modfile")"
+            case "$dir" in ./gen/*) continue ;; esac
+            echo "::group::govulncheck $dir"
+            ( cd "$dir" && GOWORK=off "$(go env GOPATH)/bin/govulncheck" ./... ) || rc=1
+            echo "::endgroup::"
+          done < <(find . -name go.mod -not -path './gen/*')
+          exit $rc
+
+      - name: Semgrep (SARIF)
+        run: |
+          pipx install semgrep || pip install semgrep
+          semgrep scan --config auto --sarif --output semgrep.sarif || true
+
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Trivy filesystem scan (deps, secrets, misconfig)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Frontend dependency audit
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm audit --audit-level high || true
+
+  # ── SG-5 — Integration smoke ──
+  sg5-integration:
+    name: SG-5 Integration
+    needs: sg2-sg3-go
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.x"
+          cache-dependency-path: "**/go.sum"
+      - name: Integration tests
+        run: make -C tests test-integration

@@ -1,0 +1,74 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Infra Up — provision an environment's AKS landing zone with Terraform (OIDC).
+# Ephemeral by design: pair with infra-down.yml to tear the environment down and
+# keep PAYG cost near zero when idle.
+name: Infra Up
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to provision.
+        type: choice
+        options: [dev, test, staging, prod]
+        default: dev
+        required: true
+
+permissions:
+  id-token: write # OIDC to Azure for the azurerm provider
+  contents: read
+
+concurrency:
+  group: infra-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    name: terraform apply (${{ inputs.environment }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.TFSTATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TFSTATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TFSTATE_CONTAINER }}" \
+            -backend-config="key=rtsa-${{ inputs.environment }}.tfstate"
+
+      - name: Terraform validate
+        run: terraform validate
+
+      - name: Terraform plan
+        run: terraform plan -input=false -var-file="${{ inputs.environment }}.tfvars" -out=tfplan
+
+      - name: Terraform apply
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Publish outputs to job summary
+        if: always()
+        run: |
+          {
+            echo "### Terraform outputs — ${{ inputs.environment }}"
+            echo ''
+            echo 'Set these as GitHub Environment variables so CD Deploy can target the cluster:'
+            echo '```'
+            terraform output 2>/dev/null || echo "(no outputs)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

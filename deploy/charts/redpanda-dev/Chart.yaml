@@ -1,0 +1,16 @@
+# CLASSIFICATION: UNCLASSIFIED
+apiVersion: v2
+name: redpanda-dev
+description: >-
+  Single-broker Redpanda (Kafka-API event backbone) for RTSA dev/ephemeral
+  environments. NOT for staging/production — those use the 3-broker RF=3
+  topology. Provides the tracks.fused.* / sensors.* topics consumed by the
+  RTSA services. Redpanda is the event backbone in ALL environments (DL-08).
+type: application
+version: 0.1.0
+appVersion: "24.2.7"
+keywords:
+  - redpanda
+  - kafka
+  - streaming
+  - rtsa

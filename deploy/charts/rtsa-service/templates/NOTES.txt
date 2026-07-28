@@ -1,0 +1,13 @@
+CLASSIFICATION: UNCLASSIFIED
+
+{{ include "rtsa-service.fullname" . }} deployed to namespace {{ .Release.Namespace }}.
+
+Image:      {{ include "rtsa-service.image" . }}
+Autoscaling: {{ .Values.autoscaling.mode }}
+Workload identity: {{ if .Values.serviceAccount.workloadIdentityClientId }}enabled{{ else }}disabled (set serviceAccount.workloadIdentityClientId){{ end }}
+
+Check rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "rtsa-service.fullname" . }}
+
+View metrics:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "rtsa-service.fullname" . }} {{ .Values.ports.metrics }}:{{ .Values.ports.metrics }}

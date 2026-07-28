@@ -1,0 +1,126 @@
+# CLASSIFICATION: UNCLASSIFIED
+# CD Build — on merge to main (or tag / manual), build only the changed service
+# images, sign + scan them, and push to ACR. Promotion downstream is by digest.
+name: CD Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write # OIDC to Azure + cosign keyless
+  contents: read
+  security-events: write # Trivy SARIF upload
+
+concurrency:
+  group: cd-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    name: Detect changed services
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.set.outputs.go }}
+      web: ${{ steps.set.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            shared:
+              - 'pkg/**'
+              - 'gen/**'
+              - 'proto/**'
+              - 'go.work'
+              - 'buf*.yaml'
+              - 'deploy/charts/**'
+              - '.github/workflows/**'
+            svc-radar-ingestion:
+              - 'svc-radar-ingestion/**'
+            svc-fusion-engine:
+              - 'svc-fusion-engine/**'
+            svc-track:
+              - 'svc-track/**'
+            svc-webtransport:
+              - 'svc-webtransport/**'
+            svc-query:
+              - 'svc-query/**'
+            web-cop-gpu:
+              - 'web-cop-gpu/**'
+      - id: set
+        env:
+          CHANGES: ${{ steps.filter.outputs.changes }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          go_all = ["svc-radar-ingestion","svc-fusion-engine","svc-track","svc-webtransport","svc-query"]
+          changed = json.loads(os.environ.get("CHANGES","[]"))
+          force = (os.environ.get("SHARED")=="true"
+                   or os.environ.get("EVENT")=="workflow_dispatch"
+                   or os.environ.get("REF","").startswith("refs/tags/"))
+          if force:
+              go = go_all
+              web = True
+          else:
+              go = [s for s in go_all if s in changed]
+              web = "web-cop-gpu" in changed
+          print("go=" + json.dumps(go))
+          print("web=" + ("true" if web else "false"))
+          PY
+
+  build-go:
+    name: Build ${{ matrix.service }}
+    needs: changes
+    if: needs.changes.outputs.go != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.go) }}
+    uses: ./.github/workflows/_reusable/container.yml
+    with:
+      service: ${{ matrix.service }}
+      dockerfile: ${{ matrix.service }}/Dockerfile
+      context: .
+      image-tag: ${{ github.sha }}
+      acr-name: ${{ vars.ACR_NAME }}
+      client-id: ${{ vars.AZURE_CLIENT_ID }}
+      tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+  build-web:
+    name: Build web-cop-gpu
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    uses: ./.github/workflows/_reusable/container.yml
+    with:
+      service: web-cop-gpu
+      dockerfile: web-cop-gpu/Dockerfile
+      context: web-cop-gpu
+      image-tag: ${{ github.sha }}
+      acr-name: ${{ vars.ACR_NAME }}
+      client-id: ${{ vars.AZURE_CLIENT_ID }}
+      tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      build-args: |
+        VITE_API_GATEWAY_URL=${{ vars.VITE_API_GATEWAY_URL }}
+        VITE_WEBTRANSPORT_URL=${{ vars.VITE_WEBTRANSPORT_URL }}
+        BUILD_ENV=production
+
+  deploy-dev:
+    name: Deploy to dev
+    needs: [changes, build-go, build-web]
+    # Run even if one build track was skipped (no changes there), but not if a
+    # build actually failed. dev auto-deploys on merge to main.
+    if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/_reusable/deploy-helm.yml
+    with:
+      environment: dev
+      image-tag: ${{ github.sha }}
+      namespace: rtsa

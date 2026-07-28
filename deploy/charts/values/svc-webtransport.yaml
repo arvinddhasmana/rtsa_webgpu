@@ -1,0 +1,122 @@
+# CLASSIFICATION: UNCLASSIFIED
+# svc-webtransport — hot-path fan-out. Consumes tracks.fused.* and broadcasts
+# 128-byte records to the browser COP over WebTransport (QUIC/UDP 4443).
+#
+# Requires (set at deploy time):
+#   --set serviceAccount.workloadIdentityClientId=<uami-client-id>   (terraform output)
+#   --set secretProviderClass.keyvaultName=<kv-name> --set secretProviderClass.tenantId=<tenant>
+nameOverride: svc-webtransport
+replicaCount: 2
+
+# No gRPC port; WebTransport is UDP.
+ports:
+  grpc: null
+  health: 8081
+  metrics: 9090
+extraPorts:
+  - name: webtransport
+    containerPort: 4443
+    protocol: UDP
+
+service:
+  enabled: true
+  extraPorts:
+    - name: webtransport
+      port: 4443
+      targetPort: webtransport
+      protocol: UDP
+
+nodeSelector:
+  workload: processing
+tolerations:
+  - key: workload
+    operator: Equal
+    value: processing
+    effect: NoSchedule
+
+env:
+  - name: RTSA_SERVICE_NAME
+    value: svc-webtransport
+  - name: RTSA_WT_LISTEN_ADDR
+    value: ":4443"
+  - name: RTSA_REDPANDA_BROKERS
+    value: redpanda.rtsa.svc.cluster.local:9092
+  - name: RTSA_CONSUMER_GROUP
+    value: webtransport-service
+  - name: RTSA_WT_TOPICS
+    value: tracks.fused.surface,tracks.fused.air,tracks.fused.subsurface,tracks.fused.land,tracks.fused.cyber
+  - name: RTSA_WT_START_OFFSET
+    value: latest
+  - name: RTSA_WT_ALLOWED_ORIGINS
+    value: https://cop.rtsa.internal
+  - name: RTSA_TLS_SERVER_CERT
+    value: /mnt/secrets-store/wt-tls-crt
+  - name: RTSA_TLS_SERVER_KEY
+    value: /mnt/secrets-store/wt-tls-key
+  - name: RTSA_HEALTH_PORT
+    value: "8081"
+  - name: RTSA_METRICS_PORT
+    value: "9090"
+  - name: RTSA_LOG_LEVEL
+    value: info
+  - name: RTSA_OTEL_ENDPOINT
+    value: otel-collector.observability.svc.cluster.local:4317
+
+# RTSA_WT_JWT_SECRET is delivered from Key Vault (below) via a synced Secret.
+envFrom:
+  - secretRef:
+      name: svc-webtransport-secrets
+
+# Key Vault (Secrets Store CSI) — JWT signing secret + WebTransport TLS material.
+# No secret values ever live in git or images; workload identity fetches them.
+secretProviderClass:
+  enabled: true
+  keyvaultName: "" # --set at deploy time
+  tenantId: "" # --set at deploy time
+  objects:
+    - objectName: wt-jwt-secret
+      objectType: secret
+      objectAlias: RTSA_WT_JWT_SECRET
+    - objectName: wt-tls-crt
+      objectType: secret
+      objectAlias: wt-tls-crt
+    - objectName: wt-tls-key
+      objectType: secret
+      objectAlias: wt-tls-key
+  syncSecret:
+    enabled: true
+    name: svc-webtransport-secrets
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+autoscaling:
+  mode: hpa
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 65
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 128Mi
+  limits:
+    cpu: "2"
+    memory: 512Mi

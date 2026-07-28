@@ -1,0 +1,18 @@
+# CLASSIFICATION: UNCLASSIFIED
+{{- if .Values.sidecar.enabled }}
+# Least-privilege egress. Restricts the hosts each sidecar can reach, limiting
+# lateral movement and enforcing a default-deny egress posture via mesh config.
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: rtsa-default
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  egress:
+    - hosts:
+        {{- range .Values.sidecar.egressHosts }}
+        - {{ . | quote }}
+        {{- end }}
+{{- end }}

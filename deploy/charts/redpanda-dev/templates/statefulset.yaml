@@ -1,0 +1,116 @@
+# CLASSIFICATION: UNCLASSIFIED
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redpanda
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: redpanda
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: event-backbone
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  serviceName: redpanda
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redpanda
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redpanda
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: event-backbone
+    spec:
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: redpanda
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command:
+            - /usr/bin/rpk
+          args:
+            - redpanda
+            - start
+            - --mode=dev-container
+            - --smp={{ .Values.smp }}
+            - --memory={{ .Values.memory }}
+            - --reserve-memory={{ .Values.reserveMemory }}
+            - --default-log-level=info
+            - --kafka-addr=PLAINTEXT://0.0.0.0:{{ .Values.ports.kafka }}
+            - --advertise-kafka-addr=PLAINTEXT://redpanda.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.ports.kafka }}
+            - --rpc-addr=0.0.0.0:{{ .Values.ports.rpc }}
+            - --advertise-rpc-addr=redpanda.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.ports.rpc }}
+            - --schema-registry-addr=0.0.0.0:{{ .Values.ports.schemaRegistry }}
+            - --pandaproxy-addr=0.0.0.0:{{ .Values.ports.pandaProxy }}
+          ports:
+            - name: kafka
+              containerPort: {{ .Values.ports.kafka }}
+              protocol: TCP
+            - name: admin
+              containerPort: {{ .Values.ports.admin }}
+              protocol: TCP
+            - name: rpc
+              containerPort: {{ .Values.ports.rpc }}
+              protocol: TCP
+            - name: schema-registry
+              containerPort: {{ .Values.ports.schemaRegistry }}
+              protocol: TCP
+            - name: panda-proxy
+              containerPort: {{ .Values.ports.pandaProxy }}
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: kafka
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /v1/status/ready
+              port: admin
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/redpanda/data
+      {{- if not .Values.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app.kubernetes.io/name: redpanda
+          app.kubernetes.io/instance: {{ .Release.Name }}
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.persistence.storageClassName }}
+        storageClassName: {{ .Values.persistence.storageClassName }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+  {{- end }}

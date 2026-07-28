@@ -1,0 +1,154 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Default values for rtsa-service. A single service overrides only what it needs
+# via deploy/charts/values/<service>.yaml.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  # repository is usually "<acr-login-server>/<service>", supplied at deploy time.
+  repository: ""
+  # tag defaults to .Chart.AppVersion when empty (override with the image digest/tag in CI).
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+revisionHistoryLimit: 3
+
+# ServiceAccount + Microsoft Entra Workload Identity.
+serviceAccount:
+  create: true
+  name: ""
+  # Managed identity client ID from Terraform output `workload_identity_client_ids`.
+  # When set, the pod is federated to Azure AD (no secrets, no connection strings).
+  workloadIdentityClientId: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+# Pod security context — matches the distroless nonroot uid/gid (65532).
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+# Container security context — least privilege, read-only root FS.
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+# Named container ports. Set a port to null to omit it (e.g. web frontend has no grpc).
+ports:
+  grpc: 50051
+  health: 8081
+  metrics: 9090
+# Additional container ports: list of { name, containerPort, protocol }.
+extraPorts: []
+
+service:
+  enabled: true
+  type: ClusterIP
+  annotations: {}
+  # Additional service ports: list of { name, port, targetPort, protocol }.
+  extraPorts: []
+
+# Environment variables: list of { name, value } (never put secrets here).
+env: []
+# Bulk env sources: list of { secretRef: {name} } or { configMapRef: {name} }.
+envFrom: []
+
+# Key Vault via the Secrets Store CSI driver. Secrets are mounted (and optionally
+# synced to a Kubernetes Secret referenced from envFrom) — never baked into images.
+secretProviderClass:
+  enabled: false
+  keyvaultName: ""
+  tenantId: ""
+  # list of { objectName, objectType(secret|key|cert), objectAlias? }
+  objects: []
+  syncSecret:
+    enabled: false
+    name: ""
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 3
+
+# Scheduling — steer workloads onto the correct bulkhead node pool.
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []
+
+# Autoscaling: "none" | "hpa" | "keda".
+autoscaling:
+  mode: none
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 70
+  # 0 disables the memory metric.
+  targetMemoryUtilizationPercentage: 0
+  keda:
+    pollingInterval: 15
+    cooldownPeriod: 60
+    # Native KEDA triggers, e.g. a Kafka/Redpanda lag trigger. list of trigger maps.
+    triggers: []
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  maxUnavailable: ""
+
+# Istio sidecar injection is controlled at namespace scope by the rtsa-mesh chart.
+istio:
+  enabled: true
+
+networkPolicy:
+  enabled: false
+  ingress: []
+  egress: []
+
+# Prometheus scrape annotations.
+metrics:
+  enabled: true
+  port: metrics
+  path: /metrics
+
+terminationGracePeriodSeconds: 30
+
+command: []
+args: []
+extraVolumes: []
+extraVolumeMounts: []

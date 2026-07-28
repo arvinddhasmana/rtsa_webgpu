@@ -1,0 +1,87 @@
+# CLASSIFICATION: UNCLASSIFIED
+# redpanda-dev — single-broker Redpanda for ephemeral RTSA dev environments.
+#
+# The Service is named "redpanda" so in-cluster clients reach it at
+# redpanda.<namespace>.svc.cluster.local:9092 (matches deploy/charts/values/*).
+
+image:
+  repository: docker.redpanda.com/redpandadata/redpanda
+  tag: v24.2.7
+  pullPolicy: IfNotPresent
+
+# Single broker for dev. Staging/prod use a separate 3-broker RF=3 chart.
+replicaCount: 1
+
+# Resources kept small for cost-controlled ephemeral clusters.
+resources:
+  requests:
+    cpu: 250m
+    memory: 1Gi
+  limits:
+    cpu: "1"
+    memory: 1536Mi
+
+# Redpanda tuning for a 1-core dev broker.
+smp: 1
+memory: 1G
+reserveMemory: 0M
+
+persistence:
+  enabled: true
+  size: 8Gi
+  # Leave null to use the cluster default StorageClass.
+  storageClassName: null
+
+# Listener ports.
+ports:
+  kafka: 9092
+  admin: 9644
+  rpc: 33145
+  schemaRegistry: 8081
+  pandaProxy: 8082
+
+# Redpanda image runs as uid/gid 101.
+podSecurityContext:
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  capabilities:
+    drop:
+      - ALL
+
+# Dev broker sits on the stateful node pool by default.
+nodeSelector:
+  workload: stateful
+tolerations: []
+affinity: {}
+
+# Redpanda terminates plaintext in-cluster; Istio mTLS wraps the traffic.
+serviceType: ClusterIP
+
+# The topics the RTSA walking skeleton expects. A one-shot Job creates them.
+topics:
+  create: true
+  partitions: 1
+  replicas: 1
+  list:
+    - sensors.radar.tracks
+    - sensors.ew.tracks
+    - sensors.elint.tracks
+    - sensors.isr.tracks
+    - sensors.ais.tracks
+    - sensors.cyber.tracks
+    - tracks.fused.surface
+    - tracks.fused.air
+    - tracks.fused.subsurface
+    - tracks.fused.land
+    - tracks.fused.cyber
+
+terminationGracePeriodSeconds: 60

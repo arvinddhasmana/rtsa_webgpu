@@ -1,0 +1,16 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Copy to terraform.tfvars and fill in real values. terraform.tfvars is gitignored.
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+# tenant_id     = "00000000-0000-0000-0000-000000000000"  # optional; defaults to current az login
+location = "canadacentral"
+project  = "rtsa"
+
+github_owner = "arvinddhasmana"
+github_repo  = "rtsa_webgpu"
+
+environments = ["dev", "staging", "prod"]
+
+# Optional shared DNS zone for ingress hostnames:
+# create_dns_zone = true
+# dns_zone_name   = "rtsa.example.org"

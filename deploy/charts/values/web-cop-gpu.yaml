@@ -1,0 +1,81 @@
+# CLASSIFICATION: UNCLASSIFIED
+# web-cop-gpu — SolidJS + WebGPU Common Operating Picture (nginx static bundle).
+nameOverride: web-cop-gpu
+replicaCount: 2
+
+# nginx serves on :80; no gRPC/metrics ports.
+ports:
+  grpc: null
+  health: null
+  metrics: null
+extraPorts:
+  - name: http
+    containerPort: 80
+
+service:
+  enabled: true
+  extraPorts:
+    - name: http
+      port: 80
+      targetPort: http
+
+# The frontend tier runs on the default system pool (no bulkhead taint).
+nodeSelector: {}
+tolerations: []
+
+# nginx master needs to bind :80; run as root but drop all caps except
+# NET_BIND_SERVICE. Writable root FS for nginx cache/run.
+podSecurityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: false
+  capabilities:
+    drop:
+      - ALL
+    add:
+      - NET_BIND_SERVICE
+
+metrics:
+  enabled: false
+
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    httpGet:
+      path: /
+      port: http
+    initialDelaySeconds: 3
+    periodSeconds: 10
+
+autoscaling:
+  mode: hpa
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 32Mi
+  limits:
+    cpu: 500m
+    memory: 128Mi

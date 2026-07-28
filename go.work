@@ -22,6 +22,7 @@ use (
 	./svc-radar-ingestion
 	./svc-track
 	./svc-training
+	./svc-webtransport
 	./tests/benchmark
 	./tests/e2e
 	./tests/integration

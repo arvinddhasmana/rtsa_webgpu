@@ -1,0 +1,40 @@
+# CLASSIFICATION: UNCLASSIFIED
+# rtsa-mesh — namespace + Istio security baseline for the RTSA workloads.
+
+# Target application namespace.
+namespace: rtsa
+
+# Create the namespace as part of this chart. Set false if the namespace is
+# managed elsewhere (e.g. by Terraform or a platform team).
+createNamespace: true
+
+istio:
+  # AKS managed Istio uses revision labels (e.g. asm-1-22). Leave empty to use
+  # the default-revision label (istio-injection=enabled) for upstream Istio.
+  revision: ""
+
+# Namespace-wide mutual TLS. STRICT rejects any plaintext traffic.
+peerAuthentication:
+  enabled: true
+  mtlsMode: STRICT
+
+# Authenticated-only baseline: allow requests that originate from within the
+# mesh (rtsa workloads + the Istio ingress gateway + observability collector).
+# Unauthenticated / cross-namespace traffic outside this list is denied.
+authorizationPolicy:
+  enabled: true
+  allowedNamespaces:
+    - rtsa
+    - aks-istio-ingress
+    - istio-system
+    - observability
+
+# Least-privilege egress: workloads may only reach their own namespace,
+# the mesh control plane, and the observability namespace (OTel collector).
+sidecar:
+  enabled: true
+  egressHosts:
+    - "./*"
+    - "istio-system/*"
+    - "observability/*"
+    - "aks-istio-ingress/*"

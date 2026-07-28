@@ -1,0 +1,33 @@
+# CLASSIFICATION: UNCLASSIFIED
+{{ if .Values.service.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "rtsa-service.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rtsa-service.labels" . | nindent 4 }}
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "rtsa-service.selectorLabels" . | nindent 4 }}
+  ports:
+    {{- range $name, $port := .Values.ports }}
+    {{- if $port }}
+    - name: {{ $name }}
+      port: {{ $port }}
+      targetPort: {{ $name }}
+      protocol: TCP
+    {{- end }}
+    {{- end }}
+    {{- range .Values.service.extraPorts }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .targetPort | default .name }}
+      protocol: {{ .protocol | default "TCP" }}
+    {{- end }}
+{{- end }}

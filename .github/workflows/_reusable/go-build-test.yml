@@ -1,0 +1,100 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Reusable: build every Go module in the workspace and run unit tests with the
+# race detector, then enforce an aggregate line-coverage threshold (SG-2 + SG-3).
+name: reusable-go-build-test
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: Go toolchain version.
+        type: string
+        default: "1.24.x"
+      min-coverage:
+        description: Minimum aggregate line coverage percent required.
+        type: string
+        default: "80"
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache-dependency-path: "**/go.sum"
+
+      - name: Set up buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Verify generated protobuf code is up to date
+        run: |
+          set -euo pipefail
+          buf generate
+          if ! git diff --quiet -- gen/; then
+            echo "::error::Generated code under gen/ is stale. Run 'buf generate' and commit."
+            git --no-pager diff --stat -- gen/
+            exit 1
+          fi
+
+      - name: Build all workspace modules
+        run: |
+          set -euo pipefail
+          while IFS= read -r modfile; do
+            dir="$(dirname "$modfile")"
+            case "$dir" in
+              ./gen/*) continue ;;
+            esac
+            echo "::group::build $dir"
+            ( cd "$dir" && GOWORK=off go build ./... )
+            echo "::endgroup::"
+          done < <(find . -name go.mod -not -path './gen/*')
+
+      - name: Unit tests (race) with coverage
+        run: |
+          set -euo pipefail
+          while IFS= read -r modfile; do
+            dir="$(dirname "$modfile")"
+            case "$dir" in
+              ./gen/*) continue ;;
+              ./tests/*) continue ;;
+            esac
+            echo "::group::test $dir"
+            ( cd "$dir" && GOWORK=off go test -race -count=1 \
+                -coverprofile=coverage.out -covermode=atomic ./... )
+            echo "::endgroup::"
+          done < <(find . -name go.mod -not -path './gen/*' -not -path './tests/*')
+
+      - name: Enforce aggregate coverage threshold
+        run: |
+          set -euo pipefail
+          MIN="${{ inputs.min-coverage }}"
+          total=0
+          covered=0
+          while IFS= read -r prof; do
+            while read -r _pos stmts count; do
+              [ -z "${stmts:-}" ] && continue
+              total=$((total + stmts))
+              if [ "${count:-0}" -gt 0 ]; then
+                covered=$((covered + stmts))
+              fi
+            done < <(grep -v '^mode:' "$prof" || true)
+          done < <(find . -name coverage.out)
+          if [ "$total" -eq 0 ]; then
+            echo "::error::No coverage data produced."
+            exit 1
+          fi
+          pct=$(awk -v c="$covered" -v t="$total" 'BEGIN { printf "%.2f", (c/t)*100 }')
+          echo "Aggregate line coverage: ${pct}% (min ${MIN}%)"
+          awk -v p="$pct" -v m="$MIN" 'BEGIN { exit (p+0 >= m+0) ? 0 : 1 }' || {
+            echo "::error::Coverage ${pct}% is below the required ${MIN}%."
+            exit 1
+          }
