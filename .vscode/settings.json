@@ -37,11 +37,21 @@
   "github.copilot.chat.pullRequestDescriptionGeneration.enabled": true,
   // ── Go Language Settings ─────────────────────────────────────────────────────
   "go.useLanguageServer": true,
+  // Pin Go tool execution to repo-required toolchain to avoid gopls/packages.Load
+  // failures when VS Code resolves an older system Go.
+  "go.toolsEnvVars": {
+    "GOTOOLCHAIN": "go1.24.12",
+    "GOWORK": "${workspaceFolder}/go.work"
+  },
   "go.lintTool": "golangci-lint",
   "go.lintOnSave": "workspace",
   "go.vetOnSave": "workspace",
   "go.buildOnSave": "workspace",
-  "go.testFlags": ["-race", "-v", "-count=1"],
+  "go.testFlags": [
+    "-race",
+    "-v",
+    "-count=1"
+  ],
   "go.coverageDecorator": {
     "type": "highlight"
   },
@@ -53,7 +63,9 @@
     "source.organizeImports": "explicit",
     "source.fixAll": "explicit"
   },
-  "editor.rulers": [120],
+  "editor.rulers": [
+    120
+  ],
   "editor.tabSize": 4,
   "editor.insertSpaces": true,
   "files.trimTrailingWhitespace": true,
