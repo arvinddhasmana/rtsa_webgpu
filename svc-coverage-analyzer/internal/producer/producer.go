@@ -4,8 +4,8 @@ package producer
 import (
 	"context"
 
-	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"
 )

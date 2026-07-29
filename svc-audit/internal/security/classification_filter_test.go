@@ -5,8 +5,8 @@ import (
 "context"
 "testing"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/security"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-audit/internal/security"
 "google.golang.org/grpc/metadata"
 )
 

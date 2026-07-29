@@ -5,10 +5,10 @@ import (
 "context"
 "testing"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-isr-ingestion/internal/mapper"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-isr-ingestion/internal/mapper"
 )
 
 func TestEnricher_SetsObservationID(t *testing.T) {

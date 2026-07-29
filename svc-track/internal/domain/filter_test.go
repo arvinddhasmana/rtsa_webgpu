@@ -7,8 +7,8 @@ package domain
 import (
 	"testing"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	entityv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
 )
 
 func makeFilterTrack(id string, et commonv1.EntityType, hc commonv1.HostileClassification, cls commonv1.ClassificationLevel, confidence float64, lat, lon float64) *entityv1.FusedTrack {

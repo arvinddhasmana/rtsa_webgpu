@@ -10,11 +10,11 @@ import (
 "testing"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tests/integration/testutil"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+feedbackv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
+"github.com/arvinddhasmana/rtsa_webgpu/tests/integration/testutil"
 "github.com/twmb/franz-go/pkg/kgo"
 "google.golang.org/protobuf/proto"
 )

@@ -26,7 +26,9 @@ RUN wasm-pack build --target web --release --out-dir pkg
 # ── Stage 2: Build frontend ─────────────────────────────────
 FROM node:20-alpine AS node-builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Pin pnpm to a Node 20 compatible line to avoid breakage from upstream latest releases.
+ARG PNPM_VERSION=9.15.9
+RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
 WORKDIR /app
 
@@ -50,7 +52,7 @@ ENV VITE_API_GATEWAY_URL=${VITE_API_GATEWAY_URL}
 ARG VITE_WEBTRANSPORT_URL
 ENV VITE_WEBTRANSPORT_URL=${VITE_WEBTRANSPORT_URL}
 
-RUN pnpm build
+RUN pnpm run build:demo
 
 # ── Stage 3: Nginx runtime ──────────────────────────────────
 FROM nginx:1.27-alpine AS runtime

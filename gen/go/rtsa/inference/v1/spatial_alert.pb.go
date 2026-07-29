@@ -9,7 +9,7 @@
 package inferencev1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -171,7 +171,7 @@ const file_rtsa_inference_v1_spatial_alert_proto_rawDesc = "" +
 	"detectedAt\x12#\n" +
 	"\rmodel_version\x18\t \x01(\tR\fmodelVersion\x12\"\n" +
 	"\facknowledged\x18\n" +
-	" \x01(\bR\facknowledgedBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
+	" \x01(\bR\facknowledgedBLZJgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
 
 var (
 	file_rtsa_inference_v1_spatial_alert_proto_rawDescOnce sync.Once

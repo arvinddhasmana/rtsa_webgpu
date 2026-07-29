@@ -66,7 +66,7 @@ go test -race -v -run TestSpeedDetector_HighSpeed ./internal/domain/detectors/
 === RUN   TestSpeedDetector_HighSpeed_ReturnsAnomaly
 --- PASS: TestSpeedDetector_HighSpeed_ReturnsAnomaly (0.00s)
 PASS
-ok      github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/domain/detectors   0.004s
+ok      github.com/arvinddhasmana/rtsa_webgpu/svc-anomaly-detection/internal/domain/detectors   0.004s
 
 ─────────────────────────────────────────────────────
   Go unit test summary:
@@ -348,7 +348,7 @@ After all stages complete, a table is printed followed by per-stage failure deta
    2. integration/centralized/TestFusionPipeline_AISPosition
 
 ── Test Results Location ────────────────────────────────────────────
-  /home/user/workspace/RTSA_VS_Opus/.test-results/2026-03-02T14-30-00/
+  /home/user/workspace/rtsa_webgpu/.test-results/2026-03-02T14-30-00/
 
   Subdirectories:
     unit/         — per-module Go unit test logs (*.log, failures.txt)

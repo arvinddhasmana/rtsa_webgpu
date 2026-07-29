@@ -7,8 +7,8 @@ import (
 "math/rand"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/config"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/config"
 )
 
 // defaultAreaBounds is the North Atlantic fallback used when no scenario

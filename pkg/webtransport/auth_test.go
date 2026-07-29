@@ -9,7 +9,7 @@ import (
 "testing"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/webtransport"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/webtransport"
 )
 
 var testSecret = []byte("test-secret-key-for-unit-tests-only")

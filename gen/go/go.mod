@@ -1,5 +1,5 @@
 // CLASSIFICATION: UNCLASSIFIED
-module github.com/arvinddhasmana/RTSA_VS_Opus/gen/go
+module github.com/arvinddhasmana/rtsa_webgpu/gen/go
 
 go 1.24.0
 

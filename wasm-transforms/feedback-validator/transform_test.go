@@ -4,7 +4,7 @@ package main
 import (
 	"testing"
 
-	feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
+	feedbackv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1"
 	"github.com/redpanda-data/redpanda/src/transform-sdk/go/transform"
 	"google.golang.org/protobuf/proto"
 )

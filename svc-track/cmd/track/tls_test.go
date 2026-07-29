@@ -14,7 +14,7 @@ import (
 "testing"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/config"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-track/internal/config"
 )
 
 // generateTestCerts creates a self-signed CA, server cert, and key in a temp dir.

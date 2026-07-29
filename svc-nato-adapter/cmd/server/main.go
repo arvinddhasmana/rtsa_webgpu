@@ -26,8 +26,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-nato-adapter/internal/config"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-nato-adapter/internal/server"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-nato-adapter/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-nato-adapter/internal/server"
 	"go.uber.org/zap"
 	grpchealth "google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"

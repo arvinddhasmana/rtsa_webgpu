@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/consumer"
+	auditv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/audit/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-audit/internal/consumer"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/encoding/protojson"

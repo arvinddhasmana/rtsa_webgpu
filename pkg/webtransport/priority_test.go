@@ -6,7 +6,7 @@ package webtransport_test
 import (
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/webtransport"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/webtransport"
 )
 
 func TestShouldSend_NoCongestion(t *testing.T) {

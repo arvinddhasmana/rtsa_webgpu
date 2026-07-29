@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package rtsa.query.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1;queryv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/query/v1;queryv1";
 
 import "rtsa/common/v1/types.proto";
 import "rtsa/entity/v1/fused_track.proto";

@@ -279,11 +279,11 @@ Every generated source file must begin with:
 
 ### 8.2 Go Module Path
 
-All Go modules use the base path: `github.com/arvinddhasmana/RTSA_VS_Opus`
+All Go modules use the base path: `github.com/arvinddhasmana/rtsa_webgpu`
 
-- Shared libraries: `github.com/arvinddhasmana/RTSA_VS_Opus/pkg/<package>`
-- Services: `github.com/arvinddhasmana/RTSA_VS_Opus/svc-<name>`
-- Proto generated: `github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/<context>/v1`
+- Shared libraries: `github.com/arvinddhasmana/rtsa_webgpu/pkg/<package>`
+- Services: `github.com/arvinddhasmana/rtsa_webgpu/svc-<name>`
+- Proto generated: `github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/<context>/v1`
 
 ### 8.3 Error Format
 
@@ -384,7 +384,7 @@ A module is **complete** when:
 ## 11. Project Directory Structure
 
 ```
-RTSA_VS_Opus/
+rtsa_webgpu/
 ├── proto/                           # Protobuf definitions (Module 02)
 │   └── rtsa/
 │       ├── common/v1/

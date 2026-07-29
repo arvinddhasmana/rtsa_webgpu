@@ -5,7 +5,7 @@ import (
 "os"
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/config"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/config"
 )
 
 func TestLoad_AllVarsSet(t *testing.T) {

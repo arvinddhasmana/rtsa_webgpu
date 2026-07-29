@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-fusion-engine/internal/domain"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-fusion-engine/internal/domain"
 )
 
 func TestKalmanFilter_Predict_ConstantVelocity(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 "testing"
 
 "go.opentelemetry.io/otel"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/telemetry"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/telemetry"
 )
 
 func TestInit_CreatesValidProviders(t *testing.T) {

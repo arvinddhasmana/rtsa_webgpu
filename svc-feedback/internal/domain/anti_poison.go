@@ -6,7 +6,7 @@ import (
 "math"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/state"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-feedback/internal/state"
 "go.uber.org/zap"
 )
 

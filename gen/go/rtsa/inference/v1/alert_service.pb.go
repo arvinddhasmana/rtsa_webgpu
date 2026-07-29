@@ -9,7 +9,7 @@
 package inferencev1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -415,7 +415,7 @@ const file_rtsa_inference_v1_alert_service_proto_rawDesc = "" +
 	"\fStreamAlerts\x12&.rtsa.inference.v1.StreamAlertsRequest\x1a\x1f.rtsa.inference.v1.AnomalyAlert0\x01\x12k\n" +
 	"\x10AcknowledgeAlert\x12*.rtsa.inference.v1.AcknowledgeAlertRequest\x1a+.rtsa.inference.v1.AcknowledgeAlertResponse\x12]\n" +
 	"\x0fGetAlertDetails\x12).rtsa.inference.v1.GetAlertDetailsRequest\x1a\x1f.rtsa.inference.v1.AnomalyAlert\x12\\\n" +
-	"\vAssignAlert\x12%.rtsa.inference.v1.AssignAlertRequest\x1a&.rtsa.inference.v1.AssignAlertResponseBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
+	"\vAssignAlert\x12%.rtsa.inference.v1.AssignAlertRequest\x1a&.rtsa.inference.v1.AssignAlertResponseBLZJgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
 
 var (
 	file_rtsa_inference_v1_alert_service_proto_rawDescOnce sync.Once

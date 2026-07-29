@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-query/internal/security"
 	"google.golang.org/grpc/metadata"
 )
 

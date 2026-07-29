@@ -6,7 +6,7 @@ import (
 "testing"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/config"
+"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/config"
 )
 
 func TestLoad_Defaults(t *testing.T) {

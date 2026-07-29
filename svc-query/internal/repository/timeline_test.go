@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/repository"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-query/internal/repository"
 )
 
 // mockConn implements driver.Conn for testing

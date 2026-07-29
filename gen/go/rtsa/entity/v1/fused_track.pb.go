@@ -9,7 +9,7 @@
 package entityv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -384,7 +384,7 @@ const file_rtsa_entity_v1_fused_track_proto_rawDesc = "" +
 	"\x14KinematicUncertainty\x122\n" +
 	"\x15position_error_meters\x18\x01 \x01(\x01R\x13positionErrorMeters\x12,\n" +
 	"\x12velocity_error_mps\x18\x02 \x01(\x01R\x10velocityErrorMps\x122\n" +
-	"\x15heading_error_degrees\x18\x03 \x01(\x01R\x13headingErrorDegreesBGZEgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1b\x06proto3"
+	"\x15heading_error_degrees\x18\x03 \x01(\x01R\x13headingErrorDegreesBFZDgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1;entityv1b\x06proto3"
 
 var (
 	file_rtsa_entity_v1_fused_track_proto_rawDescOnce sync.Once

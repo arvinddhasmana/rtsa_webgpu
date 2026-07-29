@@ -9,8 +9,8 @@ import (
 "os"
 "time"
 
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/config"
+ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/config"
 "google.golang.org/grpc"
 "google.golang.org/grpc/credentials"
 "google.golang.org/grpc/credentials/insecure"

@@ -271,7 +271,7 @@ const file_rtsa_nato_v1_nato_service_proto_rawDesc = "" +
 	"\amessage\x18\x02 \x01(\tR\amessage2\xc2\x01\n" +
 	"\x12NatoAdapterService\x12U\n" +
 	"\fExportTracks\x12!.rtsa.nato.v1.ExportTracksRequest\x1a\".rtsa.nato.v1.ExportTracksResponse\x12U\n" +
-	"\fImportTracks\x12!.rtsa.nato.v1.ImportTracksRequest\x1a\".rtsa.nato.v1.ImportTracksResponseBCZAgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/nato/v1;natov1b\x06proto3"
+	"\fImportTracks\x12!.rtsa.nato.v1.ImportTracksRequest\x1a\".rtsa.nato.v1.ImportTracksResponseBBZ@github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/nato/v1;natov1b\x06proto3"
 
 var (
 	file_rtsa_nato_v1_nato_service_proto_rawDescOnce sync.Once

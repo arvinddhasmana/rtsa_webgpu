@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	queryv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/domain"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-query/internal/security"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	queryv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/query/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-query/internal/domain"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-query/internal/security"
 )
 
 // AuditRepository handles audit log queries against ClickHouse.

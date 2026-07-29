@@ -5,9 +5,9 @@ import (
 	"context"
 	"testing"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/producer"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-cyber-ingestion/internal/producer"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.opentelemetry.io/otel/trace"
 )

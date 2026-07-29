@@ -12,9 +12,9 @@ import (
 "net"
 "os"
 
-natov1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/nato/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-nato-adapter/internal/config"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-nato-adapter/internal/handler"
+natov1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/nato/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-nato-adapter/internal/config"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-nato-adapter/internal/handler"
 "go.uber.org/zap"
 "google.golang.org/grpc"
 "google.golang.org/grpc/credentials"

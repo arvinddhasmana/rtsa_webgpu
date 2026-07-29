@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-ais-ingestion/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-ais-ingestion/internal/config"
 )
 
 func TestLoad_Defaults(t *testing.T) {

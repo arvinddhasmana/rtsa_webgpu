@@ -5,7 +5,7 @@ import (
 "testing"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/domain"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-audit/internal/domain"
 "google.golang.org/grpc/codes"
 "google.golang.org/grpc/status"
 "google.golang.org/protobuf/types/known/timestamppb"

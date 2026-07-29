@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-anomaly-detection/internal/config"
 )
 
 func TestConfig_Load(t *testing.T) {

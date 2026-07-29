@@ -6,9 +6,9 @@ import (
 	"errors"
 	"testing"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/interceptors"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/interceptors"
 	"go.opentelemetry.io/otel"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

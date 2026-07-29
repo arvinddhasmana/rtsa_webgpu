@@ -120,7 +120,7 @@ Each service needs an `internal/config/config.go` with sensor-specific threshold
 // CLASSIFICATION: UNCLASSIFIED
 package config
 
-import "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/config"
+import "github.com/arvinddhasmana/rtsa_webgpu/pkg/config"
 
 type Config struct {
     // Service
@@ -166,7 +166,7 @@ package producer
 
 import (
     "context"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
 )
 
 type ObservationProducer struct {
@@ -192,7 +192,7 @@ func (p *ObservationProducer) Close() error  { return nil } // Producer lifecycl
 // CLASSIFICATION: UNCLASSIFIED
 package mapper
 
-import "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+import "github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
 
 type Enricher struct {
     serviceName string

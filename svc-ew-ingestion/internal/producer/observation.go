@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/protobuf/encoding/protojson"
 )

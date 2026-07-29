@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-fusion-engine/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-fusion-engine/internal/config"
 )
 
 func TestConfig_Load(t *testing.T) {
