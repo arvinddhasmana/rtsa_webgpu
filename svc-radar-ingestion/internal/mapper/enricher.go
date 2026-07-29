@@ -7,9 +7,9 @@ import (
 "time"
 
 "github.com/google/uuid"
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
 )
 
 // Enricher adds system-generated fields to observations.

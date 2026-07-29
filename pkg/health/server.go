@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	"google.golang.org/grpc"
 	grpchealth "google.golang.org/grpc/health"
 	grpchealthv1 "google.golang.org/grpc/health/grpc_health_v1"

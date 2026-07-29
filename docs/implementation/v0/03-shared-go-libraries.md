@@ -18,7 +18,7 @@ Implement the shared Go library packages used by every RTSA microservice. These 
 
 - All packages under `pkg/` compile with zero errors
 - Each package has ≥80% line coverage
-- All packages use `github.com/arvinddhasmana/RTSA_VS_Opus/pkg` module path
+- All packages use `github.com/arvinddhasmana/rtsa_webgpu/pkg` module path
 - No external dependencies outside approved supply chain (see `docs/sdlc_guidelines/01_security_compliance/supply_chain_security.md`)
 - Zero uses of `panic()` outside test files
 - All errors wrapped with `fmt.Errorf("context: %w", err)` pattern
@@ -83,12 +83,12 @@ pkg/
 
 ```go
 // CLASSIFICATION: UNCLASSIFIED
-module github.com/arvinddhasmana/RTSA_VS_Opus/pkg
+module github.com/arvinddhasmana/rtsa_webgpu/pkg
 
 go 1.22.0
 
 require (
-    github.com/arvinddhasmana/RTSA_VS_Opus/gen/go v0.0.0
+    github.com/arvinddhasmana/rtsa_webgpu/gen/go v0.0.0
     github.com/twmb/franz-go v1.16.0
     github.com/twmb/franz-go/pkg/kadm v1.11.0
     go.opentelemetry.io/otel v1.24.0
@@ -104,7 +104,7 @@ require (
     github.com/testcontainers/testcontainers-go v0.29.0
 )
 
-replace github.com/arvinddhasmana/RTSA_VS_Opus/gen/go => ../gen/go
+replace github.com/arvinddhasmana/rtsa_webgpu/gen/go => ../gen/go
 ```
 
 ---
@@ -438,7 +438,7 @@ package health
 
 import (
     "context"
-    commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+    commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 )
 
 // Server implements the gRPC HealthService from common.v1.
@@ -544,7 +544,7 @@ func (m *Manager) Trigger() { /* implementation */ }
 package classification
 
 import (
-    commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+    commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 )
 
 // LevelOrder maps ClassificationLevel to numeric order for comparison.
@@ -648,9 +648,9 @@ import (
     "time"
 
     "github.com/google/uuid"
-    auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-    commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+    auditv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/audit/v1"
+    commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
     "go.uber.org/zap"
     "google.golang.org/protobuf/proto"
     "google.golang.org/protobuf/types/known/timestamppb"
@@ -795,8 +795,8 @@ package interceptors
 import (
     "google.golang.org/grpc"
     "go.uber.org/zap"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/telemetry"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/telemetry"
 )
 
 // ChainConfig configures the standard interceptor chain.
@@ -900,7 +900,7 @@ import (
     "google.golang.org/grpc/codes"
     "google.golang.org/grpc/metadata"
     "google.golang.org/grpc/status"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
 )
 
 // UnaryClassificationInterceptor checks that the incoming request's
@@ -1018,11 +1018,11 @@ func DialTestGRPC(t *testing.T, addr string) *grpc.ClientConn { /* implementatio
 package testutil
 
 import (
-    commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-    ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-    entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-    inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-    feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
+    commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+    ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+    entityv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
+    inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
+    feedbackv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1"
     "google.golang.org/protobuf/types/known/timestamppb"
     "time"
 )

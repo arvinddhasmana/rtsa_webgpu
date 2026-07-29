@@ -6,11 +6,11 @@ import { afterEach, describe, expect, it } from "vitest";
 import { TrackDetailPanel } from "../../src/components/panels/TrackDetailPanel";
 import type { TrackDetail } from "../../src/signals/track";
 import {
-    clearSelectedTrack,
-    setSelectedTrack,
-    setTrackDetail,
-    setTrackDetailError,
-    setTrackDetailLoading,
+  clearSelectedTrack,
+  setSelectedTrack,
+  setTrackDetail,
+  setTrackDetailError,
+  setTrackDetailLoading,
 } from "../../src/signals/track";
 
 const mockTrack: TrackDetail = {
@@ -27,6 +27,7 @@ const mockTrack: TrackDetail = {
   speedKnots: 480,
   headingDeg: 270,
   updatedAtMs: Date.now(),
+  context: "MILITARY",
   sourceContributions: [],
 };
 

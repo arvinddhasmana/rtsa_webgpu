@@ -7,7 +7,7 @@ import (
 "testing"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/shutdown"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/shutdown"
 "go.uber.org/zap"
 )
 

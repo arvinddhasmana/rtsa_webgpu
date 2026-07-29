@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	pkgconfig "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/config"
+	pkgconfig "github.com/arvinddhasmana/rtsa_webgpu/pkg/config"
 )
 
 type Config struct {

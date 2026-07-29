@@ -8,12 +8,12 @@ import (
 "testing"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/handler"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-cyber-ingestion/internal/mapper"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-cyber-ingestion/internal/domain"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-cyber-ingestion/internal/handler"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-cyber-ingestion/internal/mapper"
 "go.uber.org/zap"
 "google.golang.org/protobuf/types/known/timestamppb"
 )

@@ -73,7 +73,7 @@ plugins:
 
 ```go
 // CLASSIFICATION: UNCLASSIFIED
-module github.com/arvinddhasmana/RTSA_VS_Opus/gen/go
+module github.com/arvinddhasmana/rtsa_webgpu/gen/go
 
 go 1.22.0
 
@@ -130,7 +130,7 @@ syntax = "proto3";
 
 package rtsa.common.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1;commonv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1;commonv1";
 
 import "google/protobuf/timestamp.proto";
 
@@ -301,7 +301,7 @@ syntax = "proto3";
 
 package rtsa.common.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1;commonv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1;commonv1";
 
 // Standard gRPC health check service
 service HealthService {
@@ -334,7 +334,7 @@ syntax = "proto3";
 
 package rtsa.ingestion.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1;ingestionv1";
 
 import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";
@@ -532,7 +532,7 @@ syntax = "proto3";
 
 package rtsa.ingestion.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1;ingestionv1";
 
 import "rtsa/ingestion/v1/sensor_observation.proto";
 import "rtsa/common/v1/types.proto";
@@ -597,7 +597,7 @@ syntax = "proto3";
 
 package rtsa.entity.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1;entityv1";
 
 import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";
@@ -669,7 +669,7 @@ syntax = "proto3";
 
 package rtsa.entity.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1;entityv1";
 
 import "rtsa/entity/v1/fused_track.proto";
 import "rtsa/common/v1/types.proto";
@@ -754,7 +754,7 @@ syntax = "proto3";
 
 package rtsa.inference.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1;inferencev1";
 
 import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";
@@ -813,7 +813,7 @@ syntax = "proto3";
 
 package rtsa.inference.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1;inferencev1";
 
 import "rtsa/inference/v1/anomaly_alert.proto";
 import "rtsa/common/v1/types.proto";
@@ -873,7 +873,7 @@ syntax = "proto3";
 
 package rtsa.feedback.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1;feedbackv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1";
 
 import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";
@@ -932,7 +932,7 @@ syntax = "proto3";
 
 package rtsa.feedback.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1;feedbackv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1";
 
 import "rtsa/feedback/v1/operator_feedback.proto";
 import "rtsa/common/v1/types.proto";
@@ -994,7 +994,7 @@ syntax = "proto3";
 
 package rtsa.query.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1;queryv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/query/v1;queryv1";
 
 import "rtsa/common/v1/types.proto";
 import "rtsa/entity/v1/fused_track.proto";
@@ -1113,7 +1113,7 @@ syntax = "proto3";
 
 package rtsa.audit.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1;auditv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/audit/v1;auditv1";
 
 import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";

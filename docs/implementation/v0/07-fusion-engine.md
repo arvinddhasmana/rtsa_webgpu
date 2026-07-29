@@ -276,7 +276,7 @@ package domain
 
 import (
     "sync"
-    entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
+    entityv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
 )
 
 // TrackState holds the mutable state of a fused track in memory.

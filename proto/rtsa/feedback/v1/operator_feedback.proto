@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package rtsa.feedback.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1;feedbackv1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1";
 
 import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";

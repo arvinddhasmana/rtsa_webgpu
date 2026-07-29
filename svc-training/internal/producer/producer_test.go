@@ -5,7 +5,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-training/internal/producer"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-training/internal/producer"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
 )

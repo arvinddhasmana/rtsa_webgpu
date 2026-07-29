@@ -9,7 +9,7 @@
 package feedbackv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -359,7 +359,7 @@ const file_rtsa_feedback_v1_feedback_service_proto_rawDesc = "" +
 	"pagination2\xe7\x01\n" +
 	"\x0fFeedbackService\x12c\n" +
 	"\x0eSubmitFeedback\x12'.rtsa.feedback.v1.SubmitFeedbackRequest\x1a(.rtsa.feedback.v1.SubmitFeedbackResponse\x12o\n" +
-	"\x12GetFeedbackHistory\x12+.rtsa.feedback.v1.GetFeedbackHistoryRequest\x1a,.rtsa.feedback.v1.GetFeedbackHistoryResponseBKZIgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1;feedbackv1b\x06proto3"
+	"\x12GetFeedbackHistory\x12+.rtsa.feedback.v1.GetFeedbackHistoryRequest\x1a,.rtsa.feedback.v1.GetFeedbackHistoryResponseBJZHgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1b\x06proto3"
 
 var (
 	file_rtsa_feedback_v1_feedback_service_proto_rawDescOnce sync.Once

@@ -8,22 +8,22 @@ for i in "${!SERVICES[@]}"; do
     SVC="${SERVICES[$i]}"
     PREFIX="${PREFIXES[$i]}"
     CONFIG_FILE="$SVC/internal/config/config.go"
-    
+
     if [ ! -f "$CONFIG_FILE" ]; then
         echo "Skipping $SVC, config not found"
         continue
     fi
-    
+
     # 1. Add extra imports if needed
-    if ! grep -q "\"github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1\"" "$CONFIG_FILE"; then
-        sed -i '/pkgconfig "github.com\/arvinddhasmana\/RTSA_VS_Opus\/pkg\/config"/i \	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"\n	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"' "$CONFIG_FILE"
+    if ! grep -q "\"github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1\"" "$CONFIG_FILE"; then
+		sed -i '/pkgconfig "github.com\/arvinddhasmana\/rtsa_webgpu\/pkg\/config"/i \	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"\n	ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"' "$CONFIG_FILE"
     fi
-    
+
     # 2. Add Coverage field to Config struct
     if ! grep -q "Coverage \*ingestionv1.SensorCoverage" "$CONFIG_FILE"; then
         sed -i '/^}/ s/^/\t\/\/ Optional static sensor coverage geometry.\n\tCoverage \*ingestionv1.SensorCoverage\n/' "$CONFIG_FILE"
     fi
-    
+
     # 3. Add Coverage parsing logic before "return cfg, nil"
     if ! grep -q "// Parse coverage" "$CONFIG_FILE"; then
         sed -i "/return cfg, nil/i \\
@@ -69,7 +69,7 @@ for i in "${!SERVICES[@]}"; do
 	}\\
 " "$CONFIG_FILE"
     fi
-    
+
     # 4. Make sure parseFloat exists since some services (like Cyber) might not have it
     if ! grep -q "func parseFloat" "$CONFIG_FILE"; then
         cat << 'SUBEOF' >> "$CONFIG_FILE"

@@ -4,7 +4,7 @@ package metrics_test
 import (
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/metrics"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-alert/internal/metrics"
 "github.com/prometheus/client_golang/prometheus"
 )
 

@@ -4,7 +4,7 @@ package consumer_test
 import (
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-fusion-engine/internal/consumer"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-fusion-engine/internal/consumer"
 	"go.uber.org/zap"
 )
 

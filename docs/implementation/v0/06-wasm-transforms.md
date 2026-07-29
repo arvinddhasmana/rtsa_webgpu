@@ -178,17 +178,17 @@ test:
 
 ```go
 // CLASSIFICATION: UNCLASSIFIED
-module github.com/arvinddhasmana/RTSA_VS_Opus/wasm-transforms
+module github.com/arvinddhasmana/rtsa_webgpu/wasm-transforms
 
 go 1.22.0
 
 require (
     github.com/redpanda-data/redpanda/src/transform-sdk/go/transform v0.5.0
-    github.com/arvinddhasmana/RTSA_VS_Opus/gen/go v0.0.0
+    github.com/arvinddhasmana/rtsa_webgpu/gen/go v0.0.0
     google.golang.org/protobuf v1.33.0
 )
 
-replace github.com/arvinddhasmana/RTSA_VS_Opus/gen/go => ../gen/go
+replace github.com/arvinddhasmana/rtsa_webgpu/gen/go => ../gen/go
 ```
 
 ---

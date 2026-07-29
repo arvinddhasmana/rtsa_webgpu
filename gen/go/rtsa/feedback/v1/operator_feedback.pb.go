@@ -9,7 +9,7 @@
 package feedbackv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -276,7 +276,7 @@ const file_rtsa_feedback_v1_operator_feedback_proto_rawDesc = "" +
 	"\x0fclearance_score\x18\x01 \x01(\x01R\x0eclearanceScore\x12%\n" +
 	"\x0eaccuracy_score\x18\x02 \x01(\x01R\raccuracyScore\x12%\n" +
 	"\x0etemporal_score\x18\x03 \x01(\x01R\rtemporalScore\x12'\n" +
-	"\x0fdeviation_score\x18\x04 \x01(\x01R\x0edeviationScoreBKZIgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1;feedbackv1b\x06proto3"
+	"\x0fdeviation_score\x18\x04 \x01(\x01R\x0edeviationScoreBJZHgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1b\x06proto3"
 
 var (
 	file_rtsa_feedback_v1_operator_feedback_proto_rawDescOnce sync.Once

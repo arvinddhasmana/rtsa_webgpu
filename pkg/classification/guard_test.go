@@ -4,8 +4,8 @@ package classification_test
 import (
 "testing"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
 )
 
 func TestGuard_CheckWithinCeiling(t *testing.T) {

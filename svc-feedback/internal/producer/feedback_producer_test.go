@@ -7,7 +7,7 @@ import (
 "errors"
 "testing"
 
-feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
+feedbackv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1"
 )
 
 func TestMockProducer_Produce_Success(t *testing.T) {

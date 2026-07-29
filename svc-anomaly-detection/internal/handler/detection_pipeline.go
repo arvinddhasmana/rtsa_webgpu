@@ -7,11 +7,11 @@ import (
 "log/slog"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/domain/detectors"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+entityv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
+inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-anomaly-detection/internal/domain"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-anomaly-detection/internal/domain/detectors"
 "github.com/google/uuid"
 "google.golang.org/protobuf/types/known/timestamppb"
 )

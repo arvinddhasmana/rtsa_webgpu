@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/testutil"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/testutil"
 	"google.golang.org/grpc"
 )
 

@@ -4,7 +4,7 @@ package redpanda_test
 import (
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
 )
 
 func TestConnectionOptions_BuildKgoOpts_InvalidSASL(t *testing.T) {

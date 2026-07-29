@@ -4,7 +4,7 @@ package handler
 import (
 "context"
 
-inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
 )
 
 // AlertServer composes all handlers and implements inferencev1.AlertServiceServer.

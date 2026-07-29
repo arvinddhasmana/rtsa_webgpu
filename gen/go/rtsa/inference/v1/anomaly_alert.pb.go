@@ -9,7 +9,7 @@
 package inferencev1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -290,7 +290,7 @@ const file_rtsa_inference_v1_anomaly_alert_proto_rawDesc = "" +
 	"\x13contribution_weight\x18\x03 \x01(\x01R\x12contributionWeight\x12*\n" +
 	"\x0ebaseline_value\x18\x04 \x01(\x01H\x00R\rbaselineValue\x88\x01\x01\x12 \n" +
 	"\vdescription\x18\x05 \x01(\tR\vdescriptionB\x11\n" +
-	"\x0f_baseline_valueBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
+	"\x0f_baseline_valueBLZJgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1;inferencev1b\x06proto3"
 
 var (
 	file_rtsa_inference_v1_anomaly_alert_proto_rawDescOnce sync.Once

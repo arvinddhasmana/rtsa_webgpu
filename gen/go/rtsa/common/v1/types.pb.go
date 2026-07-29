@@ -1001,7 +1001,7 @@ const file_rtsa_common_v1_types_proto_rawDesc = "" +
 	"\x1eFEEDBACK_TYPE_CONFIRM_FRIENDLY\x10\x02\x12\x1c\n" +
 	"\x18FEEDBACK_TYPE_RECLASSIFY\x10\x03\x12 \n" +
 	"\x1cFEEDBACK_TYPE_REJECT_ANOMALY\x10\x04\x12!\n" +
-	"\x1dFEEDBACK_TYPE_CONFIRM_ANOMALY\x10\x05BGZEgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1;commonv1b\x06proto3"
+	"\x1dFEEDBACK_TYPE_CONFIRM_ANOMALY\x10\x05BFZDgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1;commonv1b\x06proto3"
 
 var (
 	file_rtsa_common_v1_types_proto_rawDescOnce sync.Once

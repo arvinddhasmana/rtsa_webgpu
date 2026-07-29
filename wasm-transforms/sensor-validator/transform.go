@@ -2,11 +2,11 @@
 package main
 
 import (
-	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
 	"github.com/redpanda-data/redpanda/src/transform-sdk/go/transform"
 	"google.golang.org/protobuf/proto"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 )
 
 // requiredSensorHeaders lists all mandatory message headers for sensor topics.

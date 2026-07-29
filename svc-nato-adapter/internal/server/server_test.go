@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-nato-adapter/internal/config"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-nato-adapter/internal/server"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-nato-adapter/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-nato-adapter/internal/server"
 	"go.uber.org/zap"
 )
 
@@ -29,9 +29,9 @@ func TestServer_New(t *testing.T) {
 }
 
 func TestServer_New_TLS_Success(t *testing.T) {
-	// Root of workspace is /home/arvind/workspace/RTSA_VS_Opus
+	// Root of workspace is /home/arvind/workspace/rtsa_webgpu
 	// Certs are in certs/dev/
-	basePath := "/home/arvind/workspace/RTSA_VS_Opus"
+	basePath := "/home/arvind/workspace/rtsa_webgpu"
 	cfg := &config.Config{
 		GRPCAddr:      ":0",
 		TLSEnabled:    true,

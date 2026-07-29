@@ -6,9 +6,9 @@ import (
 "math"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/state"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+entityv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-anomaly-detection/internal/state"
 )
 
 // Position is a geographic coordinate (WGS-84).

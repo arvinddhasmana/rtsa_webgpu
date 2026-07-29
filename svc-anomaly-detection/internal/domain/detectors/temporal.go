@@ -2,8 +2,8 @@
 package detectors
 
 import (
-inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/domain"
+inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-anomaly-detection/internal/domain"
 )
 
 // minTrackAgeForTemporalMin is the minimum track age (in minutes) required

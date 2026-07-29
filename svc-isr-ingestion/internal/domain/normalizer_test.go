@@ -4,8 +4,8 @@ package domain_test
 import (
 "testing"
 
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-isr-ingestion/internal/domain"
+ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-isr-ingestion/internal/domain"
 )
 
 func TestISRNormalizer_TrimsWhitespace(t *testing.T) {

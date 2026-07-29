@@ -21,6 +21,7 @@ K3D_VERSION="5.6.3"
 KUBECTL_VERSION="1.29.4"
 GO_MIN_VERSION="1.22"
 NODE_MIN_VERSION="20"
+PNPM_REQUIRED_MAJOR="9"
 WASM_PACK_VERSION="0.13.1"
 
 # ─────────────────────────────────────────────────────────────
@@ -233,11 +234,20 @@ install_pnpm() {
   log_step "Installing pnpm"
 
   if has_cmd pnpm; then
-    log_pass "pnpm $(pnpm --version) already installed"
-    return
+    local pnpm_ver
+    local pnpm_major
+    pnpm_ver="$(pnpm --version)"
+    pnpm_major="${pnpm_ver%%.*}"
+
+    if [ "$pnpm_major" = "$PNPM_REQUIRED_MAJOR" ]; then
+      log_pass "pnpm ${pnpm_ver} already installed"
+      return
+    fi
+
+    log_warn "pnpm ${pnpm_ver} found, but demos require pnpm ${PNPM_REQUIRED_MAJOR}.x. Reinstalling..."
   fi
 
-  npm install -g pnpm@9
+  npm install -g "pnpm@${PNPM_REQUIRED_MAJOR}"
   log_pass "pnpm $(pnpm --version) installed"
 }
 

@@ -9,7 +9,7 @@
 package ingestionv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -1138,7 +1138,7 @@ const file_rtsa_ingestion_v1_ingestion_service_proto_rawDesc = "" +
 	"\x17IngestSingleObservation\x12$.rtsa.ingestion.v1.SensorObservation\x1a\x1f.rtsa.ingestion.v1.IngestionAck\x12e\n" +
 	"\x0fGetSensorStatus\x12).rtsa.ingestion.v1.GetSensorStatusRequest\x1a'.rtsa.ingestion.v1.SensorStatusResponse\x12q\n" +
 	"\x12ListSensorStatuses\x12,.rtsa.ingestion.v1.ListSensorStatusesRequest\x1a-.rtsa.ingestion.v1.ListSensorStatusesResponse\x12q\n" +
-	"\x13GetSensorDiagnostic\x12-.rtsa.ingestion.v1.GetSensorDiagnosticRequest\x1a+.rtsa.ingestion.v1.SensorDiagnosticResponseBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1b\x06proto3"
+	"\x13GetSensorDiagnostic\x12-.rtsa.ingestion.v1.GetSensorDiagnosticRequest\x1a+.rtsa.ingestion.v1.SensorDiagnosticResponseBLZJgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1;ingestionv1b\x06proto3"
 
 var (
 	file_rtsa_ingestion_v1_ingestion_service_proto_rawDescOnce sync.Once

@@ -154,4 +154,4 @@ go test ./... -tags=integration -v
 - `github.com/twmb/franz-go` — Kafka/Redpanda client
 - `google.golang.org/grpc` — gRPC server
 - `github.com/prometheus/client_golang` — Metrics
-- `github.com/arvinddhasmana/RTSA_VS_Opus/gen/go` — Generated protobuf types
+- `github.com/arvinddhasmana/rtsa_webgpu/gen/go` — Generated protobuf types
