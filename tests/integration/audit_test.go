@@ -11,9 +11,9 @@ import (
 "time"
 
 "github.com/ClickHouse/clickhouse-go/v2"
-auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tests/integration/testutil"
+auditv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/audit/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
+"github.com/arvinddhasmana/rtsa_webgpu/tests/integration/testutil"
 "github.com/twmb/franz-go/pkg/kgo"
 "google.golang.org/protobuf/proto"
 )

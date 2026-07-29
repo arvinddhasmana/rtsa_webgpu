@@ -9,9 +9,9 @@
 package queryv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	v11 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-	v12 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	v11 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
+	v12 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -1350,7 +1350,7 @@ const file_rtsa_query_v1_query_service_proto_rawDesc = "" +
 	"\vQueryTracks\x12!.rtsa.query.v1.QueryTracksRequest\x1a\".rtsa.query.v1.QueryTracksResponse\x12]\n" +
 	"\x0eQueryAnomalies\x12$.rtsa.query.v1.QueryAnomaliesRequest\x1a%.rtsa.query.v1.QueryAnomaliesResponse\x12Z\n" +
 	"\rQueryAuditLog\x12#.rtsa.query.v1.QueryAuditLogRequest\x1a$.rtsa.query.v1.QueryAuditLogResponse\x12`\n" +
-	"\x10GetEventTimeline\x12&.rtsa.query.v1.GetEventTimelineRequest\x1a$.rtsa.query.v1.EventTimelineResponseBEZCgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/query/v1;queryv1b\x06proto3"
+	"\x10GetEventTimeline\x12&.rtsa.query.v1.GetEventTimelineRequest\x1a$.rtsa.query.v1.EventTimelineResponseBDZBgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/query/v1;queryv1b\x06proto3"
 
 var (
 	file_rtsa_query_v1_query_service_proto_rawDescOnce sync.Once

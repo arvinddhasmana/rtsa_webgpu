@@ -4,7 +4,7 @@ package repository_test
 import (
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-audit/internal/repository"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-audit/internal/repository"
 )
 
 func TestNewAuditRepository_InvalidDSN(t *testing.T) {

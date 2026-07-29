@@ -5,9 +5,9 @@ import (
 "context"
 "log/slog"
 
-inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/mapper"
+inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-alert/internal/domain"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-alert/internal/mapper"
 "google.golang.org/grpc/codes"
 "google.golang.org/grpc/status"
 )

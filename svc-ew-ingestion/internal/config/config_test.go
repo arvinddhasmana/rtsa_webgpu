@@ -4,7 +4,7 @@ package config_test
 import (
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-ew-ingestion/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-ew-ingestion/internal/config"
 )
 
 func TestLoad_Exhaustive(t *testing.T) {

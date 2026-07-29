@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/tests/integration/testutil"
+	"github.com/arvinddhasmana/rtsa_webgpu/tests/integration/testutil"
 )
 
 // createTracksSchema creates the tracks_fused table in ClickHouse for ETL tests.

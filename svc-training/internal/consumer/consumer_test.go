@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-training/internal/consumer"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-training/internal/consumer"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.uber.org/zap"
 )

@@ -14,13 +14,13 @@ import (
 "testing"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-feedbackv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/feedback/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/domain"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/handler"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/producer"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-feedback/internal/state"
-auditv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+feedbackv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-feedback/internal/domain"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-feedback/internal/handler"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-feedback/internal/producer"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-feedback/internal/state"
+auditv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/audit/v1"
 "go.uber.org/zap"
 )
 

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/ingestion"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/ingestion"
 )
 
 func TestMustLoad_Defaults(t *testing.T) {

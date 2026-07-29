@@ -4,7 +4,7 @@ package telemetry_test
 import (
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/telemetry"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/telemetry"
 )
 
 func TestAttributes(t *testing.T) {

@@ -125,4 +125,4 @@ GET http://localhost:8081/healthz
 | `google.golang.org/protobuf`        | Protobuf serialisation     |
 | `github.com/prometheus/client_golang`| Metrics exposition        |
 | `github.com/twmb/franz-go`          | Redpanda consumer client   |
-| `github.com/arvinddhasmana/RTSA_VS_Opus/gen/go` | Generated proto types |
+| `github.com/arvinddhasmana/rtsa_webgpu/gen/go` | Generated proto types |

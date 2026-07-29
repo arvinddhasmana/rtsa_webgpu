@@ -8,10 +8,10 @@ import (
 "testing"
 "time"
 
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/ingestion"
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-ais-ingestion/internal/domain"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/ingestion"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-ais-ingestion/internal/domain"
 "go.uber.org/zap"
 "google.golang.org/protobuf/types/known/timestamppb"
 )

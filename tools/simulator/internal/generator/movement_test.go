@@ -7,7 +7,7 @@ import (
 "testing"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
+"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/generator"
 )
 
 // newTestEntity creates a minimal SimEntity for movement tests.

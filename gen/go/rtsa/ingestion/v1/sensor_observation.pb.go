@@ -9,7 +9,7 @@
 package ingestionv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -1171,7 +1171,7 @@ const file_rtsa_ingestion_v1_sensor_observation_proto_rawDesc = "" +
 	"dedup_hash\x18\v \x01(\tR\tdedupHashB\x0f\n" +
 	"\r_threat_actorB\x11\n" +
 	"\x0f_malware_familyB\x0e\n" +
-	"\f_valid_untilBMZKgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1;ingestionv1b\x06proto3"
+	"\f_valid_untilBLZJgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1;ingestionv1b\x06proto3"
 
 var (
 	file_rtsa_ingestion_v1_sensor_observation_proto_rawDescOnce sync.Once

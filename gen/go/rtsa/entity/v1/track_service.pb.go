@@ -9,8 +9,8 @@
 package entityv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	v11 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	v11 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -642,7 +642,7 @@ const file_rtsa_entity_v1_track_service_proto_rawDesc = "" +
 	"\fStreamTracks\x12#.rtsa.entity.v1.StreamTracksRequest\x1a\x1b.rtsa.entity.v1.TrackUpdate0\x01\x12U\n" +
 	"\x0fGetTrackDetails\x12&.rtsa.entity.v1.GetTrackDetailsRequest\x1a\x1a.rtsa.entity.v1.FusedTrack\x12_\n" +
 	"\x0fGetTrackHistory\x12&.rtsa.entity.v1.GetTrackHistoryRequest\x1a$.rtsa.entity.v1.TrackHistoryResponse\x12v\n" +
-	"\x18StreamSensorObservations\x12/.rtsa.entity.v1.StreamSensorObservationsRequest\x1a'.rtsa.entity.v1.SensorObservationUpdate0\x01BGZEgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1;entityv1b\x06proto3"
+	"\x18StreamSensorObservations\x12/.rtsa.entity.v1.StreamSensorObservationsRequest\x1a'.rtsa.entity.v1.SensorObservationUpdate0\x01BFZDgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1;entityv1b\x06proto3"
 
 var (
 	file_rtsa_entity_v1_track_service_proto_rawDescOnce sync.Once

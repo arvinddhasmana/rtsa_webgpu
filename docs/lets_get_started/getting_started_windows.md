@@ -402,7 +402,7 @@ git config --global core.autocrlf input
 # Clone into your Linux home directory (NOT /mnt/c — see note below)
 mkdir -p ~/workspace
 cd ~/workspace
-git clone https://github.com/arvinddhasmana/RTSA_VS_Opus.git rtsa
+git clone https://github.com/arvinddhasmana/rtsa_webgpu.git rtsa
 cd rtsa
 ```
 

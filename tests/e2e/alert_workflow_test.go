@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"google.golang.org/protobuf/proto"
 )

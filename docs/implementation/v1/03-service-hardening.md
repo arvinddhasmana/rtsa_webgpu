@@ -79,7 +79,7 @@ This is used where a real audit emitter should produce events to the `audit.even
 ### Instructions
 
 1. In `svc-feedback/cmd/feedback/main.go`:
-   - Import `"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"`
+   - Import `"github.com/arvinddhasmana/rtsa_webgpu/pkg/audit"`
    - Replace `&noopAuditEmitter{logger: logger}` with `audit.NewEmitter(rawProducer, "svc-feedback", logger)` where `rawProducer` is a `*redpanda.Producer` instance
    - If the service doesn't already create a `redpanda.Producer`, add one for audit events (or reuse the existing feedback producer if the API supports it)
    - Remove the `noopAuditEmitter` type definition and constructor

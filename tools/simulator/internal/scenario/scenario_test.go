@@ -6,7 +6,7 @@ import (
 "path/filepath"
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/scenario"
+"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/scenario"
 )
 
 const validYAML = `# CLASSIFICATION: UNCLASSIFIED

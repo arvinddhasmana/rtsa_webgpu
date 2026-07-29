@@ -5,7 +5,7 @@ import (
 "math"
 "strings"
 
-ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
 "google.golang.org/protobuf/proto"
 )
 

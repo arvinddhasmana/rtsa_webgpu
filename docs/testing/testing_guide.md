@@ -36,7 +36,7 @@ The Web COP follows an industry-standard **Hybrid Validation** approach for UI t
 ## 2. Repository Layout
 
 ```
-RTSA_VS_Opus/
+rtsa_webgpu/
 ├── pkg/                          # Shared Go library — unit tests inside
 │   ├── audit/*_test.go
 │   ├── classification/*_test.go

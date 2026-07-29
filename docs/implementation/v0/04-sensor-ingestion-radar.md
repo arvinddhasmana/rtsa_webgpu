@@ -62,13 +62,13 @@ svc-radar-ingestion/
 
 ```go
 // CLASSIFICATION: UNCLASSIFIED
-module github.com/arvinddhasmana/RTSA_VS_Opus/svc-radar-ingestion
+module github.com/arvinddhasmana/rtsa_webgpu/svc-radar-ingestion
 
 go 1.22.0
 
 require (
-    github.com/arvinddhasmana/RTSA_VS_Opus/gen/go v0.0.0
-    github.com/arvinddhasmana/RTSA_VS_Opus/pkg v0.0.0
+    github.com/arvinddhasmana/rtsa_webgpu/gen/go v0.0.0
+    github.com/arvinddhasmana/rtsa_webgpu/pkg v0.0.0
     google.golang.org/grpc v1.62.0
     google.golang.org/protobuf v1.33.0
     go.uber.org/zap v1.27.0
@@ -76,8 +76,8 @@ require (
 )
 
 replace (
-    github.com/arvinddhasmana/RTSA_VS_Opus/gen/go => ../gen/go
-    github.com/arvinddhasmana/RTSA_VS_Opus/pkg => ../pkg
+    github.com/arvinddhasmana/rtsa_webgpu/gen/go => ../gen/go
+    github.com/arvinddhasmana/rtsa_webgpu/pkg => ../pkg
 )
 ```
 
@@ -185,7 +185,7 @@ func main() {
 // CLASSIFICATION: UNCLASSIFIED
 package config
 
-import "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/config"
+import "github.com/arvinddhasmana/rtsa_webgpu/pkg/config"
 
 // Config extends BaseConfig with radar-specific settings.
 type Config struct {
@@ -219,8 +219,8 @@ package domain
 import (
     "fmt"
     "time"
-    ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-    commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+    ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+    commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
     "go.uber.org/zap"
 )
 
@@ -299,7 +299,7 @@ func (v *RadarValidator) Validate(obs *ingestionv1.SensorObservation) *Validatio
 package domain
 
 import (
-    ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
+    ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
 )
 
 // RadarNormalizer ensures consistent field formatting.
@@ -325,8 +325,8 @@ package mapper
 import (
     "context"
     "github.com/google/uuid"
-    ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+    ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
     "google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -358,8 +358,8 @@ import (
     "sync/atomic"
     "time"
 
-    ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/audit"
+    ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/audit"
     "go.uber.org/zap"
     "google.golang.org/grpc/codes"
     "google.golang.org/grpc/status"
@@ -422,9 +422,9 @@ package producer
 
 import (
     "context"
-    ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-    "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+    ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+    "github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
     "google.golang.org/protobuf/proto"
 )
 

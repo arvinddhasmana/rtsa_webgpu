@@ -9,7 +9,7 @@
 package auditv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -344,7 +344,7 @@ const file_rtsa_audit_v1_audit_event_proto_rawDesc = "" +
 	"\x16AUDIT_ACTION_AUTHORIZE\x10\t\x12\x19\n" +
 	"\x15AUDIT_ACTION_CLASSIFY\x10\n" +
 	"\x12\x19\n" +
-	"\x15AUDIT_ACTION_FEEDBACK\x10\vBEZCgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1;auditv1b\x06proto3"
+	"\x15AUDIT_ACTION_FEEDBACK\x10\vBDZBgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/audit/v1;auditv1b\x06proto3"
 
 var (
 	file_rtsa_audit_v1_audit_event_proto_rawDescOnce sync.Once

@@ -11,7 +11,7 @@ import (
 "testing"
 "time"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/webtransport"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/webtransport"
 "go.uber.org/zap"
 )
 

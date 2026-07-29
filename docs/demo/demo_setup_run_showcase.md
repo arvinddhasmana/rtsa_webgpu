@@ -44,8 +44,8 @@ Before running any demo, verify these prerequisites:
 Clone the repository if you have not already:
 
 ```bash
-git clone https://github.com/arvinddhasmana/RTSA_VS_Opus.git
-cd RTSA_VS_Opus
+git clone https://github.com/arvinddhasmana/rtsa_webgpu.git
+cd rtsa_webgpu
 ```
 
 ---

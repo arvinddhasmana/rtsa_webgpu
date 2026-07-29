@@ -9,7 +9,7 @@
 package auditv1
 
 import (
-	v1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
+	v1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -311,7 +311,7 @@ const file_rtsa_audit_v1_audit_service_proto_rawDesc = "" +
 	"\x05event\x18\x01 \x01(\v2\x19.rtsa.audit.v1.AuditEventR\x05event2\xcb\x01\n" +
 	"\fAuditService\x12Z\n" +
 	"\rGetAuditEntry\x12#.rtsa.audit.v1.GetAuditEntryRequest\x1a$.rtsa.audit.v1.GetAuditEntryResponse\x12_\n" +
-	"\x0eStreamAuditLog\x12$.rtsa.audit.v1.StreamAuditLogRequest\x1a%.rtsa.audit.v1.StreamAuditLogResponse0\x01BEZCgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/audit/v1;auditv1b\x06proto3"
+	"\x0eStreamAuditLog\x12$.rtsa.audit.v1.StreamAuditLogRequest\x1a%.rtsa.audit.v1.StreamAuditLogResponse0\x01BDZBgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/audit/v1;auditv1b\x06proto3"
 
 var (
 	file_rtsa_audit_v1_audit_service_proto_rawDescOnce sync.Once

@@ -4,7 +4,7 @@ package detectors
 import (
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-anomaly-detection/internal/domain"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-anomaly-detection/internal/domain"
 )
 
 func TestSpeedDetector_T01_HighSigma(t *testing.T) {

@@ -9,9 +9,9 @@ package handler
 import (
 	"context"
 
-	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/domain"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-track/internal/mapper"
+	entityv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-track/internal/domain"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-track/internal/mapper"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package rtsa.nato.v1;
 
-option go_package = "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/nato/v1;natov1";
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/nato/v1;natov1";
 
 import "google/protobuf/timestamp.proto";
 

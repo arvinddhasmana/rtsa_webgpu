@@ -5,8 +5,8 @@ import (
 	"context"
 	"testing"
 
-	natov1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/nato/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-nato-adapter/internal/handler"
+	natov1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/nato/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-nato-adapter/internal/handler"
 	"go.uber.org/zap"
 )
 

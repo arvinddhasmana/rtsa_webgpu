@@ -11,9 +11,9 @@ import (
 "time"
 
 "github.com/ClickHouse/clickhouse-go/v2"
-commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
-"github.com/arvinddhasmana/RTSA_VS_Opus/tests/integration/testutil"
+commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
+"github.com/arvinddhasmana/rtsa_webgpu/tests/integration/testutil"
 )
 
 // openClickHouseConn opens a ClickHouse connection using the provided DSN.

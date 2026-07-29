@@ -7,7 +7,7 @@ import (
 "encoding/binary"
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/webtransport"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/webtransport"
 )
 
 // buildRecord creates a 128-byte record with the given classification and threat levels.

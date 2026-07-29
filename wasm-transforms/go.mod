@@ -1,22 +1,23 @@
 // CLASSIFICATION: UNCLASSIFIED
-module github.com/arvinddhasmana/RTSA_VS_Opus/wasm-transforms
+module github.com/arvinddhasmana/rtsa_webgpu/wasm-transforms
 
 go 1.24.0
 
 toolchain go1.24.12
 
 require (
-	github.com/arvinddhasmana/RTSA_VS_Opus/gen/go v0.0.0
+	github.com/arvinddhasmana/rtsa_webgpu/gen/go v0.0.0
 	github.com/redpanda-data/redpanda/src/transform-sdk/go/transform v1.1.0
-	google.golang.org/protobuf v1.34.2
+	google.golang.org/protobuf v1.36.10
 )
 
 require (
+	go.opentelemetry.io/otel v1.41.0 // indirect
 	golang.org/x/net v0.49.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
-	google.golang.org/grpc v1.67.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/grpc v1.79.1 // indirect
 )
 
-replace github.com/arvinddhasmana/RTSA_VS_Opus/gen/go => ../gen/go
+replace github.com/arvinddhasmana/rtsa_webgpu/gen/go => ../gen/go

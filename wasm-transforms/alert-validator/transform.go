@@ -2,7 +2,7 @@
 package main
 
 import (
-	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+	inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
 	"github.com/redpanda-data/redpanda/src/transform-sdk/go/transform"
 	"google.golang.org/protobuf/proto"
 )

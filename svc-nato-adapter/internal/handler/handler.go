@@ -9,7 +9,7 @@ package handler
 import (
 "context"
 
-natov1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/nato/v1"
+natov1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/nato/v1"
 "go.uber.org/zap"
 )
 

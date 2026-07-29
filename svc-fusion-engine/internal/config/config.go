@@ -2,7 +2,7 @@
 package config
 
 import (
-	pkgconfig "github.com/arvinddhasmana/RTSA_VS_Opus/pkg/config"
+	pkgconfig "github.com/arvinddhasmana/rtsa_webgpu/pkg/config"
 )
 
 // Config holds all configuration for the fusion engine service.

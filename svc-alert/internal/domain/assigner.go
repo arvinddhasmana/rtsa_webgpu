@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"time"
 
-	inferencev1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/inference/v1"
+	inferencev1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1"
 )
 
 // Assigner handles alert assignment business logic.

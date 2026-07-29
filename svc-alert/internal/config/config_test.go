@@ -5,7 +5,7 @@ import (
 "os"
 "testing"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/svc-alert/internal/config"
+"github.com/arvinddhasmana/rtsa_webgpu/svc-alert/internal/config"
 )
 
 // TestLoad_Defaults verifies that all defaults are correctly applied.

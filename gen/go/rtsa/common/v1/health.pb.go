@@ -179,7 +179,7 @@ const file_rtsa_common_v1_health_proto_rawDesc = "" +
 	"\x1eSERVING_STATUS_SERVICE_UNKNOWN\x10\x032\xb5\x01\n" +
 	"\rHealthService\x12P\n" +
 	"\x05Check\x12\".rtsa.common.v1.HealthCheckRequest\x1a#.rtsa.common.v1.HealthCheckResponse\x12R\n" +
-	"\x05Watch\x12\".rtsa.common.v1.HealthCheckRequest\x1a#.rtsa.common.v1.HealthCheckResponse0\x01BGZEgithub.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1;commonv1b\x06proto3"
+	"\x05Watch\x12\".rtsa.common.v1.HealthCheckRequest\x1a#.rtsa.common.v1.HealthCheckResponse0\x01BFZDgithub.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1;commonv1b\x06proto3"
 
 var (
 	file_rtsa_common_v1_health_proto_rawDescOnce sync.Once

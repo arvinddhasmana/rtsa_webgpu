@@ -9,7 +9,7 @@ Build a two-layer documentation system for a Protected C/Secret Real-Time Situat
 ## File Structure
 
 ```
-c:\Src\RTSA_VS_Opus\
+c:\Src\rtsa_webgpu\
 ├── .github/
 │   └── copilot-instructions.md              # Root Copilot policy loader
 ├── docs/
@@ -98,6 +98,7 @@ c:\Src\RTSA_VS_Opus\
 **Step 3. Create `docs/sdlc_guidelines/00_master_policy.md`** — Root governance policy: project identity, classification level (Protected C/Secret), compliance mandates (ITSG-33, NIST 800-53, NATO STANAG), team structure (3-5 devs), core tech stack declaration, universal rules (all code must be unclassified in repo, no PII, mandatory review gates). Includes Mermaid SDLC lifecycle diagram with security gates at each phase.
 
 **Step 4. Create `docs/sdlc_guidelines/01_security_compliance/` (5 files):**
+
 - `security_classification.md` — Data classification tiers (Unclassified→Secret), handling rules per tier, marking requirements, spillage procedures, TEMPEST considerations, air-gap constraints, crypto requirements (CSE-approved algorithms), personnel clearance requirements.
 - `itsg33_controls.md` — Map relevant ITSG-33 security control families (AC, AU, CM, IA, SC, SI, etc.) to project-specific implementation guidance. Mermaid diagram of control family relationships.
 - `nist800_53_controls.md` — NIST 800-53 Rev 5 controls mapped to project with cross-reference to ITSG-33 equivalents. Focus on: AC (Access Control), AU (Audit), IA (Identification), SC (System Communications), SI (System Integrity).
@@ -105,15 +106,18 @@ c:\Src\RTSA_VS_Opus\
 - `supply_chain_security.md` — Approved dependency sources, SBOM generation requirements, vulnerability scanning gates, container image provenance, Wasm module signing.
 
 **Step 5. Create `docs/sdlc_guidelines/02_requirements/` (2 files):**
+
 - `requirements_engineering.md` — Requirement format (SHALL/SHOULD/MAY per RFC 2119), classification marking on requirements, security requirements derivation from ITSG-33, acceptance criteria format, User Story templates for AI agents.
 - `traceability.md` — Bidirectional traceability: Requirement → Feature → UseCase → Component → Test. Mermaid traceability diagram template.
 
 **Step 6. Create `docs/sdlc_guidelines/03_architecture_design/` (3 files):**
+
 - `architecture_guidelines.md` — C4 model usage (Context, Container, Component, Code), ADR (Architecture Decision Record) template, architecture review checklist, mandatory diagrams per design doc, event-driven architecture patterns for this stack.
 - `design_guidelines.md` — Microservice design principles (single responsibility, API-first, idempotency), data partitioning strategy, event schema evolution rules, circuit breaker patterns, graceful degradation for edge/tactical.
 - `threat_modeling.md` — STRIDE methodology applied to each system boundary, DREAD risk scoring, threat model template with Mermaid data flow diagrams, mandatory threat modeling triggers (new service, new data flow, new external interface).
 
 **Step 7. Create `docs/sdlc_guidelines/04_coding_standards/` (5 files):**
+
 - `general_coding.md` — Universal rules: classification header comments, error handling patterns, logging standards (no classified data in logs), naming conventions, file structure conventions, documentation requirements.
 - `go_standards.md` — Go module structure, error handling (no panics in production), context propagation, gRPC interceptor patterns, structured logging (slog), testing conventions (table-driven tests), linting (golangci-lint config), memory management for constrained environments.
 - `protobuf_grpc_standards.md` — Proto3 style guide, package naming, field numbering strategy, backward compatibility rules, streaming patterns, deadline/timeout policies, error code usage, interceptor chain design.
@@ -121,27 +125,32 @@ c:\Src\RTSA_VS_Opus\
 - `secure_coding.md` — Input validation (all sensor data untrusted), output encoding, cryptographic standards (CSE-approved), secret management, secure gRPC channel configuration (mTLS), SQL injection prevention for ClickHouse queries.
 
 **Step 8. Create `docs/sdlc_guidelines/05_testing/` (3 files):**
+
 - `testing_strategy.md` — Test pyramid (unit 70%, integration 20%, E2E 10%), coverage targets (80%+ line coverage), test naming conventions, mock strategy for Redpanda/ClickHouse/gRPC, test data classification handling, CI gate thresholds.
 - `security_testing.md` — SAST tools and gates, DAST for gRPC endpoints, fuzz testing for sensor input parsers, dependency vulnerability scanning, container image scanning, penetration testing schedule, red team exercise requirements.
 - `performance_testing.md` — Latency targets per pipeline stage, throughput requirements (events/sec per sensor type), resource budgets for tactical edge hardware, load test scenarios, Redpanda partition performance validation, ClickHouse query performance baselines.
 
 **Step 9. Create `docs/sdlc_guidelines/06_integration_cicd/` (3 files):**
+
 - `ci_cd_pipeline.md` — Pipeline stages (lint → build → unit test → SAST → integration test → DAST → security gate → staging → approval → deploy), air-gap deployment packaging, security gate definitions, pipeline-as-code standards.
 - `branching_strategy.md` — Trunk-based development with short-lived feature branches (optimized for 3-5 dev team), mandatory PR reviews, conventional commit messages, release tagging strategy.
 - `artifact_management.md` — Container registry (air-gap mirror), SBOM generation (CycloneDX), artifact signing (cosign/sigstore), Go module proxy, Protobuf registry, Helm chart versioning.
 
 **Step 10. Create `docs/sdlc_guidelines/07_deployment_operations/` (3 files):**
+
 - `deployment_guidelines.md` — Deployment approval workflow, canary/blue-green strategies, rollback procedures, configuration management (no secrets in repos), environment parity requirements, air-gap deployment procedures.
 - `edge_tactical_deployment.md` — Hardware constraints (CPU/RAM/disk budgets), Redpanda single-binary edge config, disconnected operation mode, data sync on reconnect, reduced-capability graceful degradation, field update procedures.
 - `monitoring_observability.md` — Structured logging standards, metrics collection (Prometheus-compatible), distributed tracing for gRPC, alerting rules for sensor pipeline health, security event monitoring, audit log forwarding.
 
 **Step 11. Create `docs/sdlc_guidelines/08_tech_specific/` (4 files):**
+
 - `redpanda_guidelines.md` — Topic naming conventions, partitioning strategy per sensor type, retention policies (hot/cold tiering), consumer group design, schema registry usage, Redpanda Connect pipeline patterns, tactical edge configuration.
 - `clickhouse_guidelines.md` — Table engine selection (MergeTree family), partition key design, materialized view patterns, TTL for data lifecycle, query optimization rules, cluster vs. single-node topology, ClickHouse Keeper configuration.
 - `grpc_service_guidelines.md` — Service definition patterns, interceptor chain (auth → logging → tracing → rate-limit), health check standards, load balancing, connection pooling, deadline propagation, error handling conventions.
 - `wasm_transforms.md` — Wasm module development standards, trust score validation logic, anti-poisoning filter design, module testing in isolation, deployment and versioning within Redpanda.
 
 **Step 12. Create `docs/sdlc_guidelines/09_governance/` (3 files):**
+
 - `agent_governance.md` — Rules engine for validating AI agent output: classification marking checks, banned patterns (hardcoded secrets, unsafe crypto, direct DB access bypassing ORM), mandatory security headers, output schema validation, mandatory test generation with code.
 - `prompt_templates.md` — Structured prompt templates for: new microservice creation, new Protobuf definition, new React component, new ClickHouse table, security review, threat model update. Each template forces compliance with relevant guidelines.
 - `review_checklists.md` — Phase-gate checklists: requirements review, design review, code review, security review, deployment readiness review. Each checklist references specific guideline sections.
@@ -155,6 +164,7 @@ c:\Src\RTSA_VS_Opus\
 **Step 14. Create `docs/business/feature_list.md`** — Feature registry with ~15 features, each with: ID, name, description, priority (MoSCoW), complexity estimate, dependency list, mapped use cases, mapped compliance controls. Features include: Sensor Ingestion Pipeline, Multi-Sensor Fusion Engine, AI Inference Engine, Real-Time Dashboard, Feedback Processing, Anti-Poisoning Middleware, Analytics Engine, Tiered Storage, Edge Deployment, Audit System, NATO Interop Adapter, Risk Scoring Engine, Cross-Domain Guard, Model Training Pipeline, Alert Management. Includes Mermaid feature dependency graph.
 
 **Step 15. Create 15 Use Case files in `docs/business/usecases/`** — Each file contains: UC ID, title, actors, preconditions, main flow (numbered steps), alternative flows, exception flows, postconditions, security considerations, data classification of inputs/outputs, non-functional requirements, related features, Mermaid sequence diagram, compliance control references. The 15 use cases are:
+
 - `UC001_sensor_event_ingestion.md` — Ingest events from 6 sensor types via gRPC into Redpanda
 - `UC002_multi_sensor_fusion.md` — Fuse data from multiple sensors to create correlated entity tracks
 - `UC003_realtime_entity_detection.md` — Detect and classify entities (assets/threats) in real-time
@@ -206,22 +216,22 @@ Step 22    → Depends on all above (captures full dependency graph)
 
 ## Diagrams Included (Total: ~45+ Mermaid diagrams)
 
-| Document | Diagram Type | Content |
-|---|---|---|
-| README.md | Mermaid flowchart | 5-tier guideline dependency hierarchy |
-| 00_master_policy | Mermaid flowchart | SDLC lifecycle with security gates |
-| itsg33_controls | Mermaid mindmap | Control family relationships |
-| nato_stanag | Mermaid C4 | Interoperability context |
-| threat_modeling | Mermaid DFD | Data flow + trust boundaries |
-| ci_cd_pipeline | Mermaid flowchart | Pipeline stages with gates |
-| Each UC file | Mermaid sequence | Actor interaction flows |
-| high_level_arch | Mermaid C4 (L1+L2) | System context + containers |
-| component_design | Mermaid C4 (L3) | Component internals (×6) |
-| data_architecture | Mermaid ER + flowchart | Data models + data flows |
-| security_arch | Mermaid flowchart | Security zones + trust boundaries |
-| deployment_arch | Mermaid deployment | 3 topology diagrams |
-| integration_arch | Mermaid C4 | External system interfaces |
-| dependency_graph | Mermaid flowchart + matrix | Full traceability map |
+| Document          | Diagram Type               | Content                               |
+| ----------------- | -------------------------- | ------------------------------------- |
+| README.md         | Mermaid flowchart          | 5-tier guideline dependency hierarchy |
+| 00_master_policy  | Mermaid flowchart          | SDLC lifecycle with security gates    |
+| itsg33_controls   | Mermaid mindmap            | Control family relationships          |
+| nato_stanag       | Mermaid C4                 | Interoperability context              |
+| threat_modeling   | Mermaid DFD                | Data flow + trust boundaries          |
+| ci_cd_pipeline    | Mermaid flowchart          | Pipeline stages with gates            |
+| Each UC file      | Mermaid sequence           | Actor interaction flows               |
+| high_level_arch   | Mermaid C4 (L1+L2)         | System context + containers           |
+| component_design  | Mermaid C4 (L3)            | Component internals (×6)              |
+| data_architecture | Mermaid ER + flowchart     | Data models + data flows              |
+| security_arch     | Mermaid flowchart          | Security zones + trust boundaries     |
+| deployment_arch   | Mermaid deployment         | 3 topology diagrams                   |
+| integration_arch  | Mermaid C4                 | External system interfaces            |
+| dependency_graph  | Mermaid flowchart + matrix | Full traceability map                 |
 
 ## Verification
 
@@ -242,13 +252,13 @@ Step 22    → Depends on all above (captures full dependency graph)
 
 ## Key Parameters (from user answers)
 
-| Parameter | Value |
-|---|---|
-| Security Classification | Protected C / Secret |
-| Compliance Frameworks | ITSG-33 (CCCS), NIST 800-53, NATO STANAG |
-| Deployment Environments | Tactical Edge, On-premise Data Centre, Hybrid |
-| AI Agent Tooling | GitHub Copilot (Workspace/Chat) |
-| Sensor Types | Radar, EW/SIGINT, ELINT/COMINT, ISR, AIS/BFT, Cyber |
-| Interoperability Standards | NFFI / MIP / STANAG 5516 |
-| Team Size | Small (3-5 developers) |
-| Documentation Depth | Comprehensive — thorough before coding |
+| Parameter                  | Value                                               |
+| -------------------------- | --------------------------------------------------- |
+| Security Classification    | Protected C / Secret                                |
+| Compliance Frameworks      | ITSG-33 (CCCS), NIST 800-53, NATO STANAG            |
+| Deployment Environments    | Tactical Edge, On-premise Data Centre, Hybrid       |
+| AI Agent Tooling           | GitHub Copilot (Workspace/Chat)                     |
+| Sensor Types               | Radar, EW/SIGINT, ELINT/COMINT, ISR, AIS/BFT, Cyber |
+| Interoperability Standards | NFFI / MIP / STANAG 5516                            |
+| Team Size                  | Small (3-5 developers)                              |
+| Documentation Depth        | Comprehensive — thorough before coding              |

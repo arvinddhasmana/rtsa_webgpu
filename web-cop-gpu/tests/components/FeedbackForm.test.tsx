@@ -34,6 +34,7 @@ const mockTrack: TrackDetail = {
   speedKnots: 300,
   headingDeg: 90,
   updatedAtMs: Date.now(),
+  context: "MILITARY",
   sourceContributions: [],
 };
 
@@ -87,8 +88,12 @@ describe("FeedbackForm", () => {
   it("Submit button is enabled when justification is filled", () => {
     setFeedbackOpen(true);
     render(() => <FeedbackForm />);
-    const textarea = screen.getByLabelText("Operational Justification") as HTMLTextAreaElement;
-    fireEvent.input(textarea, { target: { value: "Confirmed by radar analysis" } });
+    const textarea = screen.getByLabelText(
+      "Operational Justification",
+    ) as HTMLTextAreaElement;
+    fireEvent.input(textarea, {
+      target: { value: "Confirmed by radar analysis" },
+    });
     const submitBtn = screen.getByRole("button", { name: "COMMIT ACTION" });
     expect((submitBtn as HTMLButtonElement).disabled).toBe(false);
   });
@@ -105,13 +110,19 @@ describe("FeedbackForm", () => {
     setTrackDetail(mockTrack);
     render(() => <FeedbackForm />);
 
-    const textarea = screen.getByLabelText("Operational Justification") as HTMLTextAreaElement;
-    fireEvent.input(textarea, { target: { value: "Radar confirmed hostile intent" } });
+    const textarea = screen.getByLabelText(
+      "Operational Justification",
+    ) as HTMLTextAreaElement;
+    fireEvent.input(textarea, {
+      target: { value: "Radar confirmed hostile intent" },
+    });
     const submitBtn = screen.getByRole("button", { name: "COMMIT ACTION" });
     fireEvent.click(submitBtn);
 
     await waitFor(() => expect(submitFeedbackMock).toHaveBeenCalledTimes(1));
-    const callArgs = submitFeedbackMock.mock.calls[0][0] as { operatorId: string };
+    const callArgs = submitFeedbackMock.mock.calls[0][0] as {
+      operatorId: string;
+    };
     expect(callArgs.operatorId).toBe("op-sentinel-1");
     expect(callArgs.operatorId).not.toBe("operator");
   });
@@ -122,12 +133,16 @@ describe("FeedbackForm", () => {
     setTrackDetail(mockTrack);
     render(() => <FeedbackForm />);
 
-    const textarea = screen.getByLabelText("Operational Justification") as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText(
+      "Operational Justification",
+    ) as HTMLTextAreaElement;
     fireEvent.input(textarea, { target: { value: "Fallback operator test" } });
     fireEvent.click(screen.getByRole("button", { name: "COMMIT ACTION" }));
 
     await waitFor(() => expect(submitFeedbackMock).toHaveBeenCalledTimes(1));
-    const callArgs = submitFeedbackMock.mock.calls[0][0] as { operatorId: string };
+    const callArgs = submitFeedbackMock.mock.calls[0][0] as {
+      operatorId: string;
+    };
     expect(callArgs.operatorId).toBe("anonymous");
     expect(callArgs.operatorId).not.toBe("operator");
   });

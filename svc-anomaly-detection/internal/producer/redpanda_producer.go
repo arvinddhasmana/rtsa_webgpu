@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
 	"github.com/twmb/franz-go/pkg/kgo"
 )
 

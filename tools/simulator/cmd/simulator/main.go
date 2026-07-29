@@ -12,13 +12,13 @@ import (
 	"syscall"
 	"time"
 
-	commonv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/common/v1"
-	ingestionv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/ingestion/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/client"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/config"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/generator"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/scenario"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/tools/simulator/internal/sensor"
+	commonv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1"
+	ingestionv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/client"
+	"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/generator"
+	"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/scenario"
+	"github.com/arvinddhasmana/rtsa_webgpu/tools/simulator/internal/sensor"
 )
 
 // consecutiveFailures tracks how many gRPC sends have failed without a single

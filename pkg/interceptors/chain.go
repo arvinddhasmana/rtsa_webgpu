@@ -6,7 +6,7 @@ import (
 "go.uber.org/zap"
 "google.golang.org/grpc"
 
-"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/classification"
+"github.com/arvinddhasmana/rtsa_webgpu/pkg/classification"
 )
 
 // ChainConfig configures the standard interceptor chain.
