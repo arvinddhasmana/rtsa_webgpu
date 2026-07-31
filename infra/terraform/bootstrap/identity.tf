@@ -40,6 +40,16 @@ resource "azurerm_federated_identity_credential" "deployer_env" {
   subject             = "repo:${var.github_owner}/${var.github_repo}:environment:${each.key}"
 }
 
+# Allow main branch builds (for CD Build workflow) to authenticate with dev deployer
+resource "azurerm_federated_identity_credential" "deployer_main_branch" {
+  name                = "gha-main-branch"
+  resource_group_name = azurerm_resource_group.shared.name
+  parent_id           = azurerm_user_assigned_identity.deployer["dev"].id
+  audience            = local.oidc_audience
+  issuer              = local.oidc_issuer
+  subject             = "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/main"
+}
+
 resource "azurerm_role_assignment" "deployer_contributor" {
   for_each = local.environments
 
