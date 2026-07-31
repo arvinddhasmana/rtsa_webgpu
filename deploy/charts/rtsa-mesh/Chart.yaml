@@ -1,0 +1,17 @@
+# CLASSIFICATION: UNCLASSIFIED
+apiVersion: v2
+name: rtsa-mesh
+description: >-
+  RTSA service-mesh baseline: creates the rtsa namespace with Istio sidecar
+  injection, enforces STRICT mutual TLS (PeerAuthentication), applies an
+  authenticated-only AuthorizationPolicy, and restricts egress via a Sidecar.
+  Implements mTLS-everywhere and least-privilege network posture through mesh
+  configuration rather than application code.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - istio
+  - mtls
+  - security
+  - rtsa

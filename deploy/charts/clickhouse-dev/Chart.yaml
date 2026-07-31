@@ -1,0 +1,14 @@
+# CLASSIFICATION: UNCLASSIFIED
+apiVersion: v2
+name: clickhouse-dev
+description: >-
+  Single-node ClickHouse (OLAP / historical store) for RTSA dev/ephemeral
+  environments. Backs svc-query's cold-path historical API. NOT for
+  staging/production — those use a replicated ClickHouse Keeper topology.
+type: application
+version: 0.1.0
+appVersion: "24.8"
+keywords:
+  - clickhouse
+  - olap
+  - rtsa

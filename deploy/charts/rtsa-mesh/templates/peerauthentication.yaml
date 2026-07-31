@@ -1,0 +1,15 @@
+# CLASSIFICATION: UNCLASSIFIED
+{{- if .Values.peerAuthentication.enabled }}
+# Namespace-wide mutual TLS. STRICT rejects any non-mTLS (plaintext) traffic,
+# satisfying the "mTLS everywhere" global constraint via mesh config.
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: rtsa-default
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  mtls:
+    mode: {{ .Values.peerAuthentication.mtlsMode }}
+{{- end }}

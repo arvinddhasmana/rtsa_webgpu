@@ -1,0 +1,76 @@
+# CLASSIFICATION: UNCLASSIFIED
+# svc-radar-ingestion — sensor ingestion gateway (produces sensors.* topics).
+# Deploy: helm upgrade --install svc-radar-ingestion deploy/charts/rtsa-service \
+#   -f deploy/charts/values/svc-radar-ingestion.yaml \
+#   --set image.repository=$ACR/svc-radar-ingestion --set image.tag=$SHA -n rtsa
+nameOverride: svc-radar-ingestion
+replicaCount: 1
+
+ports:
+  grpc: 50051
+  health: 8081
+  metrics: 9090
+
+# Bulkhead: ingestion Spot pool.
+nodeSelector:
+  workload: ingestion
+tolerations:
+  - key: workload
+    operator: Equal
+    value: ingestion
+    effect: NoSchedule
+
+env:
+  - name: RTSA_SERVICE_NAME
+    value: svc-radar-ingestion
+  - name: RTSA_REDPANDA_BROKERS
+    value: redpanda.rtsa.svc.cluster.local:9092
+  - name: RTSA_GRPC_PORT
+    value: "50051"
+  - name: RTSA_HEALTH_PORT
+    value: "8081"
+  - name: RTSA_METRICS_PORT
+    value: "9090"
+  - name: RTSA_TLS_ENABLED
+    value: "false" # in-mesh mTLS is enforced by Istio, not the app, in dev
+  - name: RTSA_LOG_LEVEL
+    value: info
+  - name: RTSA_LOG_FORMAT
+    value: json
+  - name: RTSA_OTEL_ENDPOINT
+    value: otel-collector.observability.svc.cluster.local:4317
+
+# These services expose /healthz only.
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  readiness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+
+autoscaling:
+  mode: hpa
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 96Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi

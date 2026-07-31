@@ -1,0 +1,27 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Terraform working files — never commit state or local secret var files.
+
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+
+# Local var files that may carry subscription/tenant IDs or secrets.
+terraform.tfvars
+*.auto.tfvars
+secret*.tfvars
+!*.tfvars.example
+
+# Committed on purpose (pin provider versions): .terraform.lock.hcl
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+.terraformrc
+terraform.rc
+tfplan
+*.tfplan

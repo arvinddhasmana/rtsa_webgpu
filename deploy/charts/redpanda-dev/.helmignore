@@ -1,0 +1,5 @@
+# CLASSIFICATION: UNCLASSIFIED
+.git
+.gitignore
+*.md
+*.tmp

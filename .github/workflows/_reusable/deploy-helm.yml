@@ -1,0 +1,123 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Reusable: deploy the RTSA walking skeleton to an AKS environment via Helm.
+# Environment-specific configuration (cluster, RG, ACR, identity ids, Key Vault)
+# is read from GitHub *Environment* variables, resolved because this job declares
+# `environment:`. Order: namespace + mesh baseline -> Redpanda -> ClickHouse ->
+# services. Promotion between environments reuses the same image tag (digest).
+name: reusable-deploy-helm
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Target GitHub Environment (dev|test|staging|prod).
+        type: string
+        required: true
+      image-tag:
+        description: Image tag to deploy (commit SHA validated upstream).
+        type: string
+        required: true
+      namespace:
+        type: string
+        default: "rtsa"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      NS: ${{ inputs.namespace }}
+      ACR: ${{ vars.ACR_NAME }}
+      TAG: ${{ inputs.image-tag }}
+      ISTIO_REV: ${{ vars.ISTIO_REVISION }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up kubelogin
+        uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: latest
+
+      - name: Get AKS credentials
+        run: |
+          az aks get-credentials \
+            --resource-group ${{ vars.AKS_RESOURCE_GROUP }} \
+            --name ${{ vars.AKS_CLUSTER_NAME }} \
+            --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Namespace + Istio injection label
+        run: |
+          set -euo pipefail
+          kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f -
+          if [ -n "$ISTIO_REV" ]; then
+            kubectl label namespace "$NS" istio.io/rev="$ISTIO_REV" --overwrite
+          else
+            kubectl label namespace "$NS" istio-injection=enabled --overwrite
+          fi
+
+      - name: Deploy mesh baseline
+        run: |
+          helm upgrade --install rtsa-mesh deploy/charts/rtsa-mesh \
+            --namespace "$NS" \
+            --set createNamespace=false \
+            --set namespace="$NS" \
+            --set istio.revision="$ISTIO_REV" \
+            --wait --timeout 5m
+
+      - name: Deploy Redpanda (event backbone)
+        run: |
+          helm upgrade --install redpanda deploy/charts/redpanda-dev \
+            --namespace "$NS" --wait --timeout 10m
+
+      - name: Deploy ClickHouse (OLAP store)
+        run: |
+          helm upgrade --install clickhouse deploy/charts/clickhouse-dev \
+            --namespace "$NS" --wait --timeout 10m
+
+      - name: Deploy stateless services
+        run: |
+          set -euo pipefail
+          for svc in svc-radar-ingestion svc-fusion-engine svc-track svc-query web-cop-gpu; do
+            echo "::group::deploy $svc"
+            helm upgrade --install "$svc" deploy/charts/rtsa-service \
+              -f "deploy/charts/values/$svc.yaml" \
+              --namespace "$NS" \
+              --set image.repository="$ACR.azurecr.io/$svc" \
+              --set image.tag="$TAG" \
+              --wait --timeout 5m
+            echo "::endgroup::"
+          done
+
+      - name: Deploy svc-webtransport (workload identity + Key Vault)
+        run: |
+          set -euo pipefail
+          helm upgrade --install svc-webtransport deploy/charts/rtsa-service \
+            -f deploy/charts/values/svc-webtransport.yaml \
+            --namespace "$NS" \
+            --set image.repository="$ACR.azurecr.io/svc-webtransport" \
+            --set image.tag="$TAG" \
+            --set serviceAccount.workloadIdentityClientId='${{ vars.WEBTRANSPORT_IDENTITY_CLIENT_ID }}' \
+            --set secretProviderClass.keyvaultName='${{ vars.KEY_VAULT_NAME }}' \
+            --set secretProviderClass.tenantId='${{ vars.AZURE_TENANT_ID }}' \
+            --wait --timeout 5m
+
+      - name: Verify workload deployment
+        run: |
+          scripts/azure/verify-workload-deployment.sh \
+            --namespace "$NS" \
+            --expected-image-tag "$TAG"

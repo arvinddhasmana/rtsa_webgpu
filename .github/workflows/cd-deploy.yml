@@ -1,0 +1,35 @@
+# CLASSIFICATION: UNCLASSIFIED
+# CD Deploy — promote an already-built, signed image set to a higher environment.
+# Promotion is by image tag (digest): the exact artifact validated downstream is
+# what ships. Higher environments (staging/prod) are gated by GitHub Environment
+# protection rules (required reviewers, wait timers).
+name: CD Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment.
+        type: choice
+        options: [test, staging, prod]
+        required: true
+      image-tag:
+        description: Image tag to deploy (commit SHA already built by CD Build).
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: cd-deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_reusable/deploy-helm.yml
+    with:
+      environment: ${{ inputs.environment }}
+      image-tag: ${{ inputs.image-tag }}
+      namespace: rtsa

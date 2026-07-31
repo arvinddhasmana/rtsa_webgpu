@@ -1,0 +1,84 @@
+# CLASSIFICATION: UNCLASSIFIED
+# Infra Down — destroy an environment with Terraform (OIDC). Nightly schedule
+# tears down non-prod (dev, test) to minimise PAYG cost; prod is never destroyed
+# on a schedule and requires manual dispatch + environment approval.
+name: Infra Down
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to destroy.
+        type: choice
+        options: [dev, test, staging, prod]
+        default: dev
+        required: true
+  schedule:
+    # 07:00 UTC nightly — tear down ephemeral non-prod environments.
+    - cron: "0 7 * * *"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: infra-${{ github.event.inputs.environment || 'scheduled' }}
+  cancel-in-progress: false
+
+jobs:
+  # Build the destroy matrix: dispatch -> chosen env; schedule -> dev + test.
+  plan:
+    name: Select environments
+    runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.set.outputs.environments }}
+    steps:
+      - id: set
+        env:
+          EVENT: ${{ github.event_name }}
+          CHOICE: ${{ github.event.inputs.environment }}
+        run: |
+          if [ "$EVENT" = "schedule" ]; then
+            echo 'environments=["dev","test"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "environments=[\"$CHOICE\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  terraform:
+    name: terraform destroy (${{ matrix.environment }})
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: ${{ matrix.environment }}
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: ${{ fromJSON(needs.plan.outputs.environments) }}
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/${{ matrix.environment }}
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      TFSTATE_SUBSCRIPTION_ID: ${{ vars.TFSTATE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: |
+          terraform init \
+            -backend-config="subscription_id=${{ vars.TFSTATE_SUBSCRIPTION_ID }}" \
+            -backend-config="resource_group_name=${{ vars.TFSTATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TFSTATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TFSTATE_CONTAINER }}" \
+            -backend-config="key=rtsa-${{ matrix.environment }}.tfstate"
+
+      - name: Terraform destroy
+        run: terraform destroy -input=false -auto-approve -var-file="${{ matrix.environment }}.tfvars"

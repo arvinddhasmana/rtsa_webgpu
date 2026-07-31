@@ -1,0 +1,21 @@
+# CLASSIFICATION: UNCLASSIFIED
+{{- if .Values.authorizationPolicy.enabled }}
+# Authenticated-only baseline. Requests are allowed only when the mTLS source
+# principal belongs to one of the trusted namespaces; everything else is denied.
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: rtsa-allow-mesh
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            namespaces:
+              {{- range .Values.authorizationPolicy.allowedNamespaces }}
+              - {{ . | quote }}
+              {{- end }}
+{{- end }}

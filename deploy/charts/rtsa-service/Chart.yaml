@@ -1,0 +1,12 @@
+# CLASSIFICATION: UNCLASSIFIED
+apiVersion: v2
+name: rtsa-service
+description: Generic Helm chart for RTSA Go microservices and the WebGPU COP frontend.
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - rtsa
+  - microservice
+maintainers:
+  - name: RTSA Platform Team

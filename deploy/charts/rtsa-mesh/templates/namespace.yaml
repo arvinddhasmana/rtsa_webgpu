@@ -1,0 +1,14 @@
+# CLASSIFICATION: UNCLASSIFIED
+{{- if .Values.createNamespace }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    {{- if .Values.istio.revision }}
+    istio.io/rev: {{ .Values.istio.revision }}
+    {{- else }}
+    istio-injection: enabled
+    {{- end }}
+{{- end }}

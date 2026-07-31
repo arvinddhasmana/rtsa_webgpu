@@ -1,0 +1,25 @@
+# CLASSIFICATION: UNCLASSIFIED
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: { { .Release.Namespace } }
+  labels:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: { { .Release.Name } }
+    app.kubernetes.io/component: olap-store
+    app.kubernetes.io/managed-by: { { .Release.Service } }
+spec:
+  type: { { .Values.serviceType } }
+  selector:
+    app.kubernetes.io/name: clickhouse
+    app.kubernetes.io/instance: { { .Release.Name } }
+  ports:
+    - name: http
+      port: { { .Values.ports.http } }
+      targetPort: http
+      protocol: TCP
+    - name: native
+      port: { { .Values.ports.native } }
+      targetPort: native
+      protocol: TCP

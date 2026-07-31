@@ -1,0 +1,19 @@
+# CLASSIFICATION: UNCLASSIFIED
+{{ if .Values.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "rtsa-service.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rtsa-service.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "rtsa-service.selectorLabels" . | nindent 6 }}
+{{- end }}
