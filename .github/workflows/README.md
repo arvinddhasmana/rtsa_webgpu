@@ -15,9 +15,12 @@ GitHub Actions pipelines for the RTSA Azure deployment. All cloud access uses
 | `cd-deploy.yml`               | manual (`environment`, `tag`) | Promote a built image tag to `test`/`staging`/`prod`                |
 | `infra-up.yml`                | manual (`environment`)        | `terraform apply` an environment landing zone (OIDC)                |
 | `infra-down.yml`              | manual + nightly `cron`       | `terraform destroy` (nightly tears down `dev`+`test`)               |
-| `_reusable/go-build-test.yml` | `workflow_call`               | Build all Go modules + race tests + coverage gate                   |
-| `_reusable/container.yml`     | `workflow_call`               | Buildx + SBOM + cosign keyless sign + Trivy + push                  |
-| `_reusable/deploy-helm.yml`   | `workflow_call`               | Helm deploy mesh + Redpanda + ClickHouse + services                 |
+| `reusable-go-build-test.yml`  | `workflow_call`               | Build all Go modules + race tests + coverage gate                   |
+| `reusable-container.yml`      | `workflow_call`               | ARM64 Buildx + SBOM + cosign keyless sign + Trivy + push            |
+| `reusable-deploy-helm.yml`    | `workflow_call`               | Helm deploy mesh + Redpanda + ClickHouse + services                 |
+
+Reusable workflows must remain direct children of `.github/workflows`; GitHub
+rejects local `workflow_call` targets in subdirectories before creating any jobs.
 
 ## Required configuration
 

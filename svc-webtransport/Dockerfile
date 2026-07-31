@@ -5,6 +5,7 @@
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM golang:1.24-alpine AS builder
+ARG TARGETARCH
 
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -28,7 +29,7 @@ COPY svc-webtransport/ ./svc-webtransport/
 # Build the static binary (no CGO).
 WORKDIR /workspace/svc-webtransport
 ENV GOWORK=off
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build \
     -ldflags="-w -s -extldflags=-static -X main.version=${VERSION:-container}" \
     -trimpath \

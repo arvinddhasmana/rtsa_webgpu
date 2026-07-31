@@ -84,7 +84,7 @@ jobs:
   sg2-sg3-go:
     name: SG-2/3 Build & Test (Go)
     needs: sg1-prebuild
-    uses: ./.github/workflows/_reusable/go-build-test.yml
+    uses: ./.github/workflows/reusable-go-build-test.yml
     with:
       go-version: "1.24.x"
       min-coverage: "80"
