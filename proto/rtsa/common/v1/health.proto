@@ -14,7 +14,7 @@ service HealthService {
 }
 
 message HealthCheckRequest {
-  string service = 1;  // Service name to check (empty = overall)
+  string service = 1; // Service name to check (empty = overall)
 }
 
 message HealthCheckResponse {

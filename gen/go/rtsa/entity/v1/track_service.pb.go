@@ -587,7 +587,7 @@ var File_rtsa_entity_v1_track_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_entity_v1_track_service_proto_rawDesc = "" +
 	"\n" +
-	"\"rtsa/entity/v1/track_service.proto\x12\x0ertsa.entity.v1\x1a rtsa/entity/v1/fused_track.proto\x1a\x1artsa/common/v1/types.proto\x1a*rtsa/ingestion/v1/sensor_observation.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xef\x02\n" +
+	"\"rtsa/entity/v1/track_service.proto\x12\x0ertsa.entity.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1artsa/common/v1/types.proto\x1a rtsa/entity/v1/fused_track.proto\x1a*rtsa/ingestion/v1/sensor_observation.proto\"\xef\x02\n" +
 	"\x13StreamTracksRequest\x12=\n" +
 	"\fentity_types\x18\x01 \x03(\x0e2\x1a.rtsa.common.v1.EntityTypeR\ventityTypes\x12N\n" +
 	"\x0fhostile_classes\x18\x02 \x03(\x0e2%.rtsa.common.v1.HostileClassificationR\x0ehostileClasses\x12C\n" +

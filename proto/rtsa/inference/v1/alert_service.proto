@@ -3,11 +3,11 @@ syntax = "proto3";
 
 package rtsa.inference.v1;
 
-option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1;inferencev1";
-
-import "rtsa/inference/v1/anomaly_alert.proto";
-import "rtsa/common/v1/types.proto";
 import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+import "rtsa/inference/v1/anomaly_alert.proto";
+
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/inference/v1;inferencev1";
 
 // ──────────────────────────────────────────
 // Alert Service — real-time alert streaming

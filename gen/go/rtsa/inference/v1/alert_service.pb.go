@@ -385,7 +385,7 @@ var File_rtsa_inference_v1_alert_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_inference_v1_alert_service_proto_rawDesc = "" +
 	"\n" +
-	"%rtsa/inference/v1/alert_service.proto\x12\x11rtsa.inference.v1\x1a%rtsa/inference/v1/anomaly_alert.proto\x1a\x1artsa/common/v1/types.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa6\x02\n" +
+	"%rtsa/inference/v1/alert_service.proto\x12\x11rtsa.inference.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1artsa/common/v1/types.proto\x1a%rtsa/inference/v1/anomaly_alert.proto\"\xa6\x02\n" +
 	"\x13StreamAlertsRequest\x12@\n" +
 	"\fmin_severity\x18\x01 \x01(\x0e2\x1d.rtsa.common.v1.AlertSeverityR\vminSeverity\x12@\n" +
 	"\ranomaly_types\x18\x02 \x03(\x0e2\x1b.rtsa.common.v1.AnomalyTypeR\fanomalyTypes\x12=\n" +

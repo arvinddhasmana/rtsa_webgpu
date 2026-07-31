@@ -3,9 +3,9 @@ syntax = "proto3";
 
 package rtsa.common.v1;
 
-option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1;commonv1";
-
 import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/common/v1;commonv1";
 
 // ──────────────────────────────────────────
 // Classification Levels — Government of Canada
@@ -156,11 +156,11 @@ message TimeRange {
 // Pagination
 // ──────────────────────────────────────────
 message PaginationRequest {
-  int32 page_size = 1;     // Max items per page (default 100, max 1000)
-  string page_token = 2;   // Opaque token from previous response
+  int32 page_size = 1; // Max items per page (default 100, max 1000)
+  string page_token = 2; // Opaque token from previous response
 }
 
 message PaginationResponse {
-  string next_page_token = 1;  // Empty if no more pages
-  int32 total_count = 2;       // Total matching records (if known)
+  string next_page_token = 1; // Empty if no more pages
+  int32 total_count = 2; // Total matching records (if known)
 }

@@ -3,10 +3,10 @@ syntax = "proto3";
 
 package rtsa.feedback.v1;
 
-option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1";
-
 import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";
+
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1";
 
 // ──────────────────────────────────────────
 // Operator Feedback — human-in-the-loop

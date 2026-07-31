@@ -1212,7 +1212,7 @@ var File_rtsa_query_v1_query_service_proto protoreflect.FileDescriptor
 
 const file_rtsa_query_v1_query_service_proto_rawDesc = "" +
 	"\n" +
-	"!rtsa/query/v1/query_service.proto\x12\rrtsa.query.v1\x1a\x1artsa/common/v1/types.proto\x1a rtsa/entity/v1/fused_track.proto\x1a%rtsa/inference/v1/anomaly_alert.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x98\x04\n" +
+	"!rtsa/query/v1/query_service.proto\x12\rrtsa.query.v1\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1artsa/common/v1/types.proto\x1a rtsa/entity/v1/fused_track.proto\x1a%rtsa/inference/v1/anomaly_alert.proto\"\x98\x04\n" +
 	"\x12QueryTracksRequest\x128\n" +
 	"\n" +
 	"time_range\x18\x01 \x01(\v2\x19.rtsa.common.v1.TimeRangeR\ttimeRange\x12=\n" +
