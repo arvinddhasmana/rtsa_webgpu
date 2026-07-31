@@ -9,6 +9,18 @@ export default defineConfig({
     alias: {
       "@src": path.resolve(__dirname, "src"),
       "@gen": path.resolve(__dirname, "../gen/ts"),
+      "@bufbuild/protobuf": path.resolve(
+        __dirname,
+        "node_modules/@bufbuild/protobuf",
+      ),
+      "@connectrpc/connect": path.resolve(
+        __dirname,
+        "node_modules/@connectrpc/connect",
+      ),
+      "@connectrpc/connect-web": path.resolve(
+        __dirname,
+        "node_modules/@connectrpc/connect-web",
+      ),
     },
   },
   test: {
