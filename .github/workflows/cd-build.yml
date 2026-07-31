@@ -102,7 +102,7 @@ jobs:
     with:
       service: web-cop-gpu
       dockerfile: web-cop-gpu/Dockerfile
-      context: web-cop-gpu
+      context: .
       image-tag: ${{ github.sha }}
       acr-name: ${{ vars.ACR_NAME }}
       client-id: ${{ vars.REPO_AZURE_CLIENT_ID != '' && vars.REPO_AZURE_CLIENT_ID || vars.AZURE_CLIENT_ID }}
