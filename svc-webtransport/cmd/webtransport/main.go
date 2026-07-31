@@ -1,4 +1,3 @@
-package webtransport
 // CLASSIFICATION: UNCLASSIFIED
 // Binary webtransport is the entry point for svc-webtransport — the RTSA
 // hot-path fan-out service.
@@ -26,10 +25,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/telemetry"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/webtransport"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-webtransport/internal/config"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-webtransport/internal/source"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/telemetry"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/webtransport"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-webtransport/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-webtransport/internal/source"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 )

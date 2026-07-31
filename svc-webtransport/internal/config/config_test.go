@@ -1,11 +1,10 @@
-package config
 // CLASSIFICATION: UNCLASSIFIED
 package config_test
 
 import (
 	"testing"
 
-	"github.com/arvinddhasmana/RTSA_VS_Opus/svc-webtransport/internal/config"
+	"github.com/arvinddhasmana/rtsa_webgpu/svc-webtransport/internal/config"
 )
 
 // setEnv sets the given environment variables for the duration of the test and

@@ -1,4 +1,3 @@
-package source
 // CLASSIFICATION: UNCLASSIFIED
 // Package source adapts the shared Redpanda consumer into a
 // webtransport.TrackSource. It consumes Protobuf TrackUpdate messages from the
@@ -17,9 +16,9 @@ import (
 	"context"
 	"fmt"
 
-	entityv1 "github.com/arvinddhasmana/RTSA_VS_Opus/gen/go/rtsa/entity/v1"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/flatbuf"
-	"github.com/arvinddhasmana/RTSA_VS_Opus/pkg/redpanda"
+	entityv1 "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/flatbuf"
+	"github.com/arvinddhasmana/rtsa_webgpu/pkg/redpanda"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"go.opentelemetry.io/otel/metric"
 	"go.uber.org/zap"

@@ -1,4 +1,3 @@
-package config
 // CLASSIFICATION: UNCLASSIFIED
 // Package config provides environment-variable-driven configuration for
 // svc-webtransport.
