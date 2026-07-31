@@ -103,12 +103,16 @@ jobs:
         with:
           node-version: "20"
           cache: pnpm
+          cache-dependency-path: web-cop-gpu/pnpm-lock.yaml
       - name: Install
+        working-directory: web-cop-gpu
         run: pnpm install --frozen-lockfile
       - name: Build
-        run: pnpm --filter ./web-cop-gpu run build
+        working-directory: web-cop-gpu
+        run: pnpm run build
       - name: Unit tests
-        run: pnpm --filter ./web-cop-gpu run test
+        working-directory: web-cop-gpu
+        run: pnpm run test
 
   # ── SG-4 — Security: SAST, vuln scanning, dependency & filesystem scans ──
   sg4-security:
@@ -176,6 +180,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Frontend dependency audit
+        working-directory: web-cop-gpu
         run: |
           corepack enable
           pnpm install --frozen-lockfile
