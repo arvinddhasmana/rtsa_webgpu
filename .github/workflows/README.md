@@ -8,16 +8,16 @@ GitHub Actions pipelines for the RTSA Azure deployment. All cloud access uses
 
 ## Workflows
 
-| File                          | Trigger                       | Purpose                                                             |
-| ----------------------------- | ----------------------------- | ------------------------------------------------------------------- |
-| `ci.yml`                      | PR to `main`, manual          | SG-1..SG-5 security gates (secrets, headers, build, test, security) |
-| `cd-build.yml`                | push `main`, tag `v*`, manual | Build/sign/scan changed images → ACR, then auto-deploy `dev`        |
-| `cd-deploy.yml`               | manual (`environment`, `tag`) | Promote a built image tag to `test`/`staging`/`prod`                |
-| `infra-up.yml`                | manual (`environment`)        | `terraform apply` an environment landing zone (OIDC)                |
-| `infra-down.yml`              | manual + nightly `cron`       | `terraform destroy` (nightly tears down `dev`+`test`)               |
-| `reusable-go-build-test.yml`  | `workflow_call`               | Build all Go modules + race tests + coverage gate                   |
-| `reusable-container.yml`      | `workflow_call`               | ARM64 Buildx + SBOM + cosign keyless sign + Trivy + push            |
-| `reusable-deploy-helm.yml`    | `workflow_call`               | Helm deploy mesh + Redpanda + ClickHouse + services                 |
+| File                         | Trigger                       | Purpose                                                             |
+| ---------------------------- | ----------------------------- | ------------------------------------------------------------------- |
+| `ci.yml`                     | PR to `main`, manual          | SG-1..SG-5 security gates (secrets, headers, build, test, security) |
+| `cd-build.yml`               | push `main`, tag `v*`, manual | Build/sign/scan changed images → ACR, then auto-deploy `dev`        |
+| `cd-deploy.yml`              | manual (`environment`, `tag`) | Promote a built image tag to `test`/`staging`/`prod`                |
+| `infra-up.yml`               | manual (`environment`)        | `terraform apply` an environment landing zone (OIDC)                |
+| `infra-down.yml`             | manual + nightly `cron`       | `terraform destroy` (nightly tears down `dev`+`test`)               |
+| `reusable-go-build-test.yml` | `workflow_call`               | Build all Go modules + race tests + coverage gate                   |
+| `reusable-container.yml`     | `workflow_call`               | ARM64 Buildx + SBOM + cosign keyless sign + Trivy + push            |
+| `reusable-deploy-helm.yml`   | `workflow_call`               | Helm deploy mesh + Redpanda + ClickHouse + services                 |
 
 Reusable workflows must remain direct children of `.github/workflows`; GitHub
 rejects local `workflow_call` targets in subdirectories before creating any jobs.
