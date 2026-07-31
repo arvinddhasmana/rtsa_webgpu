@@ -3,11 +3,11 @@ syntax = "proto3";
 
 package rtsa.feedback.v1;
 
-option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1";
-
-import "rtsa/feedback/v1/operator_feedback.proto";
-import "rtsa/common/v1/types.proto";
 import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+import "rtsa/feedback/v1/operator_feedback.proto";
+
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/feedback/v1;feedbackv1";
 
 // ──────────────────────────────────────────
 // Feedback Service — operator feedback collection
@@ -36,7 +36,7 @@ message SubmitFeedbackResponse {
   string feedback_id = 1;
   double trust_score = 2;
   TrustBreakdown trust_breakdown = 3;
-  bool validated = 4;  // true if trust_score >= 0.5
+  bool validated = 4; // true if trust_score >= 0.5
   google.protobuf.Timestamp submitted_at = 5;
 }
 

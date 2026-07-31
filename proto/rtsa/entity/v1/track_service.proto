@@ -3,12 +3,12 @@ syntax = "proto3";
 
 package rtsa.entity.v1;
 
-option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1;entityv1";
-
-import "rtsa/entity/v1/fused_track.proto";
-import "rtsa/common/v1/types.proto";
-import "rtsa/ingestion/v1/sensor_observation.proto";
 import "google/protobuf/timestamp.proto";
+import "rtsa/common/v1/types.proto";
+import "rtsa/entity/v1/fused_track.proto";
+import "rtsa/ingestion/v1/sensor_observation.proto";
+
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/entity/v1;entityv1";
 
 // ──────────────────────────────────────────
 // Track Service — real-time track streaming
@@ -49,11 +49,11 @@ message StreamTracksRequest {
 message TrackUpdate {
   enum UpdateType {
     UPDATE_TYPE_UNSPECIFIED = 0;
-    UPDATE_TYPE_SNAPSHOT = 1;    // Initial full state
-    UPDATE_TYPE_CREATED = 2;    // New track
-    UPDATE_TYPE_UPDATED = 3;    // Position/state change
-    UPDATE_TYPE_DROPPED = 4;    // Track dropped
-    UPDATE_TYPE_MERGED = 5;     // Track merged into another
+    UPDATE_TYPE_SNAPSHOT = 1; // Initial full state
+    UPDATE_TYPE_CREATED = 2; // New track
+    UPDATE_TYPE_UPDATED = 3; // Position/state change
+    UPDATE_TYPE_DROPPED = 4; // Track dropped
+    UPDATE_TYPE_MERGED = 5; // Track merged into another
   }
   UpdateType update_type = 1;
   FusedTrack track = 2;
@@ -69,7 +69,7 @@ message GetTrackDetailsRequest {
 message GetTrackHistoryRequest {
   string track_id = 1;
   rtsa.common.v1.TimeRange time_range = 2;
-  int32 max_points = 3;  // Maximum history points to return (default: 100)
+  int32 max_points = 3; // Maximum history points to return (default: 100)
   rtsa.common.v1.ClassificationLevel clearance_level = 4;
 }
 

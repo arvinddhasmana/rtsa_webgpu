@@ -2,6 +2,7 @@
 # Multi-stage build for svc-fusion-engine
 # Stage 1: Build
 FROM golang:1.24-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /workspace
 
@@ -22,13 +23,13 @@ COPY pkg/ ./pkg/
 COPY svc-fusion-engine/ ./svc-fusion-engine/
 
 RUN GRPC_HEALTH_PROBE_VERSION=v0.4.25 && \
-    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${TARGETARCH} && \
     chmod +x /bin/grpc_health_probe
 
 # Build the binary
 WORKDIR /workspace/svc-fusion-engine
 ENV GOWORK=off
-RUN CGO_ENABLED=0 GOOS=linux go build \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build \
     -ldflags="-s -w" \
     -o /fusion-engine \
     ./cmd/fusion-engine

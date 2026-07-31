@@ -3,12 +3,12 @@ syntax = "proto3";
 
 package rtsa.query.v1;
 
-option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/query/v1;queryv1";
-
+import "google/protobuf/timestamp.proto";
 import "rtsa/common/v1/types.proto";
 import "rtsa/entity/v1/fused_track.proto";
 import "rtsa/inference/v1/anomaly_alert.proto";
-import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/query/v1;queryv1";
 
 // ──────────────────────────────────────────
 // Query Service — historical ClickHouse queries

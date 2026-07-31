@@ -83,7 +83,7 @@ jobs:
       fail-fast: false
       matrix:
         service: ${{ fromJSON(needs.changes.outputs.go) }}
-    uses: ./.github/workflows/_reusable/container.yml
+    uses: ./.github/workflows/reusable-container.yml
     with:
       service: ${{ matrix.service }}
       dockerfile: ${{ matrix.service }}/Dockerfile
@@ -98,7 +98,7 @@ jobs:
     name: Build web-cop-gpu
     needs: changes
     if: needs.changes.outputs.web == 'true'
-    uses: ./.github/workflows/_reusable/container.yml
+    uses: ./.github/workflows/reusable-container.yml
     with:
       service: web-cop-gpu
       dockerfile: web-cop-gpu/Dockerfile
@@ -119,7 +119,7 @@ jobs:
     # Run even if one build track was skipped (no changes there), but not if a
     # build actually failed. dev auto-deploys on merge to main.
     if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/_reusable/deploy-helm.yml
+    uses: ./.github/workflows/reusable-deploy-helm.yml
     with:
       environment: dev
       image-tag: ${{ github.sha }}

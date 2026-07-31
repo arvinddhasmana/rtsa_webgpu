@@ -88,7 +88,7 @@ The following implementation points anchor the multi-subscription model:
    [../../.github/workflows/infra-up.yml](../../.github/workflows/infra-up.yml#L36)
    [../../.github/workflows/infra-down.yml](../../.github/workflows/infra-down.yml#L62)
 6. Helm deploy workflow logs into the environment subscription selected by the job:
-   [../../.github/workflows/\_reusable/deploy-helm.yml](../../.github/workflows/_reusable/deploy-helm.yml#L45)
+   [../../.github/workflows/reusable-deploy-helm.yml](../../.github/workflows/reusable-deploy-helm.yml)
 7. Bootstrap identity roles are scoped to the correct shared or environment subscription:
    [infra/terraform/bootstrap/identity.tf](infra/terraform/bootstrap/identity.tf#L14)
 

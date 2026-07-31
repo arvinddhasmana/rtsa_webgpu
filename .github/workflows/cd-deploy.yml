@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   deploy:
-    uses: ./.github/workflows/_reusable/deploy-helm.yml
+    uses: ./.github/workflows/reusable-deploy-helm.yml
     with:
       environment: ${{ inputs.environment }}
       image-tag: ${{ inputs.image-tag }}

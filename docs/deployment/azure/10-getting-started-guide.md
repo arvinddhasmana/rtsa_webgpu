@@ -787,7 +787,7 @@ flowchart TB
         CHECKOUT["checkout"]
         OIDC_ACR["az login via OIDC\n(ci-plan identity)"]
         DOCKER["docker buildx build\n--platform linux/arm64\n(ARM v6 target cluster)"]
-        TAG["Tag: sha-{short-commit}"]
+        TAG["Tag: {full-commit-sha}"]
         PUSH_IMG["docker push → ACR\nacrrtsabzkem9.azurecr.io/{svc}:{sha}"]
         SIGN["cosign sign --key less\n(keyless / Sigstore)"]
         SBOM["cosign attest SBOM\n(syft SPDX)"]
@@ -813,19 +813,20 @@ same digest validated in dev is what gets deployed to staging and then productio
 No rebuilds happen during promotion. Only the Kubernetes config changes.
 
 ```
-acrrtsabzkem9.azurecr.io/svc-radar-ingestion:sha-a1b2c3d
-acrrtsabzkem9.azurecr.io/svc-fusion-engine:sha-a1b2c3d
-acrrtsabzkem9.azurecr.io/svc-track:sha-a1b2c3d
-acrrtsabzkem9.azurecr.io/svc-webtransport:sha-a1b2c3d
-acrrtsabzkem9.azurecr.io/svc-query:sha-a1b2c3d
-acrrtsabzkem9.azurecr.io/web-cop-gpu:sha-a1b2c3d
+acrrtsabzkem9.azurecr.io/svc-radar-ingestion:<full-commit-sha>
+acrrtsabzkem9.azurecr.io/svc-fusion-engine:<full-commit-sha>
+acrrtsabzkem9.azurecr.io/svc-track:<full-commit-sha>
+acrrtsabzkem9.azurecr.io/svc-webtransport:<full-commit-sha>
+acrrtsabzkem9.azurecr.io/svc-query:<full-commit-sha>
+acrrtsabzkem9.azurecr.io/web-cop-gpu:<full-commit-sha>
 ```
 
 ### 6.3 Platform Architecture: Why ARM64
 
-The dev AKS cluster uses `Standard_D2pds_v6` nodes (Ampere ARM64). Images must be built
-for `linux/arm64` (the `--platform` flag in the Dockerfile). If you try to run an x86
-image on an ARM node, the pod will fail with `exec format error`.
+The dev AKS cluster uses `Standard_D2pds_v6` nodes (Ampere ARM64). The reusable
+container workflow configures QEMU and Buildx with `platforms: linux/arm64`; Go
+Dockerfiles consume BuildKit's `TARGETARCH` for binaries and health probes. If an
+x86 image reaches an ARM node, the pod fails with `exec format error`.
 
 ```bash
 # Verify your local Docker can build ARM64 (requires QEMU emulation or Apple M-series)
@@ -892,7 +893,7 @@ flowchart TB
         KUBE["az aks get-credentials\nAKS_CLUSTER_NAME · AKS_RESOURCE_GROUP"]
     end
 
-    subgraph DEPLOY_STEPS["Helm Deploy (reusable: _reusable/deploy-helm.yml)"]
+    subgraph DEPLOY_STEPS["Helm Deploy (reusable: reusable-deploy-helm.yml)"]
         VERIFY["cosign verify image\n(reject unsigned images)"]
         NSCREATE["kubectl create namespace rtsa\n(if not exists)"]
         LABEL["kubectl label namespace rtsa\nistio.io/rev=asm-1-29"]
@@ -907,19 +908,45 @@ flowchart TB
     TRIGGER2 --> AUTH2 --> DEPLOY_STEPS
 ```
 
-### 7.3 Trigger CD Deploy Manually
+### 7.3 Bootstrap Development WebTransport Secrets
+
+Before the first dev Helm deployment, create the JWT and TLS material directly in
+Key Vault. The operator needs `Key Vault Secrets Officer` at the dev vault scope;
+workloads retain the read-only `Key Vault Secrets User` role.
 
 ```bash
-# Get the SHA of the last successful CD Build
-LAST_SHA=$(gh run list --workflow cd-build.yml --status success --limit 1 --json headSha --jq '.[0].headSha' | head -c 8)
+VAULT_ID=$(az keyvault show \
+    --resource-group rg-rtsa-dev-cc \
+    --name kv-rtsa-dev-aa67qb \
+    --query id -o tsv)
+OPERATOR_ID=$(az ad signed-in-user show --query id -o tsv)
+
+az role assignment create \
+    --assignee-object-id "$OPERATOR_ID" \
+    --assignee-principal-type User \
+    --role "Key Vault Secrets Officer" \
+    --scope "$VAULT_ID"
+
+scripts/azure/bootstrap-dev-key-vault-secrets.sh --env dev
+```
+
+The script refuses non-dev environments, validates the Terraform subscription and
+vault, retains existing versions unless `--force` is explicit, and never prints
+secret values. Use `--dry-run` to validate prerequisites only.
+
+### 7.4 Trigger CD Deploy Manually
+
+```bash
+# Get the full SHA of the last successful CD Build
+LAST_SHA=$(gh run list --workflow cd-build.yml --status success --limit 1 --json headSha --jq '.[0].headSha')
 
 gh workflow run cd-deploy.yml \
   --repo arvinddhasmana/rtsa_webgpu \
   --field environment=dev \
-  --field image-tag="sha-${LAST_SHA}"
+    --field image-tag="$LAST_SHA"
 ```
 
-### 7.4 Verify the Workload Deployment
+### 7.5 Verify the Workload Deployment
 
 The reusable Helm workflow automatically runs the workload verifier after all Helm
 operations. Run the same gate locally when diagnosing or validating a deployment:
@@ -927,7 +954,7 @@ operations. Run the same gate locally when diagnosing or validating a deployment
 ```bash
 scripts/azure/verify-workload-deployment.sh \
     --namespace rtsa \
-    --expected-image-tag "sha-${LAST_SHA}"
+    --expected-image-tag "$LAST_SHA"
 ```
 
 It verifies every expected Helm release, StatefulSet and Deployment rollout, pod health,
@@ -935,7 +962,7 @@ Istio sidecar injection, the WebTransport workload-identity annotation, and the 
 image tag. Kubernetes warning events are printed for diagnosis but do not fail an otherwise
 healthy deployment.
 
-### 7.5 What Runs Inside Kubernetes After Deploy
+### 7.6 What Runs Inside Kubernetes After Deploy
 
 ```mermaid
 flowchart TB

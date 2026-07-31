@@ -2,6 +2,7 @@
 
 # ─── Build stage ──────────────────────────────────────────────────────────────
 FROM golang:1.24-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /workspace
 
@@ -24,13 +25,13 @@ COPY pkg/ ./pkg/
 COPY svc-query/ ./svc-query/
 
 RUN GRPC_HEALTH_PROBE_VERSION=v0.4.25 && \
-    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${TARGETARCH} && \
     chmod +x /bin/grpc_health_probe
 
 # Build the binary
 WORKDIR /workspace/svc-query
 ENV GOWORK=off
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" \
     -o /out/svc-query ./cmd/query/
 

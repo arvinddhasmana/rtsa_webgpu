@@ -3,6 +3,7 @@
 
 # Stage 1: Build
 FROM golang:1.24-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /build
 
@@ -24,13 +25,13 @@ COPY svc-radar-ingestion/ svc-radar-ingestion/
 
 # Install grpc_health_probe for Docker health checks
 RUN GRPC_HEALTH_PROBE_VERSION=v0.4.25 && \
-    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${TARGETARCH} && \
     chmod +x /bin/grpc_health_probe
 
 # Build the binary
 WORKDIR /build/svc-radar-ingestion
 ENV GOWORK=off
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build -ldflags="-s -w" \
     -o /app/radar-ingestion \
     ./cmd/radar-ingestion

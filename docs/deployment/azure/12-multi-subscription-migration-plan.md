@@ -94,7 +94,7 @@ workflows.
 1. [../../.github/workflows/infra-up.yml](../../.github/workflows/infra-up.yml)
 2. [../../.github/workflows/infra-down.yml](../../.github/workflows/infra-down.yml)
 3. [../../.github/workflows/cd-build.yml](../../.github/workflows/cd-build.yml)
-4. [../../.github/workflows/\_reusable/deploy-helm.yml](../../.github/workflows/_reusable/deploy-helm.yml)
+4. [../../.github/workflows/reusable-deploy-helm.yml](../../.github/workflows/reusable-deploy-helm.yml)
 5. [../../scripts/azure/setup-github-environments.sh](../../scripts/azure/setup-github-environments.sh)
 
 ### Validation

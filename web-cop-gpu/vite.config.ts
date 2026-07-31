@@ -16,7 +16,7 @@ const isDev = process.env.NODE_ENV !== "production";
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",   // SolidJS injects minimal inline styles
+  "style-src 'self' 'unsafe-inline'", // SolidJS injects minimal inline styles
   "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://*.cartocdn.com https://server.arcgisonline.com",
   // In dev: allow http: (gRPC-Web at localhost:8080) and ws: (Vite HMR).
   // In prod: restrict to https: and wss: only.
@@ -36,6 +36,18 @@ export default defineConfig({
     alias: {
       "@src": path.resolve(__dirname, "src"),
       "@gen": path.resolve(__dirname, "../gen/ts"),
+      "@bufbuild/protobuf": path.resolve(
+        __dirname,
+        "node_modules/@bufbuild/protobuf",
+      ),
+      "@connectrpc/connect": path.resolve(
+        __dirname,
+        "node_modules/@connectrpc/connect",
+      ),
+      "@connectrpc/connect-web": path.resolve(
+        __dirname,
+        "node_modules/@connectrpc/connect-web",
+      ),
     },
   },
   server: {

@@ -5,6 +5,7 @@
 
 # ── Stage 1: Build ────────────────────────────────────────────────────────────
 FROM golang:1.24-alpine AS builder
+ARG TARGETARCH
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -28,13 +29,13 @@ COPY gen/go/ ./gen/go/
 COPY svc-track/ ./svc-track/
 
 RUN GRPC_HEALTH_PROBE_VERSION=v0.4.25 && \
-    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
+    wget -qO/bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-${TARGETARCH} && \
     chmod +x /bin/grpc_health_probe
 
 # Build the binary (static, no CGO)
 WORKDIR /workspace/svc-track
 ENV GOWORK=off
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build \
     -ldflags="-w -s -extldflags=-static" \
     -trimpath \

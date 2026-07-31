@@ -3,12 +3,11 @@ syntax = "proto3";
 
 package rtsa.ingestion.v1;
 
-option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1;ingestionv1";
-
 import "google/protobuf/timestamp.proto";
-
 import "rtsa/common/v1/types.proto";
 import "rtsa/ingestion/v1/sensor_observation.proto";
+
+option go_package = "github.com/arvinddhasmana/rtsa_webgpu/gen/go/rtsa/ingestion/v1;ingestionv1";
 
 // ──────────────────────────────────────────
 // Ingestion Service — shared by all sensor types

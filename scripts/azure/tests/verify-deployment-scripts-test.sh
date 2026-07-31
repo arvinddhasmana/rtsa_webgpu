@@ -23,6 +23,7 @@ case "$args" in
   *" plan "*) exit 0 ;;
   *" output -raw resource_group "*) echo "rg-rtsa-dev-cc" ;;
   *" output -raw cluster_name "*) echo "aks-rtsa-dev" ;;
+  *" output -raw key_vault_uri "*) echo "https://kv-rtsa-dev.example.vault.azure.net/" ;;
   *) exit 0 ;;
 esac
 EOF
@@ -32,8 +33,10 @@ cat >"${FAKE_BIN}/az" <<'EOF'
 set -euo pipefail
 args=" $* "
 case "$args" in
+  *" account show --query id -o tsv "*) echo "00000000-0000-0000-0000-000000000001" ;;
   *" account show "*" --query id "*) echo "00000000-0000-0000-0000-000000000001" ;;
   *" account show "*|*" account set "*) exit 0 ;;
+  *" keyvault show "*) echo "/subscriptions/example/resourceGroups/example/providers/Microsoft.KeyVault/vaults/kv-rtsa-dev" ;;
   *" group show "*) echo "Succeeded" ;;
   *" aks nodepool list "*) exit 0 ;;
   *" aks get-credentials "*)
@@ -95,6 +98,7 @@ export PATH="${FAKE_BIN}:${PATH}"
 
 INFRA_SCRIPT="${REPO_ROOT}/scripts/azure/verify-infrastructure-deployment.sh"
 WORKLOAD_SCRIPT="${REPO_ROOT}/scripts/azure/verify-workload-deployment.sh"
+SECRET_BOOTSTRAP_SCRIPT="${REPO_ROOT}/scripts/azure/bootstrap-dev-key-vault-secrets.sh"
 TF_DIR="${REPO_ROOT}/infra/terraform/environments/dev"
 TEST_SUBSCRIPTION="00000000-0000-0000-0000-000000000001"
 
@@ -114,5 +118,44 @@ if bash "$WORKLOAD_SCRIPT" --namespace rtsa --expected-image-tag sha-wrong \
   --timeout 1s >/dev/null 2>&1; then
   fail "incorrect workload image tag was accepted"
 fi
+
+bash "$SECRET_BOOTSTRAP_SCRIPT" --env dev --terraform-dir "$TF_DIR" \
+  --dry-run >/dev/null || fail "development secret bootstrap dry run"
+
+if bash "$SECRET_BOOTSTRAP_SCRIPT" --env prod --terraform-dir "$TF_DIR" \
+  --dry-run >/dev/null 2>&1; then
+  fail "development secret bootstrap accepted prod"
+fi
+
+if find "${REPO_ROOT}/.github/workflows" -mindepth 2 -type f \
+  \( -name '*.yml' -o -name '*.yaml' \) | grep -q .; then
+  fail "GitHub reusable workflows must be directly under .github/workflows"
+fi
+
+while IFS= read -r workflow_path; do
+  [[ -f "${REPO_ROOT}/${workflow_path#./}" ]] || \
+    fail "local reusable workflow reference does not exist: ${workflow_path}"
+done < <(
+  grep -Rho 'uses: \./\.github/workflows/[^[:space:]]*' "${REPO_ROOT}/.github/workflows" |
+    awk '{print $2}' | sort -u
+)
+
+grep -q 'platforms: linux/arm64' \
+  "${REPO_ROOT}/.github/workflows/reusable-container.yml" || \
+  fail "container workflow must build linux/arm64 images for AKS"
+
+for dockerfile in \
+  svc-radar-ingestion/Dockerfile \
+  svc-fusion-engine/Dockerfile \
+  svc-track/Dockerfile \
+  svc-query/Dockerfile \
+  svc-webtransport/Dockerfile; do
+  grep -q 'ARG TARGETARCH' "${REPO_ROOT}/${dockerfile}" || \
+    fail "${dockerfile} must consume BuildKit TARGETARCH"
+  if grep -q 'GOARCH=amd64\|grpc_health_probe-linux-amd64' \
+    "${REPO_ROOT}/${dockerfile}"; then
+    fail "${dockerfile} contains a hard-coded amd64 runtime artifact"
+  fi
+done
 
 echo "TEST PASS: deployment verification scripts"

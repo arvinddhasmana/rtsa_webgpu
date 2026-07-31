@@ -1,9 +1,5 @@
 # CLASSIFICATION: UNCLASSIFIED
 # Reusable: deploy the RTSA walking skeleton to an AKS environment via Helm.
-# Environment-specific configuration (cluster, RG, ACR, identity ids, Key Vault)
-# is read from GitHub *Environment* variables, resolved because this job declares
-# `environment:`. Order: namespace + mesh baseline -> Redpanda -> ClickHouse ->
-# services. Promotion between environments reuses the same image tag (digest).
 name: reusable-deploy-helm
 
 on:
