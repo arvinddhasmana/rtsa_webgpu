@@ -47,7 +47,7 @@ flowchart LR
 - Cilium network policies (default-deny); STRICT mTLS mesh; Secrets Store CSI wired to Key Vault.
 - `dev.tfvars`; `make env-up ENV=dev` provisions a working empty platform.
 
-**Exit criteria**: `kubectl get nodes` shows healthy multi-pool cluster; a sample pod obtains a Key Vault secret via CSI + Workload Identity; mesh mTLS verified; `make env-down ENV=dev` destroys cleanly leaving shared RG intact.
+**Exit criteria**: `scripts/azure/verify-infrastructure-deployment.sh --env dev` passes; after Helm deployment, `scripts/azure/verify-workload-deployment.sh --namespace rtsa --expected-image-tag <tag>` passes; `make env-down ENV=dev` destroys cleanly while leaving the shared resource group intact.
 
 ---
 

@@ -1,5 +1,5 @@
 # CLASSIFICATION: UNCLASSIFIED
-# Provider configuration for the dev environment.
+# Provider configuration for the staging environment.
 # Subscription is read from ARM_SUBSCRIPTION_ID (set locally or by GitHub OIDC) —
 # no subscription/tenant IDs are committed to source control.
 

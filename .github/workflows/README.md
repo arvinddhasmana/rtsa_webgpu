@@ -48,6 +48,18 @@ None are secrets — OIDC + Key Vault carry all sensitive material.
 > identical across environments — you may also set them once as **repository**
 > variables instead of per-environment.
 
+### Automation scripts (recommended)
+
+Use the repository scripts to avoid manual setup drift:
+
+```bash
+# 1) Create GitHub environments and seed base vars from bootstrap outputs
+scripts/azure/setup-github-environments.sh --repo <owner>/<repo>
+
+# 2) After infra-up for dev, sync live dev values from Terraform outputs
+scripts/azure/sync-dev-github-vars-from-tf.sh --repo <owner>/<repo> --environment dev
+```
+
 ## Federated credential subjects
 
 The bootstrap (`infra/terraform/bootstrap`) creates one federated credential per

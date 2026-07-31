@@ -1,10 +1,10 @@
 # CLASSIFICATION: UNCLASSIFIED
-# Dev environment values. No secrets here — subscription comes from ARM_SUBSCRIPTION_ID.
+# Test environment values. No secrets here — subscription comes from ARM_SUBSCRIPTION_ID.
 #
 # Fill the three "shared foundation" names from `make bootstrap-output` after P0.
 
 project     = "rtsa"
-environment = "dev"
+environment = "test"
 location    = "canadacentral"
 
 # ── From P0 bootstrap outputs (replace the ACR placeholder) ───────────────────
@@ -14,12 +14,9 @@ shared_resource_group = "rg-rtsa-shared-cc"
 acr_name              = "acrrtsabzkem9" # set from bootstrap output acr_name
 law_name              = "log-rtsa-shared-cc"
 
-# ── AKS (lean dev) ────────────────────────────────────────────────────────────
-# canadacentral constraints:
-#   • No AZ support for these VM SKUs → zones = []
-#   • Subscription restricts to ARM-architecture VMs (Ampere / p-series)
-#   • Only "Standard Dpdsv6 Family" has quota (0/10 vCPU) → use Standard_D2pds_v6
-#   • Total Regional vCPUs = 10; min cluster = system(1×2) + stateful(1×2) = 4 vCPU
+# ── AKS (lean test profile) ───────────────────────────────────────────────────
+# Keep test close to dev for cost and fast spin-up while allowing longer
+# retention than ephemeral dev runs.
 aks_sku_tier          = "Free"
 system_node_vm_size   = "Standard_D2pds_v6" # ARM v6; quota: Dpdsv6 family = 0/10
 system_node_min_count = 1
@@ -71,4 +68,4 @@ workloads = {
 key_vault_purge_protection = false
 enable_managed_prometheus  = false
 enable_grafana             = false
-ttl_hours                  = 8
+ttl_hours                  = 24

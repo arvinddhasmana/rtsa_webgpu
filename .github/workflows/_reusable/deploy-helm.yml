@@ -116,10 +116,8 @@ jobs:
             --set secretProviderClass.tenantId='${{ vars.AZURE_TENANT_ID }}' \
             --wait --timeout 5m
 
-      - name: Smoke — rollouts ready
+      - name: Verify workload deployment
         run: |
-          set -euo pipefail
-          kubectl -n "$NS" get pods -o wide
-          for d in svc-radar-ingestion svc-fusion-engine svc-track svc-query svc-webtransport web-cop-gpu; do
-            kubectl -n "$NS" rollout status deployment/"$d" --timeout=180s
-          done
+          scripts/azure/verify-workload-deployment.sh \
+            --namespace "$NS" \
+            --expected-image-tag "$TAG"

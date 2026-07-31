@@ -10,7 +10,7 @@
 ## 1. Design Principles
 
 1. **Event-driven first** — Redpanda (OSS) is the backbone; services scale on event lag (KEDA).
-2. **Baseline landing zone now, enterprise hardening later** — single subscription, single VNet per environment; hub-spoke and private cluster are additive phases.
+2. **Baseline landing zone now, enterprise hardening later** — shared subscription for common services plus a dedicated subscription per environment; hub-spoke and private cluster are additive phases.
 3. **Resiliency in the platform, not the code** — service mesh + Kubernetes deliver rate limiting, circuit breaking, bulkheads, retries, and mTLS.
 4. **Ephemeral & reproducible** — an environment is a Terraform target that can be stood up and torn down on demand.
 5. **Least privilege by identity** — Entra Workload Identity + Key Vault; no secrets in code or images.
@@ -20,7 +20,7 @@
 
 ```mermaid
 flowchart TB
-    subgraph SUB["Azure Subscription (PAYG) — Canada Central"]
+    subgraph SUB["Azure subscriptions (shared + environment) — Canada Central"]
         subgraph SHARED["rg-rtsa-shared (persistent)"]
             ACR["Azure Container Registry<br/>(Standard, private)"]
             TFSTATE["Storage: Terraform state<br/>(blob + lease lock)"]

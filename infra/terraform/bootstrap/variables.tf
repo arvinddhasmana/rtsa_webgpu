@@ -50,6 +50,19 @@ variable "environments" {
   default     = ["dev", "staging", "prod"]
 }
 
+variable "environment_subscription_ids" {
+  type        = map(string)
+  description = "Optional map of environment name to Azure subscription ID. When omitted, deployer role assignments fall back to the shared subscription_id for backward compatibility."
+  default     = {}
+
+  validation {
+    condition = alltrue([
+      for subscription_id in values(var.environment_subscription_ids) : can(regex("^[0-9a-fA-F-]{36}$", subscription_id))
+    ])
+    error_message = "environment_subscription_ids values must be 36-character subscription GUIDs."
+  }
+}
+
 variable "state_replication_type" {
   type        = string
   description = "Replication for the Terraform state storage account."

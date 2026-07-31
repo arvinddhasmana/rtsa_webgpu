@@ -9,7 +9,8 @@
 #   make env-nuke ENV=dev                     # emergency: delete all RGs tagged for the env
 #
 # Auth: `az login` locally, or GitHub OIDC in CI. Environment stacks read the
-# subscription from ARM_SUBSCRIPTION_ID (no secrets committed).
+# target subscription from ARM_SUBSCRIPTION_ID; the shared tfstate backend uses
+# TFSTATE_SUBSCRIPTION_ID (no secrets committed).
 
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
@@ -21,9 +22,23 @@ TFVARS := $(ENV).tfvars
 
 # Backend coordinates: taken from CI env vars if present, else from bootstrap outputs.
 define BACKEND_CONFIG
-sa=$${TFSTATE_SA:-$$(terraform -chdir=$(BOOTSTRAP_DIR) output -raw state_storage_account_name)}; \
-rg=$${TFSTATE_RG:-$$(terraform -chdir=$(BOOTSTRAP_DIR) output -raw shared_resource_group)}; \
+sub=$${TFSTATE_SUBSCRIPTION_ID:-$$(terraform -chdir=$(BOOTSTRAP_DIR) output -raw subscription_id)}; \
+sa=$${TFSTATE_STORAGE_ACCOUNT:-$${TFSTATE_SA:-$$(terraform -chdir=$(BOOTSTRAP_DIR) output -raw state_storage_account_name)}}; \
+rg=$${TFSTATE_RESOURCE_GROUP:-$${TFSTATE_RG:-$$(terraform -chdir=$(BOOTSTRAP_DIR) output -raw shared_resource_group)}}; \
 container=$${TFSTATE_CONTAINER:-$$(terraform -chdir=$(BOOTSTRAP_DIR) output -raw state_container_name)}
+endef
+
+# Environment deployment subscription: explicit ARM_SUBSCRIPTION_ID if set,
+# otherwise resolve from bootstrap output map for ENV.
+define ENV_SUBSCRIPTION_CONFIG
+env_sub=$${ARM_SUBSCRIPTION_ID:-$$(terraform -chdir=$(BOOTSTRAP_DIR) output -json environment_subscription_ids | \
+python3 -c 'import json,sys; m=json.load(sys.stdin); print(m.get("$(ENV)", ""))')}; \
+if [[ -z "$$env_sub" ]]; then \
+	echo "ERROR: unable to resolve deployment subscription for ENV=$(ENV)." >&2; \
+	echo "Set ARM_SUBSCRIPTION_ID explicitly or ensure bootstrap output environment_subscription_ids contains $(ENV)." >&2; \
+	exit 1; \
+fi; \
+export ARM_SUBSCRIPTION_ID="$$env_sub"
 endef
 
 .PHONY: help fmt validate bootstrap-init bootstrap-plan bootstrap-up bootstrap-output \
@@ -59,26 +74,33 @@ bootstrap-output: ## Show bootstrap outputs (state SA, ACR, identity client IDs)
 	terraform -chdir=$(BOOTSTRAP_DIR) output
 
 # ── Environments (ephemeral) ──────────────────────────────────────────────────
-env-init: ## Init an env stack against the remote backend  (ENV=dev|staging|prod)
-	@$(BACKEND_CONFIG); \
+env-init: ## Init an env stack against the remote backend  (ENV=dev|test|staging|prod)
+	@$(ENV_SUBSCRIPTION_CONFIG); \
+	$(BACKEND_CONFIG); \
+	if [[ -n "$${TFSTATE_ACCESS_KEY:-}" ]]; then \
+	  backend_auth="-backend-config=access_key=$${TFSTATE_ACCESS_KEY}"; \
+	else \
+	  backend_auth="-backend-config=use_azuread_auth=true"; \
+	fi; \
 	terraform -chdir=$(ENV_DIR) init -input=false -reconfigure \
+	  -backend-config="subscription_id=$$sub" \
 	  -backend-config="resource_group_name=$$rg" \
 	  -backend-config="storage_account_name=$$sa" \
 	  -backend-config="container_name=$$container" \
 	  -backend-config="key=$(ENV).tfstate" \
-	  -backend-config="use_azuread_auth=true"
+	  $$backend_auth
 
 env-plan: env-init ## Plan an environment
-	terraform -chdir=$(ENV_DIR) plan -input=false -var-file=$(TFVARS)
+	@$(ENV_SUBSCRIPTION_CONFIG); terraform -chdir=$(ENV_DIR) plan -input=false -var-file=$(TFVARS)
 
 env-up: env-init ## Create/refresh an environment
-	terraform -chdir=$(ENV_DIR) apply -input=false -auto-approve -var-file=$(TFVARS)
+	@$(ENV_SUBSCRIPTION_CONFIG); terraform -chdir=$(ENV_DIR) apply -input=false -auto-approve -var-file=$(TFVARS)
 
 env-down: env-init ## Destroy an environment (clean teardown)
-	terraform -chdir=$(ENV_DIR) destroy -input=false -auto-approve -var-file=$(TFVARS)
+	@$(ENV_SUBSCRIPTION_CONFIG); terraform -chdir=$(ENV_DIR) destroy -input=false -auto-approve -var-file=$(TFVARS)
 
 env-output: env-init ## Show environment outputs
-	terraform -chdir=$(ENV_DIR) output
+	@$(ENV_SUBSCRIPTION_CONFIG); terraform -chdir=$(ENV_DIR) output
 
 env-nuke: ## Emergency: delete every resource group tagged for the env
 	@echo "Deleting all resource groups tagged project=rtsa environment=$(ENV) ..."; \

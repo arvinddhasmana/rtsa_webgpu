@@ -16,6 +16,14 @@
 - **Reusable** across services and portable to an enterprise org (composite / `workflow_call`).
 - Fit **ephemeral** environments: pipelines can create and destroy infrastructure.
 
+For click-by-click execution steps (GitHub Environment setup, `infra-up` output mapping,
+manual pre-CI validation, and first `main` push behavior), use
+[09 — Operator Runbook](09-operator-runbook-manual-validation.md).
+
+For environment-isolated subscription design (dev/test/staging/prod in separate
+subscriptions), see [11 — Multi-Subscription Analysis](11-multi-subscription-analysis.md)
+and [12 — Multi-Subscription Migration Plan](12-multi-subscription-migration-plan.md).
+
 ## 2. Pipeline Topology
 
 ```mermaid
@@ -44,8 +52,10 @@ flowchart TB
 ## 3. Environments & Promotion
 
 GitHub **Environments** (`dev`, `test`, `staging`, `prod`) hold protection rules and
-per-environment variables (region, sizing, backbone selection). Promotion is by **image
-digest** — the exact artifact validated in staging is what ships to prod.
+per-environment variables (region, sizing, backbone selection, subscription id).
+The shared build subscription stays separate from the per-environment deploy
+subscriptions. Promotion is by **image digest** — the exact artifact validated in
+staging is what ships to prod.
 
 ```mermaid
 flowchart LR
@@ -137,11 +147,15 @@ jobs:
 
 Spin-up / tear-down are **first-class pipelines** and Make targets (see [06 IaC](06-iac-terraform-and-lifecycle.md)):
 
-| Action                     | Trigger                                                 | Effect                                                                 |
-| -------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `infra-up.yml` (env=dev)   | manual dispatch                                         | `terraform apply` full environment, deploy platform + walking skeleton |
-| `infra-down.yml` (env=dev) | manual **or nightly schedule**                          | `terraform destroy`; images/state survive in `rg-rtsa-shared`          |
-| Ad-hoc                     | `make env-up ENV=staging` / `make env-down ENV=staging` | same Terraform locally                                                 |
+| Action                     | Trigger                                                 | Effect                                                               |
+| -------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------- |
+| `infra-up.yml` (env=dev)   | manual dispatch                                         | `terraform apply`, then block on infrastructure and AKS verification |
+| `infra-down.yml` (env=dev) | manual **or nightly schedule**                          | `terraform destroy`; images/state survive in `rg-rtsa-shared`        |
+| Ad-hoc                     | `make env-up ENV=staging` / `make env-down ENV=staging` | same Terraform locally                                               |
+
+After local `env-up`, run `scripts/azure/verify-infrastructure-deployment.sh --env <env>`.
+Application deployment remains a separate Helm/CD operation; the reusable Helm workflow
+blocks promotion unless `scripts/azure/verify-workload-deployment.sh` passes.
 
 A **nightly scheduled teardown** of non-prod is the single biggest PAYG cost saver
 ([08 Cost & Teardown](08-cost-model-and-teardown.md)).

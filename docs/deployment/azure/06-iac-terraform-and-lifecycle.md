@@ -9,6 +9,12 @@
 
 ## 1. Goals
 
+This document describes the multi-subscription lifecycle model. The shared
+subscription hosts ACR, tfstate, and DNS, while dev, test, staging, and prod each
+use their own deployment subscription. For the architecture model, see
+[11 — Multi-Subscription Analysis](11-multi-subscription-analysis.md) and
+[12 — Multi-Subscription Migration Plan](12-multi-subscription-migration-plan.md).
+
 - **One codebase, many environments** — the same modules build dev/test/staging/prod from `tfvars`.
 - **Ephemeral by design** — `apply` to stand up, `destroy` to tear down, cleanly and repeatably.
 - **Enterprise-reusable** — modular, parameterized, no hardcoded names; CAF-aligned naming/tagging.
@@ -120,9 +126,11 @@ managed_prometheus = false       # self-host in dev; true in staging/prod
 ```mermaid
 flowchart LR
     UP["make env-up ENV=dev"] --> APPLY["terraform apply -var-file=dev.tfvars"]
-    APPLY --> PLAT["Platform ready (AKS, KV, mesh, KEDA)"]
+    APPLY --> VERIFY_INFRA["verify-infrastructure-deployment.sh"]
+    VERIFY_INFRA --> PLAT["Platform ready (AKS, KV, mesh, KEDA)"]
     PLAT --> WL["helm/flux deploy walking skeleton"]
-    WL --> TEST["run smoke/e2e"]
+    WL --> VERIFY_WORKLOAD["verify-workload-deployment.sh"]
+    VERIFY_WORKLOAD --> TEST["run smoke/e2e"]
     TEST --> DOWN["make env-down ENV=dev"]
     DOWN --> DESTROY["terraform destroy -var-file=dev.tfvars"]
     DESTROY --> KEEP["rg-rtsa-shared (ACR/state/DNS) preserved"]
@@ -137,13 +145,13 @@ TF  = terraform -chdir=infra/terraform/environments/$(ENV)
 
 env-init:  ; $(TF) init
 env-plan:  ; $(TF) plan  -var-file=$(ENV).tfvars
-env-up:    ; $(TF) apply -var-file=$(ENV).tfvars -auto-approve && ./scripts/azure/deploy-workloads.sh $(ENV)
+env-up:    ; $(TF) apply -var-file=$(ENV).tfvars -auto-approve
 env-down:  ; $(TF) destroy -var-file=$(ENV).tfvars -auto-approve
-env-nuke:  ; ./scripts/azure/nuke-orphans.sh $(ENV)   # safety sweep for leaked resources
+env-output:; $(TF) output
 ```
 
-- `scripts/azure/deploy-workloads.sh` runs `helm upgrade --install` (or `flux reconcile`) for the environment.
-- `scripts/azure/nuke-orphans.sh` deletes any resource tagged `project=rtsa,environment=$ENV` as a safety net so **teardown never leaks cost**.
+- `scripts/azure/verify-infrastructure-deployment.sh --env $ENV` is the required post-apply platform gate.
+- `scripts/azure/verify-workload-deployment.sh --namespace rtsa --expected-image-tag <tag>` is the required post-Helm gate.
 - The same targets are wrapped by `infra-up.yml` / `infra-down.yml` in CI ([05](05-devops-cicd-and-environments.md#7-environment-lifecycle-automation-ephemeral)).
 
 ## 7. What Each Module Provisions

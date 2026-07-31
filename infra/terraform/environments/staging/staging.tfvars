@@ -1,10 +1,10 @@
 # CLASSIFICATION: UNCLASSIFIED
-# Dev environment values. No secrets here — subscription comes from ARM_SUBSCRIPTION_ID.
+# Staging environment values. No secrets here — subscription comes from ARM_SUBSCRIPTION_ID.
 #
 # Fill the three "shared foundation" names from `make bootstrap-output` after P0.
 
 project     = "rtsa"
-environment = "dev"
+environment = "staging"
 location    = "canadacentral"
 
 # ── From P0 bootstrap outputs (replace the ACR placeholder) ───────────────────
@@ -14,45 +14,40 @@ shared_resource_group = "rg-rtsa-shared-cc"
 acr_name              = "acrrtsabzkem9" # set from bootstrap output acr_name
 law_name              = "log-rtsa-shared-cc"
 
-# ── AKS (lean dev) ────────────────────────────────────────────────────────────
-# canadacentral constraints:
-#   • No AZ support for these VM SKUs → zones = []
-#   • Subscription restricts to ARM-architecture VMs (Ampere / p-series)
-#   • Only "Standard Dpdsv6 Family" has quota (0/10 vCPU) → use Standard_D2pds_v6
-#   • Total Regional vCPUs = 10; min cluster = system(1×2) + stateful(1×2) = 4 vCPU
-aks_sku_tier          = "Free"
-system_node_vm_size   = "Standard_D2pds_v6" # ARM v6; quota: Dpdsv6 family = 0/10
-system_node_min_count = 1
-system_node_max_count = 2
+# ── AKS (staging profile) ─────────────────────────────────────────────────────
+# Staging is production-like but still cost-aware.
+aks_sku_tier          = "Standard"
+system_node_vm_size   = "Standard_D2pds_v6" # keep ARM compatibility with current service images
+system_node_min_count = 2
+system_node_max_count = 3
 system_node_zones     = [] # canadacentral: no AZ support for this SKU
 
-# Bulkhead pools: ingestion/processing on Spot (scale-to-zero), stateful on-demand.
-# All pools use D2pds_v6 to stay within the 10 total regional vCPU limit.
+# Bulkhead pools: run on regular capacity in staging to reduce pre-prod drift.
 additional_node_pools = {
   ingest = {
-    vm_size   = "Standard_D2pds_v6" # ARM v6; scale-to-zero (min=0 so no vCPU at idle)
-    min_count = 0
-    max_count = 3
-    priority  = "Spot"
+    vm_size   = "Standard_D2pds_v6"
+    min_count = 1
+    max_count = 4
+    priority  = "Regular"
     zones     = [] # canadacentral: no AZ support
     labels    = { workload = "ingestion" }
     taints    = ["workload=ingestion:NoSchedule"]
   }
   process = {
-    vm_size   = "Standard_D2pds_v6" # ARM v6; scale-to-zero (min=0 so no vCPU at idle)
-    min_count = 0
-    max_count = 3
-    priority  = "Spot"
+    vm_size   = "Standard_D2pds_v6"
+    min_count = 1
+    max_count = 4
+    priority  = "Regular"
     zones     = [] # canadacentral: no AZ support
     labels    = { workload = "processing" }
     taints    = ["workload=processing:NoSchedule"]
   }
   stateful = {
-    vm_size         = "Standard_D2pds_v6" # ARM v6; D2 (not D4) to stay under 10-vCPU regional limit
-    min_count       = 1
-    max_count       = 2
+    vm_size         = "Standard_D2pds_v6"
+    min_count       = 2
+    max_count       = 3
     priority        = "Regular"
-    os_disk_size_gb = 128
+    os_disk_size_gb = 256
     zones           = [] # canadacentral: no AZ support
     labels          = { workload = "stateful" }
     taints          = ["workload=stateful:NoSchedule"]
@@ -69,6 +64,6 @@ workloads = {
 
 # ── Cost/lifecycle ────────────────────────────────────────────────────────────
 key_vault_purge_protection = false
-enable_managed_prometheus  = false
-enable_grafana             = false
-ttl_hours                  = 8
+enable_managed_prometheus  = true
+enable_grafana             = true
+ttl_hours                  = 72

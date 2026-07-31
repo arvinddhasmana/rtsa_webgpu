@@ -85,7 +85,7 @@ the environment; staging/prod pay for a 3-broker RF=3 quorum only while running.
 | **Budgets + alerts**     | `azurerm_consumption_budget_resource_group` per env, e.g. alert at 50/80/100%                                                          |
 | **Nightly teardown**     | `infra-down.yml` on a schedule for non-prod ([05 §7](05-devops-cicd-and-environments.md#7-environment-lifecycle-automation-ephemeral)) |
 | **TTL tags**             | `ttl_hours` tag; a scheduled job destroys anything past TTL                                                                            |
-| **Orphan sweep**         | `scripts/azure/nuke-orphans.sh` deletes stray `project=rtsa` resources                                                                 |
+| **Orphan sweep**         | `make -C infra/terraform env-nuke ENV=<env>` deletes tagged environment resource groups                                                |
 | **Right-sizing**         | requests/limits from the on-prem resource matrix; VM sizes in `tfvars`                                                                 |
 | **Spot + scale-to-zero** | spot user pools; KEDA `minReplicaCount: 0`; Cluster Autoscaler                                                                         |
 | **Retention caps**       | short Log Analytics / Prometheus retention in non-prod                                                                                 |
@@ -125,7 +125,9 @@ flowchart LR
 ## 8. Cost Checklist Before Each Test Cycle
 
 - [ ] `make env-up ENV=dev` (spot pools, scale-to-zero on)
+- [ ] `scripts/azure/verify-infrastructure-deployment.sh --env dev`
 - [ ] Run tests / demo
+- [ ] After Helm deploy, run `scripts/azure/verify-workload-deployment.sh --namespace rtsa --expected-image-tag <tag>`
 - [ ] `make env-down ENV=dev` when done (or rely on nightly schedule)
 - [ ] Confirm budget dashboard shows expected spend
 - [ ] Monthly: review Azure Cost Analysis by `environment` tag; prune anything unexpected

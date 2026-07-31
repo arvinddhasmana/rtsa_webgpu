@@ -49,6 +49,9 @@ jobs:
           done
           exit $fail
 
+      - name: Deployment verification script tests
+        run: scripts/azure/tests/verify-deployment-scripts-test.sh
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:

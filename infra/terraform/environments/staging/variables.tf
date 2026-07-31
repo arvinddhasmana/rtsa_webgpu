@@ -1,5 +1,5 @@
 # CLASSIFICATION: UNCLASSIFIED
-# Input variables for the dev environment.
+# Input variables for the staging environment.
 
 variable "project" {
   type        = string
@@ -10,7 +10,7 @@ variable "project" {
 variable "environment" {
   type        = string
   description = "Environment name."
-  default     = "dev"
+  default     = "staging"
 }
 
 variable "location" {

@@ -8,7 +8,8 @@
 #   scripts/azure/bootstrap.sh [--plan-only] [--set-github]
 #
 #   --plan-only   Run terraform plan and stop (no changes applied).
-#   --set-github  After apply, push outputs to GitHub repo/environments via `gh`.
+#   --set-github  After apply, seed GitHub repo/environment variables via the
+#                 canonical setup script.
 #
 # Prereqs: az (logged in), terraform >= 1.9. Optional: gh (for --set-github).
 
@@ -20,6 +21,7 @@ BOOTSTRAP_DIR="${REPO_ROOT}/infra/terraform/bootstrap"
 
 PLAN_ONLY=false
 SET_GITHUB=false
+LOCK_TIMEOUT="${TF_LOCK_TIMEOUT:-30s}"
 for arg in "$@"; do
   case "$arg" in
     --plan-only) PLAN_ONLY=true ;;
@@ -43,11 +45,35 @@ if [[ ! -f "${TFVARS}" ]]; then
   exit 1
 fi
 
+# The bootstrap stack intentionally uses local state for first run. If an earlier
+# terraform process was interrupted, the local lock can remain and make future
+# runs appear stuck at plan/apply.
+LOCK_FILE="${BOOTSTRAP_DIR}/.terraform.tfstate.lock.info"
+if [[ -f "${LOCK_FILE}" ]]; then
+  if pgrep -af terraform | grep -F "${BOOTSTRAP_DIR}" >/dev/null 2>&1; then
+    echo "ERROR: Terraform appears to be running in ${BOOTSTRAP_DIR}." >&2
+    echo "       Wait for that run to finish or stop it before re-running bootstrap." >&2
+    exit 1
+  fi
+  echo "WARN: Found stale local Terraform lock file; removing ${LOCK_FILE}."
+  rm -f "${LOCK_FILE}"
+fi
+
+# Remove stale plan output from interrupted runs to avoid confusion.
+rm -f "${BOOTSTRAP_DIR}/tfplan.bootstrap"
+
 echo "== terraform init =="
 terraform -chdir="${BOOTSTRAP_DIR}" init -input=false
 
 echo "== terraform plan =="
-terraform -chdir="${BOOTSTRAP_DIR}" plan -input=false -out=tfplan.bootstrap
+echo "Using state lock timeout: ${LOCK_TIMEOUT}"
+echo "Note: first run can take several minutes while Azure provider registration settles."
+if ! terraform -chdir="${BOOTSTRAP_DIR}" plan -input=false -lock-timeout="${LOCK_TIMEOUT}" -out=tfplan.bootstrap; then
+  echo "ERROR: terraform plan failed." >&2
+  echo "       If you see a state-lock error, ensure no other Terraform run is active" >&2
+  echo "       and remove stale local lock: rm -f ${LOCK_FILE}" >&2
+  exit 1
+fi
 
 if [[ "${PLAN_ONLY}" == "true" ]]; then
   echo "Plan-only mode — not applying."
@@ -55,7 +81,12 @@ if [[ "${PLAN_ONLY}" == "true" ]]; then
 fi
 
 echo "== terraform apply =="
-terraform -chdir="${BOOTSTRAP_DIR}" apply -input=false tfplan.bootstrap
+if ! terraform -chdir="${BOOTSTRAP_DIR}" apply -input=false -lock-timeout="${LOCK_TIMEOUT}" tfplan.bootstrap; then
+  echo "ERROR: terraform apply failed." >&2
+  echo "       If you see a state-lock error, ensure no other Terraform run is active" >&2
+  echo "       and remove stale local lock: rm -f ${LOCK_FILE}" >&2
+  exit 1
+fi
 rm -f "${BOOTSTRAP_DIR}/tfplan.bootstrap"
 
 echo
@@ -64,35 +95,16 @@ terraform -chdir="${BOOTSTRAP_DIR}" output
 
 if [[ "${SET_GITHUB}" == "true" ]]; then
   command -v gh >/dev/null 2>&1 || { echo "ERROR: gh CLI not found (needed for --set-github)." >&2; exit 1; }
-
-  owner="$(terraform -chdir="${BOOTSTRAP_DIR}" output -json github_actions_variables >/dev/null 2>&1; grep -E '^github_owner' "${TFVARS}" | sed -E 's/.*=\s*"?([^" ]+)"?.*/\1/')"
+  owner="$(grep -E '^github_owner' "${TFVARS}" | sed -E 's/.*=\s*"?([^" ]+)"?.*/\1/')"
   repo="$(grep -E '^github_repo' "${TFVARS}" | sed -E 's/.*=\s*"?([^" ]+)"?.*/\1/')"
-  slug="${owner}/${repo}"
+  if [[ -z "${owner}" || -z "${repo}" ]]; then
+    echo "ERROR: could not read github_owner/github_repo from ${TFVARS}." >&2
+    exit 1
+  fi
 
-  tenant="$(terraform -chdir="${BOOTSTRAP_DIR}" output -raw tenant_id)"
-  sub="$(az account show --query id -o tsv)"
-  acr="$(terraform -chdir="${BOOTSTRAP_DIR}" output -raw acr_login_server)"
-  tfstate_rg="$(terraform -chdir="${BOOTSTRAP_DIR}" output -raw shared_resource_group)"
-  tfstate_sa="$(terraform -chdir="${BOOTSTRAP_DIR}" output -raw state_storage_account_name)"
-  tfstate_container="$(terraform -chdir="${BOOTSTRAP_DIR}" output -raw state_container_name)"
-  ci_client="$(terraform -chdir="${BOOTSTRAP_DIR}" output -raw ci_plan_identity_client_id)"
-
-  echo "== Setting repo-level variables on ${slug} =="
-  gh variable set AZURE_TENANT_ID       --repo "${slug}" --body "${tenant}"
-  gh variable set AZURE_SUBSCRIPTION_ID --repo "${slug}" --body "${sub}"
-  gh variable set ACR_LOGIN_SERVER      --repo "${slug}" --body "${acr}"
-  gh variable set TFSTATE_RG            --repo "${slug}" --body "${tfstate_rg}"
-  gh variable set TFSTATE_SA            --repo "${slug}" --body "${tfstate_sa}"
-  gh variable set TFSTATE_CONTAINER     --repo "${slug}" --body "${tfstate_container}"
-  gh variable set AZURE_CLIENT_ID_CI    --repo "${slug}" --body "${ci_client}"
-
-  echo "== Setting per-environment AZURE_CLIENT_ID (create the GitHub Environments first) =="
-  for env in $(terraform -chdir="${BOOTSTRAP_DIR}" output -json deployer_identity_client_ids | python3 -c 'import json,sys; [print(k) for k in json.load(sys.stdin)]'); do
-    client_id="$(terraform -chdir="${BOOTSTRAP_DIR}" output -json deployer_identity_client_ids | python3 -c "import json,sys; print(json.load(sys.stdin)['${env}'])")"
-    echo "  - ${env}: ${client_id}"
-    gh variable set AZURE_CLIENT_ID --repo "${slug}" --env "${env}" --body "${client_id}" || \
-      echo "    (create GitHub Environment '${env}' in repo settings, then re-run --set-github)"
-  done
+  echo "== Seeding GitHub environments and variables =="
+  "${REPO_ROOT}/scripts/azure/setup-github-environments.sh" \
+    --repo "${owner}/${repo}"
 fi
 
 echo

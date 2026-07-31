@@ -12,6 +12,9 @@ locals {
   oidc_issuer        = "https://token.actions.githubusercontent.com"
   oidc_audience      = ["api://AzureADTokenExchange"]
   subscription_scope = "/subscriptions/${var.subscription_id}"
+  environment_subscription_scopes = {
+    for env in local.environments : env => "/subscriptions/${lookup(var.environment_subscription_ids, env, var.subscription_id)}"
+  }
 }
 
 # ── Per-environment deployer identities (used by gated CD jobs) ───────────────
@@ -40,7 +43,7 @@ resource "azurerm_federated_identity_credential" "deployer_env" {
 resource "azurerm_role_assignment" "deployer_contributor" {
   for_each = local.environments
 
-  scope                            = local.subscription_scope
+  scope                            = local.environment_subscription_scopes[each.key]
   role_definition_name             = var.deployer_subscription_role
   principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
   principal_type                   = "ServicePrincipal"
@@ -51,8 +54,19 @@ resource "azurerm_role_assignment" "deployer_contributor" {
 resource "azurerm_role_assignment" "deployer_rbac" {
   for_each = local.environments
 
-  scope                            = local.subscription_scope
+  scope                            = local.environment_subscription_scopes[each.key]
   role_definition_name             = var.deployer_rbac_role
+  principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
+# Required for Helm deployment and post-deployment Kubernetes verification.
+resource "azurerm_role_assignment" "deployer_aks_rbac_admin" {
+  for_each = local.environments
+
+  scope                            = local.environment_subscription_scopes[each.key]
+  role_definition_name             = "Azure Kubernetes Service RBAC Cluster Admin"
   principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
   principal_type                   = "ServicePrincipal"
   skip_service_principal_aad_check = true

@@ -51,22 +51,32 @@ make bootstrap-up            # or: ../../scripts/azure/bootstrap.sh
 make bootstrap-output        # copy IDs into GitHub (or use --set-github)
 ```
 
-Wire GitHub automatically (needs `gh` and pre-created Environments):
+Wire GitHub automatically (needs `gh`):
 
 ```bash
 scripts/azure/bootstrap.sh --set-github
 ```
 
-Then set these in GitHub (repo variables + per-Environment `AZURE_CLIENT_ID`):
+That delegates to [scripts/azure/setup-github-environments.sh](../../../scripts/azure/setup-github-environments.sh),
+which creates the `dev`, `test`, `staging`, and `prod` GitHub Environments and seeds
+the current shared build variables plus the per-environment subscription and identity
+variables.
 
-| Scope                              | Name                                              | Source output                       |
-| ---------------------------------- | ------------------------------------------------- | ----------------------------------- |
-| repo variable                      | `AZURE_TENANT_ID`                                 | `tenant_id`                         |
-| repo variable                      | `AZURE_SUBSCRIPTION_ID`                           | your subscription                   |
-| repo variable                      | `ACR_LOGIN_SERVER`                                | `acr_login_server`                  |
-| repo variable                      | `TFSTATE_RG` / `TFSTATE_SA` / `TFSTATE_CONTAINER` | `github_actions_variables`          |
-| repo variable                      | `AZURE_CLIENT_ID_CI`                              | `ci_plan_identity_client_id`        |
-| **environment** `dev/staging/prod` | `AZURE_CLIENT_ID`                                 | `deployer_identity_client_ids[env]` |
+If you need the legacy repository-level `AZURE_SUBSCRIPTION_ID` for transitional
+jobs, pass `--set-legacy-repo-subscription-id` to the setup script directly.
+
+| Scope                                   | Name                         | Source output                                      |
+| --------------------------------------- | ---------------------------- | -------------------------------------------------- |
+| repo variable                           | `AZURE_TENANT_ID`            | `tenant_id`                                        |
+| repo variable                           | `TFSTATE_SUBSCRIPTION_ID`    | `subscription_id`                                  |
+| repo variable                           | `REPO_AZURE_SUBSCRIPTION_ID` | bootstrap `subscription_id`                        |
+| repo variable                           | `REPO_AZURE_CLIENT_ID`       | shared deployer identity (default dev)             |
+| repo variable                           | `ACR_NAME`                   | `acr_name`                                         |
+| repo variable                           | `TFSTATE_RESOURCE_GROUP`     | `shared_resource_group`                            |
+| repo variable                           | `TFSTATE_STORAGE_ACCOUNT`    | `state_storage_account_name`                       |
+| repo variable                           | `TFSTATE_CONTAINER`          | `state_container_name`                             |
+| **environment** `dev/test/staging/prod` | `AZURE_CLIENT_ID`            | `deployer_identity_client_ids[env]`                |
+| **environment** `dev/test/staging/prod` | `AZURE_SUBSCRIPTION_ID`      | `--environment-subscriptions` or bootstrap default |
 
 ## State model
 

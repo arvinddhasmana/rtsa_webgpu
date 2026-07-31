@@ -52,7 +52,8 @@ jobs:
             -backend-config="resource_group_name=${{ vars.TFSTATE_RESOURCE_GROUP }}" \
             -backend-config="storage_account_name=${{ vars.TFSTATE_STORAGE_ACCOUNT }}" \
             -backend-config="container_name=${{ vars.TFSTATE_CONTAINER }}" \
-            -backend-config="key=rtsa-${{ inputs.environment }}.tfstate"
+            -backend-config="key=${{ inputs.environment }}.tfstate" \
+            -backend-config="use_azuread_auth=true"
 
       - name: Terraform validate
         run: terraform validate
@@ -62,6 +63,25 @@ jobs:
 
       - name: Terraform apply
         run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Azure login for deployment verification
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up kubelogin
+        uses: azure/use-kubelogin@v1
+        with:
+          kubelogin-version: latest
+
+      - name: Verify infrastructure deployment
+        working-directory: ${{ github.workspace }}
+        run: |
+          scripts/azure/verify-infrastructure-deployment.sh \
+            --env "${{ inputs.environment }}" \
+            --subscription-id "${{ vars.AZURE_SUBSCRIPTION_ID }}"
 
       - name: Publish outputs to job summary
         if: always()

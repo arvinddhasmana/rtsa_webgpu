@@ -109,8 +109,21 @@ resource "azurerm_kubernetes_cluster_node_pool" "pools" {
   eviction_policy = each.value.priority == "Spot" ? "Delete" : null
   spot_max_price  = each.value.priority == "Spot" ? -1 : null
 
-  node_labels = each.value.labels
-  node_taints = each.value.taints
+  node_labels = merge(
+    each.value.labels,
+    each.value.priority == "Spot" ? { "kubernetes.azure.com/scalesetpriority" = "spot" } : {}
+  )
+  node_taints = concat(
+    each.value.taints,
+    each.value.priority == "Spot" ? ["kubernetes.azure.com/scalesetpriority=spot:NoSchedule"] : []
+  )
+
+  dynamic "upgrade_settings" {
+    for_each = each.value.priority == "Regular" ? [1] : []
+    content {
+      max_surge = "10%"
+    }
+  }
 
   tags = var.tags
 

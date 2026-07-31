@@ -1,5 +1,5 @@
 # CLASSIFICATION: UNCLASSIFIED
-# Dev environment — resource group + landing-zone module composition.
+# Production environment — resource group + landing-zone module composition.
 
 data "azurerm_client_config" "current" {}
 

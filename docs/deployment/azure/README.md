@@ -50,18 +50,26 @@ flowchart LR
     D5 --> D6[06 IaC Terraform<br/>& Lifecycle]
     D6 --> D7[07 Implementation<br/>Roadmap]
     D7 --> D8[08 Cost Model<br/>& Teardown]
+    D8 --> D9[09 Operator Runbook<br/>Setup & Manual Validation]
+    D9 --> D10[10 Getting Started<br/>Zero → Production Guide]
+    D10 --> D11[11 Multi-Subscription<br/>Analysis]
+    D11 --> D12[12 Multi-Subscription<br/>Migration Plan]
 ```
 
-| Doc                                          | Title                          | What it answers                                                   |
-| -------------------------------------------- | ------------------------------ | ----------------------------------------------------------------- |
-| [01](01-current-state-and-gap-analysis.md)   | Current State & Gap Analysis   | What exists today; what is missing for Azure                      |
-| [02](02-target-architecture.md)              | Target Azure Architecture      | The baseline event-driven architecture on AKS                     |
-| [03](03-technology-options-and-decisions.md) | Technology Options & Decisions | Streaming, OLAP, mesh, ingress, secrets, observability trade-offs |
-| [04](04-resiliency-and-well-architected.md)  | Resiliency & Well-Architected  | Five WAF pillars + rate limiting / circuit breakers / bulkheads   |
-| [05](05-devops-cicd-and-environments.md)     | DevOps, CI/CD & Environments   | GitHub Actions pipelines, environments, GitOps, promotion         |
-| [06](06-iac-terraform-and-lifecycle.md)      | IaC (Terraform) & Lifecycle    | Module structure, remote state, spin-up/tear-down automation      |
-| [07](07-implementation-roadmap.md)           | Implementation Roadmap         | Phased delivery with milestones and acceptance criteria           |
-| [08](08-cost-model-and-teardown.md)          | Cost Model & Teardown          | Per-environment cost, ephemeral savings, cost governance          |
+| Doc                                            | Title                             | What it answers                                                               |
+| ---------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------- |
+| [01](01-current-state-and-gap-analysis.md)     | Current State & Gap Analysis      | What exists today; what is missing for Azure                                  |
+| [02](02-target-architecture.md)                | Target Azure Architecture         | The baseline event-driven architecture on AKS                                 |
+| [03](03-technology-options-and-decisions.md)   | Technology Options & Decisions    | Streaming, OLAP, mesh, ingress, secrets, observability trade-offs             |
+| [04](04-resiliency-and-well-architected.md)    | Resiliency & Well-Architected     | Five WAF pillars + rate limiting / circuit breakers / bulkheads               |
+| [05](05-devops-cicd-and-environments.md)       | DevOps, CI/CD & Environments      | GitHub Actions pipelines, environments, GitOps, promotion                     |
+| [06](06-iac-terraform-and-lifecycle.md)        | IaC (Terraform) & Lifecycle       | Module structure, remote state, spin-up/tear-down automation                  |
+| [07](07-implementation-roadmap.md)             | Implementation Roadmap            | Phased delivery with milestones and acceptance criteria                       |
+| [08](08-cost-model-and-teardown.md)            | Cost Model & Teardown             | Per-environment cost, ephemeral savings, cost governance                      |
+| [09](09-operator-runbook-manual-validation.md) | Operator Runbook                  | Setup, infra-up output mapping, and reusable deployment verification          |
+| [**10**](10-getting-started-guide.md)          | **Getting Started Guide**         | **Zero to production with automated infrastructure and workload gates**       |
+| [11](11-multi-subscription-analysis.md)        | Multi-Subscription Analysis       | Current-state gap analysis and architectural impact for per-env subscriptions |
+| [12](12-multi-subscription-migration-plan.md)  | Multi-Subscription Migration Plan | Detailed phase-wise execution plan and documentation delta map                |
 
 ## 4. Solution at a Glance
 
