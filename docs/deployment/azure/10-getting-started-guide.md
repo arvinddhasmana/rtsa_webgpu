@@ -632,6 +632,9 @@ az role assignment create \
     --scope "$AKS_ID"
 ```
 
+If you see `Forbidden` when running `kubectl get pods -A`, the cluster is healthy but
+your current Azure identity is missing this role assignment.
+
 ### 4.7 System State After infra-up
 
 ```mermaid
@@ -1451,12 +1454,24 @@ scripts/azure/sync-dev-github-vars-from-tf.sh \
 # 6. Connect kubectl to dev
 az aks get-credentials --resource-group rg-rtsa-dev-cc --name aks-rtsa-dev
 
-# 7. Check what's running
+# 7. Deploy workloads to dev
+gh workflow run cd-deploy.yml \
+    --field environment=dev --field image-tag="sha-$(git rev-parse --short HEAD)"
+
+# 8. Check what's running
 kubectl get pods -A
 
-# 8. Trigger a deploy manually
-gh workflow run cd-deploy.yml \
-  --field environment=dev --field image-tag="sha-$(git rev-parse --short HEAD)"
+# If step 8 returns Forbidden, grant your current Azure identity
+# Azure Kubernetes Service RBAC Cluster Admin on the AKS cluster scope.
+# Example:
+# OPERATOR_ID=$(az ad signed-in-user show --query id -o tsv)
+# AKS_ID=$(az aks show --subscription "$ARM_SUBSCRIPTION_ID" \
+#   --resource-group rg-rtsa-dev-cc --name aks-rtsa-dev --query id -o tsv)
+# az role assignment create \
+#   --assignee-object-id "$OPERATOR_ID" \
+#   --assignee-principal-type User \
+#   --role "Azure Kubernetes Service RBAC Cluster Admin" \
+#   --scope "$AKS_ID"
 
 # 9. Tear down dev (saves ~$6/day)
 gh workflow run infra-down.yml --field environment=dev
