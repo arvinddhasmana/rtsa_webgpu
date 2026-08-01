@@ -43,7 +43,7 @@ jobs:
       - name: Set up kubelogin
         uses: azure/use-kubelogin@v1
         with:
-          kubelogin-version: latest
+          kubelogin-version: v0.2.19
 
       - name: Get AKS credentials
         run: |

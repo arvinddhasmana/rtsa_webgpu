@@ -74,7 +74,7 @@ jobs:
       - name: Set up kubelogin
         uses: azure/use-kubelogin@v1
         with:
-          kubelogin-version: latest
+          kubelogin-version: v0.2.19
 
       - name: Verify infrastructure deployment
         working-directory: ${{ github.workspace }}
