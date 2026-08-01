@@ -31,7 +31,7 @@ Helm workloads (P2) — not here.
   Environment** (with its protection rules) can assume it. Roles: `Contributor` +
   `User Access Administrator` in the environment subscription, `User Access Administrator`
   on the shared foundation resource group, `AcrPush` (ACR), and `Storage Blob Data
-  Contributor` (state).
+Contributor` (state).
 - **CI plan identity** (`id-rtsa-ci-plan`): federated to `repo:<owner>/<repo>:pull_request`,
   read-only (`Reader` + `Storage Blob Data Reader`) — runs `terraform plan` on PRs.
 
