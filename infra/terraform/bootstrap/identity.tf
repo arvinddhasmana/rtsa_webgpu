@@ -92,6 +92,21 @@ resource "azurerm_role_assignment" "deployer_acr_push" {
   skip_service_principal_aad_check = true
 }
 
+# Environment roots read the shared Log Analytics workspace via
+# `data.azurerm_log_analytics_workspace.shared` (through the azurerm.shared
+# provider alias) to wire AKS/diagnostics into the central sink. That requires
+# `Microsoft.OperationalInsights/workspaces/read` on the LAW resource in the
+# shared subscription — granted here as least-privilege "Log Analytics Reader".
+resource "azurerm_role_assignment" "deployer_law_reader" {
+  for_each = local.environments
+
+  scope                            = azurerm_log_analytics_workspace.shared.id
+  role_definition_name             = "Log Analytics Reader"
+  principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
 resource "azurerm_role_assignment" "deployer_state_blob" {
   for_each = local.environments
 
