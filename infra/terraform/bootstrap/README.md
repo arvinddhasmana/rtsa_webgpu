@@ -29,8 +29,9 @@ Helm workloads (P2) — not here.
 - **Per-environment deployer** (`id-rtsa-dev/staging/prod-deployer`): federated to
   `repo:<owner>/<repo>:environment:<env>` so only jobs targeting the matching **GitHub
   Environment** (with its protection rules) can assume it. Roles: `Contributor` +
-  `User Access Administrator` (subscription), `AcrPush` (ACR), `Storage Blob Data
-Contributor` (state).
+  `User Access Administrator` in the environment subscription, `User Access Administrator`
+  on the shared foundation resource group, `AcrPush` (ACR), and `Storage Blob Data
+  Contributor` (state).
 - **CI plan identity** (`id-rtsa-ci-plan`): federated to `repo:<owner>/<repo>:pull_request`,
   read-only (`Reader` + `Storage Blob Data Reader`) — runs `terraform plan` on PRs.
 

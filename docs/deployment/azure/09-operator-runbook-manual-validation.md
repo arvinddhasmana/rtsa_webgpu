@@ -145,6 +145,15 @@ Notes:
 - `AZURE_SUBSCRIPTION_ID` is required per environment.
 - Keep value naming consistent across environments to avoid workflow drift.
 
+Access note:
+
+- The environment deployer identity needs `Contributor` + `User Access Administrator`
+  in its environment subscription.
+- It also needs `User Access Administrator` on the shared foundation resource group
+  because `infra-up` creates role assignments on shared ACR and related resources.
+- The shared ACR and Log Analytics workspace themselves remain in the shared
+  subscription and are read through the shared provider alias.
+
 ## 5. Run infra-up for dev and Wire Outputs
 
 ### 5.1 Run workflow
@@ -320,6 +329,9 @@ After configuration is complete:
   - Check `TFSTATE_RESOURCE_GROUP`, `TFSTATE_STORAGE_ACCOUNT`, `TFSTATE_CONTAINER`.
 - Azure login failures in Actions:
   - Check `AZURE_CLIENT_ID`, tenant/subscription vars, and federated credential subject format.
+- `AuthorizationFailed` on `Microsoft.Authorization/roleAssignments/write` for shared ACR:
+  - Check that the deployer identity has `User Access Administrator` on the shared
+    foundation resource group, not just the environment subscription.
 - `infra-up` succeeds but deploy fails:
   - Run `scripts/azure/verify-infrastructure-deployment.sh --env <environment>`.
 - `svc-webtransport` deployment issues:

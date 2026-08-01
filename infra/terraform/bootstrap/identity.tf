@@ -32,22 +32,20 @@ resource "azurerm_user_assigned_identity" "deployer" {
 resource "azurerm_federated_identity_credential" "deployer_env" {
   for_each = local.environments
 
-  name                = "gha-${each.key}-environment"
-  resource_group_name = azurerm_resource_group.shared.name
-  parent_id           = azurerm_user_assigned_identity.deployer[each.key].id
-  audience            = local.oidc_audience
-  issuer              = local.oidc_issuer
-  subject             = "repo:${var.github_owner}/${var.github_repo}:environment:${each.key}"
+  name                      = "gha-${each.key}-environment"
+  user_assigned_identity_id = azurerm_user_assigned_identity.deployer[each.key].id
+  audience                  = local.oidc_audience
+  issuer                    = local.oidc_issuer
+  subject                   = "repo:${var.github_owner}/${var.github_repo}:environment:${each.key}"
 }
 
 # Allow main branch builds (for CD Build workflow) to authenticate with dev deployer
 resource "azurerm_federated_identity_credential" "deployer_main_branch" {
-  name                = "gha-main-branch"
-  resource_group_name = azurerm_resource_group.shared.name
-  parent_id           = azurerm_user_assigned_identity.deployer["dev"].id
-  audience            = local.oidc_audience
-  issuer              = local.oidc_issuer
-  subject             = "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/main"
+  name                      = "gha-main-branch"
+  user_assigned_identity_id = azurerm_user_assigned_identity.deployer["dev"].id
+  audience                  = local.oidc_audience
+  issuer                    = local.oidc_issuer
+  subject                   = "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/main"
 }
 
 resource "azurerm_role_assignment" "deployer_contributor" {
@@ -65,6 +63,19 @@ resource "azurerm_role_assignment" "deployer_rbac" {
   for_each = local.environments
 
   scope                            = local.environment_subscription_scopes[each.key]
+  role_definition_name             = var.deployer_rbac_role
+  principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
+# The environment deployer also needs RBAC-write capability in the shared
+# foundation resource group so it can create child role assignments on shared
+# ACR/LAW resources during `infra-up`.
+resource "azurerm_role_assignment" "deployer_shared_rbac" {
+  for_each = local.environments
+
+  scope                            = azurerm_resource_group.shared.id
   role_definition_name             = var.deployer_rbac_role
   principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
   principal_type                   = "ServicePrincipal"
@@ -92,6 +103,19 @@ resource "azurerm_role_assignment" "deployer_acr_push" {
   skip_service_principal_aad_check = true
 }
 
+# Terraform environment roots resolve the shared ACR via
+# `data.azurerm_container_registry.shared`, which requires ARM read permissions
+# (`Microsoft.ContainerRegistry/registries/read`) on the registry resource.
+resource "azurerm_role_assignment" "deployer_acr_reader" {
+  for_each = local.environments
+
+  scope                            = azurerm_container_registry.shared.id
+  role_definition_name             = "Reader"
+  principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
 # Environment roots read the shared Log Analytics workspace via
 # `data.azurerm_log_analytics_workspace.shared` (through the azurerm.shared
 # provider alias) to wire AKS/diagnostics into the central sink. That requires
@@ -102,6 +126,20 @@ resource "azurerm_role_assignment" "deployer_law_reader" {
 
   scope                            = azurerm_log_analytics_workspace.shared.id
   role_definition_name             = "Log Analytics Reader"
+  principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
+# AKS CreateOrUpdate with Container Insights enabled performs a linked-scope
+# LAW key lookup (`Microsoft.OperationalInsights/workspaces/sharedkeys/read`).
+# Grant workspace-scoped Log Analytics Contributor so environment applies can
+# create/update AKS clusters wired to the shared LAW.
+resource "azurerm_role_assignment" "deployer_law_contributor" {
+  for_each = local.environments
+
+  scope                            = azurerm_log_analytics_workspace.shared.id
+  role_definition_name             = "Log Analytics Contributor"
   principal_id                     = azurerm_user_assigned_identity.deployer[each.key].principal_id
   principal_type                   = "ServicePrincipal"
   skip_service_principal_aad_check = true
@@ -126,12 +164,11 @@ resource "azurerm_user_assigned_identity" "ci" {
 }
 
 resource "azurerm_federated_identity_credential" "ci_pull_request" {
-  name                = "gha-pull-request"
-  resource_group_name = azurerm_resource_group.shared.name
-  parent_id           = azurerm_user_assigned_identity.ci.id
-  audience            = local.oidc_audience
-  issuer              = local.oidc_issuer
-  subject             = "repo:${var.github_owner}/${var.github_repo}:pull_request"
+  name                      = "gha-pull-request"
+  user_assigned_identity_id = azurerm_user_assigned_identity.ci.id
+  audience                  = local.oidc_audience
+  issuer                    = local.oidc_issuer
+  subject                   = "repo:${var.github_owner}/${var.github_repo}:pull_request"
 }
 
 resource "azurerm_role_assignment" "ci_reader" {

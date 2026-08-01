@@ -126,6 +126,8 @@ Required direction:
 - Identities also need cross-subscription access to shared resources:
   - tfstate storage blob data contributor
   - ACR pull or push roles as required
+   - RBAC-write capability on the shared foundation resource group so Terraform can
+      create child role assignments on shared ACR and related resources
 
 ### 4.3 Terraform Providers and Data Sources
 
