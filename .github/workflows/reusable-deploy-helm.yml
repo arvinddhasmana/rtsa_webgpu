@@ -80,20 +80,23 @@ jobs:
           set -x
           kubectl get nodes -o wide || true
           kubectl describe node || true
-          # Delete existing StatefulSet and PVC if stuck in volume attachment/binding deadlock
+          # Delete existing StatefulSet, PVC, and post-hook jobs if stuck in attachment/binding deadlock or failed hook state
           kubectl delete statefulset redpanda --namespace "$NS" --cascade=orphan || true
           kubectl delete pvc data-redpanda-0 --namespace "$NS" || true
+          kubectl delete job redpanda-create-topics --namespace "$NS" || true
           helm upgrade --install redpanda deploy/charts/redpanda-dev \
             --namespace "$NS" --wait --timeout 10m || {
               echo "=== Pod status in $NS ==="
               kubectl get pods -n "$NS" -o wide
               echo "=== Redpanda pod describe ==="
-              kubectl describe pod -l app.kubernetes.io/name=redpanda -n "$NS"
+              kubectl describe pod -l app.kubernetes.io/name=redpanda -n "$NS" || true
               echo "=== Redpanda pod logs ==="
               kubectl logs -l app.kubernetes.io/name=redpanda -n "$NS" -c redpanda --tail=200 || true
               kubectl logs -l app.kubernetes.io/name=redpanda -n "$NS" -c istio-proxy --tail=100 || true
+              echo "=== Topic init job pod describe ==="
+              kubectl describe pod -l app.kubernetes.io/component=topic-bootstrap -n "$NS" || true
               echo "=== Topic init job logs ==="
-              kubectl logs -l app.kubernetes.io/component=topic-bootstrap -n "$NS" --tail=100 || true
+              kubectl logs -l app.kubernetes.io/component=topic-bootstrap -n "$NS" -c create-topics --tail=100 || true
               exit 1
             }
 
