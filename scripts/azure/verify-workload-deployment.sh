@@ -207,10 +207,20 @@ for deployment in "${deployments[@]}"; do
   [[ "$pod_containers" == *"istio-proxy"* ]] || fail "Istio sidecar missing from pods for ${deployment}"
 done
 
-workload_identity_client_id="$(kube get serviceaccount svc-webtransport --namespace "$NAMESPACE" \
-  -o jsonpath='{.metadata.annotations.azure\.workload\.identity/client-id}' 2>/dev/null || true)"
-[[ -n "$workload_identity_client_id" ]] || \
-  fail "svc-webtransport service account is missing its workload identity client-id annotation"
+skip_webtransport="false"
+if [[ "$CHANGED_DEPLOYMENTS_SET" == "true" ]]; then
+  if [[ ! " ${CHANGED_DEPLOYMENTS} " =~ " svc-webtransport " ]]; then
+    echo "Skipping workload identity check for unchanged deployment: svc-webtransport"
+    skip_webtransport="true"
+  fi
+fi
+
+if [[ "$skip_webtransport" == "false" ]]; then
+  workload_identity_client_id="$(kube get serviceaccount svc-webtransport --namespace "$NAMESPACE" \
+    -o jsonpath='{.metadata.annotations.azure\.workload\.identity/client-id}' 2>/dev/null || true)"
+  [[ -n "$workload_identity_client_id" ]] || \
+    fail "svc-webtransport service account is missing its workload identity client-id annotation"
+fi
 
 if [[ -n "$EXPECTED_IMAGE_TAG" ]]; then
   # Default to all deployments (full promotion, e.g. cd-deploy.yml) when the
