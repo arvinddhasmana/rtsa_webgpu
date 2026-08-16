@@ -195,6 +195,12 @@ if [[ -n "$unhealthy_pods" ]]; then
 fi
 
 for deployment in "${deployments[@]}"; do
+  if [[ "$CHANGED_DEPLOYMENTS_SET" == "true" && " ${deployments[*]} " =~ " ${deployment} " ]]; then
+    if [[ ! " ${CHANGED_DEPLOYMENTS} " =~ " ${deployment} " ]]; then
+      echo "Skipping istio sidecar check for unchanged deployment: ${deployment}"
+      continue
+    fi
+  fi
   pod_containers="$(kube get pods --namespace "$NAMESPACE" \
     --selector="app.kubernetes.io/instance=${deployment}" \
     -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.name}{" "}{end}{end}')"
