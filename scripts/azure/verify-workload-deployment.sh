@@ -66,7 +66,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 [[ -n "$NAMESPACE" ]] || fail "namespace cannot be empty"
-for command_name in kubectl helm; do
+for command_name in kubectl helm jq; do
   command -v "$command_name" >/dev/null 2>&1 || fail "required command not found: $command_name"
 done
 
@@ -117,9 +117,9 @@ fi
 
 echo "Checking Helm releases..."
 for release in "${releases[@]}"; do
-  status="$(helm_cmd status "$release" --namespace "$NAMESPACE" -o json 2>/dev/null | \
-    tr -d '\n' | \
-    sed -n 's/.*"status"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+  # .info.status is Helm's documented release state field (deployed|failed|...);
+  # a raw sed/grep scrape can match an unrelated nested "status" key instead.
+  status="$(helm_cmd status "$release" --namespace "$NAMESPACE" -o json 2>/dev/null | jq -r '.info.status // empty')"
   [[ "$status" == "deployed" ]] || fail "Helm release ${release} status is ${status:-missing}"
 done
 
