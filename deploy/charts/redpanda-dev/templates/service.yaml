@@ -5,35 +5,35 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redpanda
-  namespace: { { .Release.Namespace } }
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: redpanda
-    app.kubernetes.io/instance: { { .Release.Name } }
+    app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: event-backbone
-    app.kubernetes.io/managed-by: { { .Release.Service } }
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
 spec:
   clusterIP: None
   selector:
     app.kubernetes.io/name: redpanda
-    app.kubernetes.io/instance: { { .Release.Name } }
+    app.kubernetes.io/instance: {{ .Release.Name }}
   ports:
     - name: kafka
-      port: { { .Values.ports.kafka } }
+      port: {{ .Values.ports.kafka }}
       targetPort: kafka
       protocol: TCP
     - name: admin
-      port: { { .Values.ports.admin } }
+      port: {{ .Values.ports.admin }}
       targetPort: admin
       protocol: TCP
     - name: rpc
-      port: { { .Values.ports.rpc } }
+      port: {{ .Values.ports.rpc }}
       targetPort: rpc
       protocol: TCP
     - name: schema-registry
-      port: { { .Values.ports.schemaRegistry } }
+      port: {{ .Values.ports.schemaRegistry }}
       targetPort: schema-registry
       protocol: TCP
     - name: panda-proxy
-      port: { { .Values.ports.pandaProxy } }
+      port: {{ .Values.ports.pandaProxy }}
       targetPort: panda-proxy
       protocol: TCP
