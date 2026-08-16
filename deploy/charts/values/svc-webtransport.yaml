@@ -33,6 +33,11 @@ tolerations:
     operator: Equal
     value: processing
     effect: NoSchedule
+  # AKS taints Spot-priority nodes implicitly; without this the pool can never scale up from 0.
+  - key: kubernetes.azure.com/scalesetpriority
+    operator: Equal
+    value: spot
+    effect: NoSchedule
 
 env:
   - name: RTSA_SERVICE_NAME

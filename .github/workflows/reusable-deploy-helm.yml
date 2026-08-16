@@ -118,12 +118,22 @@ jobs:
           set -euo pipefail
           for svc in svc-radar-ingestion svc-fusion-engine svc-track svc-query web-cop-gpu; do
             echo "::group::deploy $svc"
+            # ingestion/processing pools are Spot, scale-to-zero; node bootstrap
+            # after a scale-up-from-0 event can take longer than 5m.
             helm upgrade --install "$svc" deploy/charts/rtsa-service \
               -f "deploy/charts/values/$svc.yaml" \
               --namespace "$NS" \
               --set image.repository="$ACR.azurecr.io/$svc" \
               --set image.tag="$TAG" \
-              --wait --timeout 5m
+              --wait --timeout 10m || {
+                echo "=== Pod status in $NS ==="
+                kubectl get pods -n "$NS" -o wide
+                echo "=== $svc pod describe ==="
+                kubectl describe pod -l app.kubernetes.io/instance="$svc" -n "$NS" || true
+                echo "=== $svc pod logs ==="
+                kubectl logs -l app.kubernetes.io/instance="$svc" -n "$NS" --all-containers --tail=200 || true
+                exit 1
+              }
             echo "::endgroup::"
           done
 
