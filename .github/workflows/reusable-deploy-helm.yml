@@ -90,7 +90,10 @@ jobs:
               echo "=== Redpanda pod describe ==="
               kubectl describe pod -l app.kubernetes.io/name=redpanda -n "$NS"
               echo "=== Redpanda pod logs ==="
-              kubectl logs -l app.kubernetes.io/name=redpanda -n "$NS" --tail=100 --all-containers || true
+              kubectl logs -l app.kubernetes.io/name=redpanda -n "$NS" -c redpanda --tail=200 || true
+              kubectl logs -l app.kubernetes.io/name=redpanda -n "$NS" -c istio-proxy --tail=100 || true
+              echo "=== Topic init job logs ==="
+              kubectl logs -l app.kubernetes.io/component=topic-bootstrap -n "$NS" --tail=100 || true
               exit 1
             }
 
