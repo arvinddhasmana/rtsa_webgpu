@@ -79,9 +79,10 @@ jobs:
         run: |
           set -x
           kubectl get nodes -o wide || true
-          kubectl describe node -l workload=stateful || true
-          # Delete existing StatefulSet if volumeClaimTemplates or immutable fields changed
+          kubectl describe node || true
+          # Delete existing StatefulSet and PVC if stuck in volume attachment/binding deadlock
           kubectl delete statefulset redpanda --namespace "$NS" --cascade=orphan || true
+          kubectl delete pvc data-redpanda-0 --namespace "$NS" || true
           helm upgrade --install redpanda deploy/charts/redpanda-dev \
             --namespace "$NS" --wait --timeout 10m || {
               echo "=== Pod status in $NS ==="
@@ -95,8 +96,9 @@ jobs:
 
       - name: Deploy ClickHouse (OLAP store)
         run: |
-          # Delete existing StatefulSet if volumeClaimTemplates or immutable fields changed
+          # Delete existing StatefulSet and PVC if stuck in volume attachment/binding deadlock
           kubectl delete statefulset clickhouse --namespace "$NS" --cascade=orphan || true
+          kubectl delete pvc data-clickhouse-0 --namespace "$NS" || true
           helm upgrade --install clickhouse deploy/charts/clickhouse-dev \
             --namespace "$NS" --wait --timeout 10m
 

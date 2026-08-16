@@ -48,13 +48,14 @@ securityContext:
     drop:
       - ALL
 
-nodeSelector:
-  workload: stateful
+nodeSelector: {}
 tolerations:
   - key: workload
     operator: Equal
     value: stateful
     effect: NoSchedule
+  - key: CriticalAddonsOnly
+    operator: Exists
 affinity: {}
 
 serviceType: ClusterIP
