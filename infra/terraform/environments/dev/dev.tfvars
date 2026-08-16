@@ -32,7 +32,7 @@ additional_node_pools = {
   ingest = {
     vm_size   = "Standard_D2pds_v6" # ARM v6; scale-to-zero (min=0 so no vCPU at idle)
     min_count = 0
-    max_count = 3
+    max_count = 1
     priority  = "Spot"
     zones     = [] # canadacentral: no AZ support
     labels    = { workload = "ingestion" }
@@ -41,7 +41,7 @@ additional_node_pools = {
   process = {
     vm_size   = "Standard_D2pds_v6" # ARM v6; scale-to-zero (min=0 so no vCPU at idle)
     min_count = 0
-    max_count = 3
+    max_count = 1
     priority  = "Spot"
     zones     = [] # canadacentral: no AZ support
     labels    = { workload = "processing" }
@@ -50,7 +50,7 @@ additional_node_pools = {
   stateful = {
     vm_size         = "Standard_D2pds_v6" # ARM v6; D2 (not D4) to stay under 10-vCPU regional limit
     min_count       = 1
-    max_count       = 2
+    max_count       = 1
     priority        = "Regular"
     os_disk_size_gb = 128
     zones           = [] # canadacentral: no AZ support

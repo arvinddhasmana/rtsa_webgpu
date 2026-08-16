@@ -132,7 +132,7 @@ jobs:
           set -euo pipefail
           # svc-webtransport is deployed separately below (needs workload identity + Key Vault settings).
           mapfile -t services < <(echo "$GO_SERVICES" | jq -r '.[] | select(. != "svc-webtransport")')
-          
+
           # BOUNDARY CONDITION: Ensure we always deploy any missing core application services.
           # This handles first-time deployments or instances where the cluster was wiped.
           all_stateless_services=(
@@ -142,7 +142,7 @@ jobs:
             svc-query
             # Add other services as necessary
           )
-          
+
           for svc in "${all_stateless_services[@]}"; do
             # Check if this service is already requested for deployment because of code changes
             is_changed="false"
@@ -152,12 +152,14 @@ jobs:
                 break
               fi
             done
-            
+
             # If not changed, check if it exists in the cluster
             if [[ "$is_changed" == "false" ]]; then
               if ! helm status "$svc" --namespace "$NS" >/dev/null 2>&1; then
                 echo "Notice: Service $svc is not deployed to the cluster. Adding to deployment array."
                 services+=("$svc")
+                # We must deploy it with latest, not current PR TAG which doesn't exist for unmodified services
+                eval "${svc//-/_}_fallback_tag=latest"
               fi
             fi
           done
@@ -167,13 +169,21 @@ jobs:
           fi
           for svc in "${services[@]}"; do
             echo "::group::deploy $svc"
+
+            svc_tag="$TAG"
+            fallback_var="${svc//-/_}_fallback_tag"
+            if [ -n "${!fallback_var:-}" ]; then
+              svc_tag="${!fallback_var}"
+              echo "Notice: Falling back to $svc_tag tag for unmodified missing service $svc"
+            fi
+
             # ingestion/processing pools are Spot, scale-to-zero; node bootstrap
             # after a scale-up-from-0 event can take longer than 5m.
             helm upgrade --install "$svc" deploy/charts/rtsa-service \
               -f "deploy/charts/values/$svc.yaml" \
               --namespace "$NS" \
               --set image.repository="$ACR.azurecr.io/$svc" \
-              --set image.tag="$TAG" \
+              --set image.tag="$svc_tag" \
               --wait --timeout 10m || {
                 echo "=== Pod status in $NS ==="
                 kubectl get pods -n "$NS" -o wide
@@ -192,22 +202,26 @@ jobs:
           SHOULD_DEPLOY: ${{ inputs.deploy-web == 'true' || (inputs.deploy-web != 'true' && true) }}
         run: |
           set -euo pipefail
-          
+
           is_deployed="true"
           if ! helm status web-cop-gpu --namespace "$NS" >/dev/null 2>&1; then
             is_deployed="false"
           fi
-          
+
+          svc_tag="$TAG"
           if [[ "${{ inputs.deploy-web }}" != "true" && "$is_deployed" == "true" ]]; then
              echo "Skipping web-cop-gpu deployment as it's un-modified and already exists in cluster"
              exit 0
+          elif [[ "${{ inputs.deploy-web }}" != "true" && "$is_deployed" == "false" ]]; then
+             echo "Notice: Falling back to latest tag for unmodified missing service web-cop-gpu"
+             svc_tag="latest"
           fi
-          
+
           helm upgrade --install web-cop-gpu deploy/charts/rtsa-service \
             -f deploy/charts/values/web-cop-gpu.yaml \
             --namespace "$NS" \
             --set image.repository="$ACR.azurecr.io/web-cop-gpu" \
-            --set image.tag="$TAG" \
+            --set image.tag="$svc_tag" \
             --wait --timeout 10m || {
               echo "=== Pod status in $NS ==="
               kubectl get pods -n "$NS" -o wide
@@ -222,23 +236,27 @@ jobs:
         if: ${{ always() }}
         run: |
           set -euo pipefail
-          
+
           is_deployed="true"
           if ! helm status svc-webtransport --namespace "$NS" >/dev/null 2>&1; then
             is_deployed="false"
           fi
-          
+
           is_changed="${{ contains(fromJSON(inputs.go-services), 'svc-webtransport') }}"
+          svc_tag="$TAG"
           if [[ "$is_changed" != "true" && "$is_deployed" == "true" ]]; then
              echo "Skipping svc-webtransport deployment as it's un-modified and already exists in cluster"
              exit 0
+          elif [[ "$is_changed" != "true" && "$is_deployed" == "false" ]]; then
+             echo "Notice: Falling back to latest tag for unmodified missing service svc-webtransport"
+             svc_tag="latest"
           fi
-          
+
           helm upgrade --install svc-webtransport deploy/charts/rtsa-service \
             -f deploy/charts/values/svc-webtransport.yaml \
             --namespace "$NS" \
             --set image.repository="$ACR.azurecr.io/svc-webtransport" \
-            --set image.tag="$TAG" \
+            --set image.tag="$svc_tag" \
             --set serviceAccount.workloadIdentityClientId='${{ vars.WEBTRANSPORT_IDENTITY_CLIENT_ID }}' \
             --set secretProviderClass.keyvaultName='${{ vars.KEY_VAULT_NAME }}' \
             --set secretProviderClass.tenantId='${{ vars.AZURE_TENANT_ID }}' \

@@ -1,0 +1,43 @@
+--- .github/workflows/reusable-deploy-helm.yml	2023-01-01
++++ .github/workflows/reusable-deploy-helm.yml	2023-01-01
+@@ -148,6 +148,7 @@
+             # Check if this service is already requested for deployment because of code changes
+             is_changed="false"
+             for active_svc in "${services[@]}"; do
+               if [[ "$active_svc" == "$svc" ]]; then
+                 is_changed="true"
+                 break
+               fi
+             done
+ 
+             # If not changed, check if it exists in the cluster
+             if [[ "$is_changed" == "false" ]]; then
+               if ! helm status "$svc" --namespace "$NS" >/dev/null 2>&1; then
+                 echo "Notice: Service $svc is not deployed to the cluster. Adding to deployment array."
+                 services+=("$svc")
++                # We must deploy it with latest, not current PR TAG which doesn't exist for unmodified services
++                eval "${svc}_fallback_tag=latest"
+               fi
+             fi
+           done
+ 
+           if [ ${#services[@]} -eq 0 ]; then
+             echo "No changed stateless services — nothing to deploy."
+           fi
+           for svc in "${services[@]}"; do
+             echo "::group::deploy $svc"
++            svc_tag="$TAG"
++            fallback_var="${svc}_fallback_tag"
++            if [ -n "${!fallback_var:-}" ]; then
++              svc_tag="${!fallback_var}"
++              echo "Notice: Falling back to $svc_tag tag for unmodified missing service $svc"
++            fi
+             # ingestion/processing pools are Spot, scale-to-zero; node bootstrap
+             # after a scale-up-from-0 event can take longer than 5m.
+             helm upgrade --install "$svc" deploy/charts/rtsa-service \
+               -f "deploy/charts/values/$svc.yaml" \
+               --namespace "$NS" \
+               --set image.repository="$ACR.azurecr.io/$svc" \
+-              --set image.tag="$TAG" \
++              --set image.tag="$svc_tag" \
+               --wait --timeout 10m || {
