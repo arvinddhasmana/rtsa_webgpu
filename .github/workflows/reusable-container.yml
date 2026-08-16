@@ -86,23 +86,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Get ACR credentials for SBOM generation
-        id: acr
-        shell: bash
+      - name: Pull pushed image into local Docker daemon
+        run: docker pull --platform linux/arm64 ${{ env.IMAGE }}
+
+      - name: Install Syft
         run: |
-          echo "username=$(az acr credential show -n ${{ inputs.acr-name }} --query username -o tsv)" >> "$GITHUB_OUTPUT"
-          echo "password=$(az acr credential show -n ${{ inputs.acr-name }} --query passwords[0].value -o tsv)" >> "$GITHUB_OUTPUT"
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
       - name: Generate SBOM (SPDX)
-        uses: anchore/sbom-action@v0
-        with:
-          image: ${{ env.IMAGE }}
-          format: spdx-json
-          output-file: sbom-${{ inputs.service }}.spdx.json
-          artifact-name: ""
-          registry-username: ${{ steps.acr.outputs.username }}
-          registry-password: ${{ steps.acr.outputs.password }}
-          platform: linux/arm64
+        run: syft docker:${{ env.IMAGE }} --platform linux/arm64 -o spdx-json > sbom-${{ inputs.service }}.spdx.json
 
       - name: Trivy image scan (fail on CRITICAL/HIGH)
         uses: aquasecurity/trivy-action@v0.36.0
