@@ -11,13 +11,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Download pre-built wasm-pack binary — avoids compiling from source (saves ~10 min, no OpenSSL dep)
-RUN curl -sSL https://github.com/rustwasm/wasm-pack/releases/download/v0.13.1/wasm-pack-v0.13.1-x86_64-unknown-linux-musl.tar.gz \
+# Download the matching pre-built wasm-pack binary for the target architecture.
+# Buildx emulates arm64 on GitHub runners, so the x86_64 binary will fail at runtime.
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+    "amd64") WASM_PACK_ARCH="x86_64" ;; \
+    "arm64") WASM_PACK_ARCH="aarch64" ;; \
+    *) echo "Unsupported TARGETARCH=$TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    curl -sSL "https://github.com/rustwasm/wasm-pack/releases/download/v0.13.1/wasm-pack-v0.13.1-${WASM_PACK_ARCH}-unknown-linux-musl.tar.gz" \
     | tar xz -C /tmp && \
-    mv /tmp/wasm-pack-v0.13.1-x86_64-unknown-linux-musl/wasm-pack /usr/local/bin/wasm-pack && \
-    rm -rf /tmp/wasm-pack-v0.13.1-x86_64-unknown-linux-musl
+    mv "/tmp/wasm-pack-v0.13.1-${WASM_PACK_ARCH}-unknown-linux-musl/wasm-pack" /usr/local/bin/wasm-pack && \
+    rm -rf "/tmp/wasm-pack-v0.13.1-${WASM_PACK_ARCH}-unknown-linux-musl"
 
-WORKDIR /build
+    /build
 COPY web-cop-gpu/wasm-decoder/ ./wasm-decoder/
 
 WORKDIR /build/wasm-decoder

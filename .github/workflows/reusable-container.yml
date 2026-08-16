@@ -44,6 +44,7 @@ on:
 permissions:
   id-token: write # OIDC to Azure + cosign keyless
   contents: read
+  security-events: write # Trivy SARIF upload
 
 jobs:
   image:
@@ -89,6 +90,13 @@ jobs:
       - name: Pull pushed image into local Docker daemon
         run: docker pull --platform linux/arm64 ${{ env.IMAGE }}
 
+      - name: Get ACR credentials for registry operations
+        id: acr
+        shell: bash
+        run: |
+          echo "username=$(az acr credential show -n ${{ inputs.acr-name }} --query username -o tsv)" >> "$GITHUB_OUTPUT"
+          echo "password=$(az acr credential show -n ${{ inputs.acr-name }} --query passwords[0].value -o tsv)" >> "$GITHUB_OUTPUT"
+
       - name: Install Syft
         run: |
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -97,6 +105,9 @@ jobs:
         run: syft docker:${{ env.IMAGE }} --platform linux/arm64 -o spdx-json > sbom-${{ inputs.service }}.spdx.json
 
       - name: Trivy image scan (fail on CRITICAL/HIGH)
+        env:
+          TRIVY_USERNAME: ${{ steps.acr.outputs.username }}
+          TRIVY_PASSWORD: ${{ steps.acr.outputs.password }}
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}
@@ -115,6 +126,13 @@ jobs:
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
+
+      - name: Login to ACR for cosign
+        env:
+          ACR_USERNAME: ${{ steps.acr.outputs.username }}
+          ACR_PASSWORD: ${{ steps.acr.outputs.password }}
+        run: |
+          cosign login ${{ inputs.acr-name }}.azurecr.io --username "$ACR_USERNAME" --password "$ACR_PASSWORD"
 
       - name: Sign image (keyless)
         env:
