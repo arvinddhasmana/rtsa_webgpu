@@ -50,7 +50,11 @@ securityContext:
 
 nodeSelector:
   workload: stateful
-tolerations: []
+tolerations:
+  - key: workload
+    operator: Equal
+    value: stateful
+    effect: NoSchedule
 affinity: {}
 
 serviceType: ClusterIP

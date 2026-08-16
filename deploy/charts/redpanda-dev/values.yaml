@@ -60,7 +60,11 @@ securityContext:
 # Dev broker sits on the stateful node pool by default.
 nodeSelector:
   workload: stateful
-tolerations: []
+tolerations:
+  - key: workload
+    operator: Equal
+    value: stateful
+    effect: NoSchedule
 affinity: {}
 
 # Redpanda terminates plaintext in-cluster; Istio mTLS wraps the traffic.
