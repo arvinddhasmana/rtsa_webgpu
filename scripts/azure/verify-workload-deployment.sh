@@ -138,6 +138,12 @@ for statefulset in "${statefulsets[@]}"; do
   kube --namespace "$NAMESPACE" rollout status "statefulset/${statefulset}" --timeout="$TIMEOUT"
 done
 for deployment in "${deployments[@]}"; do
+  if [[ "$CHANGED_DEPLOYMENTS_SET" == "true" && " ${deployments[*]} " =~ " ${deployment} " ]]; then
+    if [[ ! " ${CHANGED_DEPLOYMENTS} " =~ " ${deployment} " ]]; then
+      echo "Skipping deployment rollout check for unchanged deployment: ${deployment}"
+      continue
+    fi
+  fi
   kube --namespace "$NAMESPACE" rollout status "deployment/${deployment}" --timeout="$TIMEOUT"
 done
 
