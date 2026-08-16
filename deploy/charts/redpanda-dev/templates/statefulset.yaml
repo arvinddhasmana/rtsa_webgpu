@@ -18,6 +18,8 @@ spec:
       app.kubernetes.io/instance: {{ .Release.Name }}
   template:
     metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
       labels:
         app.kubernetes.io/name: redpanda
         app.kubernetes.io/instance: {{ .Release.Name }}
