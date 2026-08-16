@@ -24,7 +24,7 @@ RUN case "$TARGETARCH" in \
     mv "/tmp/wasm-pack-v0.13.1-${WASM_PACK_ARCH}-unknown-linux-musl/wasm-pack" /usr/local/bin/wasm-pack && \
     rm -rf "/tmp/wasm-pack-v0.13.1-${WASM_PACK_ARCH}-unknown-linux-musl"
 
-    /build
+    WORKDIR /build
 COPY web-cop-gpu/wasm-decoder/ ./wasm-decoder/
 
 WORKDIR /build/wasm-decoder
