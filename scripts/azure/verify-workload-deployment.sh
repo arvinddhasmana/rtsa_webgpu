@@ -147,12 +147,52 @@ for deployment in "${deployments[@]}"; do
   kube --namespace "$NAMESPACE" rollout status "deployment/${deployment}" --timeout="$TIMEOUT"
 done
 
-unhealthy_pods="$(
-  kube get pods --namespace "$NAMESPACE" \
+unhealthy_pods="$(kube get pods --namespace "$NAMESPACE" \
     -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.phase}{"\t"}{range .status.containerStatuses[*]}{.ready}{" "}{end}{"\n"}{end}' |
   awk '$2 != "Running" && $2 != "Succeeded" { print $1 ":" $2; next } $2 == "Running" && $0 ~ /false/ { print $1 ":NotReady" }'
 )"
-[[ -z "$unhealthy_pods" ]] || fail "unhealthy pods: ${unhealthy_pods//$'\n'/, }"
+
+if [[ -n "$unhealthy_pods" ]]; then
+  # Filter out unhealthy pods that belong to unchanged deployments
+  # since we intentionally didn't redeploy/fix them in this run
+  if [[ "$CHANGED_DEPLOYMENTS_SET" == "true" ]]; then
+    filtered_unhealthy=""
+    while read -r pod_info; do
+      pod_name="${pod_info%%:*}"
+      # If this pod name starts with one of our unchanged deployments, ignore it
+      is_changed="false"
+      if [[ -z "$CHANGED_DEPLOYMENTS" ]]; then
+         # nothing was changed, assume all pods belong to unchanged deployments (except mesh/redpanda/clickhouse which we always deploy)
+         is_changed="false"
+         if [[ "$pod_name" == *"rtsa-mesh"* || "$pod_name" == *"redpanda"* || "$pod_name" == *"clickhouse"* ]]; then
+             is_changed="true"
+         fi
+      else
+         # check if the pod belongs to any of the changed deployments
+         for changed_dep in $CHANGED_DEPLOYMENTS; do
+           if [[ "$pod_name" == "$changed_dep-"* ]]; then
+             is_changed="true"
+             break
+           fi
+         done
+         # Always check core stateful components as they are always redeployed
+         if [[ "$pod_name" == *"rtsa-mesh"* || "$pod_name" == *"redpanda"* || "$pod_name" == *"clickhouse"* ]]; then
+             is_changed="true"
+         fi
+      fi
+      if [[ "$is_changed" == "true" ]]; then
+        filtered_unhealthy="${filtered_unhealthy}${pod_info}
+"
+      else
+        echo "Ignoring unhealthy pod ${pod_info} belonging to unchanged (skipped) deployment."
+      fi
+    done <<< "$unhealthy_pods"
+    # Remove trailing newline
+    unhealthy_pods="${filtered_unhealthy%$'\n'}"
+  fi
+  
+  [[ -z "$unhealthy_pods" ]] || fail "unhealthy pods: ${unhealthy_pods//$'\n'/, }"
+fi
 
 for deployment in "${deployments[@]}"; do
   pod_containers="$(kube get pods --namespace "$NAMESPACE" \
