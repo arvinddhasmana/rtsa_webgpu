@@ -117,6 +117,16 @@ fi
 
 echo "Checking Helm releases..."
 for release in "${releases[@]}"; do
+  # If we know which deployments changed, and it's a stateless service
+  # that we intentionally skipped, skip checking its status since it might 
+  # have failed in a previous run and we don't plan to fix it here.
+  if [[ "$CHANGED_DEPLOYMENTS_SET" == "true" && " ${deployments[*]} " =~ " ${release} " ]]; then
+    if [[ ! " ${CHANGED_DEPLOYMENTS} " =~ " ${release} " ]]; then
+      echo "Skipping helm release check for unchanged deployment: ${release}"
+      continue
+    fi
+  fi
+
   # .info.status is Helm's documented release state field (deployed|failed|...);
   # a raw sed/grep scrape can match an unrelated nested "status" key instead.
   status="$(helm_cmd status "$release" --namespace "$NAMESPACE" -o json 2>/dev/null | jq -r '.info.status // empty')"
