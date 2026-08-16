@@ -570,6 +570,9 @@ gh run watch <run-id>
 # The environment provider targets nonprod; the backend remains in shared.
 export ARM_SUBSCRIPTION_ID="bb2b8549-9693-40f2-9287-3bd5afcc6633"
 
+# Initialize local Terraform against the remote state backend
+make -C infra/terraform env-init ENV=dev
+
 scripts/azure/preflight-environment-deploy.sh --env dev
 make -C infra/terraform env-plan ENV=dev
 make -C infra/terraform env-up ENV=dev
@@ -579,11 +582,70 @@ make -C infra/terraform env-output ENV=dev
 > **Expected apply time**: ~15 minutes for the first full apply (AKS cluster creation
 > takes 8-12 minutes, Key Vault ~3 minutes).
 
-### 4.5 After infra-up: Sync Variables to GitHub
+### 4.5 Understanding Backend Initialization (`env-init`) & GitHub Variable Sync
 
-Once apply completes, copy the Terraform outputs into the GitHub environment variables:
+#### What `env-init` Does & Where It Fits in the Lifecycle
+
+`infra/terraform/environments/dev/versions.tf` defines a **partial backend** (`backend "azurerm" {}`). Running `make -C infra/terraform env-init ENV=dev`:
+
+1. Connects your local CLI (or CI Runner) to the remote state in Azure Blob Storage (`strtsatfbzkem9` in `rg-rtsa-shared-cc`).
+2. Downloads required Terraform provider plugins.
+3. Configures local state metadata (`.terraform/terraform.tfstate`) so local CLI commands (`terraform plan`, `terraform output`, etc.) operate against live cloud state.
+
+```
+┌─────────────────────────┐
+│     bootstrap-up        │ (Creates Shared Storage Account strtsatfbzkem9 & ACR)
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│  make env-init ENV=dev  │ (Connects local CLI / CI Runner to Azure remote state)
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│  make env-plan ENV=dev  │ (Previews changes against live state in Azure)
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│   make env-up ENV=dev   │ (Provisions AKS, Key Vault, VNets to Azure)
+└────────────┬────────────┘
+             │
+             ▼
+┌─────────────────────────┐
+│  sync-dev-github-vars   │ (Reads outputs from dev.tfstate & updates GitHub variables)
+└─────────────────────────┘
+```
+
+#### Fixing `403 AuthorizationPermissionMismatch` on Local `env-init`
+
+Connecting to Azure Blob Storage using Entra ID (`use_azuread_auth=true`) requires the **data-plane role** `Storage Blob Data Contributor`. Standard management-plane roles like `Contributor` or `Owner` on the Subscription/Resource Group do not grant data-plane access to blob storage.
+
+If running `make -C infra/terraform env-init ENV=dev` fails with `StatusCode=403 AuthorizationPermissionMismatch`, grant `Storage Blob Data Contributor` to your Azure user on the shared storage account:
 
 ```bash
+# 1. Get your logged-in Azure user object ID
+OPERATOR_ID=$(az ad signed-in-user show --query id -o tsv)
+export SHARED_SUBSCRIPTION_ID="11f614f9-a6d3-419b-9437-37a84c75f27a"
+# 2. Grant Storage Blob Data Contributor on the tfstate storage account
+az role assignment create \
+  --assignee-object-id "$OPERATOR_ID" \
+  --assignee-principal-type User \
+  --role "Storage Blob Data Contributor" \
+  --scope "/subscriptions/$SHARED_SUBSCRIPTION_ID/resourceGroups/rg-rtsa-shared-cc/providers/Microsoft.Storage/storageAccounts/strtsatfbzkem9"
+```
+
+> **Note**: Role assignment propagation in Azure AD takes ~1–2 minutes. Once propagated, re-run `make -C infra/terraform env-init ENV=dev`.
+
+### 4.6 After infra-up: Sync Variables to GitHub
+
+When running `infra-up.yml` in GitHub Actions, the workflow automatically runs `scripts/azure/sync-dev-github-vars-from-tf.sh` at the end of the run using `secrets.GITHUB_TOKEN` (via the workflow's `actions: write` permission) to update GitHub Environment variables automatically.
+
+If you ran `infra-up` locally or need to manually re-sync variables from your workstation:
+
+```bash
+# Ensure local terraform is initialized with remote backend first (Section 4.5)
 scripts/azure/sync-dev-github-vars-from-tf.sh \
   --repo arvinddhasmana/rtsa_webgpu \
   --environment dev
@@ -601,7 +663,7 @@ Updated environment variables for arvinddhasmana/rtsa_webgpu / dev:
   ISTIO_REVISION=asm-1-29
 ```
 
-### 4.6 Verify the Cluster
+### 4.7 Verify the Cluster
 
 ```bash
 export ARM_SUBSCRIPTION_ID="bb2b8549-9693-40f2-9287-3bd5afcc6633"

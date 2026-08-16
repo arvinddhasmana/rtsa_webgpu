@@ -251,10 +251,8 @@ done
 
 if [[ -n "$REPO_CLIENT_ID" ]]; then
   if repo_var_exists "REPO_AZURE_CLIENT_ID"; then
-    echo "  - keep existing repo var: REPO_AZURE_CLIENT_ID"
-  else
-    set_repo_var "REPO_AZURE_CLIENT_ID" "$REPO_CLIENT_ID"
-    echo "  - set repo var: REPO_AZURE_CLIENT_ID"
+    gh variable delete "REPO_AZURE_CLIENT_ID" --repo "$REPO_SLUG" >/dev/null 2>&1 || true
+    echo "  - removed outdated repo var: REPO_AZURE_CLIENT_ID"
   fi
 fi
 

@@ -17,6 +17,7 @@ on:
 permissions:
   id-token: write # OIDC to Azure for the azurerm provider
   contents: read
+  actions: write # Required for gh variable set via GITHUB_TOKEN
 
 concurrency:
   group: infra-${{ inputs.environment }}
@@ -82,6 +83,15 @@ jobs:
           scripts/azure/verify-infrastructure-deployment.sh \
             --env "${{ inputs.environment }}" \
             --subscription-id "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Sync Terraform outputs to GitHub Environment variables
+        working-directory: ${{ github.workspace }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          scripts/azure/sync-dev-github-vars-from-tf.sh \
+            --repo "${{ github.repository }}" \
+            --environment "${{ inputs.environment }}"
 
       - name: Publish outputs to job summary
         if: always()

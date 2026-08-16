@@ -150,6 +150,7 @@ env-down:  ; $(TF) destroy -var-file=$(ENV).tfvars -auto-approve
 env-output:; $(TF) output
 ```
 
+- `env-init` connects the local CLI or CI runner to the shared Azure Blob Storage backend (`strtsatfbzkem9` / `dev.tfstate`). Note: requires `Storage Blob Data Contributor` data-plane role on the shared tfstate storage account.
 - `scripts/azure/verify-infrastructure-deployment.sh --env $ENV` is the required post-apply platform gate.
 - `scripts/azure/verify-workload-deployment.sh --namespace rtsa --expected-image-tag <tag>` is the required post-Helm gate.
 - The same targets are wrapped by `infra-up.yml` / `infra-down.yml` in CI ([05](05-devops-cicd-and-environments.md#7-environment-lifecycle-automation-ephemeral)).

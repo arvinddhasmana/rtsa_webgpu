@@ -90,9 +90,9 @@ jobs:
       context: .
       image-tag: ${{ github.sha }}
       acr-name: ${{ vars.ACR_NAME }}
-      client-id: ${{ vars.REPO_AZURE_CLIENT_ID != '' && vars.REPO_AZURE_CLIENT_ID || vars.AZURE_CLIENT_ID }}
+      client-id: ${{ vars.AZURE_CLIENT_ID }}
       tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      subscription-id: ${{ vars.REPO_AZURE_SUBSCRIPTION_ID != '' && vars.REPO_AZURE_SUBSCRIPTION_ID || vars.AZURE_SUBSCRIPTION_ID }}
+      subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
 
   build-web:
     name: Build web-cop-gpu
@@ -105,9 +105,9 @@ jobs:
       context: .
       image-tag: ${{ github.sha }}
       acr-name: ${{ vars.ACR_NAME }}
-      client-id: ${{ vars.REPO_AZURE_CLIENT_ID != '' && vars.REPO_AZURE_CLIENT_ID || vars.AZURE_CLIENT_ID }}
+      client-id: ${{ vars.AZURE_CLIENT_ID }}
       tenant-id: ${{ vars.AZURE_TENANT_ID }}
-      subscription-id: ${{ vars.REPO_AZURE_SUBSCRIPTION_ID != '' && vars.REPO_AZURE_SUBSCRIPTION_ID || vars.AZURE_SUBSCRIPTION_ID }}
+      subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       build-args: |
         VITE_API_GATEWAY_URL=${{ vars.VITE_API_GATEWAY_URL }}
         VITE_WEBTRANSPORT_URL=${{ vars.VITE_WEBTRANSPORT_URL }}
