@@ -77,8 +77,19 @@ jobs:
 
       - name: Deploy Redpanda (event backbone)
         run: |
+          set -x
+          kubectl get nodes -o wide || true
+          kubectl describe node -l workload=stateful || true
           helm upgrade --install redpanda deploy/charts/redpanda-dev \
-            --namespace "$NS" --wait --timeout 10m
+            --namespace "$NS" --wait --timeout 10m || {
+              echo "=== Pod status in $NS ==="
+              kubectl get pods -n "$NS" -o wide
+              echo "=== Redpanda pod describe ==="
+              kubectl describe pod -l app.kubernetes.io/name=redpanda -n "$NS"
+              echo "=== Redpanda pod logs ==="
+              kubectl logs -l app.kubernetes.io/name=redpanda -n "$NS" --tail=100 --all-containers || true
+              exit 1
+            }
 
       - name: Deploy ClickHouse (OLAP store)
         run: |
