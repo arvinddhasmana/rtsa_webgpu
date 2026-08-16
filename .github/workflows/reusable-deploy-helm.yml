@@ -16,6 +16,14 @@ on:
       namespace:
         type: string
         default: "rtsa"
+      go-services:
+        description: JSON array of Go services to (re)deploy with image-tag. Defaults to all (used by promotions where every service was built at this SHA).
+        type: string
+        default: '["svc-radar-ingestion","svc-fusion-engine","svc-track","svc-webtransport","svc-query"]'
+      deploy-web:
+        description: Whether to (re)deploy web-cop-gpu with image-tag.
+        type: boolean
+        default: true
 
 permissions:
   id-token: write
@@ -114,9 +122,16 @@ jobs:
             --namespace "$NS" --wait --timeout 10m
 
       - name: Deploy stateless services
+        env:
+          GO_SERVICES: ${{ inputs.go-services }}
         run: |
           set -euo pipefail
-          for svc in svc-radar-ingestion svc-fusion-engine svc-track svc-query web-cop-gpu; do
+          # svc-webtransport is deployed separately below (needs workload identity + Key Vault settings).
+          mapfile -t services < <(echo "$GO_SERVICES" | jq -r '.[] | select(. != "svc-webtransport")')
+          if [ ${#services[@]} -eq 0 ]; then
+            echo "No changed stateless services — nothing to deploy."
+          fi
+          for svc in "${services[@]}"; do
             echo "::group::deploy $svc"
             # ingestion/processing pools are Spot, scale-to-zero; node bootstrap
             # after a scale-up-from-0 event can take longer than 5m.
@@ -137,7 +152,27 @@ jobs:
             echo "::endgroup::"
           done
 
+      - name: Deploy web-cop-gpu (frontend)
+        if: ${{ inputs.deploy-web }}
+        run: |
+          set -euo pipefail
+          helm upgrade --install web-cop-gpu deploy/charts/rtsa-service \
+            -f deploy/charts/values/web-cop-gpu.yaml \
+            --namespace "$NS" \
+            --set image.repository="$ACR.azurecr.io/web-cop-gpu" \
+            --set image.tag="$TAG" \
+            --wait --timeout 10m || {
+              echo "=== Pod status in $NS ==="
+              kubectl get pods -n "$NS" -o wide
+              echo "=== web-cop-gpu pod describe ==="
+              kubectl describe pod -l app.kubernetes.io/instance=web-cop-gpu -n "$NS" || true
+              echo "=== web-cop-gpu pod logs ==="
+              kubectl logs -l app.kubernetes.io/instance=web-cop-gpu -n "$NS" --all-containers --tail=200 || true
+              exit 1
+            }
+
       - name: Deploy svc-webtransport (workload identity + Key Vault)
+        if: ${{ contains(fromJSON(inputs.go-services), 'svc-webtransport') }}
         run: |
           set -euo pipefail
           helm upgrade --install svc-webtransport deploy/charts/rtsa-service \
@@ -151,7 +186,16 @@ jobs:
             --wait --timeout 5m
 
       - name: Verify workload deployment
+        env:
+          GO_SERVICES: ${{ inputs.go-services }}
+          DEPLOY_WEB: ${{ inputs.deploy-web }}
         run: |
+          set -euo pipefail
+          changed="$(echo "$GO_SERVICES" | jq -r '.[]')"
+          if [ "$DEPLOY_WEB" = "true" ]; then
+            changed="${changed}$(printf '\n')web-cop-gpu"
+          fi
           scripts/azure/verify-workload-deployment.sh \
             --namespace "$NS" \
-            --expected-image-tag "$TAG"
+            --expected-image-tag "$TAG" \
+            --changed-deployments "$(echo "$changed" | xargs)"

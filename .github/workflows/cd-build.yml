@@ -122,3 +122,7 @@ jobs:
       environment: dev
       image-tag: ${{ github.sha }}
       namespace: rtsa
+      # Only redeploy services whose image was actually rebuilt this run —
+      # otherwise the Deployment gets pointed at a tag ACR never received.
+      go-services: ${{ needs.changes.outputs.go }}
+      deploy-web: ${{ needs.changes.outputs.web == 'true' }}

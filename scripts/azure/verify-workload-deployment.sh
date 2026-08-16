@@ -7,6 +7,8 @@ set -euo pipefail
 NAMESPACE="rtsa"
 KUBE_CONTEXT=""
 EXPECTED_IMAGE_TAG=""
+CHANGED_DEPLOYMENTS=""
+CHANGED_DEPLOYMENTS_SET="false"
 TIMEOUT="300s"
 
 usage() {
@@ -18,6 +20,8 @@ Options:
   --namespace <name>          Kubernetes namespace. Default: rtsa
   --context <name>            kubectl/Helm context. Defaults to the current context.
   --expected-image-tag <tag>  Require every RTSA deployment to use this image tag.
+  --changed-deployments <l>   Space-separated deployment names to check against
+                               --expected-image-tag. Default: all (full promotion).
   --timeout <duration>        Rollout timeout. Default: 300s
   -h, --help                  Show help.
 USAGE
@@ -40,6 +44,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --expected-image-tag)
       EXPECTED_IMAGE_TAG="${2:-}"
+      shift 2
+      ;;
+    --changed-deployments)
+      CHANGED_DEPLOYMENTS="${2:-}"
+      CHANGED_DEPLOYMENTS_SET="true"
       shift 2
       ;;
     --timeout)
@@ -142,8 +151,17 @@ workload_identity_client_id="$(kube get serviceaccount svc-webtransport --namesp
   fail "svc-webtransport service account is missing its workload identity client-id annotation"
 
 if [[ -n "$EXPECTED_IMAGE_TAG" ]]; then
-  echo "Checking promoted image tag ${EXPECTED_IMAGE_TAG}..."
-  for deployment in "${deployments[@]}"; do
+  # Default to all deployments (full promotion, e.g. cd-deploy.yml) when the
+  # caller doesn't say which ones were actually redeployed with this tag.
+  # If the flag was passed but empty, nothing changed this run — skip entirely.
+  tag_check_deployments=("${deployments[@]}")
+  if [[ "$CHANGED_DEPLOYMENTS_SET" == "true" ]]; then
+    read -r -a tag_check_deployments <<< "$CHANGED_DEPLOYMENTS"
+  fi
+  if [[ ${#tag_check_deployments[@]} -gt 0 ]]; then
+    echo "Checking promoted image tag ${EXPECTED_IMAGE_TAG}..."
+  fi
+  for deployment in "${tag_check_deployments[@]}"; do
     image="$(kube get deployment "$deployment" --namespace "$NAMESPACE" \
       -o jsonpath='{.spec.template.spec.containers[0].image}')"
     [[ "$image" == *":${EXPECTED_IMAGE_TAG}" ]] || \
