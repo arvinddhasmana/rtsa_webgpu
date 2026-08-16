@@ -78,6 +78,13 @@ spec:
             - name: panda-proxy
               containerPort: {{ .Values.ports.pandaProxy }}
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /v1/status/ready
+              port: admin
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
           livenessProbe:
             tcpSocket:
               port: kafka
