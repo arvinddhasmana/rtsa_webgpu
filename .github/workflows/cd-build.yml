@@ -37,8 +37,6 @@ jobs:
               - 'proto/**'
               - 'go.work'
               - 'buf*.yaml'
-              - 'deploy/charts/**'
-              - '.github/workflows/**'
             svc-radar-ingestion:
               - 'svc-radar-ingestion/**'
             svc-fusion-engine:

@@ -25,7 +25,7 @@ resources:
 persistence:
   enabled: true
   size: 16Gi
-  storageClassName: null
+  storageClassName: managed-csi
 
 ports:
   http: 8123

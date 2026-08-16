@@ -29,8 +29,8 @@ reserveMemory: 0M
 persistence:
   enabled: true
   size: 8Gi
-  # Leave null to use the cluster default StorageClass.
-  storageClassName: null
+  # Use managed-csi (Azure Disk CSI driver) explicitly.
+  storageClassName: managed-csi
 
 # Listener ports.
 ports:
