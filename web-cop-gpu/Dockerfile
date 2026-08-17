@@ -74,11 +74,12 @@ ARG BUILD_ENV=production
 RUN rm /etc/nginx/conf.d/default.conf
 
 # The pod's securityContext runs the whole container as root but drops all
-# capabilities except NET_BIND_SERVICE. Stock nginx.conf's "user nginx;"
-# directive makes the master chown cache dirs to uid 101 at startup, which
-# needs CAP_CHOWN — remove the directive so nginx stays root end-to-end.
+# capabilities except NET_BIND_SERVICE. Alpine's nginx package is compiled with
+# a default user of "nginx" (uid 101) even with no "user" directive present, so
+# removing the directive isn't enough — it must be explicitly set to "root" or
+# the master still tries to chown cache dirs to uid 101, which needs CAP_CHOWN.
 # Alpine's sed is BusyBox sed (no GNU \s/\+ extensions) — keep the pattern POSIX BRE only.
-RUN sed -i '/^user.*nginx;/d' /etc/nginx/nginx.conf
+RUN sed -i 's/^user.*nginx;.*/user root;/' /etc/nginx/nginx.conf
 
 # Generate Nginx config with environment-appropriate connect-src CSP directive.
 # Uses a shell RUN (not COPY<<heredoc) so that $BUILD_ENV can influence the output.
