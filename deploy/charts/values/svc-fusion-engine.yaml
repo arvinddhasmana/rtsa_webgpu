@@ -50,12 +50,16 @@ probes:
     enabled: true
     # svc-fusion-engine only serves a gRPC health check (grpc_health_v1) on the
     # gRPC port; it never starts an HTTP server, so an httpGet probe always fails.
+    # httpGet must be explicitly nulled — Helm deep-merges this file with the
+    # chart's default httpGet probe, and k8s rejects a probe with 2 handler types.
+    httpGet: null
     grpc:
       port: 50051
     initialDelaySeconds: 5
     periodSeconds: 10
   readiness:
     enabled: true
+    httpGet: null
     grpc:
       port: 50051
     initialDelaySeconds: 5
