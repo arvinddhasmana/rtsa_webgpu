@@ -1,8 +1,9 @@
 # CLASSIFICATION: UNCLASSIFIED
-# CD Deploy — promote an already-built, signed image set to a higher environment.
-# Promotion is by image tag (digest): the exact artifact validated downstream is
-# what ships. Higher environments (staging/prod) are gated by GitHub Environment
-# protection rules (required reviewers, wait timers).
+# CD Deploy — promote the latest built images to a higher environment. Each
+# service is deployed independently: if it's not running yet, the latest ACR
+# tag is used; if it's already running, it's only redeployed when ACR has a
+# newer tag than what's live. Higher environments (staging/prod) are gated by
+# GitHub Environment protection rules (required reviewers, wait timers).
 name: CD Deploy
 
 on:
@@ -12,10 +13,6 @@ on:
         description: Target environment.
         type: choice
         options: [dev, test, staging, prod]
-        required: true
-      image-tag:
-        description: Image tag to deploy (commit SHA already built by CD Build).
-        type: string
         required: true
       clean-before-deploy:
         description: Uninstall all stateless service releases and force-delete stuck pods before deploying. Use to recover from a corrupted/stuck cluster state.
@@ -35,6 +32,5 @@ jobs:
     uses: ./.github/workflows/reusable-deploy-helm.yml
     with:
       environment: ${{ inputs.environment }}
-      image-tag: ${{ inputs.image-tag }}
       namespace: rtsa
       clean-before-deploy: ${{ inputs.clean-before-deploy }}
