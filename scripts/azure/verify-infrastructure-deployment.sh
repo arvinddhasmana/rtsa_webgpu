@@ -92,9 +92,13 @@ kubelogin_version="$(kubelogin --version 2>&1 || true)"
 
 az account show >/dev/null 2>&1 || fail "Azure login missing; run az login"
 
+# Read directly from the tfvars file — expected_subscription_id is a plain literal,
+# not a computed value, so `terraform console`/`output` is unnecessary. That path
+# was previously used and corrupted the captured value with "Acquiring/Releasing
+# state lock" messages that Terraform prints to stdout.
 expected_subscription="$(
-  terraform -chdir="$TERRAFORM_DIR" console -var-file="${ENV_NAME}.tfvars" \
-    <<< 'var.expected_subscription_id' 2>/dev/null | tr -d '"[:space:]'
+  grep -E '^[[:space:]]*expected_subscription_id[[:space:]]*=' "${TERRAFORM_DIR}/${ENV_NAME}.tfvars" \
+    | sed -E 's/^[^=]*=[[:space:]]*"([^"]*)".*$/\1/'
 )"
 [[ -n "$expected_subscription" ]] || fail "could not read expected_subscription_id from ${ENV_NAME}.tfvars"
 
