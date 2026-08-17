@@ -36,7 +36,7 @@ env:
     value: "8081"
   - name: RTSA_METRICS_PORT
     value: "9090"
-  - name: RTSA_TLS_ENABLED
+  - name: RTSA_REDPANDA_TLS_ENABLED
     value: "false" # in-mesh mTLS is enforced by Istio, not the app, in dev
   - name: RTSA_LOG_LEVEL
     value: info

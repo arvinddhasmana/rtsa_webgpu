@@ -48,16 +48,16 @@ env:
 probes:
   liveness:
     enabled: true
-    httpGet:
-      path: /healthz
-      port: health
+    # svc-fusion-engine only serves a gRPC health check (grpc_health_v1) on the
+    # gRPC port; it never starts an HTTP server, so an httpGet probe always fails.
+    grpc:
+      port: 50051
     initialDelaySeconds: 5
     periodSeconds: 10
   readiness:
     enabled: true
-    httpGet:
-      path: /healthz
-      port: health
+    grpc:
+      port: 50051
     initialDelaySeconds: 5
     periodSeconds: 10
 

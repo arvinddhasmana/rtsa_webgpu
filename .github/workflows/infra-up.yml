@@ -85,6 +85,12 @@ jobs:
             --env "${{ inputs.environment }}" \
             --subscription-id "${{ vars.AZURE_SUBSCRIPTION_ID }}"
 
+      - name: Bootstrap dev Key Vault secrets (svc-webtransport JWT/TLS)
+        if: ${{ inputs.environment == 'dev' }}
+        working-directory: ${{ github.workspace }}
+        run: |
+          scripts/azure/bootstrap-dev-key-vault-secrets.sh --env dev
+
       - name: Sync Terraform outputs to GitHub Environment variables
         working-directory: ${{ github.workspace }}
         env:

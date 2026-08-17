@@ -54,6 +54,7 @@ flowchart LR
     D9 --> D10[10 Getting Started<br/>Zero → Production Guide]
     D10 --> D11[11 Multi-Subscription<br/>Analysis]
     D11 --> D12[12 Multi-Subscription<br/>Migration Plan]
+    D12 --> D13[13 Workload<br/>Deployment Design]
 ```
 
 | Doc                                            | Title                             | What it answers                                                               |
@@ -70,6 +71,7 @@ flowchart LR
 | [**10**](10-getting-started-guide.md)          | **Getting Started Guide**         | **Zero to production with automated infrastructure and workload gates**       |
 | [11](11-multi-subscription-analysis.md)        | Multi-Subscription Analysis       | Current-state gap analysis and architectural impact for per-env subscriptions |
 | [12](12-multi-subscription-migration-plan.md)  | Multi-Subscription Migration Plan | Detailed phase-wise execution plan and documentation delta map                |
+| [13](13-workload-deployment-design.md)         | Workload Deployment Design        | Existing Helm deploy design, gaps, and proposed target design                 |
 
 ## 4. Solution at a Glance
 

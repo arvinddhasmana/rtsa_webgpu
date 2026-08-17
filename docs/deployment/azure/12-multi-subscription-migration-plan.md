@@ -2,7 +2,7 @@
 
 # 12 - Multi-Subscription Implementation Plan (Phase-Wise Execution)
 
-> Parent: [README](README.md) · Prev: [11 Multi-Subscription Architecture Model](11-multi-subscription-analysis.md)
+> Parent: [README](README.md) · Prev: [11 Multi-Subscription Architecture Model](11-multi-subscription-analysis.md) · Next: [13 Workload Deployment Design](13-workload-deployment-design.md)
 > Classification: UNCLASSIFIED · Status: Implementation planning
 
 ---

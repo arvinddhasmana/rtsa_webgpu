@@ -24,7 +24,7 @@ RUN case "$TARGETARCH" in \
     mv "/tmp/wasm-pack-v0.13.1-${WASM_PACK_ARCH}-unknown-linux-musl/wasm-pack" /usr/local/bin/wasm-pack && \
     rm -rf "/tmp/wasm-pack-v0.13.1-${WASM_PACK_ARCH}-unknown-linux-musl"
 
-    WORKDIR /build
+WORKDIR /build
 COPY web-cop-gpu/wasm-decoder/ ./wasm-decoder/
 
 WORKDIR /build/wasm-decoder
@@ -72,6 +72,12 @@ ARG BUILD_ENV=production
 
 # Remove default config
 RUN rm /etc/nginx/conf.d/default.conf
+
+# The pod's securityContext runs the whole container as root but drops all
+# capabilities except NET_BIND_SERVICE. Stock nginx.conf's "user nginx;"
+# directive makes the master chown cache dirs to uid 101 at startup, which
+# needs CAP_CHOWN — remove the directive so nginx stays root end-to-end.
+RUN sed -i '/^user\s\+nginx;/d' /etc/nginx/nginx.conf
 
 # Generate Nginx config with environment-appropriate connect-src CSP directive.
 # Uses a shell RUN (not COPY<<heredoc) so that $BUILD_ENV can influence the output.
