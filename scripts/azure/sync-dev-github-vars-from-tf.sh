@@ -124,6 +124,12 @@ set_env_var() {
 }
 
 create_env_if_missing() {
+  # GET only needs "Environments: read"; the PUT (create/update protection
+  # rules) needs "Administration: write" on the PAT, so skip it when the
+  # environment already exists to avoid requiring that broader grant.
+  if gh api "repos/${REPO_SLUG}/environments/${ENV_NAME}" >/dev/null 2>&1; then
+    return 0
+  fi
   gh api --silent -X PUT "repos/${REPO_SLUG}/environments/${ENV_NAME}" >/dev/null
 }
 

@@ -89,14 +89,16 @@ jobs:
         working-directory: ${{ github.workspace }}
         env:
           # GITHUB_TOKEN can never manage Environments or Environment-scoped
-          # variables (no such permission scope exists for it) — a real PAT
-          # with repo "Environments: write" + "Variables: write" is required.
+          # variables (no such permission scope exists for it) — a real PAT is required.
+          # "Variables: write" covers reading/writing environment variables; the
+          # script only needs "Administration: write" the first time an environment
+          # (e.g. test/staging/prod) is created — existing environments (e.g. dev) skip that call.
           GH_TOKEN: ${{ secrets.GH_ENVIRONMENTS_PAT }}
         run: |
           if [[ -z "${GH_TOKEN:-}" ]]; then
             echo "ERROR: secrets.GH_ENVIRONMENTS_PAT is not set." >&2
             echo "GITHUB_TOKEN cannot create/update Environments or Environment variables (no such permission scope exists for it)." >&2
-            echo "Create a fine-grained PAT with repo 'Environments: write' + 'Variables: write' and store it as GH_ENVIRONMENTS_PAT." >&2
+            echo "Create a fine-grained PAT with repo 'Variables: write' (+ 'Administration: write' if the environment doesn't exist yet) and store it as GH_ENVIRONMENTS_PAT." >&2
             exit 1
           fi
           scripts/azure/sync-dev-github-vars-from-tf.sh \
