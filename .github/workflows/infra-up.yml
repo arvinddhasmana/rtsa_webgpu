@@ -17,7 +17,8 @@ on:
 permissions:
   id-token: write # OIDC to Azure for the azurerm provider
   contents: read
-  actions: write # Required for gh variable set via GITHUB_TOKEN
+  # Note: no GITHUB_TOKEN permission scope covers Environments or Environment
+  # variables — that step authenticates with a PAT (GH_ENVIRONMENTS_PAT) instead.
 
 concurrency:
   group: infra-${{ inputs.environment }}
@@ -87,8 +88,17 @@ jobs:
       - name: Sync Terraform outputs to GitHub Environment variables
         working-directory: ${{ github.workspace }}
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN can never manage Environments or Environment-scoped
+          # variables (no such permission scope exists for it) — a real PAT
+          # with repo "Environments: write" + "Variables: write" is required.
+          GH_TOKEN: ${{ secrets.GH_ENVIRONMENTS_PAT }}
         run: |
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "ERROR: secrets.GH_ENVIRONMENTS_PAT is not set." >&2
+            echo "GITHUB_TOKEN cannot create/update Environments or Environment variables (no such permission scope exists for it)." >&2
+            echo "Create a fine-grained PAT with repo 'Environments: write' + 'Variables: write' and store it as GH_ENVIRONMENTS_PAT." >&2
+            exit 1
+          fi
           scripts/azure/sync-dev-github-vars-from-tf.sh \
             --repo "${{ github.repository }}" \
             --environment "${{ inputs.environment }}"
