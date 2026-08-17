@@ -11,12 +11,16 @@ on:
       environment:
         description: Target environment.
         type: choice
-        options: [test, staging, prod]
+        options: [dev, test, staging, prod]
         required: true
       image-tag:
         description: Image tag to deploy (commit SHA already built by CD Build).
         type: string
         required: true
+      clean-before-deploy:
+        description: Uninstall all stateless service releases and force-delete stuck pods before deploying. Use to recover from a corrupted/stuck cluster state.
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -33,3 +37,4 @@ jobs:
       environment: ${{ inputs.environment }}
       image-tag: ${{ inputs.image-tag }}
       namespace: rtsa
+      clean-before-deploy: ${{ inputs.clean-before-deploy }}

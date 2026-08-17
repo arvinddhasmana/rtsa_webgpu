@@ -24,6 +24,10 @@ on:
         description: Whether to (re)deploy web-cop-gpu with image-tag.
         type: boolean
         default: true
+      clean-before-deploy:
+        description: Uninstall all stateless service releases and force-delete stuck pods before deploying. Use to recover from a corrupted/stuck cluster state.
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -125,6 +129,18 @@ jobs:
           helm upgrade --install clickhouse deploy/charts/clickhouse-dev \
             --namespace "$NS" --wait --timeout 10m
 
+      - name: Clean stateless services (optional)
+        if: ${{ inputs.clean-before-deploy }}
+        run: |
+          set -euo pipefail
+          for svc in svc-radar-ingestion svc-fusion-engine svc-track svc-query svc-webtransport web-cop-gpu; do
+            echo "::group::clean $svc"
+            helm uninstall "$svc" --namespace "$NS" --wait --timeout 5m || true
+            kubectl delete pods -n "$NS" -l app.kubernetes.io/instance="$svc" --force --grace-period=0 --ignore-not-found
+            kubectl delete replicaset -n "$NS" -l app.kubernetes.io/instance="$svc" --ignore-not-found
+            echo "::endgroup::"
+          done
+
       - name: Deploy stateless services
         env:
           GO_SERVICES: ${{ inputs.go-services }}
@@ -158,8 +174,13 @@ jobs:
               if ! helm status "$svc" --namespace "$NS" >/dev/null 2>&1; then
                 echo "Notice: Service $svc is not deployed to the cluster. Adding to deployment array."
                 services+=("$svc")
-                # We must deploy it with latest, not current PR TAG which doesn't exist for unmodified services
-                eval "${svc//-/_}_fallback_tag=latest"
+                # cd-build only ever pushes commit-SHA tags — no "latest" tag exists —
+                # so resolve the most recently pushed real tag for this service.
+                fallback_tag="$(scripts/azure/resolve-acr-tag.sh --acr "$ACR" --repository "$svc")" || {
+                  echo "ERROR: $svc is missing from the cluster and has no pushed image tag; build it first." >&2
+                  exit 1
+                }
+                eval "${svc//-/_}_fallback_tag=\$fallback_tag"
               fi
             fi
           done
@@ -213,8 +234,11 @@ jobs:
              echo "Skipping web-cop-gpu deployment as it's un-modified and already exists in cluster"
              exit 0
           elif [[ "${{ inputs.deploy-web }}" != "true" && "$is_deployed" == "false" ]]; then
-             echo "Notice: Falling back to latest tag for unmodified missing service web-cop-gpu"
-             svc_tag="latest"
+             svc_tag="$(scripts/azure/resolve-acr-tag.sh --acr "$ACR" --repository web-cop-gpu)" || {
+               echo "ERROR: web-cop-gpu is missing from the cluster and has no pushed image tag; build it first." >&2
+               exit 1
+             }
+             echo "Notice: Falling back to $svc_tag (most recent pushed tag) for unmodified missing service web-cop-gpu"
           fi
 
           helm upgrade --install web-cop-gpu deploy/charts/rtsa-service \
@@ -248,8 +272,11 @@ jobs:
              echo "Skipping svc-webtransport deployment as it's un-modified and already exists in cluster"
              exit 0
           elif [[ "$is_changed" != "true" && "$is_deployed" == "false" ]]; then
-             echo "Notice: Falling back to latest tag for unmodified missing service svc-webtransport"
-             svc_tag="latest"
+             svc_tag="$(scripts/azure/resolve-acr-tag.sh --acr "$ACR" --repository svc-webtransport)" || {
+               echo "ERROR: svc-webtransport is missing from the cluster and has no pushed image tag; build it first." >&2
+               exit 1
+             }
+             echo "Notice: Falling back to $svc_tag (most recent pushed tag) for unmodified missing service svc-webtransport"
           fi
 
           helm upgrade --install svc-webtransport deploy/charts/rtsa-service \
