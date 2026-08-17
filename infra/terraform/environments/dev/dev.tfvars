@@ -18,22 +18,29 @@ law_name              = "log-rtsa-shared-cc"
 # canadacentral constraints:
 #   • No AZ support for these VM SKUs → zones = []
 #   • Subscription restricts to ARM-architecture VMs (Ampere / p-series)
-#   • Only "Standard Dpdsv6 Family" has quota (0/10 vCPU) → use Standard_D2pds_v6
-#   • Total Regional vCPUs = 10; min cluster = system(1×2) + stateful(1×2) = 4 vCPU
+#   • Standard Dpdsv6 Family regular quota = 20 vCPU (plenty of headroom)
+#   • Total Regional Low-priority (Spot) vCPUs is capped at 3 — a subscription-wide
+#     default identical in every region (verified: eastus/eastus2/centralus/westus2/
+#     canadaeast all show the same 3-vCPU cap). A single scale-to-zero Spot pool
+#     already uses 2 of those 3 vCPUs, leaving no headroom for a second Spot pool
+#     to scale up — this is what caused "FailedScheduling"/"backoff after failed
+#     scale-up" for svc-fusion-engine/svc-track/svc-webtransport. Moving region
+#     does NOT fix this; only a quota increase request or dropping Spot does.
+#     Bulkhead pools below use Regular priority to sidestep the Spot cap entirely.
 aks_sku_tier          = "Free"
-system_node_vm_size   = "Standard_D2pds_v6" # ARM v6; quota: Dpdsv6 family = 0/10
+system_node_vm_size   = "Standard_D2pds_v6" # ARM v6; quota: Dpdsv6 family = 6/20
 system_node_min_count = 1
 system_node_max_count = 2
 system_node_zones     = [] # canadacentral: no AZ support for this SKU
 
-# Bulkhead pools: ingestion/processing on Spot (scale-to-zero), stateful on-demand.
-# All pools use D2pds_v6 to stay within the 10 total regional vCPU limit.
+# Bulkhead pools: ingestion/processing/stateful all on-demand (Regular priority).
+# All pools use D2pds_v6; regular Dpdsv6 quota (20 vCPU) has ample headroom.
 additional_node_pools = {
   ingest = {
     vm_size   = "Standard_D2pds_v6" # ARM v6; scale-to-zero (min=0 so no vCPU at idle)
     min_count = 0
     max_count = 1
-    priority  = "Spot"
+    priority  = "Regular" # was Spot; the 3-vCPU low-priority cap blocked concurrent scale-up
     zones     = [] # canadacentral: no AZ support
     labels    = { workload = "ingestion" }
     taints    = ["workload=ingestion:NoSchedule"]
@@ -42,7 +49,7 @@ additional_node_pools = {
     vm_size   = "Standard_D2pds_v6" # ARM v6; scale-to-zero (min=0 so no vCPU at idle)
     min_count = 0
     max_count = 1
-    priority  = "Spot"
+    priority  = "Regular" # was Spot; the 3-vCPU low-priority cap blocked concurrent scale-up
     zones     = [] # canadacentral: no AZ support
     labels    = { workload = "processing" }
     taints    = ["workload=processing:NoSchedule"]
