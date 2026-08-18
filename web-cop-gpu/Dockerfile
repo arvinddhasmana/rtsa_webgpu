@@ -62,7 +62,7 @@ ENV VITE_WEBTRANSPORT_URL=${VITE_WEBTRANSPORT_URL}
 RUN pnpm run build:demo
 
 # ── Stage 3: Nginx runtime ──────────────────────────────────
-FROM nginx:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:alpine AS runtime
 
 # Build environment selector.
 # "development" — connect-src additionally allows http://localhost:* and ws://localhost:*
@@ -73,14 +73,6 @@ ARG BUILD_ENV=production
 # Remove default config
 RUN rm /etc/nginx/conf.d/default.conf
 
-# The pod's securityContext runs the whole container as root but drops all
-# capabilities except NET_BIND_SERVICE. Alpine's nginx package is compiled with
-# a default user of "nginx" (uid 101) even with no "user" directive present, so
-# removing the directive isn't enough — it must be explicitly set to "root" or
-# the master still tries to chown cache dirs to uid 101, which needs CAP_CHOWN.
-# Alpine's sed is BusyBox sed (no GNU \s/\+ extensions) — keep the pattern POSIX BRE only.
-RUN sed -i 's/^user.*nginx;.*/user root;/' /etc/nginx/nginx.conf
-
 # Generate Nginx config with environment-appropriate connect-src CSP directive.
 # Uses a shell RUN (not COPY<<heredoc) so that $BUILD_ENV can influence the output.
 RUN if [ "$BUILD_ENV" = "development" ]; then \
@@ -90,7 +82,7 @@ RUN if [ "$BUILD_ENV" = "development" ]; then \
     fi && \
     cat > /etc/nginx/conf.d/rtsa-cop.conf <<NGINX_EOF
 server {
-    listen       80;
+    listen       8080;
     server_name  _;
     root         /usr/share/nginx/html;
     index        index.html;

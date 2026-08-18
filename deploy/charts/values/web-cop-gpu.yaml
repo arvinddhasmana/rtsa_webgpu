@@ -3,14 +3,14 @@
 nameOverride: web-cop-gpu
 replicaCount: 2
 
-# nginx serves on :80; no gRPC/metrics ports.
+# nginx serves on :8080 (unprivileged); no gRPC/metrics ports.
 ports:
   grpc: null
   health: null
   metrics: null
 extraPorts:
   - name: http
-    containerPort: 80
+    containerPort: 8080
 
 service:
   enabled: true
@@ -27,25 +27,22 @@ tolerations:
     operator: Exists
     effect: NoSchedule
 
-# nginx master needs to bind :80; run as root but drop all caps except
-# NET_BIND_SERVICE. Writable root FS for nginx cache/run.
+# Run as non-root unprivileged user (101) with read-only root FS capability and dropped capabilities.
 podSecurityContext:
-  runAsNonRoot: false
-  runAsUser: 0
-  runAsGroup: 0
-  fsGroup: 0
+  runAsNonRoot: true
+  runAsUser: 101
+  runAsGroup: 101
+  fsGroup: 101
   seccompProfile:
     type: RuntimeDefault
 securityContext:
   allowPrivilegeEscalation: false
   privileged: false
   readOnlyRootFilesystem: false
-  runAsNonRoot: false
+  runAsNonRoot: true
   capabilities:
     drop:
       - ALL
-    add:
-      - NET_BIND_SERVICE
 
 metrics:
   enabled: false
