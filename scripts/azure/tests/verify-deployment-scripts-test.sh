@@ -37,6 +37,7 @@ case "$args" in
   *" account show "*" --query id "*) echo "00000000-0000-0000-0000-000000000001" ;;
   *" account show "*|*" account set "*) exit 0 ;;
   *" keyvault show "*) echo "/subscriptions/example/resourceGroups/example/providers/Microsoft.KeyVault/vaults/kv-rtsa-dev" ;;
+  *" acr repository show-tags "*) echo "sha-test" ;;
   *" group show "*) echo "Succeeded" ;;
   *" aks nodepool list "*) exit 0 ;;
   *" aks get-credentials "*)
@@ -69,7 +70,11 @@ cat >"${FAKE_BIN}/helm" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 if [[ " $* " == *" status "* ]]; then
-  echo '{"info": {"status": "deployed"}}'
+  if [[ "${TEST_HELM_FAILED:-false}" == "true" ]]; then
+    echo '{"info": {"status": "failed"}}'
+  else
+    echo '{"info": {"status": "deployed"}}'
+  fi
 fi
 EOF
 
@@ -113,6 +118,14 @@ fi
 
 bash "$WORKLOAD_SCRIPT" --namespace rtsa --expected-image-tag sha-test \
   --timeout 1s >/dev/null || fail "workload happy path"
+
+TEST_HELM_FAILED=true
+export TEST_HELM_FAILED
+resolved_tag="$(bash "${REPO_ROOT}/scripts/azure/resolve-deploy-tag.sh" \
+  --acr acr-test --service svc-webtransport --namespace rtsa 2>/dev/null)"
+[[ "$resolved_tag" == "sha-test" ]] || \
+  fail "failed Helm release was not scheduled for same-tag recovery"
+unset TEST_HELM_FAILED
 
 if bash "$WORKLOAD_SCRIPT" --namespace rtsa --expected-image-tag sha-wrong \
   --timeout 1s >/dev/null 2>&1; then

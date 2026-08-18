@@ -57,6 +57,18 @@ if [[ -z "$current_image" ]]; then
   exit 0
 fi
 
+# A Helm --wait timeout can leave the release itself in failed state even after
+# its Deployment becomes healthy. The image tag is then unchanged, so comparing
+# images alone would skip the upgrade forever and the post-deploy verifier would
+# keep failing. Redeploy the same tag once to create a successful Helm revision.
+helm_status="$(helm status "$SERVICE" --namespace "$NAMESPACE" -o json 2>/dev/null |
+  jq -r '.info.status // empty' 2>/dev/null || true)"
+if [[ "$helm_status" == "failed" ]]; then
+  echo "NOTICE: $SERVICE has failed Helm release status - redeploying latest ACR tag ($latest_tag) to recover it." >&2
+  echo "$latest_tag"
+  exit 0
+fi
+
 current_tag="${current_image##*:}"
 if [[ "$current_tag" == "$latest_tag" ]]; then
   echo "NOTICE: $SERVICE is already running the latest ACR tag ($latest_tag) — skipping." >&2
