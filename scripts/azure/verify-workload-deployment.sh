@@ -147,10 +147,20 @@ for deployment in "${deployments[@]}"; do
   kube --namespace "$NAMESPACE" rollout status "deployment/${deployment}" --timeout="$TIMEOUT"
 done
 
-unhealthy_pods="$(kube get pods --namespace "$NAMESPACE" \
-    -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.phase}{"\t"}{range .status.containerStatuses[*]}{.ready}{" "}{end}{"\n"}{end}' |
-  awk '$2 != "Running" && $2 != "Succeeded" { print $1 ":" $2; next } $2 == "Running" && $0 ~ /false/ { print $1 ":NotReady" }'
-)"
+unhealthy_pods="$(kube get pods --namespace "$NAMESPACE" -o json |
+  jq -r '
+    .items[] |
+    .metadata.name as $name |
+    .status.phase as $phase |
+    (((.status.containerStatuses // []) +
+      (.status.initContainerStatuses // [] | map(select(.name == "istio-proxy"))))
+      | map(.ready == false) | any) as $not_ready |
+    if $phase != "Running" and $phase != "Succeeded" then
+      "\($name):\($phase)"
+    elif $not_ready then
+      "\($name):NotReady"
+    else empty end'
+  )"
 
 if [[ -n "$unhealthy_pods" ]]; then
   # Filter out unhealthy pods that belong to unchanged deployments
@@ -203,7 +213,7 @@ for deployment in "${deployments[@]}"; do
   fi
   pod_containers="$(kube get pods --namespace "$NAMESPACE" \
     --selector="app.kubernetes.io/instance=${deployment}" \
-    -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.name}{" "}{end}{end}')"
+    -o json | jq -r '[.items[] | (.spec.containers[]?.name), (.spec.initContainers[]?.name)] | .[]' | tr '\n' ' ')"
   [[ "$pod_containers" == *"istio-proxy"* ]] || fail "Istio sidecar missing from pods for ${deployment}"
 done
 

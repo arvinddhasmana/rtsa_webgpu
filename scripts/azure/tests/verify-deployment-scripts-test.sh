@@ -89,7 +89,12 @@ case "$args" in
   *" get namespace "*) exit 0 ;;
   *" get serviceaccount svc-webtransport "*) echo "11111111-1111-1111-1111-111111111111" ;;
   *" get deployment "*) echo "example.azurecr.io/service:sha-test" ;;
-  *" get pods "*"--selector="*) echo "service istio-proxy" ;;
+  *" get pods "*"--selector="*)
+    echo '{"items":[{"spec":{"containers":[{"name":"service"}],"initContainers":[{"name":"istio-proxy"}]}}]}'
+    ;;
+  *" get pods "*"-o json"*)
+    echo '{"items":[{"metadata":{"name":"pod-1"},"status":{"phase":"Running","containerStatuses":[{"ready":true}]}}]}'
+    ;;
   *" get pods "*"jsonpath"*) echo $'pod-1\tRunning\ttrue true' ;;
   *" get pods "*) echo "pod-1 Running" ;;
   *" get nodes "*) echo "node-1 Ready" ;;
