@@ -30,7 +30,7 @@ law_name              = "log-rtsa-shared-cc"
 aks_sku_tier          = "Free"
 system_node_vm_size   = "Standard_D2pds_v6" # ARM v6; quota: Dpdsv6 family = 6/20
 system_node_min_count = 1
-system_node_max_count = 2
+system_node_max_count = 3
 system_node_zones     = [] # canadacentral: no AZ support for this SKU
 
 # Bulkhead pools: ingestion/processing/stateful all on-demand (Regular priority).
