@@ -20,6 +20,7 @@ extraPorts:
 
 service:
   enabled: true
+  type: LoadBalancer
   extraPorts:
     - name: webtransport
       port: 4443
