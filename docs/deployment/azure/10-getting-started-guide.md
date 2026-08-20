@@ -1068,7 +1068,7 @@ last two `__SET_ME__` variables:
 
 ```bash
 # Get the Istio gateway external IP
-GATEWAY_IP=$(kubectl get svc istio-ingressgateway -n istio-system \
+GATEWAY_IP=$(kubectl get svc aks-istio-ingressgateway-external -n aks-istio-ingress \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # Get the WebTransport service external IP (UDP/443)

@@ -15,7 +15,7 @@ CLICKHOUSE_PASSWORD="${CLICKHOUSE_PASSWORD:-dev_password_change_me}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-MIGRATIONS_DIR="${REPO_ROOT}/deploy/clickhouse/migrations"
+MIGRATIONS_DIR="${REPO_ROOT}/deploy/charts/clickhouse-dev/migrations"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -77,12 +77,15 @@ create_database() {
     && log_pass "Database '${CLICKHOUSE_DATABASE}' created/verified"
 }
 
-# ─────────────────────────────────────────────────────────────
-# Run inline schema for core RTSA tables
-# See: docs/sdlc_guidelines/08_tech_specific/clickhouse_guidelines.md
-# ─────────────────────────────────────────────────────────────
 apply_inline_schema() {
-  log_info "Applying core RTSA schema..."
+  # Core tables are maintained in deploy/clickhouse/migrations/001_initial_schema.sql.
+  # Keep this function name for callers of older local tooling while ensuring the
+  # local and Azure paths use the same migration files.
+  return 0
+}
+
+old_inline_schema() {
+  log_info "Applying legacy inline schema..."
 
   # sensor_observations table
   ch_query_db "
@@ -296,7 +299,6 @@ main() {
 
   wait_for_clickhouse
   create_database
-  apply_inline_schema
   apply_migration_files
   verify_schema
 

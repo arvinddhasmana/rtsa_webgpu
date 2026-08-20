@@ -1,7 +1,7 @@
 # CLASSIFICATION: UNCLASSIFIED
 {{- if .Values.topics.create }}
 # Post-install/upgrade Job that provisions the RTSA topics once the broker is
-# ready. Idempotent (|| true) so re-runs are safe.
+# ready. Existing topics are accepted only after explicit verification.
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -54,8 +54,17 @@ spec:
                 sleep 2
               done
               echo "broker ready; creating topics"
-              {{- range .Values.topics.list }}
-              rpk topic create {{ . }} --brokers "${BROKER}" -p {{ $.Values.topics.partitions }} -r {{ $.Values.topics.replicas }} || true
+              {{- $manifest := fromJson (.Files.Get "topics.json") }}
+              {{- range $topic := $manifest.topics }}
+              if ! rpk topic create {{ $topic.name }} --brokers "${BROKER}" -p {{ $topic.partitions }} -r {{ $topic.replicas }}; then
+                if rpk topic describe {{ $topic.name }} --brokers "${BROKER}" >/dev/null 2>&1; then
+                  echo "topic {{ $topic.name }} already exists"
+                else
+                  echo "failed to create or verify topic {{ $topic.name }}" >&2
+                  exit 1
+                fi
+              fi
+              rpk topic alter-config {{ $topic.name }} --brokers "${BROKER}" --set retention.ms={{ printf "%.0f" $topic.retention_ms }}
               {{- end }}
               echo "topic bootstrap complete"
           resources:

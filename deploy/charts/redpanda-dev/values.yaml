@@ -71,22 +71,8 @@ affinity: {}
 # Redpanda terminates plaintext in-cluster; Istio mTLS wraps the traffic.
 serviceType: ClusterIP
 
-# The topics the RTSA walking skeleton expects. A one-shot Job creates them.
+# Topic bootstrap is driven by topics.json, shared with the local initializer.
 topics:
   create: true
-  partitions: 1
-  replicas: 1
-  list:
-    - sensors.radar.tracks
-    - sensors.ew.tracks
-    - sensors.elint.tracks
-    - sensors.isr.tracks
-    - sensors.ais.tracks
-    - sensors.cyber.tracks
-    - tracks.fused.surface
-    - tracks.fused.air
-    - tracks.fused.subsurface
-    - tracks.fused.land
-    - tracks.fused.cyber
 
 terminationGracePeriodSeconds: 60

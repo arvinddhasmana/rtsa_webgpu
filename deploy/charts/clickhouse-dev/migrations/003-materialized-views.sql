@@ -1,9 +1,7 @@
 -- CLASSIFICATION: UNCLASSIFIED
 -- ClickHouse Migration: 003-materialized-views.sql
--- Description: Adds materialized views required for the UI dashboards using actual tables
+-- Adds materialized views required for the UI dashboards using actual tables.
 
--- 1. mv_active_tracks_by_domain (10s granularity)
--- Pre-aggregates entity track updates by domain (AIR, SURFACE, etc.) every 10 seconds.
 CREATE MATERIALIZED VIEW IF NOT EXISTS rtsa.mv_active_tracks_by_domain
 ENGINE = SummingMergeTree()
 PARTITION BY toYYYYMMDD(interval_start)
@@ -17,8 +15,6 @@ SELECT
 FROM rtsa.tracks_fused
 GROUP BY entity_type, interval_start;
 
--- 2. mv_sensor_throughput_5min (rolling sensor observation rates)
--- Pre-aggregates sensor events by type over 5-minute rolling windows.
 CREATE MATERIALIZED VIEW IF NOT EXISTS rtsa.mv_sensor_throughput_5min
 ENGINE = SummingMergeTree()
 PARTITION BY toYYYYMMDD(interval_start)
@@ -33,9 +29,6 @@ SELECT
 FROM rtsa.sensor_observations
 GROUP BY sensor_type, interval_start;
 
--- 3. mv_alert_ack_latency (time-to-acknowledge by severity)
--- Pre-aggregates the count of acknowledged alerts by classification.
--- Uses lowercase resource_type and action values to match actual audit event data.
 CREATE MATERIALIZED VIEW IF NOT EXISTS rtsa.mv_alert_ack_latency
 ENGINE = SummingMergeTree()
 PARTITION BY toYYYYMMDD(interval_start)

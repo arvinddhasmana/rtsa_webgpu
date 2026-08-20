@@ -57,7 +57,6 @@ resource "azurerm_federated_identity_credential" "workload" {
   for_each = var.workloads
 
   name                = "fic-${each.key}"
-  resource_group_name = var.resource_group_name
   parent_id           = azurerm_user_assigned_identity.workload[each.key].id
   audience            = ["api://AzureADTokenExchange"]
   issuer              = var.oidc_issuer_url

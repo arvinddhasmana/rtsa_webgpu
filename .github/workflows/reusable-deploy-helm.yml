@@ -83,13 +83,6 @@ jobs:
           set -x
           kubectl get nodes -o wide || true
           kubectl describe node || true
-          # cascade=orphan only deletes the StatefulSet object; the underlying
-          # Pod is left running/Pending and gets reused (with its stale spec) by
-          # the next helm upgrade unless we force-delete it too.
-          kubectl delete statefulset redpanda --namespace "$NS" --cascade=orphan || true
-          kubectl delete pod redpanda-0 --namespace "$NS" --force --grace-period=0 || true
-          kubectl delete pvc data-redpanda-0 --namespace "$NS" || true
-          kubectl delete job redpanda-create-topics --namespace "$NS" || true
           helm upgrade --install redpanda deploy/charts/redpanda-dev \
             --namespace "$NS" --wait --timeout 10m || {
               echo "=== Pod status in $NS ==="
@@ -108,11 +101,6 @@ jobs:
 
       - name: Deploy ClickHouse (OLAP store)
         run: |
-          # See Redpanda step above: force-delete the orphaned pod too, or it
-          # gets reused with its stale (pre-fix) spec on every subsequent upgrade.
-          kubectl delete statefulset clickhouse --namespace "$NS" --cascade=orphan || true
-          kubectl delete pod clickhouse-0 --namespace "$NS" --force --grace-period=0 || true
-          kubectl delete pvc data-clickhouse-0 --namespace "$NS" || true
           helm upgrade --install clickhouse deploy/charts/clickhouse-dev \
             --namespace "$NS" --wait --timeout 10m
 
@@ -131,9 +119,9 @@ jobs:
       - name: Deploy stateless services
         run: |
           set -uo pipefail
-          # Universal rule for every stateless service:
-          #   a. not deployed yet -> deploy the latest tag pushed to ACR.
-          #   b. already deployed -> only redeploy if ACR has a newer tag than what's running.
+          # Helm values and rendered manifests are the deployment source of truth.
+          # Images are immutable commit-SHA tags, so IfNotPresent remains safe.
+          svc_tag="${GITHUB_SHA}"
           all_stateless_services=(
             svc-radar-ingestion
             svc-fusion-engine
@@ -146,18 +134,6 @@ jobs:
           failed_services=()
           for svc in "${all_stateless_services[@]}"; do
             echo "::group::$svc"
-
-            if svc_tag="$(scripts/azure/resolve-deploy-tag.sh --acr "$ACR" --service "$svc" --namespace "$NS")"; then
-              : # deploy needed, svc_tag holds the resolved ACR tag
-            else
-              rc=$?
-              echo "::endgroup::"
-              if [[ $rc -eq 3 ]]; then
-                continue
-              fi
-              failed_services+=("$svc")
-              continue
-            fi
 
             extra_args=()
             if [[ "$svc" == "svc-webtransport" ]]; then

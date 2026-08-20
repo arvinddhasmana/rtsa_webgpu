@@ -1,6 +1,6 @@
 # CLASSIFICATION: UNCLASSIFIED
-# CD Build — on merge to main (or tag / manual), build only the changed service
-# images, sign + scan them, and push to ACR. Promotion downstream is by digest.
+# CD Build — on merge to main (or tag / manual), build all service images with
+# the immutable commit SHA, sign + scan them, and push to ACR.
 name: CD Build
 
 on:
@@ -63,12 +63,10 @@ jobs:
           force = (os.environ.get("SHARED")=="true"
                    or os.environ.get("EVENT")=="workflow_dispatch"
                    or os.environ.get("REF","").startswith("refs/tags/"))
-          if force:
-              go = go_all
-              web = True
-          else:
-              go = [s for s in go_all if s in changed]
-              web = "web-cop-gpu" in changed
+            # Helm deploys every service with github.sha. Build every image so
+            # unchanged services also have an image for that immutable tag.
+            go = go_all
+            web = True
           print("go=" + json.dumps(go))
           print("web=" + ("true" if web else "false"))
           PY

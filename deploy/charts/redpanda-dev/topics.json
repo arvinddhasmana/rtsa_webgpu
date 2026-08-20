@@ -1,0 +1,167 @@
+{
+    "classification": "UNCLASSIFIED",
+    "topics": [
+        {
+            "name": "sensors.radar.tracks",
+            "partitions": 3,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "sensors.ew.intercepts",
+            "partitions": 3,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "sensors.elint.detections",
+            "partitions": 3,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "sensors.isr.observations",
+            "partitions": 3,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "sensors.ais.positions",
+            "partitions": 3,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "sensors.cyber.iocs",
+            "partitions": 3,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "dlq.sensors.radar",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "dlq.sensors.ew",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "dlq.sensors.elint",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "dlq.sensors.isr",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "dlq.sensors.ais",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "dlq.sensors.cyber",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "tracks.fused.surface",
+            "partitions": 3,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "tracks.fused.air",
+            "partitions": 3,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "tracks.fused.subsurface",
+            "partitions": 3,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "tracks.fused.land",
+            "partitions": 3,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "tracks.fused.cyber",
+            "partitions": 3,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "alerts.anomaly.critical",
+            "partitions": 2,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "alerts.anomaly.elevated",
+            "partitions": 2,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "alerts.anomaly.watch",
+            "partitions": 2,
+            "retention_ms": 172800000,
+            "replicas": 1
+        },
+        {
+            "name": "feedback.operator.submissions",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "feedback.operator.validated",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "audit.events",
+            "partitions": 2,
+            "retention_ms": 2592000000,
+            "replicas": 1
+        },
+        {
+            "name": "nato.exchange.inbound",
+            "partitions": 1,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "nato.exchange.outbound",
+            "partitions": 1,
+            "retention_ms": 86400000,
+            "replicas": 1
+        },
+        {
+            "name": "models.anomaly.candidates",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        },
+        {
+            "name": "models.anomaly.published",
+            "partitions": 1,
+            "retention_ms": 604800000,
+            "replicas": 1
+        }
+    ]
+}
