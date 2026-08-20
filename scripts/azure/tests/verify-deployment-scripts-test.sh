@@ -92,10 +92,10 @@ case "$args" in
   *" get pods "*"--selector="*)
     echo '{"items":[{"spec":{"containers":[{"name":"service"}],"initContainers":[{"name":"istio-proxy"}]}}]}'
     ;;
+  *" get pods "*"jsonpath"*) echo $'pod-1\tRunning\ttrue true' ;;
   *" get pods "*"-o json"*)
     echo '{"items":[{"metadata":{"name":"pod-1"},"status":{"phase":"Running","containerStatuses":[{"ready":true}]}}]}'
     ;;
-  *" get pods "*"jsonpath"*) echo $'pod-1\tRunning\ttrue true' ;;
   *" get pods "*) echo "pod-1 Running" ;;
   *" get nodes "*) echo "node-1 Ready" ;;
   *" get events "*) exit 0 ;;
@@ -111,13 +111,18 @@ WORKLOAD_SCRIPT="${REPO_ROOT}/scripts/azure/verify-workload-deployment.sh"
 SECRET_BOOTSTRAP_SCRIPT="${REPO_ROOT}/scripts/azure/bootstrap-dev-key-vault-secrets.sh"
 TF_DIR="${REPO_ROOT}/infra/terraform/environments/dev"
 TEST_SUBSCRIPTION="00000000-0000-0000-0000-000000000001"
+TEST_TF_DIR="$(mktemp -d)"
+trap 'rm -rf "$FAKE_BIN" "$TEST_TF_DIR"' EXIT
+cp "${TF_DIR}/dev.tfvars" "${TEST_TF_DIR}/dev.tfvars"
+sed -i "s/^expected_subscription_id[[:space:]]*=.*/expected_subscription_id = \"${TEST_SUBSCRIPTION}\"/" \
+  "${TEST_TF_DIR}/dev.tfvars"
 
 bash "$INFRA_SCRIPT" --env dev --subscription-id "$TEST_SUBSCRIPTION" \
-  --terraform-dir "$TF_DIR" --timeout 1s >/dev/null || fail "infrastructure happy path"
+  --terraform-dir "$TEST_TF_DIR" --timeout 1s >/dev/null || fail "infrastructure happy path"
 
 if bash "$INFRA_SCRIPT" --env dev \
   --subscription-id "00000000-0000-0000-0000-000000000002" \
-  --terraform-dir "$TF_DIR" >/dev/null 2>&1; then
+  --terraform-dir "$TEST_TF_DIR" >/dev/null 2>&1; then
   fail "infrastructure subscription mismatch was accepted"
 fi
 
@@ -137,10 +142,10 @@ if bash "$WORKLOAD_SCRIPT" --namespace rtsa --expected-image-tag sha-wrong \
   fail "incorrect workload image tag was accepted"
 fi
 
-bash "$SECRET_BOOTSTRAP_SCRIPT" --env dev --terraform-dir "$TF_DIR" \
+bash "$SECRET_BOOTSTRAP_SCRIPT" --env dev --terraform-dir "$TEST_TF_DIR" \
   --dry-run >/dev/null || fail "development secret bootstrap dry run"
 
-if bash "$SECRET_BOOTSTRAP_SCRIPT" --env prod --terraform-dir "$TF_DIR" \
+if bash "$SECRET_BOOTSTRAP_SCRIPT" --env prod --terraform-dir "$TEST_TF_DIR" \
   --dry-run >/dev/null 2>&1; then
   fail "development secret bootstrap accepted prod"
 fi

@@ -81,10 +81,15 @@ if [[ ! -d "$TERRAFORM_DIR" ]]; then
   exit 1
 fi
 
+tfvars_path="${TERRAFORM_DIR}/${ENV_NAME}.tfvars"
+if [[ ! -f "$tfvars_path" ]]; then
+  echo "ERROR: Terraform variables file not found: $tfvars_path" >&2
+  exit 1
+fi
+
 expected_subscription="$(
-  printf 'var.expected_subscription_id\n' |
-    terraform -chdir="$TERRAFORM_DIR" console -var-file="${ENV_NAME}.tfvars" 2>/dev/null |
-    tr -d '"[:space:]'
+  grep -E '^[[:space:]]*expected_subscription_id[[:space:]]*=' "$tfvars_path" |
+    sed -E 's/^[^=]*=[[:space:]]*"([^"]*)".*$/\1/'
 )"
 current_subscription="$(az account show --query id -o tsv)"
 
