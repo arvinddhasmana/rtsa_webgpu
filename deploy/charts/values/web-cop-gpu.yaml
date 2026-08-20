@@ -18,9 +18,13 @@ service:
     - name: http
       port: 80
       targetPort: http
+  type: ClusterIP
 
 # The frontend tier runs on the default system pool (no bulkhead taint),
 # but needs to tolerate the critical addons taint applied to it.
+istio:
+  enabled: false
+
 nodeSelector: {}
 tolerations:
   - key: CriticalAddonsOnly

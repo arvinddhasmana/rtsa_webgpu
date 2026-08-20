@@ -1,0 +1,26 @@
+# CLASSIFICATION: UNCLASSIFIED
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: rtsa-cop
+  namespace: {{ .Values.frontend.namespace }}
+  labels:
+    app.kubernetes.io/part-of: rtsa
+    classification: unclassified
+    {{- with .Values.gateway.revision }}
+    istio.io/rev: {{ . | quote }}
+    {{- end }}
+spec:
+  hosts:
+    - {{ .Values.host | quote }}
+  gateways:
+    - {{ .Values.gateway.namespace }}/rtsa-cop
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: {{ .Values.frontend.service }}.{{ .Values.frontend.namespace }}.svc.cluster.local
+            port:
+              number: {{ .Values.frontend.port }}

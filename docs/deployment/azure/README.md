@@ -55,23 +55,25 @@ flowchart LR
     D10 --> D11[11 Multi-Subscription<br/>Analysis]
     D11 --> D12[12 Multi-Subscription<br/>Migration Plan]
     D12 --> D13[13 Workload<br/>Deployment Design]
+    D13 --> D14[14 Azure Operations<br/>Access & Troubleshooting]
 ```
 
-| Doc                                            | Title                             | What it answers                                                               |
-| ---------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------- |
-| [01](01-current-state-and-gap-analysis.md)     | Current State & Gap Analysis      | What exists today; what is missing for Azure                                  |
-| [02](02-target-architecture.md)                | Target Azure Architecture         | The baseline event-driven architecture on AKS                                 |
-| [03](03-technology-options-and-decisions.md)   | Technology Options & Decisions    | Streaming, OLAP, mesh, ingress, secrets, observability trade-offs             |
-| [04](04-resiliency-and-well-architected.md)    | Resiliency & Well-Architected     | Five WAF pillars + rate limiting / circuit breakers / bulkheads               |
-| [05](05-devops-cicd-and-environments.md)       | DevOps, CI/CD & Environments      | GitHub Actions pipelines, environments, GitOps, promotion                     |
-| [06](06-iac-terraform-and-lifecycle.md)        | IaC (Terraform) & Lifecycle       | Module structure, remote state, spin-up/tear-down automation                  |
-| [07](07-implementation-roadmap.md)             | Implementation Roadmap            | Phased delivery with milestones and acceptance criteria                       |
-| [08](08-cost-model-and-teardown.md)            | Cost Model & Teardown             | Per-environment cost, ephemeral savings, cost governance                      |
-| [09](09-operator-runbook-manual-validation.md) | Operator Runbook                  | Setup, infra-up output mapping, and reusable deployment verification          |
-| [**10**](10-getting-started-guide.md)          | **Getting Started Guide**         | **Zero to production with automated infrastructure and workload gates**       |
-| [11](11-multi-subscription-analysis.md)        | Multi-Subscription Analysis       | Current-state gap analysis and architectural impact for per-env subscriptions |
-| [12](12-multi-subscription-migration-plan.md)  | Multi-Subscription Migration Plan | Detailed phase-wise execution plan and documentation delta map                |
-| [13](13-workload-deployment-design.md)         | Workload Deployment Design        | Existing Helm deploy design, gaps, and proposed target design                 |
+| Doc                                                     | Title                             | What it answers                                                                             |
+| ------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------- |
+| [01](01-current-state-and-gap-analysis.md)              | Current State & Gap Analysis      | What exists today; what is missing for Azure                                                |
+| [02](02-target-architecture.md)                         | Target Azure Architecture         | The baseline event-driven architecture on AKS                                               |
+| [03](03-technology-options-and-decisions.md)            | Technology Options & Decisions    | Streaming, OLAP, mesh, ingress, secrets, observability trade-offs                           |
+| [04](04-resiliency-and-well-architected.md)             | Resiliency & Well-Architected     | Five WAF pillars + rate limiting / circuit breakers / bulkheads                             |
+| [05](05-devops-cicd-and-environments.md)                | DevOps, CI/CD & Environments      | GitHub Actions pipelines, environments, GitOps, promotion                                   |
+| [06](06-iac-terraform-and-lifecycle.md)                 | IaC (Terraform) & Lifecycle       | Module structure, remote state, spin-up/tear-down automation                                |
+| [07](07-implementation-roadmap.md)                      | Implementation Roadmap            | Phased delivery with milestones and acceptance criteria                                     |
+| [08](08-cost-model-and-teardown.md)                     | Cost Model & Teardown             | Per-environment cost, ephemeral savings, cost governance                                    |
+| [09](09-operator-runbook-manual-validation.md)          | Operator Runbook                  | Setup, infra-up output mapping, and reusable deployment verification                        |
+| [**10**](10-getting-started-guide.md)                   | **Getting Started Guide**         | **Zero to production with automated infrastructure and workload gates**                     |
+| [11](11-multi-subscription-analysis.md)                 | Multi-Subscription Analysis       | Current-state gap analysis and architectural impact for per-env subscriptions               |
+| [12](12-multi-subscription-migration-plan.md)           | Multi-Subscription Migration Plan | Detailed phase-wise execution plan and documentation delta map                              |
+| [13](13-workload-deployment-design.md)                  | Workload Deployment Design        | Existing Helm deploy design, gaps, and proposed target design                               |
+| [14](14-azure-operations-access-and-troubleshooting.md) | Azure Operations Guide            | Manual access, deployment verification, endpoint checks, health checks, and troubleshooting |
 
 ## 4. Solution at a Glance
 

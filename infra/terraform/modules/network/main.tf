@@ -1,9 +1,9 @@
 # CLASSIFICATION: UNCLASSIFIED
 # Network module — VNet + subnets + NSGs.
 #
-# NSGs carry no custom inbound allow rules: Azure's default security rules already
-# deny Internet-inbound while allowing intra-VNet and AzureLoadBalancer. AKS adds the
-# rules for LoadBalancer Services (incl. WebTransport UDP/443) automatically.
+# The AKS subnet needs an explicit allow for public HTTPS destined for the
+# managed Istio gateway. Azure's node-level LoadBalancer rule does not bypass
+# the subnet NSG's default inbound deny.
 
 resource "azurerm_virtual_network" "this" {
   name                = "vnet-${var.name_prefix}"
@@ -34,6 +34,20 @@ resource "azurerm_network_security_group" "aks" {
   location            = var.location
   resource_group_name = var.resource_group_name
   tags                = var.tags
+}
+
+resource "azurerm_network_security_rule" "aks_cop_https" {
+  name                        = "allow-rtsa-cop-https"
+  priority                    = 400
+  direction                   = "Inbound"
+  access                      = "Allow"
+  protocol                    = "Tcp"
+  source_port_range           = "*"
+  destination_port_range      = "443"
+  source_address_prefix       = "Internet"
+  destination_address_prefix  = "*"
+  resource_group_name         = var.resource_group_name
+  network_security_group_name = azurerm_network_security_group.aks.name
 }
 
 resource "azurerm_network_security_group" "pe" {

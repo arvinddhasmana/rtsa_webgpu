@@ -1,0 +1,6 @@
+# CLASSIFICATION: UNCLASSIFIED
+RTSA COP HTTPS gateway route is installed.
+
+Gateway: {{ .Values.gateway.namespace }}/rtsa-cop
+Frontend: {{ .Values.frontend.service }}.{{ .Values.frontend.namespace }}.svc.cluster.local:{{ .Values.frontend.port }}
+TLS secret: {{ .Values.gateway.namespace }}/{{ .Values.gateway.tlsSecretName }}

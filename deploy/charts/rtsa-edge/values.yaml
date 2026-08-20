@@ -1,0 +1,12 @@
+# CLASSIFICATION: UNCLASSIFIED
+host: "*"
+gateway:
+  namespace: aks-istio-ingress
+  revision: ""
+  selector:
+    istio: aks-istio-ingressgateway-external
+  tlsSecretName: rtsa-cop-tls
+frontend:
+  namespace: rtsa
+  service: web-cop-gpu
+  port: 80
