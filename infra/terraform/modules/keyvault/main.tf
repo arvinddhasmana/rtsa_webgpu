@@ -22,3 +22,12 @@ resource "azurerm_key_vault" "this" {
 
   tags = var.tags
 }
+
+resource "azurerm_role_assignment" "secrets_officer" {
+  count = var.secrets_officer_object_id == null ? 0 : 1
+
+  scope                = azurerm_key_vault.this.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = var.secrets_officer_object_id
+  principal_type       = "ServicePrincipal"
+}

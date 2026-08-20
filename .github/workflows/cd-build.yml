@@ -119,3 +119,4 @@ jobs:
     with:
       environment: dev
       namespace: rtsa
+      image-tag: ${{ github.sha }}

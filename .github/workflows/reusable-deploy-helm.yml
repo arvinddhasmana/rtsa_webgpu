@@ -12,6 +12,10 @@ on:
       namespace:
         type: string
         default: "rtsa"
+      image-tag:
+        description: Immutable image tag already pushed to ACR.
+        type: string
+        required: true
       clean-before-deploy:
         description: Uninstall all stateless service releases and force-delete stuck pods before deploying. Use to recover from a corrupted/stuck cluster state.
         type: boolean
@@ -121,7 +125,7 @@ jobs:
           set -uo pipefail
           # Helm values and rendered manifests are the deployment source of truth.
           # Images are immutable commit-SHA tags, so IfNotPresent remains safe.
-          svc_tag="${GITHUB_SHA}"
+          svc_tag="${{ inputs.image-tag }}"
           all_stateless_services=(
             svc-radar-ingestion
             svc-fusion-engine

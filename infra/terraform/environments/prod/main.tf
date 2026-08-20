@@ -19,6 +19,12 @@ data "azurerm_log_analytics_workspace" "shared" {
   resource_group_name = var.shared_resource_group
 }
 
+data "azurerm_user_assigned_identity" "deployer" {
+  provider            = azurerm.shared
+  name                = "id-${var.project}-${var.environment}-deployer"
+  resource_group_name = var.shared_resource_group
+}
+
 resource "random_string" "suffix" {
   length  = 6
   lower   = true
@@ -118,12 +124,13 @@ module "acr_access" {
 module "keyvault" {
   source = "../../modules/keyvault"
 
-  name                     = local.kv_name
-  location                 = var.location
-  resource_group_name      = azurerm_resource_group.env.name
-  tenant_id                = data.azurerm_client_config.current.tenant_id
-  purge_protection_enabled = var.key_vault_purge_protection
-  tags                     = local.base_tags
+  name                      = local.kv_name
+  location                  = var.location
+  resource_group_name       = azurerm_resource_group.env.name
+  tenant_id                 = data.azurerm_client_config.current.tenant_id
+  secrets_officer_object_id = data.azurerm_user_assigned_identity.deployer.principal_id
+  purge_protection_enabled  = var.key_vault_purge_protection
+  tags                      = local.base_tags
 }
 
 module "identity" {

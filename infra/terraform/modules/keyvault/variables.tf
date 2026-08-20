@@ -22,6 +22,13 @@ variable "tenant_id" {
   description = "Entra ID tenant GUID."
 }
 
+variable "secrets_officer_object_id" {
+  type        = string
+  description = "Object ID of the deployment principal allowed to bootstrap Key Vault secrets."
+  nullable    = true
+  default     = null
+}
+
 variable "sku_name" {
   type        = string
   description = "Key Vault SKU."

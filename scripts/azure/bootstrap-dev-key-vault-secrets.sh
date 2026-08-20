@@ -113,6 +113,26 @@ fi
 az keyvault show --resource-group "$resource_group" --name "$key_vault_name" \
   --query id -o tsv >/dev/null
 
+set_secret_from_file() {
+  local secret_name="$1"
+  local secret_file="$2"
+  local content_type="$3"
+
+  for attempt in 1 2 3 4 5; do
+    if az keyvault secret set --vault-name "$key_vault_name" --name "$secret_name" \
+      --file "$secret_file" --content-type "$content_type" --output none; then
+      return 0
+    fi
+    if [[ "$attempt" -lt 5 ]]; then
+      echo "Waiting for Key Vault RBAC propagation before retrying ${secret_name} (${attempt}/5)..." >&2
+      sleep 10
+    fi
+  done
+
+  echo "ERROR: failed to write Key Vault secret after 5 attempts: ${secret_name}" >&2
+  return 1
+}
+
 echo "Development Key Vault secret bootstrap"
 echo "  environment: $ENV_NAME"
 echo "  subscription: $current_subscription"
@@ -151,11 +171,8 @@ openssl req -x509 -newkey rsa:3072 -sha256 -nodes \
   -days "$VALID_DAYS" \
   -subj "/CN=svc-webtransport.rtsa.svc.cluster.local" >/dev/null 2>&1
 
-az keyvault secret set --vault-name "$key_vault_name" --name wt-jwt-secret \
-  --file "${secret_dir}/jwt" --content-type text/plain --output none
-az keyvault secret set --vault-name "$key_vault_name" --name wt-tls-crt \
-  --file "${secret_dir}/tls.crt" --content-type application/x-pem-file --output none
-az keyvault secret set --vault-name "$key_vault_name" --name wt-tls-key \
-  --file "${secret_dir}/tls.key" --content-type application/x-pem-file --output none
+set_secret_from_file wt-jwt-secret "${secret_dir}/jwt" text/plain
+set_secret_from_file wt-tls-crt "${secret_dir}/tls.crt" application/x-pem-file
+set_secret_from_file wt-tls-key "${secret_dir}/tls.key" application/x-pem-file
 
 echo "PASS: development WebTransport secrets are present in $key_vault_name."
