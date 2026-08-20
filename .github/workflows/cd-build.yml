@@ -63,10 +63,10 @@ jobs:
           force = (os.environ.get("SHARED")=="true"
                    or os.environ.get("EVENT")=="workflow_dispatch"
                    or os.environ.get("REF","").startswith("refs/tags/"))
-            # Helm deploys every service with github.sha. Build every image so
-            # unchanged services also have an image for that immutable tag.
-            go = go_all
-            web = True
+          # Helm deploys every service with github.sha. Build every image so
+          # unchanged services also have an image for that immutable tag.
+          go = go_all
+          web = True
           print("go=" + json.dumps(go))
           print("web=" + ("true" if web else "false"))
           PY
