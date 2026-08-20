@@ -128,9 +128,10 @@ jobs:
   deploy-dev:
     name: Deploy to dev
     needs: [changes, build-go, build-web]
-    # Run even if one build track was skipped (no changes there), but not if a
-    # build actually failed. dev auto-deploys on merge to main.
-    if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main' && needs.changes.outputs.has_changes == 'true'
+    # Reconcile Dev even when no image was built. This installs services that
+    # are missing from the cluster using their existing ACR tag, while changed
+    # services use the immutable SHA built above.
+    if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/reusable-deploy-helm.yml
     with:
       environment: dev

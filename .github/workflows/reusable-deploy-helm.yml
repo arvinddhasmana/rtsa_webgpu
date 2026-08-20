@@ -17,9 +17,13 @@ on:
         type: string
         required: true
       changed-services:
-        description: JSON array of services changed in the current build. Empty means deploy all services using image-tag.
+        description: JSON array of services changed in the current build. Missing releases are installed from their latest existing ACR tag.
         type: string
         default: "[]"
+      deploy-all-at-tag:
+        description: Deploy every service using image-tag. Use for explicit image promotion, not incremental Dev reconciliation.
+        type: boolean
+        default: false
       clean-before-deploy:
         description: Uninstall all stateless service releases and force-delete stuck pods before deploying. Use to recover from a corrupted/stuck cluster state.
         type: boolean
@@ -131,7 +135,7 @@ jobs:
           # stay untouched; missing releases use their latest existing ACR tag.
           svc_tag="${{ inputs.image-tag }}"
           changed_services='${{ inputs.changed-services }}'
-          all_services_mode=$([[ "$changed_services" == "[]" ]] && echo true || echo false)
+          all_services_mode="${{ inputs.deploy-all-at-tag }}"
           all_stateless_services=(
             svc-radar-ingestion
             svc-ew-ingestion

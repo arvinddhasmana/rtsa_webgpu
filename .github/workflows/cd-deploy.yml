@@ -38,4 +38,5 @@ jobs:
       environment: ${{ inputs.environment }}
       namespace: rtsa
       image-tag: ${{ inputs.image-tag }}
+      deploy-all-at-tag: true
       clean-before-deploy: ${{ inputs.clean-before-deploy }}

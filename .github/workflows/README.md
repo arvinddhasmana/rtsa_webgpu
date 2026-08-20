@@ -11,7 +11,7 @@ GitHub Actions pipelines for the RTSA Azure deployment. All cloud access uses
 | File                         | Trigger                       | Purpose                                                             |
 | ---------------------------- | ----------------------------- | ------------------------------------------------------------------- |
 | `ci.yml`                     | PR to `main`, manual          | SG-1..SG-5 security gates (secrets, headers, build, test, security) |
-| `cd-build.yml`               | push `main`, tag `v*`, manual | Build/sign/scan changed images → ACR, then auto-deploy `dev`        |
+| `cd-build.yml`               | push `main`, tag `v*`, manual | Build/sign/scan changed images → ACR, then reconcile/deploy `dev`  |
 | `cd-deploy.yml`              | manual (`environment`, `tag`) | Promote a built image tag to `test`/`staging`/`prod`                |
 | `infra-up.yml`               | manual (`environment`)        | `terraform apply` an environment landing zone (OIDC)                |
 | `infra-down.yml`             | manual + nightly `cron`       | `terraform destroy` (nightly tears down `dev`+`test`)               |
