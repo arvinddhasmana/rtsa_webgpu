@@ -41,6 +41,16 @@ jobs:
               - 'buf*.yaml'
             svc-radar-ingestion:
               - 'svc-radar-ingestion/**'
+            svc-ew-ingestion:
+              - 'svc-ew-ingestion/**'
+            svc-elint-ingestion:
+              - 'svc-elint-ingestion/**'
+            svc-isr-ingestion:
+              - 'svc-isr-ingestion/**'
+            svc-ais-ingestion:
+              - 'svc-ais-ingestion/**'
+            svc-cyber-ingestion:
+              - 'svc-cyber-ingestion/**'
             svc-fusion-engine:
               - 'svc-fusion-engine/**'
             svc-track:
@@ -58,7 +68,11 @@ jobs:
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
-          go_all = ["svc-radar-ingestion","svc-fusion-engine","svc-track","svc-webtransport","svc-query"]
+            go_all = [
+              "svc-radar-ingestion", "svc-ew-ingestion", "svc-elint-ingestion",
+              "svc-isr-ingestion", "svc-ais-ingestion", "svc-cyber-ingestion",
+              "svc-fusion-engine", "svc-track", "svc-webtransport", "svc-query",
+            ]
           changed = json.loads(os.environ.get("CHANGES","[]"))
           if os.environ.get("SHARED") == "true":
               go = go_all

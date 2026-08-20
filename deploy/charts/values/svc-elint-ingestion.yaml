@@ -1,0 +1,55 @@
+# CLASSIFICATION: UNCLASSIFIED
+# svc-elint-ingestion — electronic intelligence ingestion gateway.
+nameOverride: svc-elint-ingestion
+replicaCount: 1
+ports: { grpc: 50051, health: 8081, metrics: 9090 }
+nodeSelector: { workload: ingestion }
+tolerations:
+  - { key: workload, operator: Equal, value: ingestion, effect: NoSchedule }
+  - {
+      key: kubernetes.azure.com/scalesetpriority,
+      operator: Equal,
+      value: spot,
+      effect: NoSchedule,
+    }
+env:
+  - { name: RTSA_SERVICE_NAME, value: svc-elint-ingestion }
+  - { name: RTSA_REDPANDA_BROKERS, value: redpanda.rtsa.svc.cluster.local:9092 }
+  - { name: RTSA_GRPC_PORT, value: "50051" }
+  - { name: RTSA_HEALTH_PORT, value: "8081" }
+  - { name: RTSA_METRICS_PORT, value: "9090" }
+  - { name: RTSA_REDPANDA_TLS_ENABLED, value: "false" }
+  - { name: RTSA_LOG_LEVEL, value: info }
+  - { name: RTSA_LOG_FORMAT, value: json }
+  - {
+      name: RTSA_OTEL_ENDPOINT,
+      value: otel-collector.observability.svc.cluster.local:4317,
+    }
+probes:
+  liveness:
+    {
+      enabled: true,
+      httpGet: null,
+      grpc: { port: 50051 },
+      initialDelaySeconds: 5,
+      periodSeconds: 10,
+    }
+  readiness:
+    {
+      enabled: true,
+      httpGet: null,
+      grpc: { port: 50051 },
+      initialDelaySeconds: 5,
+      periodSeconds: 10,
+    }
+autoscaling:
+  {
+    mode: hpa,
+    minReplicas: 1,
+    maxReplicas: 4,
+    targetCPUUtilizationPercentage: 70,
+  }
+podDisruptionBudget: { enabled: true, minAvailable: 1 }
+resources:
+  requests: { cpu: 100m, memory: 96Mi }
+  limits: { cpu: "1", memory: 512Mi }

@@ -74,6 +74,7 @@ flowchart LR
 | [12](12-multi-subscription-migration-plan.md)           | Multi-Subscription Migration Plan | Detailed phase-wise execution plan and documentation delta map                              |
 | [13](13-workload-deployment-design.md)                  | Workload Deployment Design        | Existing Helm deploy design, gaps, and proposed target design                               |
 | [14](14-azure-operations-access-and-troubleshooting.md) | Azure Operations Guide            | Manual access, deployment verification, endpoint checks, health checks, and troubleshooting |
+| [15](10-running-aks-demo.md)                            | Finite AKS Demo Runbook           | Run and clean up a synthetic simulator Job against the Dev environment                      |
 
 ## 4. Solution at a Glance
 
