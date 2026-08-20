@@ -16,6 +16,10 @@ on:
         description: Immutable image tag already pushed to ACR.
         type: string
         required: true
+      changed-services:
+        description: JSON array of services changed in the current build. Empty means deploy all services using image-tag.
+        type: string
+        default: "[]"
       clean-before-deploy:
         description: Uninstall all stateless service releases and force-delete stuck pods before deploying. Use to recover from a corrupted/stuck cluster state.
         type: boolean
@@ -123,9 +127,11 @@ jobs:
       - name: Deploy stateless services
         run: |
           set -uo pipefail
-          # Helm values and rendered manifests are the deployment source of truth.
-          # Images are immutable commit-SHA tags, so IfNotPresent remains safe.
+          # Changed services use the new immutable SHA. Healthy unchanged releases
+          # stay untouched; missing releases use their latest existing ACR tag.
           svc_tag="${{ inputs.image-tag }}"
+          changed_services='${{ inputs.changed-services }}'
+          all_services_mode=$([[ "$changed_services" == "[]" ]] && echo true || echo false)
           all_stateless_services=(
             svc-radar-ingestion
             svc-fusion-engine
@@ -138,6 +144,28 @@ jobs:
           failed_services=()
           for svc in "${all_stateless_services[@]}"; do
             echo "::group::$svc"
+
+            current_image="$(kubectl get deployment "$svc" -n "$NS" -o jsonpath='{.spec.template.spec.containers[0].image}' 2>/dev/null || true)"
+            current_tag="${current_image##*:}"
+            deploy_tag=""
+            if [[ "$all_services_mode" == true ]] || python3 -c 'import json, sys; sys.exit(0 if sys.argv[1] in json.loads(sys.argv[2]) else 1)' "$svc" "$changed_services"; then
+              deploy_tag="$svc_tag"
+            elif [[ -n "$current_image" ]]; then
+              helm_status="$(helm status "$svc" --namespace "$NS" -o json 2>/dev/null | jq -r '.info.status // empty' 2>/dev/null || true)"
+              if [[ "$helm_status" == "failed" ]]; then
+                deploy_tag="$current_tag"
+              else
+                echo "Skipping healthy unchanged release $svc ($current_tag)."
+                echo "::endgroup::"
+                continue
+              fi
+            else
+              deploy_tag="$(scripts/azure/resolve-acr-tag.sh --acr "$ACR" --repository "$svc")" || {
+                failed_services+=("$svc")
+                echo "::endgroup::"
+                continue
+              }
+            fi
 
             extra_args=()
             if [[ "$svc" == "svc-webtransport" ]]; then
@@ -154,7 +182,7 @@ jobs:
                 -f "deploy/charts/values/$svc.yaml" \
                 --namespace "$NS" \
                 --set image.repository="$ACR.azurecr.io/$svc" \
-                --set image.tag="$svc_tag" \
+                --set image.tag="$deploy_tag" \
                 "${extra_args[@]}" \
                 --wait --timeout 10m; then
               echo "=== Pod status in $NS ==="
@@ -176,4 +204,10 @@ jobs:
       - name: Verify workload deployment
         run: |
           set -euo pipefail
-          scripts/azure/verify-workload-deployment.sh --namespace "$NS"
+          changed_services='${{ inputs.changed-services }}'
+          verify_args=(--namespace "$NS")
+          if [[ "$changed_services" != "[]" ]]; then
+            changed_services_list="$(python3 -c 'import json, sys; print(" ".join(json.loads(sys.argv[1])))' "$changed_services")"
+            verify_args+=(--changed-deployments "$changed_services_list")
+          fi
+          scripts/azure/verify-workload-deployment.sh "${verify_args[@]}"

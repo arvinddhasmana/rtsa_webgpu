@@ -25,6 +25,8 @@ jobs:
     outputs:
       go: ${{ steps.set.outputs.go }}
       web: ${{ steps.set.outputs.web }}
+      services: ${{ steps.set.outputs.services }}
+      has_changes: ${{ steps.set.outputs.has_changes }}
     steps:
       - uses: actions/checkout@v4
       - id: filter
@@ -53,22 +55,22 @@ jobs:
         env:
           CHANGES: ${{ steps.filter.outputs.changes }}
           SHARED: ${{ steps.filter.outputs.shared }}
-          EVENT: ${{ github.event_name }}
-          REF: ${{ github.ref }}
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os
           go_all = ["svc-radar-ingestion","svc-fusion-engine","svc-track","svc-webtransport","svc-query"]
           changed = json.loads(os.environ.get("CHANGES","[]"))
-          force = (os.environ.get("SHARED")=="true"
-                   or os.environ.get("EVENT")=="workflow_dispatch"
-                   or os.environ.get("REF","").startswith("refs/tags/"))
-          # Helm deploys every service with github.sha. Build every image so
-          # unchanged services also have an image for that immutable tag.
-          go = go_all
-          web = True
+          if os.environ.get("SHARED") == "true":
+              go = go_all
+              web = True
+          else:
+              go = [service for service in go_all if service in changed]
+              web = "web-cop-gpu" in changed
+          services = go + (["web-cop-gpu"] if web else [])
           print("go=" + json.dumps(go))
           print("web=" + ("true" if web else "false"))
+          print("services=" + json.dumps(services))
+          print("has_changes=" + ("true" if services else "false"))
           PY
 
   build-go:
@@ -114,9 +116,10 @@ jobs:
     needs: [changes, build-go, build-web]
     # Run even if one build track was skipped (no changes there), but not if a
     # build actually failed. dev auto-deploys on merge to main.
-    if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main'
+    if: always() && !failure() && !cancelled() && github.ref == 'refs/heads/main' && needs.changes.outputs.has_changes == 'true'
     uses: ./.github/workflows/reusable-deploy-helm.yml
     with:
       environment: dev
       namespace: rtsa
       image-tag: ${{ github.sha }}
+      changed-services: ${{ needs.changes.outputs.services }}
