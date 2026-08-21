@@ -29,6 +29,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: rtsa-deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
 permissions:
   id-token: write
   contents: read
@@ -187,6 +191,14 @@ jobs:
 
             # ingestion/processing pools are Spot, scale-to-zero; node bootstrap
             # after a scale-up-from-0 event can take longer than 5m.
+            helm_status="$(helm status "$svc" --namespace "$NS" -o json 2>/dev/null | jq -r '.info.status // empty' 2>/dev/null || true)"
+            if [[ "$helm_status" == pending-* ]]; then
+              revision="$(helm history "$svc" --namespace "$NS" -o json 2>/dev/null | jq -r --arg status "$helm_status" 'map(select(.status == $status)) | last | .revision // empty' 2>/dev/null || true)"
+              if [[ -n "$revision" ]]; then
+                echo "Removing stale Helm revision $revision for $svc ($helm_status)."
+                kubectl delete secret "sh.helm.release.v1.$svc.v$revision" --namespace "$NS" --ignore-not-found
+              fi
+            fi
             if ! helm upgrade --install "$svc" deploy/charts/rtsa-service \
                 -f "deploy/charts/values/$svc.yaml" \
                 --namespace "$NS" \
