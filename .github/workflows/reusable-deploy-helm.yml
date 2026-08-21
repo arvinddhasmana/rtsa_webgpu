@@ -227,14 +227,26 @@ jobs:
           set -euo pipefail
           ingress_ip="$(kubectl get svc aks-istio-ingressgateway-external \
             --namespace aks-istio-ingress \
-            -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
+            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)"
           [[ -n "$ingress_ip" ]] || {
             echo "ERROR: managed Istio ingress gateway has no public IP" >&2
             exit 1
           }
+          kubectl get crd gateways.networking.istio.io virtualservices.networking.istio.io \
+            >/dev/null || {
+            echo "ERROR: required Istio Gateway or VirtualService CRD is unavailable" >&2
+            exit 1
+          }
+          kubectl wait --for=condition=available deployment/web-cop-gpu \
+            --namespace "$NS" --timeout=5m || {
+            echo "ERROR: web-cop-gpu deployment is not available in $NS" >&2
+            kubectl get deployment web-cop-gpu -n "$NS" -o wide || true
+            kubectl get pods -n "$NS" -l app.kubernetes.io/instance=web-cop-gpu -o wide || true
+            exit 1
+          }
           istio_revision="$(kubectl get pod -n aks-istio-ingress \
             -l app=aks-istio-ingressgateway-external \
-            -o jsonpath='{.items[0].metadata.labels.istio\\.io/rev}')"
+            -o json | jq -r '.items[0].metadata.labels["istio.io/rev"] // empty')"
           [[ -n "$istio_revision" ]] || {
             echo "ERROR: managed Istio ingress gateway has no revision label" >&2
             exit 1
