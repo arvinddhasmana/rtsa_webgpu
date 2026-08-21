@@ -90,6 +90,11 @@ releases=(
   redpanda
   clickhouse
   svc-radar-ingestion
+  svc-ew-ingestion
+  svc-elint-ingestion
+  svc-isr-ingestion
+  svc-ais-ingestion
+  svc-cyber-ingestion
   svc-fusion-engine
   svc-track
   svc-query
@@ -98,6 +103,11 @@ releases=(
 )
 deployments=(
   svc-radar-ingestion
+  svc-ew-ingestion
+  svc-elint-ingestion
+  svc-isr-ingestion
+  svc-ais-ingestion
+  svc-cyber-ingestion
   svc-fusion-engine
   svc-track
   svc-query
@@ -118,7 +128,7 @@ fi
 echo "Checking Helm releases..."
 for release in "${releases[@]}"; do
   # If we know which deployments changed, and it's a stateless service
-  # that we intentionally skipped, skip checking its status since it might 
+  # that we intentionally skipped, skip checking its status since it might
   # have failed in a previous run and we don't plan to fix it here.
   if [[ "$CHANGED_DEPLOYMENTS_SET" == "true" && " ${deployments[*]} " =~ " ${release} " ]]; then
     if [[ ! " ${CHANGED_DEPLOYMENTS} " =~ " ${release} " ]]; then
@@ -200,7 +210,7 @@ if [[ -n "$unhealthy_pods" ]]; then
     # Remove trailing newline
     unhealthy_pods="${filtered_unhealthy%$'\n'}"
   fi
-  
+
   [[ -z "$unhealthy_pods" ]] || fail "unhealthy pods: ${unhealthy_pods//$'\n'/, }"
 fi
 
@@ -210,6 +220,12 @@ for deployment in "${deployments[@]}"; do
       echo "Skipping istio sidecar check for unchanged deployment: ${deployment}"
       continue
     fi
+  fi
+  injection_setting="$(kube get deployment "$deployment" --namespace "$NAMESPACE" \
+    -o json | jq -r '.spec.template.metadata.annotations["sidecar.istio.io/inject"] // empty')"
+  if [[ "$injection_setting" == "false" ]]; then
+    echo "Skipping istio sidecar check for deployment with injection disabled: ${deployment}"
+    continue
   fi
   pod_containers="$(kube get pods --namespace "$NAMESPACE" \
     --selector="app.kubernetes.io/instance=${deployment}" \

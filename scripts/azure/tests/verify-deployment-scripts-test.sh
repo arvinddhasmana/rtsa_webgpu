@@ -88,6 +88,8 @@ case "$args" in
   *" get namespace "*"istio"*) echo "asm-1-29" ;;
   *" get namespace "*) exit 0 ;;
   *" get serviceaccount svc-webtransport "*) echo "11111111-1111-1111-1111-111111111111" ;;
+  *" get deployment web-cop-gpu "*"-o json "*) echo '{"spec":{"template":{"metadata":{"annotations":{"sidecar.istio.io/inject":"false"}}}}}' ;;
+  *" get deployment "*"-o json "*) echo '{"spec":{"template":{"metadata":{"annotations":{}}}}}' ;;
   *" get deployment "*) echo "example.azurecr.io/service:sha-test" ;;
   *" get pods "*"--selector="*)
     echo '{"items":[{"spec":{"containers":[{"name":"service"}],"initContainers":[{"name":"istio-proxy"}]}}]}'
